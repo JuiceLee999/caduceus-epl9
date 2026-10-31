@@ -64,3 +64,15 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   section 2 = 0x60280800..0x6055e800 (contains builder); tail 0x6055e5b0..0x6055e800 all FF, no abs32 refs. Agrees.
 - UI agent: `tools/osd_extract.py` (5514/5514 bitmaps, 245 symbols, fonts), `sim/ui_mock.py` + screens, docs/OSD.md.
   E-P7 uses RLE modes 9/10/11 (no PEN-F format 3) → "Value" graphic must be re-encoded. Colour wheel is runtime-drawn.
+
+## 2026-11-01 — Step 3: minimal fixed-H/L patch (offline)
+- **Verified (me)** section loader: table 0x60027068 + end getter 0x60045786 → section 2 = 0x60280800..0x6055e800.
+- `patches/hsl/ep7-fixed/`: recipe → 5-byte hook (0x603b02d9 `cd8ffdf060` → `jmp 0x6055e5c0`) + 116-byte routine
+  (re-issues builder call, inline 16-byte frame, writes hue/L of 12 output records from a constant table, jmp 0x603b02de).
+  Native values: H = -1000*slider, L = fishcu LUT; physical record order r ↔ UI 2*(r%6)+r//6.
+- `tools/ep7_verify_package.py`: builds the package in memory and runs the native selector from the PATCHED payload
+  vs STOCK in the emulator. classic_neg: **PASS** at 4 saturation sets (H/L exact, sat + all other output bytes ==
+  stock, ctx == stock, stack/callee-saved OK); 109 changed bytes all inside edit spans.
+  Mutation tests (offset 706→708, loop 12→11, stack 16→12): all detected (FAIL).
+- Scope limits: emulator covers CPU code only, not the ISP's pixel response, live-view path, or the alternate
+  builder 0x603afb94. On-camera H/L direction/scale unverified.
