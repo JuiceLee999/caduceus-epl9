@@ -1,0 +1,4 @@
+{"recipes": [
+ {"name": "smoke-warm-grain", "sat": [2,3,1,1,1,2,2,3,3,2,1,1], "tone": {"highlights": 2, "shadows": 1}, "contrast": 1, "wb_shift": {"a_b": 2}, "grain": "medium", "vignette": -2},
+ {"name": "smoke-teal-orange-HSL", "sat": [0,3,2,0,-2,-3,2,3,3,0,-3,-3], "hue": [0,0,0,0,0,0,0,-2,-2,-3,-3,-3], "light": [0,1,1,0,0,0,-2,-2,0,0,-1,-1]}
+]}

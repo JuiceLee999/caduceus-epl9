@@ -30,3 +30,7 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - `sim/diff_test.py` Kodachrome(1063) vs warm(1064) same scene: per-hue chroma-ratio error 0.31 without sector
   model → 0.13 with it (corr 0.86). Engine reproduces the camera's Color Profile behaviour approximately.
   Defaults chosen: angle_offset 15°, sat_scale 1.5, base_chroma 1.1 (fitted; not firmware facts).
+- `sim/film.py`: recipe renderer limited to camera-feasible controls (stock + planned HSL/grain/vignette).
+  Base curve `sim/base_curve.json` = median of 12 fitted camera curves (consistent in shadows/mids).
+  Tone-step model cross-checked: 1063 vs 1064 shadow delta ≈ 0.012 luma/step, matches TONE_STEP model.
+  Grain scaled for preview size; hue step 5.5°/step is a placeholder pending camera test.

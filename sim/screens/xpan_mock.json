@@ -1,0 +1,15 @@
+{
+  "name": "xpan_frames_mock",
+  "canvas": [720, 480],
+  "background": {"type": "placeholder"},
+  "notes": [
+    "MOCK - proposed framing overlays. 65:24 and 21:9 boxes are computed (full width); stock per-aspect grids",
+    "(e.g. bitmap 5997 720x480, 6012 720x405) suggest the firmware uses aspect-sized overlay assets."
+  ],
+  "elements": [
+    {"type": "aspect_frame", "aspect": "21:9", "mask": "#55000000", "line": 6},
+    {"type": "aspect_frame", "aspect": "65:24", "mask": "#88000000", "line": 4},
+    {"type": "bitmap", "id": 18, "x": 14, "y": 8},
+    {"type": "watermark", "text": "MOCK", "x": 706, "y": 8, "anchor": "tr", "fg": 13}
+  ]
+}

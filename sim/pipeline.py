@@ -31,20 +31,31 @@ TABLE_JSON = ROOT / 'generated/color/ep7_color_table.json'
 SECTORS = ['yellow', 'orange', 'orange-red', 'red', 'magenta', 'violet',
            'blue', 'blue-cyan', 'cyan', 'green-cyan', 'green', 'yellow-green']
 
+# Hue step: fishcu H_native = -1000*slider; if 32768 == 360 deg that is 11 deg/step.
+# Direction and true scale unverified on camera -> use half (5.5 deg/step) for previews.
+HUE_DEG_PER_STEP = 5.5
+
 # Raw is 5200x3904, camera JPEG 5184x3888: assume a centred 8 px border.
 RAW_BORDER = 8
 
 
 # ---------------------------------------------------------------- stage 1
-def develop(orf: Path, half: bool = True) -> np.ndarray:
-    """Linear sRGB render with camera WB, no auto-brightening, no flip."""
+def develop(orf: Path, half: bool = True, orient: bool = False) -> np.ndarray:
+    """Linear sRGB render with camera WB, no auto-brightening.
+
+    orient=False keeps sensor orientation (matches camera JPEG pixel data, used
+    for calibration); orient=True applies the EXIF/LibRaw flip for previews.
+    """
     with rawpy.imread(str(orf)) as r:
+        flip = r.sizes.flip
         rgb = r.postprocess(use_camera_wb=True, output_color=rawpy.ColorSpace.sRGB,
                             gamma=(1, 1), no_auto_bright=True, output_bps=16,
                             half_size=half, user_flip=0)
     b = RAW_BORDER // 2 if half else RAW_BORDER
     rgb = rgb[b:-b, b:-b]
-    return rgb.astype(np.float32) / 65535.0
+    if orient:
+        rgb = {3: np.rot90(rgb, 2), 5: np.rot90(rgb, 1), 6: np.rot90(rgb, -1)}.get(flip, rgb)
+    return np.ascontiguousarray(rgb).astype(np.float32) / 65535.0
 
 
 def load_jpeg(path: Path, size: tuple[int, int] | None = None) -> np.ndarray:
@@ -186,7 +197,7 @@ class ColorEngine:
         hue = np.degrees(np.arctan2(cr, cb)) % 360
         w = self.weights(hue)
         sat_mult = 1 + (w @ self.sat_coeff(cs.sat)) / 1000.0
-        hue_shift = w @ (np.asarray(cs.hue, float) * 1000 / 32768 * 360 * 0.25)  # H: -1000*slider native units
+        hue_shift = w @ (np.asarray(cs.hue, float) * HUE_DEG_PER_STEP)
         l_tab = np.array([-300, -250, -200, -150, -100, -50, -25, 0, 25, 50, 100, 150, 200, 250, 300], float)
         l_native = l_tab[np.clip(np.asarray(cs.light, int), -7, 7) + 7]
         chroma = np.hypot(cb, cr)
@@ -199,10 +210,14 @@ class ColorEngine:
 
 
 # ---------------------------------------------------------------- stage 4: grain
-def grain(rgb_gamma: np.ndarray, strength: str = 'medium', seed: int = 10, colour: bool = True) -> np.ndarray:
+def grain(rgb_gamma: np.ndarray, strength: str = 'medium', seed: int = 10, colour: bool = True,
+          full_width: int = 5184) -> np.ndarray:
     """Olympus creative grain (xorshift32, brightness mask). fishcu GRAIN.md.
 
     Applied to 16-bit luma; chroma passes through (colour=True keeps colour).
+    The formula is per full-resolution pixel; for a downscaled preview the
+    noise std is scaled by (preview_width / full_width) to match the look of
+    a full-res image viewed at the same size.
     """
     gain = dict(low=110, medium=300, high=600)[strength]
     h, w, _ = rgb_gamma.shape
@@ -223,8 +238,8 @@ def grain(rgb_gamma: np.ndarray, strength: str = 'medium', seed: int = 10, colou
     m = (mask_curve[idx] * 64).astype(np.int64)
     weight = (m + ((m >> 15) & 1)) >> 6
     noise = (((gain * weight) >> 10) * rnd) >> 10
-    noise = np.clip(noise, -6682, 65535)
-    y_out = np.clip(y16 + noise, 0, 65535).reshape(h, w) / 65535.0
+    noise = np.clip(noise, -6682, 65535) * min(1.0, w / full_width)
+    y_out = np.clip(y16 + noise.astype(np.int64), 0, 65535).reshape(h, w) / 65535.0
     ycc[..., 0] = y_out
     if not colour:
         ycc[..., 1:] = 0

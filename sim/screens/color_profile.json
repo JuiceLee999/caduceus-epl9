@@ -1,0 +1,21 @@
+{
+  "name": "color_profile_stock",
+  "canvas": [720, 480],
+  "background": {"type": "placeholder"},
+  "notes": [
+    "Stock Color Profile edit screen - APPROXIMATION. Firmware assets: bitmaps 4344 (COLOR 1), 7567 (ALL Reset/OK Hold),",
+    "font res 35, symbol @A017@, strings 2749/2756. Layout positions are guesses; wheel is procedural (stock wheel is C3D-drawn).",
+    "Colours from candidate palette 0x61110e7c (runtime palette selection unverified)."
+  ],
+  "elements": [
+    {"type": "rect", "box": [0, 0, 720, 64], "fill": "#99000000"},
+    {"type": "bitmap", "id": 4344, "x": 14, "y": 8},
+    {"type": "text", "string_id": 2749, "x": 92, "y": 12},
+    {"type": "color_wheel", "cx": 360, "cy": 262, "r_outer": 170, "r_inner": 146,
+     "values": [0, 1, 2, 3, 2, 0, -1, -2, 0, 1, 0, -1], "selected": 3, "range": 5},
+    {"type": "text", "text": "+3", "x": 560, "y": 130, "fg": 1},
+    {"type": "rect", "box": [0, 430, 720, 50], "fill": "#99000000"},
+    {"type": "text", "string_id": 2756, "x": 14, "y": 436, "scale": 0.8},
+    {"type": "bitmap", "id": 7567, "x": 706, "y": 476, "anchor": "br"}
+  ]
+}
