@@ -73,6 +73,18 @@ def gaussian_blur(img: np.ndarray, sigma: float) -> np.ndarray:
     """
     if sigma < 0.3:
         return img
+    if sigma < 3:                                   # small kernels: exact separable Gaussian
+        r = int(np.ceil(3 * sigma))
+        k = np.exp(-0.5 * (np.arange(-r, r + 1) / sigma) ** 2).astype(np.float32)
+        k /= k.sum()
+        out = img
+        for ax in (0, 1):
+            pad = [(0, 0)] * img.ndim
+            pad[ax] = (r, r)
+            p = np.pad(out, pad, mode='edge')
+            n = out.shape[ax]
+            out = sum(k[i] * np.take(p, np.arange(i, i + n), axis=ax) for i in range(2 * r + 1))
+        return out.astype(np.float32)
     h, w = img.shape[:2]
     f = max(1, int(sigma / 3))                      # keep >= 3 px of sigma after reduction
     small = img if f == 1 else _resize(img, (max(1, w // f), max(1, h // f)), Image.BOX)
@@ -245,8 +257,10 @@ def film_curve(lin: np.ndarray, slope=1.6, toe: float = 0.3, black=0.002, should
     lin = np.maximum(lin, 0) * 2.0 ** exposure
     slope, black, white = (np.broadcast_to(np.asarray(v, np.float32), (3,)) for v in (slope, black, white))
 
-    def curve(x, c):
-        t = np.log2(np.maximum(x, 1e-6) / mid_in)
+    lx = np.linspace(-14, 4, 4097)                # log2 input grid; curve evaluated once as a LUT
+
+    def lut(c):
+        t = lx - np.log2(mid_in)
         dw = np.log2(white[c] / mid_out)
         t1 = slope[c] * np.log2(clip_in * 2.0 ** exposure / mid_in)
         if t1 > dw + 0.05:   # anchor: clip -> white
@@ -255,7 +269,12 @@ def film_curve(lin: np.ndarray, slope=1.6, toe: float = 0.3, black=0.002, should
             W = dw
         d = _smin(slope[c] * t, W, shoulder)
         d = _smax(d, np.log2(max(black[c], 1e-5) / mid_out), toe)
-        return mid_out * 2.0 ** d
+        return (mid_out * 2.0 ** d).astype(np.float32)
+
+    luts = [lut(c) for c in range(3)]
+
+    def curve(x, c):
+        return np.interp(np.log2(np.maximum(x, 2.0 ** -14)), lx, luts[c]).astype(np.float32)
 
     out_pc = np.stack([curve(lin[..., c], c) for c in range(3)], -1)
     if per_channel < 1:

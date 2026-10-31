@@ -104,3 +104,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - Aspect tables found: 9 still aspects in code (5:4, 7:6, 6:5, 7:5 hidden) + 17:9 entry; XPan/21:9 via repurposed hidden slots (FEATURE_GAPS.md).
 - Aspect menu mask: simple value-list search (ids 1,2,3,4,9 / codes) found nothing specific → needs schema/menu trace (queued).
 - Profile bundles design (docs/PROFILE_BUNDLES.md, bundles/example.json): per-COLOR-slot HSL/grain/WB/effect table; blocker = active profile index at hooks.
+- Issues #11 rename profiles (OSD strings + badges), #12 more slots (hard; alternatives listed).
