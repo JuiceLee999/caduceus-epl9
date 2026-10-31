@@ -93,7 +93,7 @@
    "name": "extension",
    "kind": "code_space",
    "penf_addr": "0x6069b2b0",
-   "role": "H/L override routine (220 B in PEN-F) in section-3 FF tail, same section as the hook",
+   "role": "H/L override routine (PEN-F: 220 B in its section-3 FF tail); E-P7: section-2 FF tail, same section as the hook",
    "ep7_addr": "0x6055e5c0",
    "ep7_bytes": 224,
    "confidence": "medium",
