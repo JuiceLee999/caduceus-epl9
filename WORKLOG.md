@@ -117,3 +117,8 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   Not transported into job/request → hook can't see it yet. Design: job +1 byte (constructor edits 0x603537f0/
   0x6035390c) + converter hooks 0x603e669f/0x603e91e4; getter fallback for live view. MONO splits at 0x603b02c1.
   WB fine-tune: candidates settings 324/325, 329/330 — unresolved.
+- Colour grain (agent, docs/GRAIN_PORT.md): 3 gates (converter copies grain only for mode 12; work-list gives COLOR
+  no grain pass; combiner selector maps 0x0901/0x0902 only for key 12). Approach B built: hooks 0x6035749f,
+  0x603b5249 + 123 B @0x6055e680–0x6055e6fa; COLOR gets MONO's single-pass grain (combiner 32, gain 50/75/100).
+  **Re-run by me:** tools/ep7_grain_verify.py all PASS; merged v0.1+grain+rec_limit = 7 edits / 243 B, H/L verifier PASS.
+  Main unknown: combiner 32 never used on full-size stills in stock (possible size limit) — on-camera test needed.
