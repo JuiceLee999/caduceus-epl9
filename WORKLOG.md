@@ -19,3 +19,14 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - **Verified** CPU mapping (base 0x60020020) + fishcu's E-P7 colour addresses: builder 0x603b0068 uses record
   offset 688 and ends `mov d0,(976,a0); retf` at 0x603b024b–0x603b024f, matching their records/control offsets.
 - Added `tools/dis.sh` (disassemble by CPU address). **Step 1 complete.**
+
+## 2026-11-01 — Step 2: desktop sims
+- Emulator: fishcu MN103 sim built from git commit 87ffb882 (gitiles tarball hash not reproducible; commit + pristine
+  file hashes verified; regenerated strict patch byte-identical). fishcu synthetic checks: 50/50 pass.
+- `tools/ep7_color_table.py`: E-P7 COLOR table extracted; **verified** SHA `a33d64bd…` = fishcu shared-table hash.
+  Records: word0 = sector centre angle, word1 = width, +14 = sat amplitude; per-sector +/- gains.
+- `sim/pipeline.py`: ORF→LibRaw linear→tone curve→12-sector engine (firmware angles/gains)→grain→crop.
+- `sim/calibrate.py` vs 12 camera JPEGs (testdata, gitignored): colour-only median dE76 ~1–6 (mean 3.1 on CP shots).
+- `sim/diff_test.py` Kodachrome(1063) vs warm(1064) same scene: per-hue chroma-ratio error 0.31 without sector
+  model → 0.13 with it (corr 0.86). Engine reproduces the camera's Color Profile behaviour approximately.
+  Defaults chosen: angle_offset 15°, sat_scale 1.5, base_chroma 1.1 (fitted; not firmware facts).

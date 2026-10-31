@@ -1,0 +1,1068 @@
+{
+  "schema": "ep7-fuji-like-recipes/1",
+  "sector_order": [
+    "yellow",
+    "orange",
+    "orange_red",
+    "red",
+    "magenta",
+    "violet",
+    "blue",
+    "blue_cyan",
+    "cyan",
+    "green_cyan",
+    "green",
+    "yellow_green"
+  ],
+  "conventions": {
+    "range": "-7..7 for sat/hue/light/tone (stock firmware: sat -5..5, hue and light must be 0); contrast -5..5; vignette -5..5",
+    "wb_shift": "a_b positive = amber, negative = blue; g_m positive = magenta, negative = green; -7..7 (E-P7 WB fine-tune steps)",
+    "hue": "positive = rotate toward the PREVIOUS sector in sector_order (index-1, wrapping yellow->yellow_green), i.e. counter-clockwise in CIELAB a*b* and BT.601 CbCr; e.g. red+ -> orange, blue+ -> violet, green+ -> green_cyan. Chosen to match sim/pipeline.py, which adds the hue slider to atan2(Cr,Cb) while firmware sector centre angles decrease with ui_index.",
+    "vignette": "negative = darker corners (Olympus shading-effect convention; verify on camera)",
+    "grain": "off|low|medium|high = E-P7 film grain levels; colour recipes with grain need the planned colour-grain mod",
+    "baseline": "all values are relative to an E-P7 Color Profile at 0, assumed to approximate PROVIA",
+    "status": "untested starting points derived from public LUT measurements and descriptions; validate against Fuji JPEGs / ColorChecker shots"
+  },
+  "recipes": {
+    "provia": {
+      "base": "Color Profile (all-zero) ~ PROVIA/Standard",
+      "sat": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "hue": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "light": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tone": {
+        "highlights": 0,
+        "shadows": 0,
+        "midtones": 0
+      },
+      "contrast": 0,
+      "wb_shift": {
+        "a_b": 0,
+        "g_m": 0
+      },
+      "grain": "off",
+      "vignette": 0,
+      "stock_compatible": true,
+      "notes": "Reference/baseline. Assumes E-P7 Color Profile at 0 renders close to PROVIA; validate first, and if the E-P7 baseline is flatter, raise all sat by +1..+2 and treat every other recipe as relative to this one.",
+      "stock_fallback": {
+        "sat": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "hue": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "light": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "velvia": {
+      "base": "Color Profile ~ Velvia/Vivid",
+      "sat": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        2,
+        3,
+        0,
+        1,
+        1,
+        1
+      ],
+      "hue": [
+        0,
+        0,
+        0,
+        0,
+        -1,
+        -1,
+        1,
+        2,
+        2,
+        -2,
+        0,
+        0
+      ],
+      "light": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "tone": {
+        "highlights": 0,
+        "shadows": -3,
+        "midtones": 0
+      },
+      "contrast": 1,
+      "wb_shift": {
+        "a_b": 0,
+        "g_m": 0
+      },
+      "grain": "off",
+      "vignette": 0,
+      "stock_compatible": false,
+      "notes": "Sat from measured chroma ratio vs PROVIA (+9..+27%, F-Log2->Velvia LUT); blues rotate toward violet and cyan toward blue (measured +1..+5 deg, matches Imaging Resource's 'royal blue skies'); deep shadows much darker (L* 4.1 vs 9.5 at -2 EV) -> shadows -3.",
+      "stock_fallback": {
+        "sat": [
+          1,
+          2,
+          2,
+          2,
+          1,
+          2,
+          2,
+          3,
+          0,
+          1,
+          1,
+          1
+        ],
+        "hue": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "light": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "classic_chrome": {
+      "base": "Color Profile ~ CLASSIC CHROME",
+      "sat": [
+        -2,
+        -2,
+        -2,
+        -1,
+        -1,
+        -3,
+        -3,
+        -3,
+        -1,
+        -3,
+        -3,
+        -3
+      ],
+      "hue": [
+        -2,
+        -1,
+        0,
+        0,
+        3,
+        1,
+        -2,
+        -4,
+        -2,
+        2,
+        0,
+        -2
+      ],
+      "light": [
+        -1,
+        -1,
+        0,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -2,
+        -1
+      ],
+      "tone": {
+        "highlights": 0,
+        "shadows": -3,
+        "midtones": 0
+      },
+      "contrast": 1,
+      "wb_shift": {
+        "a_b": 0,
+        "g_m": 0
+      },
+      "grain": "off",
+      "vignette": 0,
+      "stock_compatible": false,
+      "notes": "Measured: yellows/greens/blues -21..-29% chroma, reds only -10%; blue and blue-cyan rotate toward cyan (-7/-16 deg) and magenta toward red (+5 deg) = Fuji's 'magenta removed from skies'; harder shadows (L* 5.2 vs 9.5 at -2 EV), slightly steeper mid-tones.",
+      "stock_fallback": {
+        "sat": [
+          -2,
+          -2,
+          -2,
+          -1,
+          -1,
+          -3,
+          -3,
+          -3,
+          -1,
+          -3,
+          -3,
+          -3
+        ],
+        "hue": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "light": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "classic_neg": {
+      "base": "Color Profile ~ CLASSIC Neg.",
+      "sat": [
+        -3,
+        -2,
+        -2,
+        0,
+        -1,
+        -5,
+        -5,
+        -3,
+        -1,
+        -4,
+        -4,
+        -4
+      ],
+      "hue": [
+        0,
+        -1,
+        0,
+        0,
+        7,
+        6,
+        -2,
+        -3,
+        6,
+        7,
+        5,
+        2
+      ],
+      "light": [
+        -4,
+        -4,
+        -3,
+        -2,
+        -1,
+        2,
+        2,
+        3,
+        -1,
+        -3,
+        -5,
+        -5
+      ],
+      "tone": {
+        "highlights": 4,
+        "shadows": -2,
+        "midtones": 1
+      },
+      "contrast": 2,
+      "wb_shift": {
+        "a_b": 1,
+        "g_m": 0
+      },
+      "grain": "off",
+      "vignette": 0,
+      "stock_compatible": false,
+      "notes": "Largest hue twists of any sim (measured): magenta->red +27 deg, violet->magenta +20, greens->cyan +13..+33, cyan->blue +17 (clipped to +/-7 steps). Per-hue luminance (Fuji's 'colour-by-colour contrast'): yellows/greens 5-8 L* darker, blues/violets 2-6 L* lighter. Steepest mid-tone curve and much brighter upper mid-tones (+1 EV: L* 72 vs 65). Its split tone (greenish shadows, warm highlights) cannot be reproduced; WB +1 amber is a global compromise.",
+      "stock_fallback": {
+        "sat": [
+          -3,
+          -2,
+          -2,
+          0,
+          -1,
+          -5,
+          -5,
+          -3,
+          -1,
+          -4,
+          -4,
+          -4
+        ],
+        "hue": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "light": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "nostalgic_neg": {
+      "base": "Color Profile ~ NOSTALGIC Neg. (qualitative, no LUT data)",
+      "sat": [
+        1,
+        1,
+        1,
+        0,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        0,
+        1
+      ],
+      "hue": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -2,
+        -3,
+        -1
+      ],
+      "light": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tone": {
+        "highlights": -1,
+        "shadows": 0,
+        "midtones": 1
+      },
+      "contrast": -1,
+      "wb_shift": {
+        "a_b": 2,
+        "g_m": 0
+      },
+      "grain": "off",
+      "vignette": -1,
+      "stock_compatible": false,
+      "notes": "No public LUT for this sim: built from Fuji's description (amber-tinted highlights, rich shadows, softer tone) and reports of yellow-shifted greens and more saturation than Classic Neg. Amber is applied globally through WB because the E-P7 has no highlight-only toning; Fuji itself says amber via WB alone looks unnatural, so expect the weakest match of the set.",
+      "stock_fallback": {
+        "sat": [
+          1,
+          1,
+          1,
+          0,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          0,
+          1
+        ],
+        "hue": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "light": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "reala_ace": {
+      "base": "Color Profile ~ REALA ACE",
+      "sat": [
+        0,
+        0,
+        0,
+        0,
+        -1,
+        -1,
+        0,
+        -1,
+        -2,
+        -3,
+        -3,
+        -2
+      ],
+      "hue": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -1,
+        -2
+      ],
+      "light": [
+        0,
+        -2,
+        -2,
+        -2,
+        -2,
+        -1,
+        -4,
+        -4,
+        -4,
+        -1,
+        0,
+        0
+      ],
+      "tone": {
+        "highlights": 2,
+        "shadows": 1,
+        "midtones": 0
+      },
+      "contrast": 1,
+      "wb_shift": {
+        "a_b": 0,
+        "g_m": 0
+      },
+      "grain": "off",
+      "vignette": 0,
+      "stock_compatible": false,
+      "notes": "Measured: near-PROVIA hues (mean |dh| 1.6 deg), greens/cyans -15..-25% chroma with stronger suppression of saturated colours (green 0.79 moderate vs 0.61 saturated; Fuji: 'the more saturated the subject, the more muted'), blues/cyans 5-6 L* darker, brighter upper mid-tones (+1 EV L* 68 vs 65) and slightly lifted -2 EV shadows.",
+      "stock_fallback": {
+        "sat": [
+          0,
+          0,
+          0,
+          0,
+          -1,
+          -1,
+          0,
+          -1,
+          -2,
+          -3,
+          -3,
+          -2
+        ],
+        "hue": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "light": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "eterna": {
+      "base": "Color Profile ~ ETERNA/Cinema",
+      "sat": [
+        -2,
+        -2,
+        -3,
+        -2,
+        -2,
+        -3,
+        -4,
+        -5,
+        -2,
+        -3,
+        -3,
+        -3
+      ],
+      "hue": [
+        0,
+        3,
+        2,
+        0,
+        0,
+        0,
+        -2,
+        -6,
+        -4,
+        0,
+        -1,
+        -2
+      ],
+      "light": [
+        -1,
+        -1,
+        -2,
+        -3,
+        -3,
+        -2,
+        -2,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "tone": {
+        "highlights": -2,
+        "shadows": 4,
+        "midtones": 0
+      },
+      "contrast": -2,
+      "wb_shift": {
+        "a_b": 0,
+        "g_m": 0
+      },
+      "grain": "off",
+      "vignette": 0,
+      "stock_compatible": false,
+      "notes": "Measured: chroma ~0.71x PROVIA overall, blues/blue-cyan cut hardest; blue-cyan/cyan rotate toward cyan (-15..-20 deg), oranges toward yellow (+3..+13 deg). Tone: the most lifted shadows of any sim (L* 14.6 vs 9.5 at -2 EV, 1.8 vs 0.4 at -4 EV) and a slightly lower shoulder.",
+      "stock_fallback": {
+        "sat": [
+          -2,
+          -2,
+          -3,
+          -2,
+          -2,
+          -3,
+          -4,
+          -5,
+          -2,
+          -3,
+          -3,
+          -3
+        ],
+        "hue": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "light": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "eterna_bleach_bypass": {
+      "base": "Color Profile ~ ETERNA BLEACH BYPASS",
+      "sat": [
+        -6,
+        -7,
+        -7,
+        -5,
+        -4,
+        -7,
+        -7,
+        -7,
+        -6,
+        -7,
+        -7,
+        -7
+      ],
+      "hue": [
+        0,
+        0,
+        -2,
+        -3,
+        0,
+        0,
+        -3,
+        -7,
+        -5,
+        0,
+        0,
+        0
+      ],
+      "light": [
+        -2,
+        -3,
+        -4,
+        -5,
+        -4,
+        -3,
+        -1,
+        -1,
+        -1,
+        -2,
+        -3,
+        -2
+      ],
+      "tone": {
+        "highlights": 4,
+        "shadows": -3,
+        "midtones": 0
+      },
+      "contrast": 3,
+      "wb_shift": {
+        "a_b": 0,
+        "g_m": 0
+      },
+      "grain": "off",
+      "vignette": 0,
+      "stock_compatible": false,
+      "notes": "Measured: chroma 0.47x PROVIA (lowest), reds 9-16 L* darker than neutral; blue-cyan/cyan rotate toward cyan (-13..-31 deg). Tone: steepest mid-tones with Classic Neg (26 L*/EV vs 19), brighter highlights, darker -1/-2 EV. Needs the +/-7 saturation extension; stock -5 gets only part of the way.",
+      "stock_fallback": {
+        "sat": [
+          -5,
+          -5,
+          -5,
+          -5,
+          -4,
+          -5,
+          -5,
+          -5,
+          -5,
+          -5,
+          -5,
+          -5
+        ],
+        "hue": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "light": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "acros": {
+      "base": "Monochrome Profile ~ ACROS",
+      "sat": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "hue": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "light": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tone": {
+        "highlights": 1,
+        "shadows": -2,
+        "midtones": 0
+      },
+      "contrast": 1,
+      "wb_shift": {
+        "a_b": 0,
+        "g_m": 0
+      },
+      "grain": "low",
+      "vignette": 0,
+      "mono_filter": {
+        "colour": "blue",
+        "strength": 1
+      },
+      "mono_filter_variants": {
+        "acros_ye": "yellow",
+        "acros_r": "red",
+        "acros_g": "green"
+      },
+      "stock_compatible": true,
+      "notes": "Measured from the F-Log2->ACROS LUT: relative to BT.709 luminance, blues/violets render 8-9 L* lighter and reds/oranges 6-8 L* darker, i.e. a mildly blue-leaning response -> weak blue filter. Tone: harder lower-mid to highlight (20.5 L*/EV), darker -2 EV shadows. Ye/R/G variants: use the E-P7 yellow/red/green filter instead.",
+      "stock_fallback": {
+        "sat": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "hue": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "light": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "kodachrome_64": {
+      "base": "Color Profile ~ Fuji X Weekly 'Kodachrome 64' (X-Trans V; Classic Chrome base)",
+      "sat": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        -1,
+        -1,
+        -1,
+        1,
+        -1,
+        -1,
+        -1
+      ],
+      "hue": [
+        -2,
+        -1,
+        0,
+        0,
+        3,
+        1,
+        -2,
+        -4,
+        -2,
+        2,
+        0,
+        -2
+      ],
+      "light": [
+        -3,
+        -3,
+        -2,
+        -3,
+        -1,
+        -1,
+        -2,
+        -1,
+        -1,
+        -1,
+        -3,
+        -2
+      ],
+      "tone": {
+        "highlights": -1,
+        "shadows": -2,
+        "midtones": 0
+      },
+      "contrast": 2,
+      "wb_shift": {
+        "a_b": 3,
+        "g_m": 1
+      },
+      "grain": "low",
+      "vignette": 0,
+      "stock_compatible": false,
+      "notes": "Classic Chrome recipe + FXW settings: Color +2 -> sat +2 on every sector; Color Chrome Effect Strong -> extra -1..-2 lightness on saturated warm sectors, greens and blue; DR200 -> highlights -1; Shadow +0.5 -> shadows -2 instead of -3; Clarity +3 has no equivalent, approximated with contrast +2; WB Red +2/Blue -5 -> amber +3, magenta +1; Grain Weak/Small -> low.",
+      "stock_fallback": {
+        "sat": [
+          0,
+          0,
+          0,
+          1,
+          1,
+          -1,
+          -1,
+          -1,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        "hue": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "light": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "needs_color_grain": true
+    }
+  }
+}
