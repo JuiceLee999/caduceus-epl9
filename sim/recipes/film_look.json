@@ -1,0 +1,74 @@
+{
+  "schema": "ep7-film-look-recipes/1",
+  "about": "Showcase recipes using the optional film-look stages in sim/effects.py (see docs/FILM_LOOK.md). Untested starting points, tuned by eye on testdata ORFs at 900 px. Sector order and conventions as in fuji_like.json.",
+  "camera_feasibility_legend": {
+    "yes": "maps onto an existing E-P7 ISP primitive with parameters only (LUT / matrix / 12-sector HSL / grain combiner / shading)",
+    "maybe": "needs an Art Filter blur/blend job re-parameterised (Soft Focus / Diorama path), not yet located in firmware",
+    "no": "no known primitive; desktop or post only"
+  },
+  "recipes": {
+    "cinestill_800t": {
+      "notes": "Tungsten-balanced, remjet-free motion-picture stock: strong red-orange halation rings round lights, cool cast in daylight, cyan-leaning blacks, visible colour grain. Best on night or backlit scenes with point lights.",
+      "camera_feasibility": {
+        "wb_shift": "yes (WB fine-tune)",
+        "sat/hue/light": "yes with HSL mod",
+        "film_curve": "yes-ish: per-channel RGB gamma LUT (crossover blacks) if the RGB-gamma unit accepts custom curves; otherwise tone levels only",
+        "halation": "maybe: Soft Focus blur on a highlight-keyed, red-tinted copy; the tint and threshold need a LUT before the blur and an additive blend",
+        "bloom": "maybe: Soft Focus blend at low strength",
+        "subtractive_saturation": "approx: negative per-sector lightness on saturated sectors",
+        "grain_v2": "partial: grain combiner has amplitude + luma mask; no size control, colour needs the colour-grain mod"
+      },
+      "wb_shift": {"a_b": -4, "g_m": 1},
+      "sat": [-1, -1, 0, 1, 0, 0, 1, 1, 1, -1, -2, -2],
+      "hue": [0, 0, 0, 0, 0, 0, 0, -2, -2, 0, 2, 0],
+      "light": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "bloom": {"strength": 0.06, "radius_pct": 2.5, "tail": 0.6},
+      "halation": {"strength": 0.9, "threshold": 0.75, "radius_pct": 1.0, "tint": [1.0, 0.25, 0.05], "tail": 0.5, "ring": 0.3, "clip_boost": 4.0},
+      "subtractive_saturation": {"amount": 0.15},
+      "film_curve": {"slope": 1.45, "toe": 0.6, "shoulder": 1.1, "black": [0.004, 0.007, 0.010], "per_channel": 0.7},
+      "grain_v2": {"strength": 0.35, "size": 1.8, "colour": 0.4, "layer_size": [1.0, 1.0, 1.4]},
+      "vignette": -1
+    },
+    "portra_400_bloom": {
+      "notes": "Portra 400 overexposed ~1/3 stop through a 1/2 Black Pro-Mist: low contrast, very soft shoulder, warm pastel skin, glow that lifts shadows next to highlights, fine low-chroma grain.",
+      "camera_feasibility": {
+        "wb_shift": "yes",
+        "sat/hue/light": "yes with HSL mod",
+        "film_curve": "yes: luminance LUT (soft shoulder/lifted toe) + tone levels; per_channel part needs RGB gamma LUT",
+        "bloom": "maybe: Soft Focus (I) is a blurred-copy blend; a real 1/2 Pro-Mist on the lens is the zero-firmware alternative",
+        "halation": "maybe (as above), weak here",
+        "subtractive_saturation": "approx via per-sector lightness",
+        "grain_v2": "partial (amplitude only)"
+      },
+      "wb_shift": {"a_b": 2, "g_m": 1},
+      "sat": [-1, 0, 0, -1, -1, -2, -2, -2, -2, -3, -3, -3],
+      "hue": [1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 2, 2],
+      "light": [1, 1, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0],
+      "bloom": {"strength": 0.15, "radius_pct": 2.0, "tail": 0.6},
+      "halation": {"strength": 0.15, "threshold": 0.85, "radius_pct": 0.8, "tint": [1.0, 0.45, 0.2]},
+      "subtractive_saturation": {"amount": 0.1},
+      "film_curve": {"slope": 1.3, "toe": 0.8, "shoulder": 1.4, "black": 0.006, "exposure": 0.33, "per_channel": 0.6},
+      "grain_v2": {"strength": 0.2, "size": 1.4, "colour": 0.25}
+    },
+    "classic_neg_halation": {
+      "notes": "fuji_like.json classic_neg (hue twists, per-colour lightness, hard tone) plus Color Chrome Strong / FX Blue Weak, green-shadow / warm-highlight crossover, Grain Strong-Small and a moderate halation. The halation and bloom are NOT part of Fuji's Classic Neg.; they imitate a 'shot on film' version of it.",
+      "camera_feasibility": {
+        "sat/hue/light/tone/contrast/wb": "yes with HSL mod (same as fuji_like classic_neg)",
+        "color_chrome": "approx: negative per-sector lightness (red/orange/yellow/green, blue for FX Blue), chroma-weighted in the ISP model",
+        "film_curve crossover": "yes-ish via RGB gamma LUT; else no",
+        "halation": "maybe (Soft Focus path)",
+        "grain_v2": "partial (amplitude; Fuji 'Small' is close to per-pixel E-P7 grain)"
+      },
+      "sat": [-3, -2, -2, 0, -1, -5, -5, -3, -1, -4, -4, -4],
+      "hue": [0, -1, 0, 0, 7, 6, -2, -3, 6, 7, 5, 2],
+      "light": [-4, -4, -3, -2, -1, 2, 2, 3, -1, -3, -5, -5],
+      "tone": {"highlights": 4, "shadows": -2, "midtones": 1},
+      "contrast": 2,
+      "wb_shift": {"a_b": 1, "g_m": 0},
+      "halation": {"strength": 0.35, "threshold": 0.8, "radius_pct": 1.0, "tint": [1.0, 0.35, 0.1]},
+      "color_chrome": {"effect": "strong", "fx_blue": "weak"},
+      "film_curve": {"black": [0.002, 0.0032, 0.0026], "white": [1.0, 0.985, 0.95], "per_channel": 0.5},
+      "grain_v2": {"preset": "strong_small", "colour": 0.3}
+    }
+  }
+}
