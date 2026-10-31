@@ -61,6 +61,19 @@ def tone_levels(y, hl=0, sh=0, mid=0, contrast=0):
     return np.clip(y, 0, 1)
 
 
+# Monochrome Profile colour filters as luminance channel weights on gamma RGB (approximation;
+# strength 1..3 blends from neutral toward the full filter).
+MONO_FILTERS = {'none': (0.299, 0.587, 0.114), 'yellow': (0.42, 0.53, 0.05), 'orange': (0.52, 0.44, 0.04),
+                'red': (0.65, 0.32, 0.03), 'green': (0.22, 0.70, 0.08), 'blue': (0.18, 0.47, 0.35)}
+
+
+def monochrome(img, colour='none', strength=1):
+    n, f = np.array(MONO_FILTERS['none']), np.array(MONO_FILTERS.get(colour, MONO_FILTERS['none']))
+    wts = n + (f - n) * min(max(strength, 0), 3) / 3
+    y = img @ (wts / wts.sum())
+    return np.repeat(y[..., None], 3, -1)
+
+
 def render(lin, recipe, curve=None, seed=10):
     r = recipe
     lin = lin.copy()
@@ -81,6 +94,10 @@ def render(lin, recipe, curve=None, seed=10):
     eng = P.ColorEngine()
     img = eng.apply(img, P.ColorSettings(sat=r.get('sat', [0] * 12), hue=r.get('hue', [0] * 12),
                                          light=r.get('light', [0] * 12)))
+    mono = r.get('mono_filter') or str(r.get('base', '')).lower().startswith('monochrome')
+    if mono:
+        img = monochrome(img, (r.get('mono_filter') or {}).get('colour', 'none'),
+                         (r.get('mono_filter') or {}).get('strength', 1))
     v = r.get('vignette', 0)
     if v:
         h, w = img.shape[:2]
@@ -89,7 +106,7 @@ def render(lin, recipe, curve=None, seed=10):
         img = np.clip(img * (1 + 0.08 * v * d[..., None] ** 2), 0, 1)
     g = r.get('grain', 'off')
     if g and g != 'off':
-        img = P.grain(img, g, seed=seed, colour=True)
+        img = P.grain(img, g, seed=seed, colour=not mono)
     return img
 
 

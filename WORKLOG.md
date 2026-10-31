@@ -34,3 +34,9 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   Base curve `sim/base_curve.json` = median of 12 fitted camera curves (consistent in shadows/mids).
   Tone-step model cross-checked: 1063 vs 1064 shadow delta ≈ 0.012 luma/step, matches TONE_STEP model.
   Grain scaled for preview size; hue step 5.5°/step is a placeholder pending camera test.
+- `tools/build_package.py`: component-selective package + stock restore with stock-byte checks.
+  **Verified**: no-op package == restore == exact stock slice; wrong-expect and overlapping edits refused;
+  1-byte main+OSD test package re-parses with valid checksums (test output deleted; never SD-named).
+- Research agent: `docs/FILM_SIMS.md` (Fuji sim anatomy, 75 sources) + `sim/recipes/fuji_like.json` (10 recipes,
+  derived from Fuji's published F-Log2 LUTs relative to Provia). Untested starting points.
+- film.py: Monochrome Profile filter mixing (Acros). Contact sheets in generated/film/.
