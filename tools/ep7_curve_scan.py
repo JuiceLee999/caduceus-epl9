@@ -61,7 +61,7 @@ def main():
                 off = phase + 2 * s
                 res.append(dict(component=name, offset=hex(off),
                                 cpu=hex(base + off) if base else None,
-                                length=L, first=lo, last=hi, unique=nu))
+                                length=int(L), first=lo, last=hi, unique=int(nu)))
     if args.json:
         print(json.dumps(res, indent=1))
     else:

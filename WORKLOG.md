@@ -122,3 +122,10 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   0x603b5249 + 123 B @0x6055e680–0x6055e6fa; COLOR gets MONO's single-pass grain (combiner 32, gain 50/75/100).
   **Re-run by me:** tools/ep7_grain_verify.py all PASS; merged v0.1+grain+rec_limit = 7 edits / 243 B, H/L verifier PASS.
   Main unknown: combiner 32 never used on full-size stills in stock (possible size limit) — on-camera test needed.
+- **Video log (agent, docs/VIDEO_LOG.md): hidden log modes found.** Movie picture-mode ids 2000/2001 (settings byte
+  +925 = 1/2 via 0x60349297) with own gamma tables 0x604f4278 / 0x604f4478, identity luma curve, picture params
+  zeroed (same lock-out OM uses for Flat/OM-Log400). id2001 = true log: ~12.4%/stop, within 0.8% of pure log over
+  1–6 stops below clip, linear toe. Precedent: E-M1 II (TruePic VIII) got OM-Log400 via fw 3.0.
+  **Verified (me):** probe passes; independent read of tables: default 100/88/67/46/27/15/8/4/2 % vs
+  id2001 100/88/75/63/50/38/27/18/10 % at 0..8 stops below clip.
+  Open: X1 who writes +925 (menu/setting), X2 movie frames use this builder. No patch code yet (per user).
