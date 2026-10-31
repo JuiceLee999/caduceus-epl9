@@ -1,0 +1,100 @@
+{
+ "components": [
+  "0x100"
+ ],
+ "recipe": "classic_neg",
+ "hue_ui": [
+  0,
+  -1,
+  0,
+  0,
+  7,
+  6,
+  -2,
+  -3,
+  6,
+  7,
+  5,
+  2
+ ],
+ "light_ui": [
+  -4,
+  -4,
+  -3,
+  -2,
+  -1,
+  2,
+  2,
+  3,
+  -1,
+  -3,
+  -5,
+  -5
+ ],
+ "native_rows": [
+  [
+   0,
+   -150
+  ],
+  [
+   0,
+   -100
+  ],
+  [
+   -7000,
+   -25
+  ],
+  [
+   2000,
+   50
+  ],
+  [
+   -6000,
+   -25
+  ],
+  [
+   -5000,
+   -200
+  ],
+  [
+   1000,
+   -150
+  ],
+  [
+   0,
+   -50
+  ],
+  [
+   -6000,
+   50
+  ],
+  [
+   3000,
+   100
+  ],
+  [
+   -7000,
+   -100
+  ],
+  [
+   -2000,
+   -200
+  ]
+ ],
+ "edits": [
+  {
+   "kind": "0x100",
+   "addr": "0x603b02d9",
+   "expect": "cd8ffdf060",
+   "new": "dce7e21a00",
+   "why": "COLOR builder call -> jmp fixed-H/L routine"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6055e5c0",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "dda81ae5fff060f8fef0420046044308470cf8220cfad0c202fcdd04e65560850cf061f070f86102f870042104201829ffc9f0580059045c085d0cf8fe10dce01ce5ff0000006aff00009cffa8e4e7ffd007320090e8e7ff78ec38ffe8036aff0000ceff90e83200b80b6400a8e49cff30f838ff",
+   "why": "fixed-H/L routine + table (116 B) in section-2 FF tail"
+  }
+ ]
+}

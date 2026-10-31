@@ -1,0 +1,68 @@
+GAS LISTING /tmp/tmposrwtj2g/p.s 			page 1
+
+
+   1              	/* E-P7 1.1 "fixed H/L" patch: after the stock COLOR builder, overwrite the
+   2              	 * 12 output records' hue (+18) and lightness (+22) coefficients with
+   3              	 * constants from a recipe. Saturation, LUTs and control word untouched.
+   4              	 * Reached only on the COLOR picture-mode path (selector 0x603b0252).
+   5              	 * Our own code (ep7-firmware); design informed by fishcu's PEN-F patch.
+   6              	 */
+   7              	 .am33_2
+   8              	 .text
+   9              	 .global _start
+  10              	_start:
+  11 0000 DD000000 	 call ep7_builder,[d2,d3,a2,a3],96   /* displaced stock instruction */
+  11      00F060
+  12              	 /* inline frame (no second CALL: keeps MDR); a2 = context (callee-saved) */
+  13 0007 F8FEF0   	 add -16,sp
+  14 000a 4200     	 mov d0,(0,sp)
+  15 000c 4604     	 mov d1,(4,sp)
+  16 000e 4308     	 mov a0,(8,sp)
+  17 0010 470C     	 mov a1,(12,sp)
+  18 0012 F8220C   	 mov (12,a2),a0          /* output block */
+  19 0015 FAD0C202 	 add 706,a0        /* -> record 0 hue (+688+18) */
+  20 0019 FCDD0000 	 mov hl_table,a1
+  20      0000
+  21 001f 850C     	 mov 12,d1
+  22              	1:
+  23 0021 F061     	 movhu (a1),d0
+  24 0023 F070     	 movhu d0,(a0)           /* hue */
+  25 0025 F86102   	 movhu (2,a1),d0
+  26 0028 F87004   	 movhu d0,(4,a0)         /* lightness (+22 = hue+4) */
+  27 002b 2104     	 add 4,a1
+  28 002d 2018     	 add 24,a0
+  29 002f 29FF     	 add -1,d1
+  30 0031 C900     	 bne 1b
+  31 0033 5800     	 mov (0,sp),d0
+  32 0035 5904     	 mov (4,sp),d1
+  33 0037 5C08     	 mov (8,sp),a0
+  34 0039 5D0C     	 mov (12,sp),a1
+  35 003b F8FE10   	 add 16,sp
+  36 003e DC000000 	 jmp ep7_resume
+  36      00
+  37              	
+  38 0043 00       	 .balign 2
+  39              	hl_table:   /* physical record order: (hue_native, light_native) x 12 */
+  40 0044 00006AFF 	 .hword 0,-150   /* rec 0 */
+  41 0048 00009CFF 	 .hword 0,-100   /* rec 1 */
+  42 004c A8E4E7FF 	 .hword -7000,-25   /* rec 2 */
+  43 0050 D0073200 	 .hword 2000,50   /* rec 3 */
+  44 0054 90E8E7FF 	 .hword -6000,-25   /* rec 4 */
+  45 0058 78EC38FF 	 .hword -5000,-200   /* rec 5 */
+  46 005c E8036AFF 	 .hword 1000,-150   /* rec 6 */
+  47 0060 0000CEFF 	 .hword 0,-50   /* rec 7 */
+  48 0064 90E83200 	 .hword -6000,50   /* rec 8 */
+  49 0068 B80B6400 	 .hword 3000,100   /* rec 9 */
+  50 006c A8E49CFF 	 .hword -7000,-100   /* rec 10 */
+  51 0070 30F838FF 	 .hword -2000,-200   /* rec 11 */
+GAS LISTING /tmp/tmposrwtj2g/p.s 			page 2
+
+
+DEFINED SYMBOLS
+/tmp/tmposrwtj2g/p.s:10     .text:00000000 _start
+/tmp/tmposrwtj2g/p.s:39     .text:00000044 hl_table
+/tmp/tmposrwtj2g/p.s:22     .text:00000021 .L11
+
+UNDEFINED SYMBOLS
+ep7_builder
+ep7_resume
