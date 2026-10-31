@@ -86,3 +86,10 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   Medium: power loss mid-write in section 2 (runs at boot before updater); ISP H/L interpretation unverified.
   Confirmed: hook boundaries/liveness, routine bytes, code-space load + no integrity scan, package == stock metadata.
 - Next: trace E-P7 SD updater entry + acceptance rules; then a restore-only dry run on camera (user go-ahead needed).
+- SD updater trace (agent, docs/SD_UPDATE.md; probe 19/19 PASS): client task 88 FIRMUP_CLI 0x60c95bab → server
+  task 18 FIRMUP_SRV 0x60c96030. Accepts model 0x1420 + valid checksums; version NOT checked (same-version /
+  main-only OK); all components validated before any erase. Main = full erase+program (corrects review: 0x100000
+  is a BOOT type flag — spot-checked by me: `cmp 1048576,d0` on stack arg at 0x60c971ea). LED-only feedback.
+  Trigger (button combo) NOT found in main — likely pre-main/sub-CPU. FIRMUP_SRV started only in normal startup
+  after section 2 init → a boot-breaking section-2 fault likely makes SD recovery unreachable.
+  Safe trigger test: checksum-corrupted restore copy (rejected before erase).
