@@ -111,3 +111,9 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   Findings: no Fuji film sim has halation/bloom (only X-Half film filters); GFX glow ≈ diffusion filter or post.
   E-P7: bloom ↔ Soft Focus (FANTASIC_FOCUS) blend; halation plausible (highlight mask + tint + blur) but unproven.
   **Verified (me):** all 10 fuji_like recipes render byte-identical vs pre-agent film.py; synthetic halation/bloom look correct.
+- Profile-index agent (docs/PROFILE_INDEX_WB.md): settings 908 = active COLOR profile (key 63153), 973 = active
+  MONO profile (key 63281), getter 0x6005e971(key,idx,a0=0). Capture population stores profile byte at
+  capture+24083 (mode 11→COLOR idx, 12→MONO idx). **Verified (me)** at 0x602a859c–0x602a85c0.
+  Not transported into job/request → hook can't see it yet. Design: job +1 byte (constructor edits 0x603537f0/
+  0x6035390c) + converter hooks 0x603e669f/0x603e91e4; getter fallback for live view. MONO splits at 0x603b02c1.
+  WB fine-tune: candidates settings 324/325, 329/330 — unresolved.
