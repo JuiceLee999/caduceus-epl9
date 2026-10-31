@@ -34,3 +34,12 @@ interval/time-lapse, keystone, fisheye correction, COLOR4/MONO4 profiles.
   every [menu]-only item needs a [code] trace before it counts.
 - Next steps: (a) port item 2 (tiny, precedent); (b) trace picture-mode table for Flat;
   (c) trace focus-bracket gating; (d) colour grain job on COLOR path.
+
+## Aspect ratios (traced 2026-11-01)
+[code] Three parallel tables list **9 still aspects**; the E-P7 menu exposes only 4:3/3:2/16:9/1:1/3:4.
+- u32 table `0x60b8cb60`: (id, w, h): 1 4:3 5184×3888 · 2 3:2 5184×3456 · 3 16:9 5184×2920 · 4 1:1 3888×3888 ·
+  **5 5:4 4864×3888 · 6 7:6 4544×3888 · 7 6:5 4672×3888 · 8 7:5 5184×3704** · 9 3:4 2912×3888.
+- u16 copy `0x60b0a518` (id,0,w,h); u16 table `0x604e92c6` (w,h,code) with ratio codes 0x304, 0x203, 0x910,
+  0x606, 0x405, 0x607, 0x506, 0x507, 0x403, plus **0x911 = 17:9 5184×2734**.
+- Plan: unhide hidden ids (find menu allowed-value mask), then repurpose two hidden slots to **XPan 65:24
+  (5184×1914)** and **21:9 (5184×2222)**. Needs: menu mask, crop/LV overlay, EXIF ratio. Not yet patched.
