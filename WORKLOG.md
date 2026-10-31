@@ -105,3 +105,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - Aspect menu mask: simple value-list search (ids 1,2,3,4,9 / codes) found nothing specific → needs schema/menu trace (queued).
 - Profile bundles design (docs/PROFILE_BUNDLES.md, bundles/example.json): per-COLOR-slot HSL/grain/WB/effect table; blocker = active profile index at hooks.
 - Issues #11 rename profiles (OSD strings + badges), #12 more slots (hard; alternatives listed).
+- Decisions: no build-time rename (#11); MONO1–4 become universal bundle slots → 8 slots (#12).

@@ -37,6 +37,10 @@ One table in code space, 4 entries × 64 bytes (room to grow), indexed by the ac
 Every feature hook does the same thing: get the active profile index, and if it's a COLOR mode (picture
 mode 11), read its bundle entry, otherwise do nothing (stock behaviour).
 
+## Slots
+8 universal slots: COLOR1–4 + MONO1–4 (user decision 2026-11-01). A MONO slot may render colour or mono per its bundle.
+Profile names stay stock until in-camera naming exists (no build-time rename).
+
 ## Phases
 1. **Baked bundles (next).** Four recipes are chosen at build time (e.g. COLOR1 Classic Neg, COLOR2
    Kodachrome 64, COLOR3 Classic Chrome, COLOR4 Acros-style colour). No new menus; switch looks with the

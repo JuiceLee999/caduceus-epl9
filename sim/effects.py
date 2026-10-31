@@ -182,6 +182,7 @@ def _grain_field(shape, cell: float, rng: np.random.Generator) -> np.ndarray:
     h, w = shape
     if cell <= 1:
         return rng.standard_normal((h, w), np.float32) * cell
+    # (cell > 1 branch: band-limited field; its effective correlation length is ~1.37x cell)
     gh, gw = max(2, int(np.ceil(h / cell)) + 1), max(2, int(np.ceil(w / cell)) + 1)
     g = rng.standard_normal((gh, gw), np.float32)
     up = _resize_plane(g, (int(gw * cell), int(gh * cell)), Image.BICUBIC)[:h, :w]
@@ -214,12 +215,16 @@ def grain_v2(img: np.ndarray, strength: float = 0.3, size: float = 1.0, colour: 
     a = np.where(y < peak, shadow + (1 - shadow) * smoothstep(0, peak, y),
                  1 + (highlight - 1) * smoothstep(peak, 1, y)).astype(np.float32)
     amp = 0.1 * strength * a
-    mono = _grain_field((h, w), size * k, rng) if colour < 1 else 0
+    def cell(sz):  # output-pixel cell; sub-pixel grain uses the effective (measured) length
+        c = sz * k
+        return c if c > 1 else min(1.0, c * (1 + 0.37 * np.clip((sz - 1) / 1.2, 0, 1)))
+
+    mono = _grain_field((h, w), cell(size), rng) if colour < 1 else 0
     out = img.copy()
     for c in range(3):
         n = mono
         if colour > 0:
-            ind = _grain_field((h, w), size * layer_size[c] * k, rng)
+            ind = _grain_field((h, w), cell(size * layer_size[c]), rng)
             n = np.sqrt(1 - colour) * mono + np.sqrt(colour) * ind
         out[..., c] += amp * n
     return np.clip(out, 0, 1)
