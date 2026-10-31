@@ -1,0 +1,12 @@
+# Vendor firmware: never commit (OM EULA forbids redistribution). Hashes only.
+*.BIN
+*.bin
+stock_firmware/*
+!stock_firmware/SHA256SUMS
+# Generated analysis / build output (reproducible from scripts)
+generated/
+analysis/
+toolchains/
+__pycache__/
+*.pyc
+.venv/

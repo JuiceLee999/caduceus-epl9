@@ -1,0 +1,3 @@
+[submodule "external/oly_fw_analysis"]
+	path = external/oly_fw_analysis
+	url = https://github.com/fishcu/oly_fw_analysis
