@@ -1,0 +1,52 @@
+/* E-P7 1.1 "COLOR bloom" patch (ep7-firmware, our own code).
+ *
+ * Gives Color Profile (job key 11) stills the stock Soft Focus pipeline that the
+ * Soft Focus art filter (key 0x01010065) and the Soft Focus Art Effect already use.
+ * The pipeline is selected by job flag 0x80 (stock: art effect 1 -> 0x603eab57,
+ * or key 0x01010065 -> 0x60353a23) and is key-independent from there on:
+ *   work list 0x6035797b: classes 0-3 -> pass 0x6035c9c1 (reduce 0x1000->0x1060, effect
+ *   0x0400; upscale 0x1060->0x1061, effect 0x0401) + entry 0x6035ca31 (kind-3 blend of
+ *   0x1000 and 0x1061, effect 0x0402 -> combiner 11); classes 4-8 -> entry 0x6035cc1b
+ *   (effect 0x0403 -> combiner 12).
+ *   Combiner 11/12 (0x603a049e / 0x603a04f3) program a linear mix with weight
+ *   w = 0x6039fee8(ctx) on one input and 1024-w on the other.
+ *
+ * Two pieces in the section-2 FF tail:
+ *   bloom_flag  converter 0x603eab39 (art effect -> job flags), replaces 6 bytes at
+ *               0x603eabd7. Params key (params+8..11) == 11 -> flags |= 0x80.
+ *   bloom_w     weight getter 0x6039fee8, replaces 6 bytes at its entry.
+ *               ctx key == 11 -> w = {weight}; everything else -> stock code.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+/* ---- entered by jmp from 0x603eabd7 inside 0x603eab39:
+ *      a2 = params+12 (job flags word), a3 = capture; frame [a2,a3],20 untouched.
+ *      params+8..11 = key bytes {b0, b1, hw} written by 0x603eaa04 just before. */
+bloom_flag:
+ movhu (-2,a2),d0                 /* key halfword (params+10) */
+ cmp 11,d0
+ bne bf_resume
+ movhu (-4,a2),d0                 /* key bytes b0,b1 must be 0 */
+ cmp 0,d0
+ bne bf_resume
+ mov (a2),d0
+ or 128,d0                        /* job flag 0x80: Soft Focus pipeline */
+ mov d0,(a2)
+bf_resume:
+ movbu (24054,a3),d0              /* replaced: stock 0x603eabd7 */
+ cmp 0,d0                         /* replaced: stock 0x603eabdb */
+ jmp ep7_bf_back                  /* 0x603eabdd: bne 0x603eabe7 */
+
+/* ---- entered by jmp from 0x6039fee8 (called with call ...,[],0; a0 = combiner ctx). */
+bloom_w:
+ mov (52,a0),a1                   /* replaced: key */
+ cmp 11,a1
+ bne bw_stock
+ mov {weight},d0                  /* mix weight (Q10) on the first input */
+ retf [],0                        /* same exit as stock 0x6039ff29 */
+bw_stock:
+ mov 600,d0                       /* replaced */
+ jmp ep7_bw_back                  /* 0x6039feee: cmp 0x01010065,a1 */

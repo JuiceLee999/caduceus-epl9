@@ -19,8 +19,13 @@ for p, s in zip(sys.argv[2:], specs):
         edits.append(dict(e, source=p))
 merged = dict(components=comps, edits=edits, sources=sys.argv[2:])
 for s in specs:   # keep verification metadata (e.g. native_rows) if present
-    for k in ('native_rows', 'recipe', 'hue_ui', 'light_ui'):
+    for k in ('native_rows', 'recipe', 'hue_ui', 'light_ui',
+              'bundle', 'labels', 'table_hex', 'slots', 'layout',   # v0.2 bundle verifier metadata
+              'symbols', 'level', 'code_at',                        # grain verifier metadata
+              'bloom'):                                             # bloom verifier metadata
         if k in s:
+            if k in merged and merged[k] != s[k]:
+                sys.exit(f'conflicting metadata {k!r}')
             merged[k] = s[k]
 out.write_text(json.dumps(merged, indent=1) + '\n')
 print(f'{len(edits)} edits, components {comps} -> {out}')

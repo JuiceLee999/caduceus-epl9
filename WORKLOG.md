@@ -135,3 +135,9 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   (selector 0x603b02c1, chroma 0x603b134e, filter guard 0x60353db9); chroma stage 0x603b132a makes grey.
 - docs/CODE_SPACE_MAP.md: allocation registry for all patches.
 - SD mod loading design (docs/SD_MODS.md, user idea): data-from-card first; remove card = stock.
+- v0.2 bundles (agent, docs/V02_BUNDLES.md): job +24 B, converter stubs copy profile/mode/marker, 8×64 table @0x60210900
+  (section-1 tail). **Re-run (me):** tools/ep7_verify_bundles.py overall PASS (A/B/C/D + 19 mutations). Risk: profile
+  stored as 1–4 assumed (check COLOR1 isn't stock on camera); live view shows stock H/L.
+- Bloom (agent, docs/BLOOM_HALATION.md): Soft Focus = job flag 0x80 (shrink 160×120 → upscale → combiner 11 linear mix).
+  Patch: 2 hooks + 51 B @0x6055e7b0. **Re-run (me):** ep7_bloom_verify T1–T5 PASS on merged build (10 edits/304 B).
+  Halation: design only (per-channel controls; true red tint not possible). Risk: blend input order → test strength 1.
