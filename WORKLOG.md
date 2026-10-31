@@ -134,3 +134,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   wb probe S/W/G PASS; mono probe PASS. LV coverage inferred, not proven. MONO→colour needs 3 hooks
   (selector 0x603b02c1, chroma 0x603b134e, filter guard 0x60353db9); chroma stage 0x603b132a makes grey.
 - docs/CODE_SPACE_MAP.md: allocation registry for all patches.
+- SD mod loading design (docs/SD_MODS.md, user idea): data-from-card first; remove card = stock.
