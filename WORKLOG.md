@@ -129,3 +129,8 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   **Verified (me):** probe passes; independent read of tables: default 100/88/67/46/27/15/8/4/2 % vs
   id2001 100/88/75/63/50/38/27/18/10 % at 0..8 stops below clip.
   Open: X1 who writes +925 (menu/setting), X2 movie frames use this builder. No patch code yet (per user).
+- WB/MONO agent (docs/WB_AND_MONO.md): WB fine-tune = per-WB-mode s8 arrays (keys 0x84F9 A-B, 0x9679 G-M, 20 modes;
+  CWB none). Per-profile override = redirect all 16 getter call sites to 166-B stub @0x6055e700. **Re-run (me):**
+  wb probe S/W/G PASS; mono probe PASS. LV coverage inferred, not proven. MONO→colour needs 3 hooks
+  (selector 0x603b02c1, chroma 0x603b134e, filter guard 0x60353db9); chroma stage 0x603b132a makes grey.
+- docs/CODE_SPACE_MAP.md: allocation registry for all patches.
