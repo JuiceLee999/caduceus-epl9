@@ -12,6 +12,13 @@ Recipe JSON keys (all optional):
   grain      off/low/medium/high      vignette  -5..5 (negative darkens corners)
   base_saturation  -5..5      notes
 
+Optional film-look keys (sim/effects.py, docs/FILM_LOOK.md). Absent = old behaviour.
+Each is a dict of keyword arguments; "enabled": false skips it. Stage order:
+  WB -> bloom -> halation -> subtractive_saturation -> color_chrome   (scene-linear)
+     -> film_curve (replaces the camera base curve) -> tone levels -> HSL -> mono
+     -> vignette -> grain_v2 (replaces "grain")
+  e.g. "halation": {"strength": 0.4, "threshold": 0.8, "radius_pct": 1.5, "tint": [1, 0.35, 0.1]}
+
 Usage:
   .venv/bin/python -I sim/film.py --recipes sim/recipes/fuji_like.json \
       --images testdata/PA211064.ORF testdata/PA221247.ORF --out generated/film
@@ -23,6 +30,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pipeline as P  # noqa: E402
+import effects as FX  # noqa: E402
 
 # ---- uncalibrated stock-control models (documented guesses; refine with test shots)
 TONE_STEP = 0.010      # gamma-luma shift per tone-level step at the band peak
@@ -74,7 +82,15 @@ def monochrome(img, colour='none', strength=1):
     return np.repeat(y[..., None], 3, -1)
 
 
-def render(lin, recipe, curve=None, seed=10):
+def _fx(r, key):
+    """Optional film-look stage spec: dict of kwargs, or None if absent/disabled."""
+    v = r.get(key)
+    if v is None or v is False or (isinstance(v, dict) and v.get('enabled', True) is False):
+        return None
+    return v if isinstance(v, dict) else {}
+
+
+def render(lin, recipe, curve=None, seed=10, full_width=5184):
     r = recipe
     lin = lin.copy()
     wb = r.get('wb_shift', {})
@@ -82,7 +98,18 @@ def render(lin, recipe, curve=None, seed=10):
     lin[..., 0] *= 1 + WB_STEP * ab
     lin[..., 2] *= 1 - WB_STEP * ab
     lin[..., 1] *= 1 + WB_STEP * gm
-    img = P.apply_tone(lin, curve or neutral_curve())
+    if (s := _fx(r, 'bloom')) is not None:
+        lin = FX.bloom(lin, **FX._kw(s, FX.BLOOM_KEYS))
+    if (s := _fx(r, 'halation')) is not None:
+        lin = FX.halation(lin, **FX._kw(s, FX.HALATION_KEYS))
+    if (s := _fx(r, 'subtractive_saturation')) is not None:
+        lin = FX.subtractive_saturation(lin, **FX._kw(s, FX.SUBSAT_KEYS))
+    if (s := _fx(r, 'color_chrome')) is not None:
+        lin = FX.color_chrome(lin, **FX._kw(s, FX.CCE_KEYS))
+    if (s := _fx(r, 'film_curve')) is not None:
+        img = FX.film_curve(lin, **FX._kw(s, FX.CURVE_KEYS))
+    else:
+        img = P.apply_tone(lin, curve or neutral_curve())
     ycc = P.rgb_to_ycc(img)
     t = r.get('tone', {})
     y_new = tone_levels(ycc[..., 0], t.get('highlights', 0), t.get('shadows', 0), t.get('midtones', 0),
@@ -104,6 +131,12 @@ def render(lin, recipe, curve=None, seed=10):
         yy, xx = np.mgrid[0:h, 0:w]
         d = np.hypot((xx - w / 2) / (w / 2), (yy - h / 2) / (h / 2)) / np.sqrt(2)
         img = np.clip(img * (1 + 0.08 * v * d[..., None] ** 2), 0, 1)
+    if (s := _fx(r, 'grain_v2')) is not None:
+        kw = dict(seed=seed, full_width=full_width, colour=0.0 if mono else 0.3)
+        kw.update(FX._kw(s, FX.GRAIN_KEYS))
+        if mono:
+            kw['colour'] = 0.0
+        return FX.grain_v2(img, **kw)
     g = r.get('grain', 'off')
     if g and g != 'off':
         img = P.grain(img, g, seed=seed, colour=not mono)
@@ -134,10 +167,11 @@ def main():
     for img_path in a.images:
         lin = P.develop(img_path, orient=True)
         h, w = lin.shape[:2]
+        full_w = 2 * w                    # develop() is half-size; effects scale to the sensor
         lin = P.resize(lin, (a.width, int(a.width * h / w)))
         tiles = [label(render(lin, {}), 'E-P7 neutral (sim)')]
         for rc in recipes:
-            out = render(lin, rc)
+            out = render(lin, rc, full_width=full_w)
             P.save(out, a.out / img_path.stem / f"{rc['name'].replace(' ', '_').replace('/', '-')}.jpg")
             tiles.append(label(out, rc['name']))
         cols = 3

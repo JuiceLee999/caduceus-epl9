@@ -1,0 +1,4 @@
+{"COLOR1": {"recipe": "classic_neg", "wb": {"a_b": 2, "g_m": 1}},
+ "COLOR2": {"recipe": "kodachrome_64"},
+ "COLOR3": {"recipe": "classic_chrome", "grain": "low"},
+ "COLOR4": {"recipe": "nostalgic_neg", "effect": {"type": "halation", "strength": 3}}}
