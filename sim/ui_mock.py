@@ -223,6 +223,13 @@ def render(screen, assets):
     bg = screen.get('background', {'type': 'placeholder'})
     if bg['type'] == 'solid':
         canvas = Image.new('RGBA', (W, H), assets.color(bg['colour']))
+    elif bg['type'] == 'image':
+        # live-view stand-in: any rendered photo (e.g. a film-sim render), centre-cropped to the canvas
+        im = Image.open(Path(bg['path']) if Path(bg['path']).is_absolute() else ROOT / bg['path']).convert('RGBA')
+        sc = max(W / im.width, H / im.height)
+        im = im.resize((round(im.width * sc), round(im.height * sc)), Image.BILINEAR)
+        x, y = (im.width - W) // 2, (im.height - H) // 2
+        canvas = im.crop((x, y, x + W, y + H))
     else:
         canvas = placeholder_background((W, H))
     log = []
