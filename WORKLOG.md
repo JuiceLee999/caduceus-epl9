@@ -76,3 +76,6 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   Mutation tests (offset 706→708, loop 12→11, stack 16→12): all detected (FAIL).
 - Scope limits: emulator covers CPU code only, not the ISP's pixel response, live-view path, or the alternate
   builder 0x603afb94. On-camera H/L direction/scale unverified.
+- docs/FEATURE_GAPS.md (me): string + code survey. Key find: recording-duration routine 0x60319139 identical in shape
+  to PEN-F 60566309 (1740 s @0x60319156, 7200 s @0x6031915b) → 4-byte port candidate with precedent.
+  Code strings for HIGH_RES/pixshift, pro_cap, focus_bracket, C4K exist in main; menu has Flat picture mode.
