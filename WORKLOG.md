@@ -93,3 +93,11 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   Trigger (button combo) NOT found in main — likely pre-main/sub-CPU. FIRMUP_SRV started only in normal startup
   after section 2 init → a boot-breaking section-2 fault likely makes SD recovery unreachable.
   Safe trigger test: checksum-corrupted restore copy (rejected before erase).
+
+## 2026-11-01 — Step 4: unlock push
+- Saved `releases/v0.1-fixed-hl-classic_neg/` (sources + hashes committed; .pkg.bin local only).
+- `patches/rec_limit/`: recording-duration routine 0x60319139 (entered via `calls`, ret [d2],28) — operands
+  @0x60319157 (1740) and @0x6031915c (7200) → 32400 s. Emulator: native routine patched vs stock, modes
+  3/6/8/9/4 all return 32400 s with ret 0, stack/regs intact. **PASS.** Chapter/file/thermal limits untouched.
+- `tools/merge_specs.py`; v0.1 + rec_limit combined: fixed-H/L verifier still PASS, 113 bytes changed, all in spans.
+- Agents running: film-look research (bloom/halation), colour-grain RE, video-log research (verdict before code).
