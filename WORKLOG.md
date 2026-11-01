@@ -162,3 +162,11 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - SD looks loader (agent, docs/SD_BUNDLES.md): fopen/fread API found (FILECLBK task 16); hook at media 'MOUNT OK' 0x60863e90; 564-B loader @0x61242a00 reads C:\EP7MOD\BUNDLES.BIN (CRC/range-validated) into table 0x60210900. **Built, NOT emulator-verified yet** (WIP). Desktop writer tools/ep7_bundles_bin.py.
 - SD reject trace (agent, partial): validator ACCEPTS exact stock main-only on real bytes (mode 0 → 1 write 0x806a0000 size 0x1900000, chained emulation); server E-path has no date/version/size checks. Rejection likely pre-erase guard in flash writer (battery?) — tracing. Same 15 s solid for both files ≈ file read time → nothing erased.
 - SD reject (agent, docs/SD_REJECT.md): no visible check rejects stock main-only; no battery check on E path. Hypotheses: OK+power isn't task 88; file read truncated; misread blink. Zero-write tests: T1 no E-file, T2 tiny corrupt E-file (timing), T3 full battery.
+- MONO-colour (agent, docs/MONO_COLOUR.md, patches/mono_colour): bundle slot +32 `colour` (==1) / +33 `sat[12]` (−5..5);
+  hooks 0x603b02bf (selector → COLOR builder with slot sat + slot H/L, own copy of v0.2 hl logic so v0.3 merges unchanged),
+  0x603b134e (chroma a0=0, MDR restored), 0x60353db9 (params+5528/5529 = 0, merge skipped); 764 B @0x61378c80 (sec-7 tail).
+  tools/ep7_mono_colour_verify.py on v0.3+mono_colour (121 edits/2438 B): 213/213 + 20/20 mutations PASS; demo bundle
+  bundles/mono_colour_example.json R test PASS. ep7_verify_bundles now maps the sec-7 tail. Grain/bloom/bundles verifiers
+  PASS at HEAD versions; working-tree versions are mid-v0.4 rewrite (not v0.3-compatible). Open: MONO grain/shading,
+  0x60367ee3 skipped pass, LV stays mono, EXIF Monotone.
+- Review fixes (agent): H1 grain job-type check (T6 77 rows), H2 grain/bloom per-slot & off by default (bloom_flag uses capture bytes), M1 heights ×16. v0.4-candidate merged 117 edits/1,969 B, all verifiers PASS.
