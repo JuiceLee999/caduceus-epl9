@@ -44,6 +44,14 @@ MAGIC = struct.unpack('<I', V1.MAGIC)[0]  # 'EP7B' = the file's first word
 TABLE = 0x60210900                         # flashed bundle table (patches/bundles/layout.json)
 TABLE_END = TABLE + PAYLOAD_LEN
 NAMES_LO, NAMES_HI = 544, 680              # FILM_LIBRARY.md 8.3: names[8][16] at +544, u32 'EP7N' at +672
+# --names (docs/FILM_LIBRARY.md 8.7): optional name section appended to BUNDLES.BIN, file bytes 544..679 =
+# names[8][16] (<= 15 printable ASCII, no '@', NUL-padded, byte 15 = NUL), 'EP7N', CRC-32 of bytes 544..675.
+# Bytes 0..543 are the unchanged v1 file (its own header/CRC), so a 544-byte file still loads exactly as before.
+FILE_LEN_N = NAMES_HI                      # 680
+NAME_SLOTS, NAME_LEN = 8, 16
+MARK_OFF, NCRC_OFF = NAMES_LO + NAME_SLOTS * NAME_LEN, NAMES_LO + NAME_SLOTS * NAME_LEN + 4   # 672, 676
+NMAGIC = struct.unpack('<I', b'EP7N')[0]
+STAGE = 688                                # staging copy of validated names inside the kept 1024-B buffer
 IMAGE = (0x60020020, 0x6191ffe0)           # loaded image: never stored to (cached and uncached aliases)
 
 # accessor: section-2 FF tail. Section 2 = 0x60280800..0x6055e800 (descriptor 1, end getter 0x600457a4).
@@ -81,7 +89,107 @@ def v2_part(start, end):
     return s[a + 1:b].rstrip('\n')
 
 
-def loader_source():
+NAMES_SIZE_TEST = """ cmp {file_len},d3
+ beq sd_szok                      /* 544: v1 file, no names */
+ cmp {file_len_n},d3
+ bne sd_close                     /* 680: v1 file + name section */
+sd_szok:"""
+NAMES_PRE = """ mov 1,d1                         /* names: 1 = none (stays 1 for a 544-byte file or bad names) */
+ cmp {file_len},d2                /* d2 = bytes read = file size */
+ beq sd_z0
+ mov a2,a0
+ call sd_names,[d2,d3,a2,a3],16   /* validate file bytes 544..679; valid -> names staged at buf+{stage} */
+ mov d0,d1                        /* 0 = valid names staged */
+sd_z0:"""
+NAMES_POST = """ cmp 0,d1                         /* order: names, then 'EP7N', then h (below) */
+ bne sd_pub
+ mov a2,a0
+ add {stage},a0
+ mov a2,a1
+ add {names_lo},a1
+ clr d2
+sd_nc:
+ movbu (d2,a0),d0                 /* staged (validated) name byte */
+ movbu d0,(d2,a1)                 /* -> buf+544+d2, d2 < 128 */
+ inc d2
+ cmp 128,d2
+ bne sd_nc
+ mov {nmagic},d0
+ mov d0,({mark_off},a2)           /* 'EP7N' last: the menu hook reads names only behind this word */
+sd_pub:"""
+NAMES_FN = """/* sd_names: a0 = kept buffer (4-aligned, inside the pool) holding a 680-byte file. File bytes 544..679 =
+ * names[8][16], 'EP7N', CRC-32 (zlib) of bytes 544..675. Each name: 0..15 bytes 0x20..0x7e except '@', then NUL
+ * to byte 15. -> d0 = 0 valid (the 128 name bytes copied to buf+{stage}), 1 invalid (nothing written). */
+sd_names:
+ mov a0,a2
+ mov ({mark_off},a2),d0
+ cmp {nmagic},d0
+ bne sd_nbad
+ mov -1,d0
+ mov a2,a0
+ add {names_lo},a0
+ mov {ncrc_len},d1
+ call sd_crc,[d2,d3],12
+ not d0
+ mov ({ncrc_off},a2),d1
+ cmp d1,d0
+ bne sd_nbad
+ mov a2,a1
+ add {names_lo},a1
+ clr d2
+sd_n1:
+ mov d2,d1
+ and 15,d1                        /* position in the name */
+ bne sd_n2
+ clr d3                           /* new name: no NUL seen yet */
+sd_n2:
+ movbu (d2,a1),d0
+ cmp 0,d0
+ bne sd_n3
+ mov 1,d3
+ bra sd_n4
+sd_n3:
+ cmp 0,d3
+ bne sd_nbad                      /* character after the NUL */
+ cmp 15,d1
+ beq sd_nbad                      /* byte 15 must be NUL (<= 15 characters) */
+ cmp 0x40,d0
+ beq sd_nbad                      /* '@' (OSD symbol escape) */
+ add -0x20,d0
+ cmp 0x5e,d0
+ bhi sd_nbad                      /* printable ASCII 0x20..0x7e only */
+sd_n4:
+ inc d2
+ cmp 128,d2
+ bne sd_n1
+ mov a2,a0
+ add {stage},a0
+ clr d2
+sd_n5:
+ movbu (d2,a1),d0
+ movbu d0,(d2,a0)                 /* stage: buf+{stage}+d2, d2 < 128 */
+ inc d2
+ cmp 128,d2
+ bne sd_n5
+ clr d0
+ ret [d2,d3,a2,a3],16
+sd_nbad:
+ mov 1,d0
+ ret [d2,d3,a2,a3],16"""
+
+
+def names_parts(names):
+    if not names:
+        return dict(size_test=f' cmp {FILE_LEN},d3\n bne sd_close', names_pre='', names_post='', names_fn='')
+    if not (FILE_LEN_N == NCRC_OFF + 4 and STAGE >= NAMES_HI and STAGE % 4 == 0 and STAGE + 128 <= BUF_SIZE):
+        raise ValueError('name section layout')
+    sub = dict(file_len=FILE_LEN, file_len_n=FILE_LEN_N, stage=STAGE, names_lo=NAMES_LO, nmagic=hex(NMAGIC),
+               mark_off=MARK_OFF, ncrc_off=NCRC_OFF, ncrc_len=NCRC_OFF - NAMES_LO)
+    return dict(size_test=subst(NAMES_SIZE_TEST, sub), names_pre=subst(NAMES_PRE, sub),
+                names_post=subst(NAMES_POST, sub), names_fn=subst(NAMES_FN, sub))
+
+
+def loader_source(names=False):
     lay = V1.layout()
     lo, span, _ = V1.range_table(lay)
     v2 = V2.source()                       # substituted v2 text: gate and sd_check/sd_crc are copied from it
@@ -94,6 +202,7 @@ def loader_source():
                buf_size=BUF_SIZE, file_len=FILE_LEN, ev_press=hex(EV_PRESS), gate=gate, check=check,
                path_asm=V1.PATH.replace('\\', '\\\\'), hdr_bytes=V1.fmt_bytes(V1.header(0)),
                lo_bytes=V1.fmt_bytes(lo), span_bytes=V1.fmt_bytes(span))
+    sub.update(names_parts(names))
     return subst((HERE / 'sd_bundles_v3.s.in').read_text(), sub)
 
 
@@ -191,7 +300,7 @@ def in_image(addr):
     return IMAGE[0] <= a < IMAGE[1]
 
 
-def make_spec():
+def make_spec(names=False):
     d = MAIN.read_bytes()
     if hashlib.sha256(d).hexdigest() != MAIN_SHA:
         raise ValueError('decoded main hash mismatch')
@@ -201,7 +310,7 @@ def make_spec():
         raise ValueError(f'0x622cbcc2 evidence failed: {pad}')
     acc, acc_syms, acc_lst, acc_dis = accessor()
     check_accessor_place(d, len(acc))
-    src = loader_source()
+    src = loader_source(names)
     code, lst, syms, dis = assemble(src, CODE_AT, SERVICES)
     if syms['sd_hook'] != CODE_AT:
         raise ValueError('sd_hook must be the first instruction')
@@ -216,7 +325,10 @@ def make_spec():
     ind = [x for x in st if x[2] == 'ind']
     # the single indirect store is the name-area clear: movbu d0,(d2,a2) with a2 = buf (pool-checked) and
     # d2 in NAMES_LO..NAMES_HI-1 (loop bounds checked by the emulator suite)
-    if [x[1] for x in ind] != ['movbu d0,(d2,a2)'] or ind[0][0] < syms['sd_z'] or ind[0][0] > syms['sd_z'] + 2 or \
+    # --names adds: stage copy in sd_names (movbu d0,(d2,a0), a0 = buf+STAGE), copy back (movbu d0,(d2,a1),
+    # a1 = buf+544) and the marker (mov d0,(672,a2)); every one indexes the pool-checked buffer (emulator-checked)
+    want_ind = ['movbu d0,(d2,a2)'] + (['movbu d0,(d2,a1)', f'mov d0,({MARK_OFF},a2)', 'movbu d0,(d2,a0)'] if names else [])
+    if [x[1] for x in ind] != want_ind or ind[0][0] < syms['sd_z'] or ind[0][0] > syms['sd_z'] + 2 or \
             [k for _, _, k, _ in st if k not in ('sp', 'abs', 'ind')] or abs_t != [STATE, STATE]:
         raise ValueError(f'loader stores: {st}')
     if store_audit(disasm(acc, ACC_AT)):
@@ -235,7 +347,7 @@ def make_spec():
     edits = [dict(kind='0x100', addr=hex(SITE), expect=SITE_STOCK, new='dc' + rel.hex(),
                   why=f'appevent TRIG tracker call {SITE:#x} (call {TRIG:#x},[d2,d3,a2,a3],36) -> jmp sd_hook (as v2)'),
              dict(kind='0x100', addr=hex(CODE_AT), expect=tail.hex(), new=code.hex(),
-                  why=f'SD look loader v3 ({len(code)} B) in section-3 FF tail; state u16 at {STATE:#x}, no image stores'),
+                  why=f'SD look loader v3{" + names" if names else ""} ({len(code)} B) in section-3 FF tail; state u16 at {STATE:#x}, no image stores'),
              dict(kind='0x100', addr=hex(ACC_AT), expect=acc_tail.hex(), new=acc.hex(),
                   why=f'bundle-table accessor tbl_idx/tbl_off ({len(acc)} B) in section-2 FF tail (loaded table or {TABLE:#x})')]
     for e in edits:
@@ -247,6 +359,10 @@ def make_spec():
                 raise ValueError(f'edit {e["addr"]} overlaps {who} {lo_:#x}..{hi_:#x}')
     lo, span, who = V1.range_table(V1.layout())
     fmt = dict(path=V1.PATH, same_as='patches/sd_bundles/build.py (v1 format, unchanged)', file_len=FILE_LEN,
+               **(dict(names=dict(file_len=FILE_LEN_N, names='bytes 544..671: 8 x 16 (slot order COLOR1-4, MONO1-4)',
+                                  marker='bytes 672..675 "EP7N"', crc='bytes 676..679 CRC-32 (zlib) of bytes 544..675',
+                                  rule='0..15 chars 0x20..0x7e except @, NUL-padded, byte 15 NUL; bad names -> table loads, names zeroed'))
+                  if names else {}),
                ranges=[dict(byte=k, field=who[k], lo=lo[k], hi=lo[k] + span[k]) for k in range(64)])
     meta = dict(code_at=hex(CODE_AT), code_end=hex(CODE_END), code_len=len(code), site=hex(SITE), site_ret=hex(SITE_RET),
                 trig=hex(TRIG), ev_press=hex(EV_PRESS), state=hex(STATE), state_values=dict(none=0, attempted=0xffff, handle=f'1..{LIM:#x}'),
@@ -255,6 +371,9 @@ def make_spec():
                 services={k: hex(v) for k, v in SERVICES.items()}, symbols={k: hex(v) for k, v in syms.items()},
                 format=fmt, pad_evidence=dict(ok=pad['ok'], vtable_slots=pad['vtable_slots'], getter_calls=pad['getter_calls']),
                 requires='bundles table + readers built with --sd-v3 (they call the accessor)',
+                names=bool(names),
+                **(dict(file_len_n=FILE_LEN_N, mark_off=MARK_OFF, ncrc_off=NCRC_OFF, nmagic=hex(NMAGIC), stage=STAGE)
+                   if names else {}),
                 conflicts='sd_bundles (v1), sd_bundles_v2, sd_probe (same hook site / placement)')
     spec = dict(components=['0x100'], patch='sd_bundles_v3', sd_bundles_v3=meta, edits=edits)
     return spec, dict(loader=(src, lst, code), tbl=(tbl_source(), acc_lst, acc)), syms, fmt
@@ -263,9 +382,10 @@ def make_spec():
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--out', type=Path, required=True)
+    ap.add_argument('--names', action='store_true', help='also accept the 680-byte file with slot names (film menu)')
     a = ap.parse_args()
     try:
-        spec, parts, syms, fmt = make_spec()
+        spec, parts, syms, fmt = make_spec(a.names)
     except ValueError as e:
         sys.exit(f'error: {e}')
     a.out.mkdir(parents=True, exist_ok=True)

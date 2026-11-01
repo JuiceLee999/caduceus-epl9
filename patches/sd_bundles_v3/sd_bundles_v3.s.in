@@ -60,8 +60,7 @@ sd_load:                          /* frame 36: scratch 0..19; (0..11) left to ca
  mov a3,a0
  call ep7_ftell,[d2,a2,a3],16
  mov d0,d3                        /* file size */
- cmp {file_len},d3
- bne sd_close
+{size_test}
  mov a3,a0
  clr d0
  mov 2,d1                         /* whence 2 = SET */
@@ -89,6 +88,7 @@ sd_load:                          /* frame 36: scratch 0..19; (0..11) left to ca
  btst 3,d0
  bne sd_free                      /* not 4-aligned */
  mov d0,d3                        /* d3 = buf - pool (kept for h) */
+{names_pre}
  clr d0                           /* zero the name area +{names_lo}..+{names_hi} (docs/FILM_LIBRARY.md 8.3: */
  mov {names_lo},d2                /* names[8][16] at +544, 'EP7N' at +672): a BUNDLES.BIN block never */
 sd_z:                             /* carries names, whatever an earlier user left in the buffer. */
@@ -96,6 +96,7 @@ sd_z:                             /* carries names, whatever an earlier user lef
  inc d2
  cmp {names_hi},d2
  bne sd_z
+{names_post}
  mov d3,d0
  inc d0                           /* h = buf - pool + 1, 1..lim */
  movhu d0,(sd_state)              /* the ONLY other store: readers switch to the loaded table */
@@ -110,6 +111,7 @@ sd_out:
  ret [d2,d3,a2,a3],36
 
 {check}
+{names_fn}
 sd_path:
  .asciz "{path_asm}"
 sd_mode:

@@ -1,0 +1,101 @@
+/* E-P7 1.1 film-menu label hook, phase 2a (ep7-firmware, our own code). docs/FILM_LIBRARY.md section 8.
+ *
+ * Two copies of one body, entered by `jmp` from the two option-label builders at the point where stock has
+ * just copied a kind-4 (string id) entry into the label (6 stock bytes `movhu (a3),d0; cmp 1,d0; beq T1`):
+ *   hookA  <- 0x60df255f (builder A 0x60df250b, a2 = entry+4)   RET 0x60df25b2  T1 0x60df2589  NEXT 0x60df2565
+ *   hookB  <- 0x60df25dc (builder B 0x60df25b5, a2 = source)    RET 0x60df2615  T1 0x60df25f2  NEXT 0x60df25e2
+ * a2 -> (u16 kind, u16 id, u32 text); a3 -> label (u16 kind, u16, u16 id, u16, u16 text[33]).
+ *
+ * A "marked" entry is a kind-4 entry whose text word is {mark} + k (k = 0..7 = COLOR1-4, MONO1-4); the 8
+ * bytes at {mark} are flashed NULs, so a marked text is still a valid "" for anything else that reads it.
+ * Only when ALL of these hold is a name drawn:
+ *   label kind 4; text - {mark} < 8 (unsigned);
+ *   h = u16 at {state}: 1 <= h <= {lim}, (h-1) % 4 == 0 (same decode as the bundle accessor tbl_idx);
+ *   P = {pool} + h - 1 starts with 'EP7B' and P+{mark_off} holds 'EP7N' (written by the --names loader after
+ *   the names, before h); the name P+{names_lo}+16k is not empty.
+ * Then: label kind = 5, label text (33 units) cleared, at most 15 bytes copied (sign-extended, as the stock
+ * widen 0x60df2618), stop at NUL; the clear guarantees the terminator. d0 = character count (stock returns
+ * strlen on the kind-5 path). Exit through the builder's own ret.
+ * Otherwise the 6 stock bytes are replayed with every register as stock: d0 is reloaded, a0 is restored from
+ * (4,sp) (both builders store a0 there at entry and do not change a0 before the hook point), d1/a1 untouched.
+ * Uses d0, d1, a0, a1 only (builder B does not save d3). No stack, no calls, no setlb/Lcc, no mul/div.
+ * Stores: only to the label at a3 (kind halfword, 33 text halfwords). Reads only the entry, {state} and P.
+ */
+ .am33_2
+ .text
+ .global _start
+ .set MARK, {mark}
+_start:
+
+ .macro HOOK p, ret_x, t1_x, next_x
+hook\p:
+ movhu (a3),d0
+ cmp 4,d0
+ bne rep\p                        /* not kind 4: stock */
+ mov (4,a2),d0
+ add {neg_mark},d0
+ cmp 8,d0
+ bcc rep\p                        /* not a marker entry: stock */
+ movhu ({state}),d0
+ add -1,d0
+ cmp {lim},d0
+ bcc rpa\p                        /* h == 0, 0xFFFF or out of the pool */
+ btst 3,d0
+ bne rpa\p                        /* misaligned handle */
+ mov d0,a0
+ add {pool},a0                    /* a0 = P (uncached class-1 pool) */
+ mov (a0),d0
+ cmp {bmagic},d0
+ bne rpa\p                        /* block no longer holds our file */
+ mov ({mark_off},a0),d0
+ cmp {nmagic},d0
+ bne rpa\p                        /* no names loaded */
+ mov (4,a2),d0
+ add {neg_mark},d0                /* k = 0..7 */
+ asl 4,d0
+ add d0,a0
+ add {names_lo},a0                /* a0 = P + {names_lo} + 16k */
+ movbu (a0),d0
+ cmp 0,d0
+ beq rpa\p                        /* empty slot: stock label */
+ mov 5,d0
+ movhu d0,(a3)                    /* label kind 5 (text inline at +8) */
+ mov a3,a1
+ add 8,a1
+ mov 33,d1
+ clr d0
+clr\p:
+ movhu d0,(a1)                    /* clear text[0..32] (66 B, as the stock text path) */
+ add 2,a1
+ add -1,d1
+ bne clr\p
+ mov a3,a1
+ add 8,a1
+ clr d1
+cp\p:
+ movbu (a0),d0
+ cmp 0,d0
+ beq end\p
+ extb d0
+ movhu d0,(a1)                    /* text[d1], d1 < 15 */
+ inc a0
+ add 2,a1
+ inc d1
+ cmp 15,d1
+ bne cp\p
+end\p:
+ mov d1,d0                        /* character count */
+ jmp \ret_x
+rpa\p:
+ mov (4,sp),a0                    /* a0 as stock */
+rep\p:
+ movhu (a3),d0                    /* the 6 replaced stock bytes */
+ cmp 1,d0
+ bne nx\p
+ jmp \t1_x
+nx\p:
+ jmp \next_x
+ .endm
+
+ HOOK A, {ret_a}, {t1_a}, {next_a}
+ HOOK B, {ret_b}, {t1_b}, {next_b}

@@ -284,6 +284,8 @@ Not covered by the relabel:
 
 ## 8. Phase 2 redesign: card-loaded labels with no runtime writes into the image
 
+**Status (2026-11-01): phase 2a built and emulator-verified as `releases/test8-filmmenu`, as described in §8.7. It differs from §8.3 in a few details, listed there. Not run on the camera, not independently reviewed.**
+
 New constraint (camera tests, docs/SD_V2_CRASH.md): do not store anything at run time into the flash-loaded
 range 0x60020020–0x6191ffe0. Writable state lives at ≥0x61b2xxxx: the heap pools, or .bss such as the
 2-byte padding at 0x622cbcc2. That rules out §5.2 as written, because its name table at 0x61242e00 is in
@@ -461,3 +463,73 @@ Also check that no store is made outside the label and that d3 is preserved in b
 
 Only step 1 can need a reflash. Every later failure mode depends on the card and is recovered by removing the
 card.
+
+### 8.7 Phase 2a as built (test8-filmmenu)
+
+Offline. No camera was contacted, no `E142*` file was written, nothing was committed. [V] = machine-checked by
+a build script. [E] = emulator.
+
+**Card format (BUNDLES.BIN, backward compatible).** Names travel in BUNDLES.BIN. There is no LIBRARY.BIN yet.
+
+| File bytes | Content |
+|---|---|
+| 0..543 | v1 file, unchanged: header `EP7B`, its own CRC, 512-B table |
+| 544..671 | names[8][16], in slot order COLOR1–4, MONO1–4. Each is 0..15 bytes of 0x20..0x7e (no `@`), NUL-padded, with byte 15 = NUL. An empty slot is all zero |
+| 672..675 | `EP7N` |
+| 676..679 | CRC-32 (zlib) of bytes 544..675 |
+
+The heap offsets match §8.3 (P+544 names, P+672 `EP7N`), because the file is read into the 1024-B block at
+P+0.
+- A 544-B file loads exactly as before.
+- A 680-B file loads its looks whenever bytes 0..543 are valid, and its names only when the whole name section
+  checks out.
+- A loader without `--names` (test 7b) rejects 680-B files, and then no looks load either. Use 544-B files with
+  test 7b.
+
+Desktop tool: `tools/ep7_bundles_bin.py`. A slot can carry `"name"`; a slot with a name but no recipe is
+neutral (all-zero entry = stock rendering). `--check` prints the names. Example:
+`bundles/lachlan_v3_names.json`.
+
+**Loader** (`patches/sd_bundles_v3/build.py --names`, 865 B, same placement; default build unchanged [V]):
+1. Size 544 or 680 → fread(size).
+2. Run v1 `sd_check` on bytes 0..543, then the pool/alignment check.
+3. 680-B files only: `sd_names` checks the `EP7N` word, the CRC and the per-byte rules. If valid, it copies
+   the 128 name bytes to a staging area at P+688.
+4. Zero P+544..679 (as before).
+5. If the names were valid: copy staging → P+544, then store `EP7N` at P+672.
+6. `movhu h`, as before.
+
+So names come first, then `EP7N`, then the handle, all inside the heap block. New stores are only
+buffer-indexed (store audit [V]); the emulator checks that nothing outside the 1024-B buffer changes.
+
+**Hook** (`patches/film_menu`): two 159-B copies. hookA is at 0x61242d10 and hookB at 0x61242e10; markers stay
+at 0x61242e00. This is bigger than §8.3's ~85 B estimate, for three reasons:
+- the handle decode is the same as tbl_idx (1 ≤ h ≤ 0xa941, (h−1) % 4 == 0);
+- the hook also checks `EP7B` at P;
+- the replay path restores a0 from (4,sp), which both builders store at entry.
+
+As a result, every register in the replay path is exactly as stock (d1/a1 are never touched there). On the
+name path the hook returns d0 = d1 = the character count, as stock's kind-5 path does with strlen. Label byte +4
+keeps the string id that stock wrote before the hook point; a real kind-5 entry would leave it unwritten.
+Absolute jumps go through linker symbols: a numeric `jmp` operand is assembled as a raw displacement, and the
+build checks every exit [V]. Edits: 8 marker bytes, 2 hooks, 2 sites, and the 40 phase-2a entry words (45
+edits). The bare sources 0x611c1b44 and 0x611cf2b0 and the list 0x611df788 are deferred, as planned.
+
+**Verification** (generated/film_menu/; `tools/ep7_verify_film_menu.py`, `tools/ep7_verify_sd_bundles_v3.py`):
+
+| Run | Result |
+|---|---|
+| film-menu S: edits, guards, sites; the section-6 diff is ours only; exactly 40 words point at the markers; hook stores only to the label (fm_SLX) | PASS |
+| film-menu L: builders A and B, 44,703 label sources (every 4-aligned kind-1..12 source in sec 6, plus 18 boundary entries); states h=0, h=0xFFFF, names, no `EP7N`, no `EP7B`, misaligned h, h=lim+1, aligned h past the pool, names without `EP7N`, all names empty, corrupt names; sec 6, heap and state mapped read-only | 22/22 PASS. No-name states are byte-identical to stock (records, regs, stack). Names give a kind-5 label identical to stock's for the name; ≤ 15 characters + NUL |
+| film-menu X: real `--names` loader reads the release card → hook shows Kodachrome / Classic Neg / Warm / Portra on all their entries; a 544-B file → stock | PASS |
+| film-menu M: hook mutations | 14/14 detected |
+| v3 S, E/F 179, Q 10, A 64, R, N 29 name cases on t8 (v3n_SEQARN) | PASS |
+| v3 M on t8 (loader incl. 10 name mutations) | 20/20 |
+| v3 full suite on the default (no-names) build, clarity range (v3_default_all) | PASS, M 10/10 |
+| bundles / grain / bloom flashed + loaded on t8 | 56/56 PASS each mode; 7/7 PASS each mode; 6/6 checks (both modes exit 0) |
+| WB flashed + loaded on t8 | 26 PASS each; same single config-dependent miss as tests 6/7b |
+
+**Remaining risks:** §8.4 items 2–5 and 7 are unchanged. Kind-5 support on each screen, the `@` badge loss and
+clipping can only be seen on the camera, and each is gated by the card. The camera test plan is in
+`releases/test8-filmmenu/README.md`; it follows §8.6 steps 1–4, using BUNDLES.BIN instead of LIBRARY.BIN.
+

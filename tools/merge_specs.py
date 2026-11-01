@@ -29,7 +29,8 @@ for s in specs:   # keep verification metadata (e.g. native_rows) if present
               'mono_colour',                                        # MONO-colour verifier metadata
               'sd_bundles',                                         # SD bundle loader verifier metadata
               'sd_bundles_v2',                                      # SD look loader v2 verifier metadata
-              'sd_bundles_v3'):                                     # SD look loader v3 verifier metadata
+              'sd_bundles_v3',                                      # SD look loader v3 verifier metadata
+              'film_menu'):                                         # film-menu label hook verifier metadata
         if k in s:
             if k in merged and merged[k] != s[k]:
                 continue   # top-level keeps the first patch's value (verifiers read it); all copies are in meta

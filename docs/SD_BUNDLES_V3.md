@@ -43,6 +43,9 @@ table at +32, names[8][16] at +544 and the `EP7N` word at +672. BUNDLES.BIN carr
 `h ≤ 0xa941` (block wholly inside the pool) and 4-aligned; the menu hook's looser `h ≤ 0xad40` test accepts all of
 those. A future LIBRARY.BIN loader fills the names and writes `EP7N` last, before storing h.
 
+**Update (test 8):** `build.py --names` accepts a 680-B BUNDLES.BIN that carries the names (docs/FILM_LIBRARY.md §8.7).
+The default build stays as described here.
+
 ## 3. Loader flow (first gated half-press per power-on)
 
 Hook replays the tracker call, then only for canonical TRIG1-press with state == 0 runs v2's gate verbatim

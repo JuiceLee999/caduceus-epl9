@@ -215,3 +215,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - Look library v1 (agent, docs/LIBRARY_V1.md): 19 looks (16 colour, 3 mono), camera-feasible, tuned over 4 rounds on test shots; names ≤12 chars.
 - Clarity (agent, docs/CLARITY.md): effect_id 3 unsharp via bloom path with weights 1100–1420 (negative blend weight in combiner 11 mode unproven on HW). 270 B @0x6055e5c0; loader effect range 0..3. test9 = test7b + 5 edits; all verifiers pass.
 - View Assist (agent): probe-VA0 + test10 built on test7b; LUT/stub in unused EVF gamma tables (section 1); no RAM stores; 58-case matrix + mutations pass. Probe first: LV contrasty, playback normal.
+- Test 8 film-sim menu (agent): BUNDLES.BIN 680 B w/ names; loader --names; 2 label hooks + 40 entries; 44,703 label sources × builders × 11 states pass; readers pass. Card: Kodachrome / Classic Neg / Warm / Portra.

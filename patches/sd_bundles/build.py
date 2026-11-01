@@ -60,7 +60,7 @@ SHA_PREFIX = bytes.fromhex(MAIN_SHA[:8])           # decoded main SHA-256, first
 # field of patches/bundles/layout.json; bytes no field claims must be 0. These are the ranges
 # patches/bundles/build.py can emit (it rejects anything else), so every table it builds passes.
 RANGES = {'hue': (-7, 7), 'light': (-7, 7), 'grain': (0, 3), 'wb_flags': (0, 1), 'wb_ab': (-7, 7),
-          'wb_gm': (-7, 7), 'effect_id': (0, 2), 'effect_strength': (0, 5), 'vignette': (-5, 5),
+          'wb_gm': (-7, 7), 'effect_id': (0, 3), 'effect_strength': (0, 5), 'vignette': (-5, 5),
           'flags': (0, 3), 'colour': (0, 1), 'sat': (-5, 5)}
 
 # Other patches' claims (docs/CODE_SPACE_MAP.md) and the SD-updater code/data (docs/SD_UPDATE.md §4):

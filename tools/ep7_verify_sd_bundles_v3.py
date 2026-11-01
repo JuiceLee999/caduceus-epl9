@@ -25,6 +25,10 @@ buffer inside the class-1 pool (or outside it, for the pool-check cases).
   R  readers before/after: a real loader run's resulting state + heap fed to the accessor return the loaded
      table (bytes == file payload); with state 0 the flashed table.
   M  mutations of loader / accessor: each must fail.
+  N  (loader built with --names, docs/FILM_LIBRARY.md 8.7) 680-byte files: valid / corrupt name sections through
+     the real loader; looks load whenever bytes 0..543 are valid; names, then 'EP7N', land in the kept block only
+     when the whole name section checks out (else +544..+679 zeroed); staging copy at +688; a 544-byte file
+     behaves exactly as without --names (E/F/Q run unchanged on the --names build).
 
 Usage: tools/ep7_verify_sd_bundles_v3.py SPEC.json [--part S,E,Q,A,R,M] [--quick] [--json out.json]
 """
@@ -64,6 +68,48 @@ BUF_IN = HEAP_IN + 0x400
 HEAP_LEN = V1.HEAP_LEN
 NAMES_LO, NAMES_HI = B3.NAMES_LO, B3.NAMES_HI
 ALL = W2.ALL_REGS
+NAMES = False                      # set from the spec (sd_bundles_v3.names): loader built with --names
+BIN = V1.BIN                       # tools/ep7_bundles_bin.py (name_section / check_names mirror)
+
+
+def file_model(case):
+    """Independent model of the (--names) loader's file handling: -> (calls, load?, names shown?)."""
+    if not case.malloc_ok:
+        return ['malloc'], False, False
+    if not case.fopen_ok:
+        return ['malloc', 'fopen', 'free'], False, False
+    seq = ['malloc', 'fopen', 'fseek']
+    size = len(case.file)
+    sizes = (SB.FILE_LEN, B3.FILE_LEN_N) if NAMES else (SB.FILE_LEN,)
+    if case.seek_end:
+        return seq + ['fclose', 'free'], False, False
+    seq.append('ftell')
+    if case.tell_fail or size not in sizes:
+        return seq + ['fclose', 'free'], False, False
+    seq.append('fseek')
+    if case.seek_set:
+        return seq + ['fclose', 'free'], False, False
+    seq += ['fread', 'fclose', 'free']
+    if min(case.readmax, size) != size:
+        return seq, False, False
+    ok = not BIN.check_file(case.file[:SB.FILE_LEN])
+    if case.expect is not None and (case.expect == 'load') != ok:
+        raise AssertionError(f'{case.name}: desktop check_file() disagrees with the case label')
+    named = ok and size == B3.FILE_LEN_N and not BIN.check_names(case.file[NAMES_LO:])
+    return seq, ok, named
+
+
+def kept_expect(case, heap_in, o):
+    """Expected kept 1024-B block after a successful load (o = buffer offset in the heap fixture)."""
+    f, hb = case.file, heap_in[o:o + SB.BUF_SIZE]
+    b = bytearray(hb)
+    b[:SB.FILE_LEN] = f[:SB.FILE_LEN]
+    b[NAMES_LO:NAMES_HI] = bytes(NAMES_HI - NAMES_LO)
+    if NAMES and file_model(case)[2]:
+        b[NAMES_LO:B3.MARK_OFF] = f[NAMES_LO:B3.MARK_OFF]
+        b[B3.MARK_OFF:B3.MARK_OFF + 4] = b'EP7N'
+        b[B3.STAGE:B3.STAGE + 128] = f[NAMES_LO:B3.MARK_OFF]
+    return bytes(b)
 
 
 def evm_block(hls, pad):
@@ -127,6 +173,8 @@ def model(case, ev, env, state, trig, buf):
     seq, load, st2, ts = W2.model(case, ev, env, 0xff if state == 0 else 0, trig)
     if st2 == (0xff if state == 0 else 0):         # loader did not act
         return seq, state, False, ts
+    if NAMES and case.file is not None:
+        seq, load, _ = file_model(case)
     if load and in_pool(buf):
         return seq[:-1], buf - POOL + 1, True, ts   # buffer kept: no free
     return seq, 0xffff, False, ts
@@ -165,7 +213,7 @@ def check(case, ev, env, s, p, st_in, trig_in, evm_in, heap_in, buf, code_len):
             probs.append(f"malloc({e['d0']})")
         if e['fn'] == 'free' and e['a0'] != buf:
             probs.append('free of a wrong pointer')
-        if e['fn'] == 'fread' and (e['a0'], e['d0'], e['d1']) != (buf, 1, SB.FILE_LEN):
+        if e['fn'] == 'fread' and (e['a0'], e['d0'], e['d1']) != (buf, 1, len(case.file) if NAMES else SB.FILE_LEN):
             probs.append('fread args')
     pe, st = p['mem']['evm'], struct.unpack_from('<H', p['mem']['evm'], ST_OFF)[0]
     if pe[:ST_OFF] + pe[ST_OFF + 2:] != evm_in[:ST_OFF] + evm_in[ST_OFF + 2:]:
@@ -177,9 +225,10 @@ def check(case, ev, env, s, p, st_in, trig_in, evm_in, heap_in, buf, code_len):
         probs.append('heap written outside the buffer')
     if loaded:
         b = h[o:o + SB.BUF_SIZE]
-        if b[:SB.FILE_LEN] != case.file or b[NAMES_LO:NAMES_HI] != bytes(NAMES_HI - NAMES_LO) or \
-                b[SB.FILE_LEN:NAMES_LO] != heap_in[o + SB.FILE_LEN:o + NAMES_LO] or b[NAMES_HI:] != heap_in[o + NAMES_HI:o + SB.BUF_SIZE]:
-            probs.append('kept buffer != file + zeroed name area')
+        want = kept_expect(case, heap_in, o)
+        if b != want:
+            i = next(i for i in range(len(b)) if b[i] != want[i])
+            probs.append(f'kept buffer != file + name area (first difference at +{i})')
     return not probs, probs, st
 
 
@@ -321,7 +370,8 @@ def check_static(spec, meta, stock, patched):
         pass
     tgt_ok, refs, leftover, store_rows = True, [], [], []
     regions = [(a, b) for a, b in ed.items() if (0x60210900 <= a < 0x60211000 or 0x61378c80 <= a < 0x61379000 or
-                                                0x6055e700 <= a < 0x6055e7a6)]
+                                                0x6055e700 <= a < 0x6055e7a6 or
+                                                0x6055e5c0 <= a < 0x6055e6f0)]   # bloom --clarity (docs/CLARITY.md)
     tbl_imm = struct.pack('<I', B3.TABLE)
     for a, b in regions:
         start = a + (512 if a == B3.TABLE else 0)          # skip the table data itself
@@ -352,7 +402,8 @@ def check_static(spec, meta, stock, patched):
     abs_ok = all(not B3.in_image(t) for _, _, k, t in st if k == 'abs') and \
         [t for _, _, k, t in st if k == 'abs'] == [B3.STATE, B3.STATE]
     ind = [t for _, t, k, _ in st if k == 'ind']
-    r['loader_accessor_stores'] = abs_ok and ind == ['movbu d0,(d2,a2)']
+    want_ind = ['movbu d0,(d2,a2)'] + (['movbu d0,(d2,a1)', f'mov d0,({B3.MARK_OFF},a2)', 'movbu d0,(d2,a0)'] if NAMES else [])
+    r['loader_accessor_stores'] = abs_ok and ind == want_ind
     return all(r.values()), dict(r, accessor_calls=refs, flashed_table_imm=leftover, stores=[(hex(a), t, k) for a, t, k, _ in st])
 
 
@@ -367,10 +418,13 @@ def reader_store_audit(gen):
         start, stop = _code_span(name, s3, a, b)
         new = collections.Counter((t, k) for _, t, k, _ in B3.store_audit(B3.disasm(b[start - a:stop - a], start)))
         old_spec = _flash_spec(name)
-        e0 = [e for e in old_spec['edits'] if int(e['addr'], 16) == a][0]
-        b0 = bytes.fromhex(e0['new'])
-        start0, stop0 = _code_span(name, old_spec, a, b0)
-        old = collections.Counter((t, k) for _, t, k, _ in B3.store_audit(B3.disasm(b0[start0 - a:stop0 - a], start0)))
+        e0 = [e for e in old_spec['edits'] if int(e['addr'], 16) == a]
+        if not e0 and name == 'bloom' and 'clarity' in s3['bloom']:     # moved to sec 2: compare with the sec-1 routine
+            e0 = [max(old_spec['edits'], key=lambda e: len(e['new']))]
+        e0 = e0[0]
+        a0, b0 = int(e0['addr'], 16), bytes.fromhex(e0['new'])
+        start0, stop0 = _code_span(name, old_spec, a0, b0)
+        old = collections.Counter((t, k) for _, t, k, _ in B3.store_audit(B3.disasm(b0[start0 - a0:stop0 - a0], start0)))
         added = new - old
         bad = [t for (t, k), n in added.items() if k != 'sp']
         abs_img = [t for (t, k) in new if k == 'abs']
@@ -431,6 +485,20 @@ def mutations(patched, meta):
     mut('name clear end 680 -> 676', struct.pack('<H', NAMES_HI)[:2], struct.pack('<H', NAMES_HI - 4)[:2], 0,
         syms['sd_z'], syms['sd_z'] + 12)
     mut('state test removed', b'\xfc\xac' + st + b'\xa0\x00\xc9', b'\xcb' * 2, 9)
+    if NAMES:
+        nl, nh = syms['sd_names'], syms['sd_path']
+        mut('names: 680-byte size accepted -> 684', b'\xfa\xcb' + struct.pack('<H', B3.FILE_LEN_N), b'\xfa\xcb' + struct.pack('<H', B3.FILE_LEN_N + 4))
+        mut('names: marker store removed', b'\xfa\x12' + struct.pack('<H', B3.MARK_OFF), b'\xcb' * 4)
+        # (128 -> 127 would be an equivalent mutant: byte 15 of slot 7 is always NUL and the area is pre-zeroed)
+        mut('names: copy-back 128 -> 112 bytes (slot 7 dropped)', b'\xfa\xca\x80\x00', b'\xfa\xca\x70\x00', 0, syms['sd_nc'], syms['sd_nc'] + 16)
+        mut('names: marker check -> EP7M', b'\xfc\xc8' + struct.pack('<I', B3.NMAGIC), b'\xfc\xc8' + b'EP7M', 0, nl, nh)
+        # branch displacement -> 2 (= fall through): the test is still executed but never rejects
+        mut('names: CRC compare skipped', b'\xa4\xc9', b'\xa4\xc9\x02', 0, nl, nh)
+        mut("names: '@' test removed", b'\xa0\x40\xc8', b'\xa0\x40\xc8\x02', 0, nl, nh)
+        mut('names: byte-15 NUL test removed', b'\xa5\x0f\xc8', b'\xa5\x0f\xc8\x02', 0, nl, nh)
+        mut('names: character-after-NUL test removed', b'\xaf\x00\xc9', b'\xaf\x00\xc9\x02', 0, nl, nh)
+        mut('names: printable upper bound 0x7e -> 0x7f', b'\xa0\x5e', b'\xa0\x5f', 0, nl, nh)
+        mut('names: staging offset 688 -> 692 (sd_names)', b'\xfa\xd0' + struct.pack('<H', B3.STAGE), b'\xfa\xd0' + struct.pack('<H', B3.STAGE + 4), 0, nl, nh)
     al, ah = B3.ACC_AT, B3.ACC_AT + meta['acc_len']
     mut('accessor: magic check skipped', b'\xfc\xca' + B3.V1.MAGIC, b'\xfc\xca' + B3.V1.MAGIC[:3] + b'C', 0, al, ah)
     mut('accessor: header offset 32 -> 36', b'\x20\x20', b'\x20\x24', 0, al, ah)
@@ -451,13 +519,90 @@ def core_suite(R, img, F, rng, syms):
         ok &= R.sequence(img, steps)[0]
     ok &= t_accessor(img, syms)[0]
     ok &= t_readers(R, img, F, syms)[0]
+    if NAMES:
+        for label, c in name_cases(F):
+            if label in CORE_NAME_CASES:
+                ok &= R.single(img, c)[0]
     return ok
+
+
+# ------------------------------------------------------------------ names (--names loader)
+CORE_NAME_CASES = ('valid names (mixed, 2 empty)', 'all 8 names 15 characters', 'name CRC +1',
+                   "name with '@' (CRC fixed)", 'name 16 characters, no NUL (CRC fixed)', 'name byte 0x7f (CRC fixed)',
+                   'marker EP7M (CRC fixed)', 'character after the NUL (CRC fixed)', 'valid names, short read 679')
+
+
+def raw_section(names_bytes, marker=b'EP7N'):
+    """128 raw name bytes + marker + correct CRC (so only the content rules can reject)."""
+    import zlib
+    b = bytes(names_bytes) + marker
+    return b + struct.pack('<I', zlib.crc32(b) & 0xffffffff)
+
+
+def name_cases(F):
+    v = F['mono']
+    C = V1.Case
+    good = ['Classic Neg', None, 'Portra', 'W' * 12, 'Acros', 'Tri-X 400', None, 'Mono ~ #4!']
+    sec = BIN.name_section(good)
+    raw = bytearray(sec[:128])
+
+    def rawset(k, data):
+        r = bytearray(raw)
+        r[k * 16:(k + 1) * 16] = bytes(data).ljust(16, b'\0')[:16]
+        return raw_section(r)
+    bad_tab = v[:16] + bytes(4) + v[20:]
+    out = [('valid names (mixed, 2 empty)', C('n valid', v + sec, expect='load')),
+           ('all 8 names 15 characters', C('n 15', v + BIN.name_section(['ABCDEFGHIJKLMN' + str(k) for k in range(8)]), expect='load')),
+           ('all names empty, marker + CRC valid', C('n empty', v + BIN.name_section([None] * 8), expect='load')),
+           ('one name, 1 character', C('n one', v + BIN.name_section([None] * 5 + ['x', None, None]), expect='load')),
+           ('space and tilde (0x20, 0x7e)', C('n edge', v + rawset(1, b' ~ ~'), expect='load')),
+           ('valid names over a stale buffer', C('n stale', v + sec, stale=bytes(range(256)) * 4, expect='load')),
+           ('valid names, other table (example.json)', C('n ex', F['example'] + sec, expect='load')),
+           ('name CRC +1', C('n crc', v + sec[:132] + struct.pack('<I', (struct.unpack_from('<I', sec, 132)[0] + 1) & 0xffffffff), expect='load')),
+           ('name CRC zero', C('n crc0', v + sec[:132] + bytes(4), expect='load')),
+           ('name byte flipped, stale CRC', C('n flip', v + bytes([sec[0] ^ 1]) + sec[1:], expect='load')),
+           ('marker EP7M (CRC fixed)', C('n mark', v + raw_section(raw, b'EP7M'), expect='load')),
+           ('marker zero (CRC fixed)', C('n mark0', v + raw_section(raw, bytes(4)), expect='load')),
+           ("name with '@' (CRC fixed)", C('n at', v + rawset(2, b'Port@'), expect='load')),
+           ('name 16 characters, no NUL (CRC fixed)', C('n 16', v + rawset(0, b'A' * 16), expect='load')),
+           ('name byte 0x7f (CRC fixed)', C('n 7f', v + rawset(3, b'AB\x7f'), expect='load')),
+           ('name byte 0x1f (CRC fixed)', C('n 1f', v + rawset(3, b'\x1fAB'), expect='load')),
+           ('name byte 0x80 (CRC fixed)', C('n 80', v + rawset(5, b'A\x80'), expect='load')),
+           ('name byte 0xff (CRC fixed)', C('n ff', v + rawset(7, b'\xff' * 15), expect='load')),
+           ('character after the NUL (CRC fixed)', C('n gap', v + rawset(4, b'AB\0C'), expect='load')),
+           ('last slot byte 15 set (CRC fixed)', C('n s7', v + rawset(7, b'B' * 15 + b'C'), expect='load')),
+           ('valid names, table CRC bad', C('n badtab', bad_tab + sec, expect='reject')),
+           ('valid names, table range bad', C('n badrng', V1.poke(v, 32 + 24, 9) + sec, expect='reject')),
+           ('valid names, short read 679', C('n short', v + sec, readmax=679, expect='reject')),
+           ('file size 679', C('n 679', v + sec[:-1], expect='reject')),
+           ('file size 681', C('n 681', v + sec + b'\0', expect='reject')),
+           ('file size 676 (no CRC)', C('n 676', v + sec[:132], expect='reject'))]
+    return out
+
+
+def t_names(R, img, F):
+    rows, ok = [], True
+    for label, c in name_cases(F):
+        _, load, named = file_model(c)
+        g, probs, p = R.single(img, c)
+        rows.append(dict(case=label, ok=g, load=load, names=named, problems=probs))
+        ok &= g
+    for label, c, buf in [('valid names, buf at pool start', name_cases(F)[0][1], POOL),
+                          ('valid names, buf at the last fitting block', name_cases(F)[0][1], POOL + LIM - 1 & ~3),
+                          ('valid names, buf 2-aligned (rejected)', name_cases(F)[0][1], BUF_IN + 2)]:
+        g, probs, p = R.single(img, c, buf)
+        rows.append(dict(case=label, ok=g, problems=probs))
+        ok &= g
+    # the desktop mirror agrees with the model on every case (and the expected-name set is non-trivial)
+    named = [file_model(c)[2] for _, c in name_cases(F)]
+    ok &= sum(named) == 7 and not all(named)
+    return ok, rows
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('edits', type=Path)
-    ap.add_argument('--part', default='S,E,Q,A,R,M')
+    ap.add_argument('--part', default='S,E,Q,A,R,N,M')
     ap.add_argument('--quick', action='store_true')
     ap.add_argument('--json', type=Path)
     a = ap.parse_args()
@@ -466,6 +611,8 @@ def main():
     meta = spec.get('sd_bundles_v3')
     if not meta:
         sys.exit("spec lacks 'sd_bundles_v3'")
+    global NAMES
+    NAMES = bool(meta.get('names'))
     pkg, restore, info = BP.build(spec, BP.STOCK.read_bytes())
     patched, stock = oc.parse(pkg)[0].payload, oc.parse(restore)[0].payload
     F, rng = V1.files()
@@ -514,6 +661,9 @@ def main():
     if 'R' in parts:
         g, rows = t_readers(R, patched, F, syms)
         report('R readers before / after loading (real loader run -> accessor)', g, rows=rows)
+    if 'N' in parts and NAMES:
+        g, rows = t_names(R, patched, F)
+        report(f'N {len(rows)} name-section cases through the real --names loader, vs stock', g, rows=rows)
     if 'M' in parts:
         mres = []
         for name, img in mutations(patched, meta):
