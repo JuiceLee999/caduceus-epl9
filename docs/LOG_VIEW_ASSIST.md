@@ -1,0 +1,221 @@
+# View Assist for log video (E-P7 1.1): feasibility
+
+This is offline research only. Nothing has run on a camera, no SD-update-named file was created, and
+nothing was committed. Addresses are CPU addresses in main (base `0x60020020`, decoded SHA-256
+`5dd9af16…6190`). The background is in `docs/VIDEO_LOG.md`, which covers `patches/video_log`, +925 and
+the gamma tables.
+
+Labels: **[V]** means read from bytes or disassembly, or run in the emulator on stock code. **[I]** means
+inference.
+
+Tool (ours, read-only): `tools/ep7_view_assist_probe.py` runs checks S1–S3, E1, E2 and C1, described
+below. They all pass (`python3 -I tools/ep7_view_assist_probe.py [--json r.json] [--lut-out lut.bin]`).
+
+## Verdict
+
+**Feasible, using the display engine and not the ISP. Nothing is built yet, because the trigger site is
+not settled.**
+
+The live-view gamma cannot be split from the recorded gamma inside the ISP. There is one development
+per frame and one gamma for it. The display controller ("VSC") has its own hardware LUT, though:
+256 entries for each of R, G and B, double-buffered, and applied per output channel. The stock firmware
+carries all of the code to load it, plus a 20-slot step table. On the E-P7 this LUT does nothing: every
+TFT slot is identity, open/init writes the mode register to bypass, and no stock code sends the command
+that loads it.
+
+A log→Rec.709-style curve loaded into that LUT gives a View Assist that:
+- touches only the LCD (VSC channel 0);
+- leaves the recording and HDMI (channel 1) in log;
+- costs no ISP time.
+
+The data side is a 12-byte table edit plus a 256-byte LUT, which can go into the dead EVF tables. The
+programmer, register format and mode switch are emulator-verified. What is still open is the code that
+switches the LUT on and off in the right task at the right moments. See "Open items".
+
+## Q1: does live view use a separate path from the recorded stream?
+
+**There is one development, and the displayed image is derived from the same developed YCbCr. Display
+post-processing is separate.**
+
+Verified:
+- The ISP colour-output descriptor has exactly one RGB gamma triple, at +2596/+2600/+2604. Its only
+  writer is `0x603ae7d3`; there is no second "sub/display" gamma field anywhere in
+  `0x60398000–0x603b6000`. There is also one luma LUT (+2608/+2612 family).
+- The movie job's table fetch `0x6039a97b` (← `0x6035169b` ← `0x60351174`, the RECVIEW/movie job path
+  in VIDEO_LOG X2) takes one gamma (`0x603ae354`) and one luma LUT (`0x603b092f`).
+- The 980-byte "compact ring" `0xa2731098` (HSL_PORT, WB_AND_MONO: the live-view candidate) is **the
+  same ring** whose record +925 drives the log mode (VIDEO_LOG X1: records at
+  `0xa2731098 + 980·k`). So the live-view settings slot and the movie development request come from
+  one record.
+- The display controller reads a finished "through image" buffer (`img_hd`, `img_format` in the
+  display packets) and does its own output processing:
+  - gamma (`attr_gam`, see Q2);
+  - LPF (`attr_lpf`) and rotation (`attr_rot`);
+  - highlight/shadow warning (`attr_hilight`/`attr_shadow`);
+  - edge peaking (`egpk_prm`, display command `SET_EG_PK`);
+  - histogram (`r/g/b/y_buff`);
+  - OSD mixing.
+
+  Strings at `0x601d7db3…0x601d8727`; command names at `0x601d78e2…0x601d7b0a`.
+- This is why peaking and the highlight/shadow display never reach the recording.
+
+Inferred:
+- Live view in movie mode shows log because it is the same development (VIDEO_LOG already expects
+  this).
+- The task names `MVR_IMG1/MVR_IMG2/REC_PV1_CPU2` and the RSZ1–35 resizer channels point to the frame
+  being resized into a movie copy and a display copy after development. This is not traced.
+- If the first on-camera test of `patches/video_log` shows a *normal* live view, this inference is
+  wrong, and View Assist is unnecessary.
+
+## Q2: where the display picks its gamma, and remnants
+
+### The VSC display gamma [V]
+
+| Item | Address | Detail |
+|---|---|---|
+| Display task dispatch | `0x60174667` → jump table `0x601d3a20` | Command 8 = QUALITY → `0x60174bdb`. The names table at `0x601798d1` is 1-based: 1 FASTBOOT, 2 OPEN … 7 BRIGHTNESS, 8 QUALITY … 22 COLORTEMP |
+| QUALITY handler | `0x60186432` | Packet {u32 device mask, `attr_gam*`, `attr_lpf*`, `attr_rot*`}. Gamma → `0x60187439` |
+| Gamma programmer | `0x60187439` | Device mask 1 (TFT) → index 0; mask 2 (built-in EVF) → index 1; anything else returns. `attr_gam` → u8 step (< 20). **Step 16 = bypass** (all channel modes 0). Otherwise it looks up the step table, writes R/G/B into the inactive bank, then flips the mode |
+| Step table | `0x601e3b3c` | 2 devices × 20 slots × 16 B {u8 step, R*, G*, B*}. Slots 0–14 = steps 0–14 (MN7…PL7, matching the debug CSV names `MN7GAMMACSV…PL7GAMMACSV`). **Slots 15–19 = steps 16, 17, 18, 19, 0 with NULL pointers (spare)** (S1) |
+| LUT data | `0x601de13c–0x601e3b3c` | 90 × 256 B, 8-bit. **All 45 TFT LUTs are identity** except entry 3 → 2 at step 7 (S1). The EVF LUTs are per-channel scalings (colour temperature) |
+| LUT writer | `0x601885f9` | VSC channel c = `0x60043bdd(mask)`: TFT/EVF → 0, HDMI/other → 1. Writes 128 words at `0x9c000000 + c·0x4000 + 4·{2048,2176}` (R bank 1/2), `{2304,2432}` (G), `{2560,2688}` (B). Each word = `(lut[2i+1]<<18 & 0xffff0000) \| (lut[2i]<<2)`, so the output is 10 bits (E1) |
+| Mode register | `0x9c000204 + c·0x4000` | `(R<<8)\|(G<<4)\|B`: 0 = bypass, 1 = bank 1, 2 = bank 2. Writer `0x601885a8`, reader `0x60189198` (E2). The programmer ping-pongs: current 0 or 0x222 → load bank 1, set 0x111; current 0x111 → bank 2, set 0x222 |
+| Bypass writers | `0x6018819c`, `0x60188307` | Write 0 to the mode register in the TFT open/close init (`0x60184ad6`, `0x60184aa6`). The only other references are the programmer, the reader and a register-dump list (S3) |
+
+**Who loads it in stock.**
+- No stock code sends command 8 with a constant id to the display mailbox (`0x60040df4`) (S2).
+- The only other caller of the programmer is the EVF colour-temperature path: COLORTEMP → `0x6017773e`,
+  mask 2, step = colour temperature.
+- TFT brightness and colour temperature go to the panel over SPI instead, using a 15×15×26-byte register
+  table at `0x61f9d31e` (`0x60184235` → `0x60184360`).
+- **So on the E-P7 the TFT runs with the VSC gamma bypassed, and the LUT hardware and its loader are
+  dormant [V static, I that no computed-id sender exists].**
+- HDMI is VSC channel 1. The programmer never addresses it, so HDMI output has no display gamma [V].
+
+### Can the ISP live-view gamma be forced to default while recording stays log?
+
+**No**, as far as can be seen. There is a single development and a single gamma (Q1). Forcing
+`0x603ae354` back to `0x604ede78` in movie mode would also un-log the recording. The only kind-specific
+gamma behaviour is request kind 4 (`0x603b18cd`): its `0x603ae7ee` sets output+4 bit 0x1000 and so
+*skips* the gamma update. It does not select a different gamma, and nothing shows it is a display-only
+pass [V code, I meaning].
+
+### Remnants of an "assist" or a display-only gamma
+
+- The **VSC gamma path itself** is a complete display-only gamma: loader, double buffering, a bypass
+  step (16) and three reserved step ids (17–19) with empty slots. Whether OM bodies use those slots for
+  View Assist is unknown [I].
+- A debug **gamma CSV loader** has orphaned strings (`gamma_ctrl`, `[display]gamma cvs file read`,
+  `@R/@G/@B`, `CDIFKNEECSV` colour-difference knee, `CHROMAPRCSV`, `MN7_CTMPCSV…`) but no code
+  references. The debug `lut` command (`0x601789f7`) is a bare `retf` [V].
+- Setting 670 (`0x91b1` index 1) is tested by `0x6028e27f`/`0x6028e2ad`, only together with
+  MovPicModeType (`0x4501`) == 1. These tests send events 4/6 through `0x6028e6eb` and call the hook at
+  `0x6223ed50`. The position next to MovPicMode fits a View Assist flag, but the consumers are not traced
+  [V tests, I meaning].
+- There is no "View Assist", "OM-Log" or "Log" string in main or the other components [V].
+
+## Q3: minimal patch design (not built)
+
+Condition: **VSC TFT gamma = VA LUT exactly while record +925 == 2 (log active), otherwise bypass.**
+Keying on +925 covers both `patches/video_log` and the stock MovPicMode = 255 route.
+
+### Data (12 + 256 bytes, no new code space)
+
+| Edit | Site | Stock | New |
+|---|---|---|---|
+| VA LUT, 256 B | `0x601e383c` (EVF slot 0, R) | EVF LUT | `row0 ∘ inverse(id-2001)` (C1) |
+| Step-17 slot pointers | `0x601e3c40` (12 B; step byte 17 at `0x601e3c3c` is already present) | 3 × NULL | 3 × `0x601e383c` |
+
+The E-P7 has no EVF or accessory port, so the device-index-1 tables are dead data (that is a product
+fact, not proven from code [I]). If a non-EVF location is preferred, the LUT needs a 256-byte claim in
+`docs/CODE_SPACE_MAP.md`.
+
+The VA LUT is derived from the firmware's own tables (C1):
+
+| Log 8-bit in | 0 | 32 | 64 | 97 | 130 | 162 | 192 | 224 | 255 |
+|---|---|---|---|---|---|---|---|---|---|
+| Display out | 0 | 7 | 19 | 40 | 70 | **118** | 168 | 222 | 255 |
+
+Log 162 is the 2001 code for grey at −3 EV below clip, and it maps to 118, the stock JPEG mid grey. The
+LUT is applied per R/G/B channel after the VSC's YCbCr→RGB conversion. That this domain is RGB follows
+from the per-channel EVF colour-temperature tables [I strong].
+
+### Trigger (code, about 60–90 B; this is the open part)
+
+The programmer must run inside the display task, because it takes display locks
+(`0x60175cdf`/`0x60175c01`) and the registers are owned by that task. Two candidates:
+
+- **T-A (preferred): a reconcile hook in the display task.** Add a stub on a display-task command path
+  that runs whenever live view (re)starts, such as the UPD_IMG handler `0x60174a92` or the end of the
+  OPEN handler. The stub:
+  1. computes `want = (record[(0xa273104c)].+925 == 2)`;
+  2. reads `cur = 0x60189198(1) != 0`;
+  3. if they differ, calls `0x60187439(d0 = 1, a0 = &step17)` or `(…, &step16)`.
+
+  This needs no RAM state, because the hardware mode register is the state. Bypass is the stock value,
+  so any non-zero mode on the TFT is ours. It also survives the bypass reset at display reopen.
+- **T-B: edge-triggered QUALITY send.** From the +925 derivation (`vlog_hook`, `0x60210c90`), send
+  command 8 {mask 1, `&step17`/`&step16`} via `0x602c9cf1(d0 = (0x60040df4), d1 = 8, a0 = packet,
+  a1 = name)` when the result changes. This catches picture-mode changes inside movie mode, which T-A
+  may miss if UPD_IMG doesn't fire then. It does not survive a display reopen on its own.
+
+T-A + T-B together is the robust form. Before building, it needs:
+1. how often UPD_IMG and OPEN fire (when live view starts, a mode change, a picture-mode change);
+2. whether `0x602c9cf1`/`0x60054b33` block (sync reply) when called from the settings context;
+3. a playback rule (below).
+
+Verification would then cover:
+- the stub natively;
+- 0x60187439 natively with stubs for the lock and memcpy helpers at `0x47001xxx`;
+- E1/E2 as now.
+
+### Stretch: user-selectable preview look
+
+Step ids 17, 18 and 19 have three spare slots per device (`0x601e3c3c`, `0x601e3c4c`, `0x601e3c5c`), and
+the dead EVF tables hold 45 × 256 B. So up to three looks need only data. Each look can be any
+per-channel 1D curve:
+- Natural (above);
+- a contrastier "Vivid" tone;
+- a warm or cool tint, using a different curve per channel;
+- a film-style tone from a bundle recipe.
+
+The selector could be a byte in the bundle table (`patches/bundles/layout.json` has no free field
+defined; offset ≥ 45 of a slot is unused) or the active COLOR/MONO profile. The stub then picks step
+17 + n.
+
+**Not possible here:** monochrome, hue shifts or saturation changes. Those need channel mixing, which
+the LUT cannot do. A chroma stage exists only as orphaned CSV strings (`CHROMAPRCSV`, `CDIFKNEECSV`)
+with no traced registers.
+
+## Q4: limitations
+
+- **HDMI:** stays log (VSC channel 1 is never programmed) [V static]. That is good for an external
+  recorder or monitor LUT. There is no VA on HDMI unless channel 1 is programmed too, and the stock
+  programmer rejects that mask.
+- **Playback:** the LUT stays on the TFT channel until it is reset. If playback reuses the open panel
+  without the init bypass, stills and menus in playback get the VA curve. The rule should be to switch
+  off on NOTIFY_PLY (command 41) / playback state, or to key on "movie live view active" as well as
+  +925. Whether a display reopen happens when switching to playback is unknown.
+- **OSD and overlays:** it is unknown whether the gamma sits before or after OSD mixing. If after,
+  menus, icons, peaking colours and highlight/shadow colours are also re-toned. Black and white stay
+  fixed, but mid-tones shift. Histogram buffers may be computed before or after the LUT [I].
+- **Performance:** no ISP cost. One toggle is 3 × 128 register writes plus a mode write in the display
+  task. Double-buffered banks mean no visible tearing [I].
+- **Image quality of the preview:** 8-bit input. The log toe is expanded (codes 0–32 → 0–7), so the
+  display shows shadow posterisation; the recording is unaffected. The 2001-only tint/chroma stage
+  (`0x603b0e56`) is not undone, so colours sit near Natural but not exactly. Per-channel contrast
+  restores most of the saturation [I].
+- **LCD brightness and colour-temperature menus:** unaffected. They act on the panel over SPI, not on the
+  VSC LUT [V].
+- **Exposure:** VA makes the preview look correctly exposed when log is exposed with grey at about
+  −3 EV below clip, which is the stock AE target. With the −2 EV compensation VIDEO_LOG recommends,
+  the preview looks about 2 EV dark. A second look tuned for EC −2 (grey at about −5 EV) is a good use
+  of slot 18.
+
+## Open items before building
+
+1. How often the trigger sites fire (UPD_IMG, OPEN, playback switch); whether the send is synchronous.
+2. Whether the VSC gamma applies before or after OSD mixing. On the camera this shows directly.
+3. The first camera test of `patches/video_log` must confirm that live view is in fact log (Q1
+   inference).
+4. Any camera test needs the usual go-ahead and the SD_UPDATE.md risk notes.
