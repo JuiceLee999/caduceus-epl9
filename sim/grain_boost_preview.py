@@ -2,7 +2,7 @@
 
   systemd-run --user --scope -p MemoryMax=8G -q .venv/bin/python sim/grain_boost_preview.py generated/grain_boost
 
-Old COLOR grain = combiner 32 gains 50/75/100; v0.16 COLOR = 110/300/600 (stock MONO full-size table 0x604ec0ce).
+Old COLOR grain = combiner 32 gains 50/75/100; v0.16 COLOR = 220/600/1200 (our table; v0.16a was 110/300/600).
 Uses the library sim grain model (xorshift luma noise, brightness weight, clamp -6682; sim/library_preview.cam_grain)
 on the cached half-res develops. 100 % crops are 2x upsampled to full-res pixels. Writes crops_100pct.jpg,
 frame_fit.jpg and stats.json (luma noise std in 8-bit codes, midtones, full-res pixels).
@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import library_preview as L, pipeline as P, film as F
 
 ROWS = [('off', None), ('old L 50', 50), ('old M 75', 75), ('old H 100', 100),
-        ('new L 110', 110), ('new M 300', 300), ('new H 600', 600)]
+        ('v16a L 110', 110), ('v16a H 600', 600), ('new L 220', 220), ('new M 600', 600), ('new H 1200', 1200)]
 IMGS = ['valley', 'roof', 'flower']
 
 

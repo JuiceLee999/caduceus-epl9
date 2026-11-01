@@ -128,7 +128,12 @@ restored by `ret [d2,d3,a2,a3],20`); hook B 0x603a06dd adds 0x604ec0d4 and, for 
 identical to the mask route). Key 11 reaches combiner 32 only via our sel_hook, so MONO/art keep stock banks.
 Verifier (`tools/ep7_grain_verify.py`): T4 COLOR gain 110/300/600, bank == stock MONO 0902 except +136; new T8:
 keys 12/0x01010068/0/5/10 × stages 0x0901/0x0902 × levels 0–3 byte-identical to stock, erased table → stock.
-Negative control (unconditional strong table) fails T8. Desktop estimate: `sim/grain_boost_preview.py`
+Negative control (unconditional strong table) fails T8.
+**v0.16c (camera: High still too weak): COLOR gains 220/600/1200** from our own 3 × u16 table `gb_tab` (0x60210e38;
+`patches/grain_boost/build.py --gains`). Gain field = bank+136 low halfword; stock packs signed halfwords there
+(+1024, and −1024 = 0xFC00 in combiner 6), so it is ≥ 12-bit signed: ≤ 2047 cannot wrap (build limit). No CPU clamp
+on the gain; the noise clamp −6682 (bank+148) already saturates at 600, so higher gains add mostly bright-side
+grain and lift the mean slightly. Desktop estimate: `sim/grain_boost_preview.py`
 (model uncalibrated to camera; midtone std ×2.2/×4/×6 vs the old levels).
 
 ## 4. Verification (emulator; `tools/ep7_grain_verify.py`, fishcu's libsim runner)

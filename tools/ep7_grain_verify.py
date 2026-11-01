@@ -21,7 +21,7 @@ grain-only spec (a synthetic bundle table is injected) or on a merged spec (the 
      level byte = slot grain; invalid slot or kind 3 -> request untouched; returns 0; job untouched.
   T4 end to end: combiner config 0x603a013b on a COLOR request after the modifier: slot level L ->
      handler 32 with gain table[L-1], bank byte-identical to stock MONO key 12 + stage 0x0902; L = 0 -> stock.
-     With the v0.16 grain boost (spec 'grain_boost'): COLOR gain = table 0x604ec0ce[L-1] = 110/300/600 and the
+     With the v0.16 grain boost (spec 'grain_boost'): COLOR gain = our table[L-1] (e.g. 220/600/1200) and the
      bank equals stock MONO 0x0902 except the gain word (+136).
   T8 (grain boost) handler 32/31 for every non-COLOR key (MONO 12, art 0x01010068, 0, 5, 10) x stage 0x0901/0x0902
      x level 0..3: bank, RAM counter, regs byte-identical to stock; COLOR with an erased (no) table -> stock.
@@ -311,9 +311,13 @@ def t3_modifier(stock, patched, mod_addr):
 
 
 # ------------------------------------------------------------------ T4
-def t4_combiner(stock, patched, mod_addr, boost=False):
+def t4_combiner(stock, patched, mod_addr, boost=None):
     res, ok = [], True
-    gains = struct.unpack_from('<3H', stock, (0x604ec0ce if boost else 0x604ec0d4) - BASE)
+    gains = struct.unpack_from('<3H', stock, 0x604ec0d4 - BASE)
+    if boost:   # COLOR gains = the boost table in the PATCHED image; must equal the spec's color_gains
+        gains = struct.unpack_from('<3H', patched, int(boost['color_table'], 16) - BASE)
+        if list(gains) != boost['color_gains']:
+            return False, [dict(check='image boost table == spec color_gains', image=gains, spec=boost['color_gains'], ok=False)]
     for lv in (0, 1, 2, 3):
         table = fixture_table([lv, 0, 0, 0])
         out = []
@@ -445,7 +449,7 @@ def main():
              ('T2 work list (per-profile)', lambda: t2_worklist(stock, patched, mod_addr)),
              ('T6 job-type gate vs stock MONO (H1)', lambda: t6_jobtype(stock, patched, mod_addr)),
              ('T3 modifier (per-profile)', lambda: t3_modifier(stock, patched, mod_addr)),
-             ('T4 combiner config', lambda: t4_combiner(stock, patched, mod_addr, 'grain_boost' in spec))]
+             ('T4 combiner config', lambda: t4_combiner(stock, patched, mod_addr, spec.get('grain_boost')))]
     if 'grain_boost' in spec:
         tests.append(('T8 boost isolation (non-COLOR keys, erased table)', lambda: t8_boost_isolation(stock, patched, mod_addr)))
     if 'table_hex' in spec:

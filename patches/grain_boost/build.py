@@ -14,7 +14,13 @@ so this patch only changes the gain for key-11 (COLOR) requests:
     d2 is free in handler 32 (never read; 0x6039fdf0 saves it) and every exit is `ret [d2,d3,a2,a3],20`
     (0x603a0771), which restores the caller's d2.
   hook B 0x603a06dd (6 B, `add 0x604ec0d4,a0`, a0 = 2*level, level already checked 1..3) -> jmp gb_b; nop
-    gb_b: a0 += 0x604ec0d4; if d2 == 11: a0 -= 6 (-> stock 0x604ec0ce = 110/300/600); jmp 0x603a06e3.
+    gb_b: if d2 == 11: a0 += gb_tab (our 3 x u16 table, default 220/600/1200) else a0 += 0x604ec0d4 (stock);
+    jmp 0x603a06e3 (stock `movhu (-2,a0),d0` reads table[level-1]).
+Gain field: bank+136 low halfword (high half 0 = chroma; +140 = 0). Stock packs signed halfwords there (+1024 unity,
+-1024 = 0xFC00 in combiner 6), so the field is at least 12-bit signed: 0..2047 cannot wrap whatever the true width.
+MAX_GAIN = 2047. The grain arithmetic ((gain*w)>>10)*rnd>>10 stays far inside 32 bits; the negative noise clamp
+(bank+148, -6682) already saturates at stock MONO 600, so higher gains grow only the bright side (mean lifts).
+v0.16 camera: 110/300/600 still too weak -> 220/600/1200.
 Key 11 reaches combiner 32 only through our sel_hook (stock maps key 11 to no grain combiner), so every key-12
 (MONO) and art-filter request keeps the stock table and an identical bank. Level 0 / >3 never reach hook B.
 Code: 0x60210e10.. (section 1, the v0.4 sec-1 bloom block, FF in clarity builds; guards e00-e10 and to e80 FF).
@@ -30,7 +36,8 @@ SRC = 'patches/grain_boost'
 HOOK_A, HOOK_A_STOCK, RET_A = 0x603a065b, bytes.fromhex('f80208f82a04'), 0x603a0661
 HOOK_B, HOOK_B_STOCK, RET_B = 0x603a06dd, bytes.fromhex('fcd0d4c04e60'), 0x603a06e3
 WEAK, STRONG = 0x604ec0d4, 0x604ec0ce
-CODE_AT, CODE_END = 0x60210e10, 0x60210e40     # claim; 0x60210e00-e10 and e40-e90 stay FF
+CODE_AT, CODE_END = 0x60210e10, 0x60210e40
+GAINS, MAX_GAIN = (220, 600, 1200), 2047     # claim; 0x60210e00-e10 and e40-e90 stay FF
 
 SRC_ASM = f"""
  .am33_2
@@ -43,19 +50,23 @@ gb_a:                       /* from 0x603a065b, a2 = combiner context */
  mov (4,a2),a2
  jmp gb_ret_a               /* 0x603a0661 */
 gb_b:                       /* from 0x603a06dd, a0 = 2*level (1..3) */
- add {WEAK:#x},a0
  cmp 11,d2
  bne 1f
- add -6,a0                  /* COLOR: {STRONG:#x} = 110/300/600 (stock MONO full-size) */
-1:
+ add gb_tab,a0              /* COLOR: our table */
  jmp gb_ret_b               /* 0x603a06e3 */
+1:
+ add {WEAK:#x},a0           /* everything else: stock 50/75/100 */
+ jmp gb_ret_b
+ .balign 2
+gb_tab:
+ .short {{g0}},{{g1}},{{g2}}
 """
 
 
-def assemble():
+def assemble(gains):
     with tempfile.TemporaryDirectory() as t:
         t = Path(t)
-        (t / 'a.s').write_text(SRC_ASM)
+        (t / 'a.s').write_text(SRC_ASM.replace('{g0}', str(gains[0])).replace('{g1}', str(gains[1])).replace('{g2}', str(gains[2])))
         subprocess.run([TC / 'mn10300-elf-as', '-o', t / 'a.o', t / 'a.s'], check=True)
         subprocess.run([TC / 'mn10300-elf-ld', '-Ttext', hex(CODE_AT), '-e', '_start', f'--defsym=gb_ret_a={RET_A:#x}', f'--defsym=gb_ret_b={RET_B:#x}', '-o', t / 'a.elf', t / 'a.o'], check=True)
         subprocess.run([TC / 'mn10300-elf-objcopy', '-O', 'binary', '-j', '.text', t / 'a.elf', t / 'a.bin'], check=True)
@@ -68,11 +79,15 @@ def jmp(at, dst):
     return b'\xdc' + struct.pack('<i', dst - at) + b'\xcb'      # jmp d32; nop
 
 
-def apply(spec):
+def apply(spec, gains=GAINS):
+    if len(gains) != 3 or not all(0 < g <= MAX_GAIN for g in gains):
+        raise SystemExit(f'gains {gains}: need 3 values in 1..{MAX_GAIN}')
     stock = STOCK.read_bytes()
     spec.pop('grain_boost', None)
     spec['edits'] = [e for e in spec['edits'] if e.get('source') != SRC]
-    code, syms = assemble()
+    code, syms = assemble(gains)
+    if struct.unpack_from('<3H', code, syms['gb_tab'] - CODE_AT) != tuple(gains):
+        raise SystemExit('table placement')
     if CODE_AT + len(code) > CODE_END:
         raise SystemExit(f'code {len(code)} B overflows {CODE_END:#x}')
     if set(stock[CODE_AT - 16 - BASE:CODE_END + 0x40 - BASE]) != {0xff}:
@@ -93,12 +108,12 @@ def apply(spec):
         dict(kind='0x100', addr=hex(HOOK_A), expect=HOOK_A_STOCK.hex(), new=jmp(HOOK_A, syms['gb_a']).hex(), source=SRC,
              why='grain boost: combiner-32 handler entry loads -> jmp gb_a (replayed + job key -> d2)'),
         dict(kind='0x100', addr=hex(HOOK_B), expect=HOOK_B_STOCK.hex(), new=jmp(HOOK_B, syms['gb_b']).hex(), source=SRC,
-             why='grain boost: combiner-32 gain table add -> jmp gb_b (key 11: 110/300/600, else stock 50/75/100)'),
+             why=f'grain boost: combiner-32 gain table add -> jmp gb_b (key 11: {gains[0]}/{gains[1]}/{gains[2]}, else stock 50/75/100)'),
         dict(kind='0x100', addr=hex(CODE_AT), expect=stock[CODE_AT - BASE:CODE_AT - BASE + len(code)].hex(), new=code.hex(),
-             source=SRC, why=f'grain boost: gb_a/gb_b ({len(code)} B) in section-1 FF tail (v0.4 sec-1 bloom block)'),
+             source=SRC, why=f'grain boost: gb_a/gb_b + gain table ({len(code)} B) in section-1 FF tail (v0.4 sec-1 bloom block)'),
     ]
     spec['grain_boost'] = dict(code_at=hex(CODE_AT), code_len=len(code), gb_a=hex(syms['gb_a']), gb_b=hex(syms['gb_b']),
-                               hooks=[hex(HOOK_A), hex(HOOK_B)], color_table=hex(STRONG), color_gains=[110, 300, 600],
+                               hooks=[hex(HOOK_A), hex(HOOK_B)], color_table=hex(syms['gb_tab']), color_gains=list(gains), max_gain=MAX_GAIN,
                                other_table=hex(WEAK), other_gains=[50, 75, 100])
     return spec
 
@@ -107,7 +122,8 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('spec', type=Path)
     ap.add_argument('--out', type=Path, help='default: rewrite spec in place')
+    ap.add_argument('--gains', default=','.join(map(str, GAINS)), help=f'COLOR Low,Medium,High (1..{MAX_GAIN})')
     a = ap.parse_args()
-    spec = apply(json.loads(a.spec.read_text()))
+    spec = apply(json.loads(a.spec.read_text()), tuple(int(x) for x in a.gains.split(',')))
     (a.out or a.spec).write_text(json.dumps(spec, indent=1))
     print(json.dumps(spec['grain_boost'], indent=1))

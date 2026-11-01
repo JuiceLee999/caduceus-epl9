@@ -2077,22 +2077,22 @@
    "expect": "fcd0d4c04e60",
    "new": "dc4107e7ffcb",
    "source": "patches/grain_boost",
-   "why": "grain boost: combiner-32 gain table add -> jmp gb_b (key 11: 110/300/600, else stock 50/75/100)"
+   "why": "grain boost: combiner-32 gain table add -> jmp gb_b (key 11: 220/600/1200, else stock 50/75/100)"
   },
   {
    "kind": "0x100",
    "addr": "0x60210e10",
-   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-   "new": "f80208f80a34f82a04dc48f81800fcd0d4c04e60aa0bc90420fadcb9f81800",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "f80208f80a34f82a04dc48f81800aa0bc90dfcd0380e2160dcbbf81800fcd0d4c04e60dcb0f81800dc005802b004",
    "source": "patches/grain_boost",
-   "why": "grain boost: gb_a/gb_b (31 B) in section-1 FF tail (v0.4 sec-1 bloom block)"
+   "why": "grain boost: gb_a/gb_b + gain table (46 B) in section-1 FF tail (v0.4 sec-1 bloom block)"
   },
   {
    "kind": "0x100",
    "addr": "0x60d7f271",
    "expect": "dd6ed7fcfff018",
    "new": "ddcf2946fff058",
-   "why": "fw_version: Firmware screen +940 (two-version Body value, widget 26) setter call -> fw_val (value \"v0.16\")",
+   "why": "fw_version: Firmware screen +940 (two-version Body value, widget 26) setter call -> fw_val (value \"0.16\")",
    "source": "patches/fw_version"
   },
   {
@@ -2100,15 +2100,15 @@
    "addr": "0x60d7f2cd",
    "expect": "dd12d7fcfff018",
    "new": "dd732946fff058",
-   "why": "fw_version: Firmware screen +300 (single-version Body value, widget 18) setter call -> fw_val (value \"v0.16\")",
+   "why": "fw_version: Firmware screen +300 (single-version Body value, widget 18) setter call -> fw_val (value \"0.16\")",
    "source": "patches/fw_version"
   },
   {
    "kind": "0x100",
    "addr": "0x601e1c40",
-   "expect": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223242526272829",
-   "new": "b500c80ef061a000c808fcdd5a1c1e60dd8fadb600f018dff058760030002e00310036000000",
-   "why": "fw_version: fw_val (38 B, dead EVF step-10 B table) + L\"v0.16\"",
+   "expect": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021222324252627",
+   "new": "b500c80ef061a000c808fcdd5a1c1e60dd8fadb600f018dff05830002e00310036000000",
+   "why": "fw_version: fw_val (36 B, dead EVF step-10 B table) + L\"0.16\"",
    "source": "patches/fw_version"
   },
   {
@@ -9346,19 +9346,20 @@
  },
  "grain_boost": {
   "code_at": "0x60210e10",
-  "code_len": 31,
+  "code_len": 46,
   "gb_a": "0x60210e10",
   "gb_b": "0x60210e1e",
   "hooks": [
    "0x603a065b",
    "0x603a06dd"
   ],
-  "color_table": "0x604ec0ce",
+  "color_table": "0x60210e38",
   "color_gains": [
-   110,
-   300,
-   600
+   220,
+   600,
+   1200
   ],
+  "max_gain": 2047,
   "other_table": "0x604ec0d4",
   "other_gains": [
    50,
@@ -9368,12 +9369,12 @@
  },
  "fw_version": {
   "mod_version": "v0.16",
-  "value": "v0.16",
+  "value": "0.16",
   "label": "Caduceus",
   "desc": "0x6115d5e8",
   "str_at": "0x61242fc0",
   "code_at": "0x601e1c40",
-  "code_len": 38,
+  "code_len": 36,
   "sites": [
    "0x60d7f271",
    "0x60d7f2cd"

@@ -9,7 +9,7 @@ rows, +940.. / +972.. two-version rows). The fields are too small to extend, so 
 stay stock. v0.15a: the label stays the stock localised "Body" (v0.15 replaced it with a kind-5 "Body Caduceus vX",
 which the label widget clipped). v0.16b (camera: "1.1 Caduceus v0.16" clipped in the narrow value box): the Body row
 label is kind 5 "Caduceus" (descriptor 0x6115d5e8 -> ASCII at 0x61242fc0, sec-6 FF tail; "Body Caduceus" mostly fit)
-and fw_val shows only "<ver>" (e.g. "v0.16") in place of a non-empty Body value; an empty field passes through.
+and fw_val shows only "<ver>" without a leading v (e.g. "0.16"; "v0.16" clipped slightly) in place of a non-empty Body value; an empty field passes through.
 
 The view 0x60d7f0a4 (reads GUI data 140) hands each field to the text setter 0x60d4c9df(widget, wstr), which copies
 the string into a heap buffer of its own length. This patch redirects the two Body value calls (+940 two-version
@@ -39,9 +39,9 @@ LABEL, STR_AT, STR_END = 'Caduceus', 0x61242fc0, 0x61242fe0     # sec-6 FF tail 
 
 
 def suffix(ver):
-    if not re.fullmatch(r'v\d+\.\d+[A-Za-z0-9.\-]*', ver):
-        raise SystemExit(f'--mod-version {ver!r}: expected e.g. v0.15')
-    t = ver
+    if not re.fullmatch(r'v?\d+\.\d+[A-Za-z0-9.\-]*', ver):
+        raise SystemExit(f'--mod-version {ver!r}: expected e.g. 0.16 or v0.16')
+    t = ver[1:] if ver.startswith('v') else ver      # value box is narrow: "0.16" (camera v0.16b)
     if len(t) > MAXSFX:
         raise SystemExit(f'suffix {t!r} longer than {MAXSFX}')
     return t
