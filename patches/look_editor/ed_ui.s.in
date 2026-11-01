@@ -4,15 +4,19 @@
  *   ed_event <- COLOR1-4 parent records +36 (0x61185c00/c38/c70/ca8; stock 0x60e22191), copied to parent+72
  *               and called by the parent router 0x60e20cdc (vtable+68) for every event it does not route
  *               elsewhere, incl. 0x9016 (Delete). CALLS entry: d0 event, d1 arg, a0 parent.
+ *           and <- COLOR1-4 parent records +52 (0x61185c10/c48/c80/cb8; stock 0, so the parent keeps the .data
+ *               default 0x60e228fb `clr d0; retf`), copied to parent+88: the router sends 0x9012 (Movie) there.
+ *               Same CALLS convention. Delete never reaches the editor on camera; Movie is the working trigger.
  *   ed_init  <- COLOR1-4 parent records +4 (0x61185be0/c18/c50/c88; stock 0x60e20a54), called once when the
  *               editor parent is built (0x60e20864, CALLS, a0 parent, d0 key): axis back to S.
  *   ed_trig  <- loader v3 sd_back `jmp 0x602c8064` (0x605b7420): runs after the loader on every TRIG event in
  *               HLS_EVENT (the camera-proven file context). On a half-press with dirty set: one save attempt.
  *
  * Heap state (block P of the SD look loader, P+{emark}..): 'EP7E', axis (0 S, 1 L, 2 H), dirty, status.
- * Delete on a COLOR1-4 editor with a valid loaded table: axis S -> L -> H -> S, then the stock child refresh
- * 0x60de3670 on the 12 sector children (re-reads through the facade, i.e. ed_get), return 1 (handled, the
- * router restarts the parent's refresh timer like Up/Down do). Any guard failure: stock (registers intact).
+ * Delete (0x9016) or Movie (0x9012) on a COLOR1-4 editor with a valid loaded table: axis S -> L -> H -> S, then
+ * the stock child refresh 0x60de3670 on the 12 sector children (re-reads through the facade, i.e. ed_get),
+ * return 1 (handled, the router restarts the parent's refresh timer like Up/Down do). Any guard failure: stock
+ * with registers intact: 0x9012 -> the +52 default 0x60e228fb (returns 0), anything else -> 0x60e22191.
  */
  .am33_2
  .text
@@ -37,10 +41,13 @@ _start:
 ed_event:
  cmp 0x9016,d0
  beq 1f
+ cmp 0x9012,d0
+ beq 1f
  jmp ep7_event                    /* every other event: stock, untouched */
 1:
  movm [d2,d3,a2,a3],(sp)
  add -12,sp
+ mov d0,(0,sp)
  mov d1,(4,sp)
  mov a1,(8,sp)
  mov a0,a3
@@ -116,9 +123,13 @@ e_no:
  mov a3,a0
  mov (4,sp),d1
  mov (8,sp),a1
- mov 0x9016,d0
+ mov (0,sp),d0
  add 12,sp
  movm (sp),[d2,d3,a2,a3]
+ btst 4,d0                        /* d0 is 0x9016 (bit 2 set) or 0x9012 here */
+ bne 7f
+ jmp ep7_movie                    /* Movie: the stock +52 default (clr d0; retf) */
+7:
  jmp ep7_event
 
 ed_init:                          /* CALLS entry: a0 parent, d0 key */

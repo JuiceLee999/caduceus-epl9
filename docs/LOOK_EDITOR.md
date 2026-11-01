@@ -233,3 +233,8 @@ current-editor holder and H5 the polygon producer (§1.5), and neither is mapped
 - Code: sec 3 0x605b7190 (529 B), sec 6 0x612429c0 (799 B). Range ±5 (phase 1b adds ±7). The polygon is still
   unmapped.
 - Results and camera plan: `releases/test12-editor/README.md`; verifier `tools/ep7_verify_look_editor.py`.
+- **test12b (Movie key).** On camera, Delete never reaches the editor (neither the OK-panel nor the Profile-switch
+  route), so the trigger is now Movie (0x9012). The COLOR1–4 record +52 words (stock 0, so parent+88 = .data
+  default 0x60e228fb `clr d0; retf`) → `ed_event`, which accepts 0x9016 or 0x9012. On a guard failure, 0x9012 →
+  0x60e228fb and the rest → 0x60e22191. The Delete hook stays. ed_ui is 815 B. Verified: E 96/96 (Movie cycle,
+  fallback, router INFO/OK unchanged), M 22/22. See `releases/test12b-editor/README.md`.

@@ -10,7 +10,8 @@ Edits:
   - ed_ui   (sec 6, 0x61242a10..0x61242cf0): ed_event / ed_init / ed_trig / ed_save / ed_wfile / ed_crc
   - 0x607fa355  `call 0x60827440,[d2,d3,a2],16` -> `call ed_set,[d2,d3,a2],16`
   - 0x60acb0e4 / 0x60acb174  facade vtable GetValue / GetDefault -> ed_get / ed_default
-  - COLOR1-4 parent records: +36 event (0x60e22191) -> ed_event, +4 init (0x60e20a54) -> ed_init
+  - COLOR1-4 parent records: +36 event (0x60e22191) -> ed_event, +4 init (0x60e20a54) -> ed_init,
+    +52 Movie/0x9012 slot (0 = .data default 0x60e228fb) -> ed_event
 """
 import argparse, hashlib, importlib.util, json, struct, sys
 from pathlib import Path
@@ -35,10 +36,13 @@ GUARDS = [(0x605b7180, 0x605b7190), (0x605b73f0, 0x605b7400), (0x612429b0, 0x612
 SET_SITE, SET_STOCK = 0x607fa355, 'ddebd00200e010'
 VT_GET, VT_DEF = 0x60acb0e4, 0x60acb174
 STOCK = dict(ep7_get=0x607f9549, ep7_default=0x607f964a, ep7_manager=0x60827440, ep7_event=0x60e22191,
-             ep7_init=0x60e20a54, ep7_refresh=0x60de3670, ep7_trig_ret=B3.SITE_RET,
+             ep7_init=0x60e20a54, ep7_movie=0x60e228fb, ep7_refresh=0x60de3670, ep7_trig_ret=B3.SITE_RET,
              ep7_malloc=0x60022782, ep7_free=0x600227b4, ep7_fopen=0x60634fbc, ep7_fclose=0x60634fc5,
              ep7_fread=0x6063514b, ep7_fwrite=0x60635041)
 RECORDS = {0x13b3: 0x61185bdc, 0x13b4: 0x61185c14, 0x13b5: 0x61185c4c, 0x140c: 0x61185c84}   # key word address
+MOVIE_OFF = 52                           # record +52 -> parent+88 (router: 0x9012)
+DEF_IMG = 0x6025bad0                     # .data 0x61fc3810 init image: defaults for parent+48..+88
+REC_TABLE, REC_N = 0x6118474c, 167
 SD_BACK, SD_BACK_STOCK = 0x605b7420, 'dc440cd1ff'      # loader v3 sd_back: jmp 0x602c8064
 LOADER_AT = 0x605b7400
 # heap block offsets (P = loader block): 'EP7E' marker, axis, dirty, status (after the names/L pointer +544..679)
@@ -74,6 +78,13 @@ def check_stock(d):
     for k, a in RECORDS.items():
         if u32(d, a) != k or u32(d, a + 4) != STOCK['ep7_init'] or u32(d, a + 36) != STOCK['ep7_event']:
             raise ValueError(f'record {k:#x} at {a:#x} differs')
+        if u32(d, a + MOVIE_OFF) != 0:
+            raise ValueError(f'record {k:#x} +52 not 0')
+    if u32(d, DEF_IMG + MOVIE_OFF - 12) != STOCK['ep7_movie'] or d[STOCK['ep7_movie'] - BASE:STOCK['ep7_movie'] - BASE + 4].hex() != '00de0000':
+        raise ValueError('parent+88 default is not 0x60e228fb `clr d0; retf`')
+    keys = [struct.unpack_from('<H', d, REC_TABLE + 56 * i - BASE)[0] for i in range(REC_N)]
+    if any(keys.count(k) != 1 for k in RECORDS) or [REC_TABLE + 56 * keys.index(k) for k in RECORDS] != list(RECORDS.values()):
+        raise ValueError('COLOR records not unique in the record table')
     # only one reference each to the redirected stock targets from data (the words we edit)
     import re
     for t, where in ((STOCK['ep7_get'], [VT_GET]), (STOCK['ep7_default'], [VT_DEF])):
@@ -124,6 +135,8 @@ def build(base_spec=None):
                           new=struct.pack('<I', syms['ed_init']).hex(), why=f'record {k:#x} init -> ed_init'))
         edits.append(dict(kind='0x100', addr=hex(a + 36), expect=struct.pack('<I', STOCK['ep7_event']).hex(),
                           new=struct.pack('<I', syms['ed_event']).hex(), why=f'record {k:#x} event -> ed_event'))
+        edits.append(dict(kind='0x100', addr=hex(a + MOVIE_OFF), expect='00000000',
+                          new=struct.pack('<I', syms['ed_event']).hex(), why=f'record {k:#x} Movie (0x9012) -> ed_event'))
     for e in edits:
         e['source'] = 'patches/look_editor'
     back_new = (b'\xdc' + struct.pack('<i', syms['ed_trig'] - SD_BACK)).hex()

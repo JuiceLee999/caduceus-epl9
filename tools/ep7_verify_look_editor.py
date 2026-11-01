@@ -13,6 +13,9 @@ All image-range regions are mapped READ-ONLY, so any store into 0x60020020..0x61
      the slot flags bit 1 and dirty change; -6/+6 refused with no heap change
   E  Delete through the COLOR record word: S->L->H->S, child refresh (stub at 0x60de3670) on children 1..12 in
      order; every guard failure and every other event -> stock 0x60e22191 with registers + stack == stock run
+     Movie (0x9012) through the record +52 word (stock 0 -> .data default 0x60e228fb): same cycle, guard
+     failures -> stock 0x60e228fb with registers + stack == stock run; router 0x60e20cdc with the parent slots
+     built as init 0x60e207f7 does: INFO 0x9014 / OK / 0x9015 reach the stock handlers unchanged
   I  init word: axis reset to S, then stock 0x60e20a54 with state == stock run
   T  save from the loader's sd_back: stub file service (ours) at the real fileif/malloc entries; files .NEW .BAK
      .BIN; checks the call sequence, file images (tools/ep7_bundles_bin.check_file + name CRC), read-back, and the
@@ -158,7 +161,7 @@ def t_static(spec, stock, patched):
     diff = [i + BASE for i in range(len(stock)) if stock[i] != patched[i]]
     ours = [(LE.CORE[0], LE.CORE[1]), (LE.UI[0], LE.UI[1]), (LE.SET_SITE, LE.SET_SITE + 7), (LE.VT_GET, LE.VT_GET + 4),
             (LE.VT_DEF, LE.VT_DEF + 4), (LE.SD_BACK, LE.SD_BACK + 5)] + \
-        [(a + o, a + o + 4) for a in LE.RECORDS.values() for o in (4, 36)]
+        [(a + o, a + o + 4) for a in LE.RECORDS.values() for o in (4, 36, LE.MOVIE_OFF)]
     others = [(int(e['addr'], 16), int(e['addr'], 16) + len(e['new']) // 2) for e in spec['edits']
               if e.get('source') != 'patches/look_editor']
     for a in diff:
@@ -385,10 +388,14 @@ def parent_obj2(**kw):
     return po
 
 
-def ev_case(stock, patched, key_rec, ev, h, blk, po, expect):
-    """expect: 'stock' or 'cycle'. -> (err, heap after)."""
-    rec = LE.RECORDS[key_rec] + 36
-    src = (f' mov {rec:#x},a1\n mov (a1),a1\n mov {PAR:#x},a0\n mov {ev:#x},d0\n mov 0x11111111,d1\n'
+def ev_case(stock, patched, key_rec, ev, h, blk, po, expect, slot=36):
+    """expect: 'stock' or 'cycle'. slot: record word 36 (parent+72) or 52 (Movie, parent+88). -> (err, heap after).
+    A zero record word means the parent keeps the .data default (init 0x60e207f7), read from the image."""
+    rec = LE.RECORDS[key_rec] + slot
+    dflt = LE.DEF_IMG + slot - 12
+    stock_stop = LE.STOCK['ep7_event'] if slot == 36 else LE.STOCK['ep7_movie']
+    src = (f' mov {rec:#x},a1\n mov (a1),a1\n cmp 0,a1\n bne 1f\n mov ({dflt:#x}),a1\n1:\n'
+           f' mov {PAR:#x},a0\n mov {ev:#x},d0\n mov 0x11111111,d1\n'
            f' mov a1,({OUT:#x})\n mov ({OUT:#x}),a2\n mov 0x1a1a1a1a,a1\n calls (a2)\n')
     code, sy = asm(src, DRV)
     scode, _ = asm(STUB_REFRESH, 0x60de3670)
@@ -396,18 +403,18 @@ def ev_case(stock, patched, key_rec, ev, h, blk, po, expect):
     for name, im in (('stock', stock), ('patched', patched)):
         regions = [Region('drv', DRV, code, 'rx'), Region('out', OUT, bytes(64), 'rw'),
                    img(im, 0x61185b00, 0x61185d00, 'rec', 'r'), img(im, LE.UI[0], LE.UI[1], 'ui'),
-                   Region('par', PAR, bytes(po), 'r'), Region('refresh', 0x60de3670, scode, 'rx'),
+                   img(im, LE.DEF_IMG, LE.DEF_IMG + 48, 'defs', 'r'), Region('par', PAR, bytes(po), 'r'), Region('refresh', 0x60de3670, scode, 'rx'),
                    Region('log', LOG, struct.pack('<I', LOG + 4) + bytes(124), 'rw', True)] + state_regions(h, blk)
-        stop = LE.STOCK['ep7_event'] if (expect == 'stock' or name == 'stock') else sy['done']
+        stop = stock_stop if (expect == 'stock' or name == 'stock') else sy['done']
         res[name] = run(regions, {'pc': DRV}, stop)
     s, p = res['stock'], res['patched']
-    if s['fault'] or s['registers']['pc'] != LE.STOCK['ep7_event']:
+    if s['fault'] or s['registers']['pc'] != stock_stop:
         return f'stock run {s["fault"]}', None
     if p['fault']:
         return f'patched fault {p["fault"]}', None
     hp = mem(p, 'heap')
     if expect == 'stock':
-        if p['registers']['pc'] != LE.STOCK['ep7_event']:
+        if p['registers']['pc'] != stock_stop:
             return f'patched pc {p["registers"]["pc"]:#x}', hp
         e = same_state(s, p)
         if e:
@@ -476,7 +483,96 @@ def t_event(stock, patched, quick=False):
         n += 1
         if e:
             fails.append(f'E event {ev:#x}: {e}')
+    f2, n2 = t_movie(stock, patched, quick)
+    return fails + f2, n + n2
+
+
+def t_movie(stock, patched, quick=False):
+    """Movie (0x9012) through the record +52 word, and the router with the parent slots as init builds them."""
+    fails, n = [], 0
+    po = parent_obj2()
+    for key in ((0x140c,) if quick else tuple(LE.RECORDS)):
+        blk = card_block(axis=0)
+        p = parent_obj2(key=key)
+        for step in range(4):
+            e, hp = ev_case(stock, patched, key, 0x9012, H_OK, blk, p, 'cycle', slot=52)
+            n += 1
+            if e:
+                fails.append(f'EM cycle key {key:#x} step {step}: {e}')
+                break
+            blk = bytearray(hp)
+        if blk[AXIS] != 1:
+            fails.append(f'EM key {key:#x}: axis after 4 presses {blk[AXIS]}')
+    blk = card_block(axis=0)                         # Movie and Delete share one axis
+    for step, (ev, slot) in enumerate(((0x9012, 52), (0x9016, 36), (0x9012, 52))):
+        e, hp = ev_case(stock, patched, 0x13b4, ev, H_OK, blk, parent_obj2(key=0x13b4), 'cycle', slot=slot)
+        n += 1
+        if e:
+            fails.append(f'EM mixed step {step}: {e}')
+            break
+        blk = bytearray(hp)
+    if blk[AXIS] != 0:
+        fails.append(f'EM mixed: axis {blk[AXIS]} != 0')
+    e, _ = ev_case(stock, patched, 0x13b5, 0x9012, H_OK, card_block(marker=False), parent_obj2(key=0x13b5), 'cycle', slot=52)
+    n += 1
+    if e:
+        fails.append(f'EM no-marker: {e}')
+    guards = [('key 13a9', dict(key=0x13a9)), ('count 12', dict(count=12)), ('state16', dict(st16=1)),
+              ('state44', dict(st44=3)), ('child id', dict(bad_child=5)), ('null child', dict(null_child=12)),
+              ('null child 1', dict(null_child=1))]
+    for label, kw in guards:
+        e, _ = ev_case(stock, patched, 0x13b3, 0x9012, H_OK, card_block(), parent_obj2(**kw), 'stock', slot=52)
+        n += 1
+        if e:
+            fails.append(f'EM guard {label}: {e}')
+    for label, h, blk, _ in heap_states()[:5]:      # (no EP7E is a first use: covered above as a cycle)
+        e, _ = ev_case(stock, patched, 0x140c, 0x9012, h, blk, po, 'stock', slot=52)
+        n += 1
+        if e:
+            fails.append(f'EM heap {label}: {e}')
+    # router 0x60e20cdc (editor vtable slot) with parent+48..+88 built from the records as init 0x60e207f7 does
+    for key in ((0x13b3,) if quick else tuple(LE.RECORDS)):
+        for ev, want in ((0x9014, 'same'), (0x900c, 'same'), (0x9015, 'same'), (0x9004, 'same72'), (0x9016, 'same72'),
+                         (0x9012, 'movie')):
+            e = router_case(stock, patched, key, ev, want)
+            n += 1
+            if e:
+                fails.append(f'ER key {key:#x} ev {ev:#x}: {e}')
     return fails, n
+
+
+def router_case(stock, patched, key, ev, want):
+    """want: 'same' = both images reach the same stock handler with equal state; 'same72' = parent+72 target
+    (stock 0x60e22191, patched ed_event); 'movie' = stock 0x60e228fb, patched ed_event."""
+    def parent(im):
+        po = bytearray(parent_obj2(key=key))
+        rec = LE.RECORDS[key]
+        for i in range(11):
+            w = struct.unpack_from('<I', im, rec + 12 + 4 * i - BASE)[0]
+            if w == 0:
+                w = struct.unpack_from('<I', im, LE.DEF_IMG + 4 * i - BASE)[0]
+            struct.pack_into('<I', po, 48 + 4 * i, w)
+        return po
+    src = f' mov {PAR:#x},a0\n mov {ev:#x},d0\n mov 0x11111111,d1\n mov 0x1a1a1a1a,a1\n mov 0x60e20cdc,a2\n calls (a2)\n'
+    code, sy = asm(src, DRV)
+    res = {}
+    for name, im in (('stock', stock), ('patched', patched)):
+        po = parent(im)
+        tgt = struct.unpack_from('<I', po, {0x900c: 76, 0x9014: 80, 0x9015: 84, 0x9012: 88}.get(ev, 72))[0]
+        res[name] = (tgt, run([Region('drv', DRV, code, 'rx'), img(im, 0x60e20cdc, 0x60e20d3a, 'router'),
+                               Region('par', PAR, bytes(po), 'r')], {'pc': DRV}, tgt))
+    (ts, s), (tp, p) = res['stock'], res['patched']
+    ed = LE.UI[0]
+    exp = {'same': (ts, ts), 'same72': (LE.STOCK['ep7_event'], ed), 'movie': (LE.STOCK['ep7_movie'], ed)}[want]
+    if (ts, tp) != exp:
+        return f'targets {ts:#x}/{tp:#x}, want {exp[0]:#x}/{exp[1]:#x}'
+    if want == 'same' and ts in (ed, LE.STOCK['ep7_movie']):
+        return 'stock handler expected'
+    for r in (s, p):
+        if r['fault'] or r['registers']['pc'] != (ts if r is s else tp):
+            return f'run {r["fault"]} pc {r["registers"]["pc"]:#x}'
+    e = same_state(s, p, skip=('a1',))              # a1 = the slot target
+    return f'state at handler: {e}' if e else None
 
 
 def t_init(stock, patched):
@@ -895,6 +991,10 @@ MUTS = [('ed_core.s.in', ' cmp 12,d2\n bcs 1f', ' cmp 13,d2\n bcs 1f', 'G'),
         ('ed_ui.s.in', ' cmp 176,d2', ' cmp 172,d2', 'E'),
         ('ed_ui.s.in', ' cmp 3,d0\n bcs 5f', ' cmp 4,d0\n bcs 5f', 'E'),
         ('ed_ui.s.in', ' mov (44,a3),d0\n cmp 0,d0\n bne e_no', ' mov (44,a3),d0\n cmp 0,d0\n nop\n nop', 'E'),
+        ('ed_ui.s.in', ' cmp 0x9012,d0\n beq 1f', ' cmp 0x9013,d0\n beq 1f', 'E'),
+        ('ed_ui.s.in', ' btst 4,d0', ' btst 2,d0', 'E'),
+        ('ed_ui.s.in', ' bne 7f', ' beq 7f', 'E'),
+        ('ed_ui.s.in', ' mov d0,(0,sp)', ' nop\n nop', 'E'),
         ('ed_ui.s.in', ' mov 524,d0', ' mov 523,d0', 'T'),
         ('ed_ui.s.in', ' xor 0xedb88320,d1', ' xor 0xedb88321,d1', 'T'),
         ('ed_ui.s.in', ' cmp d0,d1\n bne w_fail', ' cmp d0,d1\n nop\n nop', 'T'),   # read-back compare removed
@@ -931,6 +1031,18 @@ def t_mut(spec_base):
         except Exception as e:  # noqa: BLE001
             fl = [f'exception {e}']
         out.append(dict(mutation=f'{f}: {old.strip()[:40]!r} -> {new.strip()[:40]!r}', part=part, detected=bool(fl)))
+    # spec mutations: the record +52 (Movie) words left stock / pointed at the stock +36 handler
+    _, merged, _ = LE.build(spec_base)
+    mv = {hex(a + LE.MOVIE_OFF) for a in LE.RECORDS.values()}
+    for label, fix in (('record +52 edits dropped', lambda es: [e for e in es if e['addr'] not in mv]),
+                       ('record +52 -> 0x60e22191', lambda es: [dict(e, new=struct.pack('<I', LE.STOCK['ep7_event']).hex())
+                                                                 if e['addr'] in mv else e for e in es])):
+        st, pa = images(dict(merged, edits=fix(merged['edits'])))
+        try:
+            fl, _ = t_movie(st, pa, quick=True)
+        except Exception as e:  # noqa: BLE001
+            fl = [f'exception {e}']
+        out.append(dict(mutation=f'spec: {label}', part='E', detected=bool(fl)))
     return out
 
 
