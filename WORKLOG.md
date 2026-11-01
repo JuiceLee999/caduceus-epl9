@@ -155,3 +155,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - MONO-colour agent (interrupted before implementing): mono filter = 3×3 matrix id via guard 0x60353db9 → request+1802
   (selector 0x603acfe4); toning in chroma stage 0x603b134e; selector redirect needs 6 bytes at 0x603b02bf → 0x603b02d9;
   H/L hook must accept mode 12; candidate code space section 7 tail 0x61378c68–0x61379000; MONO grain/shading still run.
+- **v0.3 review (agent, docs/REVIEW_v03.md):** no structural defects; not cleared as combined build. H1 grain hook skips stock job-type check (0x6035778b) → fix. H2 grain+bloom on every COLOR shot, no off switch. H3 aspect persists at boot. H4 restore unproven. M1 aspect heights → round to 16. Test order: rec_limit → log → bundles → grain → bloom → aspect → combined.
