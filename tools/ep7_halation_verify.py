@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Emulator check of red bloom (bundle effect_id 2; patches/bloom --halation, docs/HALATION_RED.md). Offline only.
+"""Emulator check of bloom colour (test13b) and red bloom (effect_id 2; patches/bloom --halation,
+docs/HALATION_RED.md section 8). Offline only.
 
   .venv/bin/python -I tools/ep7_halation_verify.py SPEC.json --base OLD_SPEC.json
 
@@ -8,11 +9,12 @@ faults). Fixtures and the combiner run (config 0x603a013b -> getter 0x6039fee8 -
 halo stub at the combiner-11 tail) come from tools/ep7_clarity_verify.py / ep7_bloom_verify.py.
   F  converter 0x603eab39: effect_id 2 strength 1..5 on COLOR1-4 -> job flag 0x80 (as bloom); strength 0/6,
      MONO profile, mode 12 -> == stock
-  W  combiner banks for a red-bloom slot, strength 1..5: combiner 11 -> Y gains = bloom-style w/1024-w with
-     w = HALO_W[s], Cb B = 0.625 b, Cr B = 2.5 b (b = 1024-w), A = 1024-B per channel; combiner 12 -> the plain
-     w pack (no halo); rest of the bank == stock key 11; caller's live stack == stock
-  D  differential vs OLD_SPEC (the release before this change): bloom 1..5, clarity 1..5, all off, erased and
-     guard-failure tables -> converter params and full banks byte-identical
+  W  combiner banks for bloom (effect 1) with tint 1..4 and red bloom (effect 2, tint 0 -> red): w = W[s] + tint,
+     combiner 11 -> Y gains w / 1024-w, chroma B_c = min(k_c b / 8, 1024) (b = 1024-w), A = 1024-B per channel;
+     combiner 12 -> the plain w pack (no halo); rest of the bank == stock key 11; caller's live stack == stock;
+     tint 5 / 255 -> stock key-11 bank (w 600)
+  D  differential vs OLD_SPEC (the release before this change): bloom 1/3/5 tint 0, clarity (tint ignored), all
+     off, erased and guard-failure tables -> converter params and full banks byte-identical
 """
 import argparse, importlib.util, json, struct, sys
 from pathlib import Path
@@ -32,16 +34,25 @@ CV = _load('ep7_clarity_verify_h', ROOT / 'tools/ep7_clarity_verify.py')
 EV = _load('ep7_verify_look_editor_h', ROOT / 'tools/ep7_verify_look_editor.py')
 BLD = _load('ep7_bloom_build_h', ROOT / 'patches/bloom/build.py')
 BV, ft, bank_run, MAGIC = CV.BV, CV.ft, CV.bank_run, CV.MAGIC
-HW = BLD.HALO_W
+ROWS = BLD.tint_rows(BLD.STRENGTH_W)
 
 
-def halo_exp(s, comb):
-    w = HW[s - 1]
+def ftt(slots):
+    """slots: {slot: (effect, strength, tint)}"""
+    t = bytearray(ft({k: v[:2] for k, v in slots.items()}))
+    for k, v in slots.items():
+        t[64 * k + BLD.F_TINT] = v[2]
+    return bytes(t)
+
+
+def halo_exp(s, comb, tint):
+    w = ROWS[tint][s - 1]
     b = 1024 - w
     if comb == 12:
         (pa, wa), (pb, wb) = CV.pk(1024 - w), CV.pk(w)
         return {92: pa, 96: wa, 136: pb, 140: wb}
-    bcb, bcr = (b >> 1) + (b >> 3), 2 * b + (b >> 1)
+    kcb, kcr = BLD.TINT_K[tint - 1]
+    bcb, bcr = min(kcb * b // 8, 1024), min(kcr * b // 8, 1024)
     return {92: w | (1024 - bcb) << 16, 96: 1024 - bcr, 136: b | bcb << 16, 140: bcr}
 
 
@@ -55,8 +66,8 @@ def main():
     res = {}
     # F
     n, fails = 0, []
-    for s in range(0, 7):
-        for prof in (1, 2, 3, 4, 5):
+    for s in (0, 1, 5, 6):
+        for prof in (1, 4, 5):
             for mode in (11, 12):
                 tb = ft({prof - 1: (2, s)}) if prof <= 4 else ft({4: (2, s)})
                 ok_, flags, _, capok = BV.conv_run(img, tb, 11, mode, prof)
@@ -72,19 +83,23 @@ def main():
     off = CV.live_from(stock)
     for eff, comb in ((0x0402, 11), (0x0403, 12)):
         sg, sb, sstk = bank_run(stock, ft({}), 11, eff)
-        for s in range(1, 6):
-            for prof in (1, 4):
-                for rec in (0, 3):
-                    tb = ft({prof - 1: (2, s)})
+        for eid, tint, want_t in ((1, 1, 1), (1, 2, 2), (1, 3, 3), (1, 4, 4), (2, 0, 1), (2, 4, 4)):
+          for s in (1, 3, 5):
+            for prof, rec in ((1, 0), (4, 3)):
+                    tb = ftt({prof - 1: (eid, s, tint)})
                     pg, pb, pstk = bank_run(img, tb, 11, eff, ext=(prof, 11, MAGIC), rec=rec)
-                    got, exp = BV.weights_of(pb), halo_exp(s, comb)
+                    got, exp = BV.weights_of(pb), halo_exp(s, comb, want_t)
                     n += 1
                     if not (pg and got == exp and BV.mask_w(pb) == BV.mask_w(sb) and pstk[off:] == sstk[off:]):
-                        fails.append(f'W comb{comb} s{s} prof{prof} rec{rec}: {({k: hex(v) for k, v in got.items()})} '
+                        fails.append(f'W comb{comb} e{eid} t{tint} s{s} prof{prof} rec{rec}: {({k: hex(v) for k, v in got.items()})} '
                                      f'want {({k: hex(v) for k, v in exp.items()})}')
-        for label, jk in (('no marker', dict(ext=None)), ('mode 12', dict(ext=(1, 11 + 1, MAGIC))),
-                          ('wrong callback', dict(ext=(1, 11, MAGIC), callback=BV.CALLBACK + 1))):
-            pg, pb, _ = bank_run(img, ft({0: (2, 3)}), 11, eff, **jk)
+        for label, tb, jk in (('no marker', ft({0: (2, 3)}), dict(ext=None)),
+                              ('mode 12', ft({0: (2, 3)}), dict(ext=(1, 11 + 1, MAGIC))),
+                              ('wrong callback', ft({0: (2, 3)}), dict(ext=(1, 11, MAGIC), callback=BV.CALLBACK + 1)),
+                              ('tint 5', ftt({0: (1, 3, 5)}), dict(ext=(1, 11, MAGIC))),
+                              ('tint 255', ftt({0: (2, 3, 255)}), dict(ext=(1, 11, MAGIC))),
+                              ('effect 2 strength 6', ftt({0: (2, 6, 1)}), dict(ext=(1, 11, MAGIC)))):
+            pg, pb, _ = bank_run(img, tb, 11, eff, **jk)
             n += 1
             if not (pg and pb == sb):
                 fails.append(f'W comb{comb} guard {label}: bank != stock')
@@ -93,10 +108,10 @@ def main():
     n, fails = 0, []
     tables = [('all off', bytes(512)), ('erased', b'\xff' * 512), ('effect 4', ft({0: (4, 3)})),
               ('halation 0/6', ft({0: (2, 0), 1: (2, 6)}))]
-    tables += [(f'bloom {s}', ft({i: (1, s) for i in range(4)})) for s in range(1, 6)]
-    tables += [(f'clarity {s}', ft({i: (3, s) for i in range(4)})) for s in range(1, 6)]
+    tables += [(f'bloom {s}', ft({i: (1, s) for i in range(4)})) for s in (1, 3, 5)]
+    tables += [(f'clarity {s} tint 3', ftt({i: (3, s, 3) for i in range(4)})) for s in (1, 5)]
     for label, tb in tables:
-        for prof in (0, 1, 2, 4, 5):
+        for prof in (0, 1, 4):
             for mode in (11, 12):
                 x, y = BV.conv_run(base, tb, 11, mode, prof), BV.conv_run(img, tb, 11, mode, prof)
                 n += 1

@@ -39,7 +39,7 @@ execute = SDV3.wrap(execute)
 BASE = 0x60020020
 SEGS = [('code', 0x60340000, 0x603c0000, 'rx'), ('conv', 0x603ea000, 0x603ec000, 'rx'),
         ('data', 0x60520000, 0x60540000, 'r'), ('gain', 0x604ec000, 0x604ed000, 'r'),
-        ('tail', 0x6055e5b0, 0x6055e800, 'rx')]
+        ('tail', 0x6055e5b0, 0x6055e800, 'rx'), ('evf', 0x601e0000, 0x601e4000, 'rx')]   # evf: test13b bloom-colour stubs
 SEC1_LO, SEC1_HI = 0x60210800, 0x60211000
 TABLE, SLOT, F_GRAIN, F_EFF, F_STR = 0x60210900, 64, 24, 28, 29
 EXT, MAGIC, JOB_SIZE = 15488, 0xB2, 15512

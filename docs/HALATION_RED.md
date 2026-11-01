@@ -1,6 +1,6 @@
 # Red halation per slot ("red bloom", effect_id 2)
 
-Status: **built into test13 (§6), emulator-verified, not camera-tested.** This design extends the bloom +
+Status: **built into test13 (§6); camera test 13b: no red glow (§8); replaced in place by bloom colour (§8).** This design extends the bloom +
 clarity routine (docs/BLOOM_HALATION.md, docs/CLARITY.md). Labels: **[V]** read from the decoded main.
 **[I]** inference.
 
@@ -116,3 +116,49 @@ The cost is the **per-slot byte**:
 That is well beyond the 110-B red-only design, so test13 ships red only. Suggested route: allow 0..4 in byte +45
 (`bloom_tint`) in the next loader revision. The stub never needs the slot: bloom_w can return a distinct weight per
 (strength, tint) pair (25 values near the red-bloom ones), and the stub maps the weight back to its k pair.
+
+## 8. Camera test 13b and bloom colour (test13 in place)
+
+### What the camera showed
+- Shots: PB021368–1373 are COLOR1 (makernote PictureMode 9; the card's COLOR1 = CineStill800, effect 2 strength 4).
+  PB021376–1379 are COLOR2 (mode 10; Pro 400H, plain bloom 5). PB021374–1375 are MONO1 (mode 12).
+- PB021373 is a white-warm LED strip. There is a wide luma glow. Across the strip, the fringe chroma is Cb −5 / Cr +4..+7,
+  which is the lamp's own warm cast. The clipped core is Cb −1..−2 / Cr 0. There is no red excess anywhere.
+- **Root cause (design, not a crash or a wrong hook).** Effect 2 ran as bloom: the luma glow is there. Its chroma term
+  only scales the blurred image's *own* chroma (B_Cr = 2.5 b). A clipped or white light has Cr ≈ 0 after
+  development, so 2.5 × 0 stays 0. On a warm light, the extra is a few Cr units: too small to see.
+  - The field order (§4) cannot be the cause. With Cb and Cr swapped, the fringe would still be only the source chroma.
+  - Every combiner-11 bank field is per channel (+80 offsets, +92/+96 and +136/+140 gains, clamps, output offset).
+    A constant chroma term would therefore tint the whole frame, and linear compensation cancels it.
+  - A red glow around **white** lights still needs the mask route (FUJI_GAPS §4). That was not built.
+  - Side finding [V bytes, I meaning]: the input config words (+88/+132) are three 2-bit per-channel source selectors
+    (0x2A = image on all channels, 0x15 = the constant / mono term, 0x14 or 0x28 = chroma only). Stock combiners 33, 135
+    and 156 use the 0x15 term with a colour word at +120. If that term is "Y of the input × colour word", it would give
+    a true luma-keyed red glow in combiner 11. This needs a camera A/B; it is not built.
+
+### What was built (bloom colour)
+- **Card format:** slot byte **+45 `bloom_tint`**: 0 neutral, 1 red, 2 amber, 3 warm, 4 cool (layout.json).
+  - Loader v3 range: 0..4. Only the span byte at 0x605b774e changes, 0 → 4.
+  - LOOKS.BIN record +47 (was "must be 0") carries the tint, and the Film page places it at slot +45.
+  - Old files have 0 there, which means neutral, so they still load. `bloom_tint` is kept out of `layout_crc`,
+    so old LOOKS.BIN files still pass the header check.
+  - Effect 2 with tint 0 renders red (legacy CineStill800 v2 slots).
+- **Weights:** `bloom_w` sends effect 1 and 2 to `bw_tint` (sec 1, dead EVF step-6 R table 0x601e263c).
+  - It returns w = W[s] + tint (row 0 = the plain bloom table, so tint 0 banks are byte-identical to before).
+  - Rows 1..4 are weights no other path returns.
+- **Halo stub** (same hook 0x603a04e8, same table): it maps the weight back to (tint, strength).
+  - Y spreads as bloom.
+  - Cb and Cr: B_c = min(k_c · b / 8, 1024), A_c = 1024 − B_c, so gains stay positive and sum to 1024.
+  - k_Cb / k_Cr: red 0.5 / 3.5, amber 2 / 3, warm 1.25 / 2, cool 3 / 0.75.
+  - Red spreads Cr further than before (3.5 vs 2.5) and Cb less.
+- **Honest limit:** the colour still follows the light's own chroma. Tungsten, sodium and neon get a clearly tinted
+  fringe; white LEDs and clipped cores stay neutral.
+- **Extras page:** sector 5 shows `5 Bloom Neutral|Red|Amber|Warm|Cool`; the dial steps 0..4.
+  - Sector 2 now shows effect 2 as Glow.
+  - Editing sector 2 on an effect-2 slot first sets tint red, so the slot stays red when it becomes effect 1.
+- **Live view:** lv_art now previews effect 2 as well, as a luma glow. CineStill800 v2 lost its LV glow in test13
+  because lv_art previewed effect 1 only.
+- **Library v2:** CineStill800 = `{"type": "bloom", "strength": 4, "tint": "red"}`.
+- **Verified** (`tools/ep7_halation_verify.py` vs the previous test13): F 24, W 84, D 112.
+  - W covers tints 1..4 and effect 2 + tint 0 on both combiners, plus tint 5/255 and strength-6 guards.
+  - D: bloom tint 0, clarity, off and erased banks are byte-identical.

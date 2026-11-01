@@ -61,6 +61,8 @@ PERM = [2 * (r % 6) + r // 6 for r in range(12)]
 SLOTS = ['COLOR1', 'COLOR2', 'COLOR3', 'COLOR4', 'MONO1', 'MONO2', 'MONO3', 'MONO4']
 GRAIN = {'off': 0, 'low': 1, 'medium': 2, 'med': 2, 'high': 3}
 EFFECT = {'none': 0, 'bloom': 1, 'halation': 2, 'clarity': 3}   # clarity: patches/bloom --clarity
+TINT = {'neutral': 0, 'red': 1, 'amber': 2, 'warm': 3, 'cool': 4}   # bloom_tint +45 (layout.json; test13b)
+TINT_OFF = 45
 FLAG_RENDER_COLOUR, FLAG_HL = 1, 2
 COLOUR_OFF, SAT_OFF = 32, 33               # MONO colour rendering (patches/mono_colour): u8 == 1, s8 x12
 WB_OVERRIDE = 1                            # wb_flags bit0 (layout.json); bit7 must stay 0
@@ -142,8 +144,13 @@ def slot_entry(name, slot, recipes):
     # Effect (bloom consumed by patches/bloom v0.4; halation stored only): {"type": "bloom", "strength": 1-5}.
     eff = slot.get('effect')
     if eff is not None:
-        if not isinstance(eff, dict) or set(eff) - {'type', 'strength'} or eff.get('type') not in EFFECT:
-            raise ValueError(f'{name}: effect must be {{"type": "bloom|clarity|halation|none", "strength": 1-5}}, got {eff!r}')
+        if not isinstance(eff, dict) or set(eff) - {'type', 'strength', 'tint'} or eff.get('type') not in EFFECT:
+            raise ValueError(f'{name}: effect must be {{"type": "bloom|clarity|halation|none", "strength": 1-5'
+                             f'[, "tint": "neutral|red|amber|warm|cool"]}}, got {eff!r}')
+        if 'tint' in eff:
+            if eff['type'] not in ('bloom', 'halation') or eff['tint'] not in TINT:
+                raise ValueError(f'{name}: "tint" ({sorted(TINT)}) only with bloom/halation, got {eff!r}')
+            e[TINT_OFF] = TINT[eff['tint']]
         e[28] = EFFECT[eff['type']]
         if e[28]:
             if 'strength' not in eff:
@@ -174,7 +181,7 @@ def slot_entry(name, slot, recipes):
     e[31] = flags
     return bytes(e), dict(slot=name, enabled=bool(flags & FLAG_HL), recipe=rname, recipe_file=rc['_file'],
                           hue_ui=hue, light_ui=light, grain=e[24], wb_override=bool(e[25]), wb_source=wb_src,
-                          wb=list(struct.unpack('<2b', e[26:28])), effect=[e[28], e[29]],
+                          wb=list(struct.unpack('<2b', e[26:28])), effect=[e[28], e[29]], bloom_tint=e[TINT_OFF],
                           vignette=struct.unpack('<b', e[30:31])[0], flags=flags,
                           advice_sat_ui=rc.get('sat'), advice_grain=rc.get('grain'), colour=e[COLOUR_OFF], sat_ui=sat,
                           native_rows=native_rows(hue, light))

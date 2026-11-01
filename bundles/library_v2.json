@@ -86,10 +86,11 @@
    "recipe": "lib2_cinestill",
    "grain": "medium",
    "effect": {
-    "type": "halation",
-    "strength": 4
+    "type": "bloom",
+    "strength": 4,
+    "tint": "red"
    },
-   "notes": "Tungsten cinema film: cool cast, red bloom (effect_id 2: the glow spreads Cr more than Cb, docs/HALATION_RED.md) plus red/orange light."
+   "notes": "Tungsten cinema film: cool cast, red bloom (bloom + bloom_tint red: the glow's Cr spreads far more than its luma, docs/HALATION_RED.md section 8) plus red/orange light."
   },
   "pro400h": {
    "name": "Pro 400H",

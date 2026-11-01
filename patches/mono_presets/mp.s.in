@@ -1,5 +1,6 @@
 /* E-P7 1.1 mono film presets on the stock Mono Profile editors (ep7-firmware, our own code). docs/MONO_PRESETS.md.
- * Section 1, dead EVF gamma step-5 R/G/B tables 0x601e293c.. (only refs: step-table words 0x601e3cd0/d4/d8).
+ * Section 1, dead EVF gamma step-6 B + step-5 R/G/B tables 0x601e283c.. (only refs: step-table words 0x601e3ce8,
+ * 0x601e3cd0/d4/d8).
  *
  *   mp_info_f <- MONO1-4 colour-filter editor records +44 (keys 0x13b6/0x13b7/0x13b8/0x140d; stock 0x60e22d8b)
  *   mp_info_s <- MONO1-4 shading editor records +44 (keys 0x13b9/0x13ba/0x13bb/0x140e; stock 0x60e22fae)
@@ -11,7 +12,10 @@
  *   - write its name to the slot name P+544+16(4+m) ('EP7N'; the names section zeroed first if it had none),
  *     so Picture Mode / LC / SCP show it through the test-8 name hooks; dirty = 1 (the editor's half-press save
  *     writes BUNDLES.BIN);
- *   - refresh the editor's children from the settings (stock 0x60de3670), return 1 (the editor stays open).
+ *   - refresh the editor's children from the settings (stock 0x60de3670), then (test13b) write the editor's own
+ *     first child setting (filter, or shading) once more with its preset value, as the colour editor's ed_poke
+ *     re-writes its cursor setting after the refresh: the stock listeners then rebuild the open screen from the
+ *     refreshed children (camera test 13b: settings landed, but the open screen did not change). Return 1.
  *   First use since the load: 'EP7E' block initialised as the colour editor does; positions from the saved names
  *   (a MONO slot whose name is a preset's resumes on it), then 'EP7M' at P+{mmark}.
  *   Every other event, no table, any guard failure: jmp to the stock word with d0/d1/a0/a1, the stack as at entry.
@@ -120,25 +124,7 @@ mp_go:                            /* frame: (0) calls, (4) d0, (8) d1, (12) a1, 
  mov d0,(24,sp)
  clr d3                           /* fields 0..{nf}-1 */
 7:
- mov (24,sp),a0
- add d3,a0
- movbu (16,a0),d0
- extb d0
- mov d0,(20,sp)                   /* value */
- call ep7_facade,[],4             /* a0 = OlyApiSettingControllerController */
- mov (a0),a2
- mov (a2),a2                      /* SetValue(id, 0, value): the stock edit path */
- mov d2,d0
- asl 3,d0
- add d3,d0
- add d0,d0
- mov mp_ids,a1
- add d0,a1
- movhu (a1),d0                    /* id of field d3 for MONO m */
- clr d1
- mov (20,sp),a1
- calls (a2)
- mov (28,sp),a2
+ call mp_set,[],0
  inc d3
  cmp {nf},d3
  bne 7b
@@ -172,6 +158,7 @@ mp_go:                            /* frame: (0) calls, (4) d0, (8) d1, (12) a1, 
  mov d0,(672,a2)
  mov 1,d0
  movbu d0,({dirty},a2)            /* the editor's save writes BUNDLES.BIN on the next half-press */
+ mov d2,(4,sp)                    /* m (the entry d0 slot: no miss after this point) */
  movhu (120,a3),d2                /* children: refresh from the settings (stock routine) */
  mov 124,d3
 10:
@@ -185,6 +172,10 @@ mp_go:                            /* frame: (0) calls, (4) d0, (8) d1, (12) a1, 
  add 4,d3
  add -1,d2
  bne 10b
+ mov (4,sp),d2                    /* poke: field 0 (filter) or 4 (shading) of MONO m once more, same value */
+ mov (16,sp),d3
+ asl2 d3
+ call mp_set,[],0
  mov 1,d0
  ret [d2,d3,a2,a3],48
 m_miss:
@@ -200,6 +191,36 @@ m_miss:
  jmp ep7_info_f
 1:
  jmp ep7_info_s
+
+/* mp_set: d2 = m, d3 = field. `call mp_set,[],0` (no frame: the caller's frame below, r at (24,sp), P at (28,sp)).
+ * SetValue(id of field d3 for MONO m, 0, preset value) through the facade (vtable +0, the stock edit path); the
+ * value is staged at (20,sp), the return word kept at (8,sp) (the entry d1 slot, dead once committed: the facade
+ * calls overwrite (0,sp) and MDR). a2 = P after. Keeps d2/d3/a3. */
+mp_set:
+ mov mdr,d0
+ mov d0,(8,sp)
+ mov (24,sp),a0
+ add d3,a0
+ movbu (16,a0),d0
+ extb d0
+ mov d0,(20,sp)                   /* value */
+ call ep7_facade,[],4             /* a0 = OlyApiSettingControllerController */
+ mov (a0),a2
+ mov (a2),a2                      /* SetValue(id, 0, value): the stock edit path */
+ mov d2,d0
+ asl 3,d0
+ add d3,d0
+ add d0,d0
+ mov mp_ids,a1
+ add d0,a1
+ movhu (a1),d0                    /* id of field d3 for MONO m */
+ clr d1
+ mov (20,sp),a1
+ calls (a2)
+ mov (28,sp),a2                   /* P */
+ mov (8,sp),d0
+ mov d0,mdr
+ retf [],0
 
 /* mp_resume: a2 = P. For m 0..3: pos = j+1 when name P+608+16m equals preset j's 16-byte name, else 0 (no names
  * section: 0). Then P+{mmark} = 'EP7M'. `call mp_resume,[d2,d3,a3],12`; clobbers d0, d1, a0, a1. */

@@ -9,6 +9,8 @@ The 512-byte payload is built by patches/bundles/build.py build_table() (same re
 validation, same ABI as the flashed table). Header, CRC and per-byte ranges are defined in
 patches/sd_bundles/build.py, the same constants the on-camera loader is assembled from; the file
 is re-checked with a Python mirror of the loader's rules before it is written.
+Bloom colour (test13b): "effect": {"type": "bloom", "strength": 1-5, "tint": "neutral|red|amber|warm|cool"} sets the
+slot's bloom_tint byte +45 (layout.json). Files without it have 0 there = neutral; effect 2 (halation) with tint 0 = red.
 Slot names (film menu, docs/FILM_LIBRARY.md 8.7): a slot may carry "name": "Classic Neg" (1..15 printable
 ASCII characters, no '@'). A slot with only a name (no "recipe") is neutral: all-zero entry = the camera's own
 profile rendering, only the menu label changes. If any slot has a name, the file grows to 680 bytes: the v1
@@ -111,6 +113,20 @@ def check_file(data):
     return p
 
 
+TINT_NAMES = {v: k for k, v in BB.TINT.items()}
+EFFECT_NAMES = {v: k for k, v in BB.EFFECT.items()}
+
+
+def describe_effect(data, k):
+    """COLOR slot k's effect as test13b renders it: bloom/halation + tint (+45; effect 2 with tint 0 = red)."""
+    e = data[SB.HDR_LEN + 64 * k:SB.HDR_LEN + 64 * (k + 1)]
+    eid, st, tint = e[28], e[29], e[BB.TINT_OFF]
+    if eid in (1, 2):
+        t = tint or (1 if eid == 2 else 0)
+        return f'{BB.SLOTS[k]} {EFFECT_NAMES[eid]} {st} {TINT_NAMES[t]}'
+    return f'{BB.SLOTS[k]} {EFFECT_NAMES.get(eid, eid)} {st}'
+
+
 def split_names(bundle):
     """-> (bundle without names, neutral name-only slots dropped; 8 names or None)."""
     out, names = {}, [None] * NAME_SLOTS
@@ -151,6 +167,9 @@ def main():
             np_ = check_names(data[NAMES_LO:])
             print('names: ' + (', '.join(f'{s}={n!r}' for s, n in zip(BB.SLOTS, names_of(data)) if n) if not np_
                                else 'REJECTED (looks still load; stock labels): ' + '; '.join(np_)))
+        if not probs:
+            print('effects: ' + (', '.join(describe_effect(data, k) for k in range(4) if data[SB.HDR_LEN + 64 * k + 28])
+                                 or 'none'))
         print('OK: the loader would accept this file' if not probs else 'REJECT: ' + '; '.join(probs))
         sys.exit(1 if probs else 0)
     if not a.bundle or not a.out:

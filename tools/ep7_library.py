@@ -61,11 +61,16 @@ DEFAULT_NAMES = {
 }
 
 
+# Fields added in a backward-compatible way (0 = the old meaning) stay out of the ABI CRC, so files written before them
+# still load: bloom_tint (+45, test13b; 0 = neutral bloom).
+COMPAT_FIELDS = ('bloom_tint',)
+
+
 def layout_crc():
     """CRC-32 of the canonical layout.json ABI (slot size, slot names, field offsets/lengths)."""
     lay = SB.layout()
     canon = json.dumps({'slot_bytes': lay['slot_bytes'], 'slots': lay['slots'],
-                        'fields': {k: v[:2] for k, v in sorted(lay['fields'].items())}},
+                        'fields': {k: v[:2] for k, v in sorted(lay['fields'].items()) if k not in COMPAT_FIELDS}},
                        sort_keys=True, separators=(',', ':'))
     return zlib.crc32(canon.encode()) & 0xffffffff
 

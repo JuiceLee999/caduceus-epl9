@@ -57,9 +57,8 @@ def init(base, layered):
     G['stock'], G['lay'] = EV.images(G['spec'])
     G['fs'] = {k: int(v, 16) for k, v in G['spec']['film_menu_v2']['symbols'].items()}
     G['es'] = {k: int(v, 16) for k, v in G['spec']['look_editor']['symbols'].items()}
-    G['looks'] = (ROOT / 'generated/film_menu_v2_12e/card/EP7MOD/LOOKS.BIN').read_bytes() \
-        if (ROOT / 'generated/film_menu_v2_12e/card/EP7MOD/LOOKS.BIN').exists() else \
-        LB.compile_looks(FB.colour_library())[0]
+    # test13b: the release card library (v2: CineStill800 carries bloom colour red at record +47)
+    G['looks'] = LB.compile_looks(FB.colour_library(ROOT / 'bundles/library_v2.json'))[0]
     G['looks_all'] = LB.compile_looks(json.loads((ROOT / 'bundles/library_v1.json').read_text()))[0]
 
 
@@ -131,7 +130,7 @@ def step_model(blk, L, k, d):
         T = bytes(80)
     else:
         r = bytes(L[64 * pos:64 * pos + 64])
-        T = r[:32] + bytes(32) + r[48:64]
+        T = r[:32] + bytes(13) + r[47:48] + bytes(18) + r[48:64]      # test13b: +45 = record +47 (bloom colour)
         if T[:64] != LB.place(r, k):
             raise AssertionError(f'model entry != place() for look {pos - 1} slot {k}')
     L[O['stage']:O['stage'] + 80] = T
@@ -509,7 +508,7 @@ def bad_files():
     for off, val, lab in ((64 + 0, 8, 'hue +8'), (64 + 0, 0xf8, 'hue -8'), (64 + 24, 4, 'grain 4'), (64 + 25, 2, 'wb flags 2'),
                           (64 + 28, 4, 'effect 4'), (64 + 29, 6, 'strength 6'), (64 + 31, 4, 'flags 4'),
                           (64 + 44, 6, 'sat +6'), (64 + 45, 1, 'class mono, mask 1'), (64 + 46, 0, 'mask 0'),
-                          (64 + 46, 2, 'colour mask 2'), (64 + 47, 1, 'reserved'), (64 + 48, 0, 'name empty'),
+                          (64 + 46, 2, 'colour mask 2'), (64 + 47, 5, 'bloom colour 5'), (64 + 48, 0, 'name empty'),
                           (64 + 49, 0x40, "name '@'"), (64 + 49, 0x7f, 'name 0x7f'), (64 + 49, 0x1f, 'name 0x1f'),
                           (64 + 63, 0x41, 'name byte 15'), (64 + 62, 0x41, 'name after NUL'),
                           (len(good) - 64 + 0, 9, 'last look hue')):

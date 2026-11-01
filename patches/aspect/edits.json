@@ -821,6 +821,83 @@
    "expect": "14002c010000f000100030010000f000",
    "new": "000040013d00b300000040013300bd00",
    "why": "320x240 per-aspect bounds ids 6/7 -> full width, centred band"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e1440",
+   "expect": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f6061626364656667",
+   "new": "2c8002422c2cf000dcd0176a002c8002422c2c1001dcc3176a002c800242282cf000dcbc1a6a002c800242282c1001dcaf1a6a002c800242302cf000dc981f6a002c800242302c1001dc8b1f6a002480022ff000dc5e986f002480022f1001dc53986f00",
+   "why": "v6 LV case blocks S7-S10 (640 x h) in dead EVF gamma table 0x601e143c"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01e60",
+   "expect": "ed2b8860",
+   "new": "40141e60",
+   "why": "S7 LV jump entry id6 0x60882bed -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01e64",
+   "expect": "f22b8860",
+   "new": "4d141e60",
+   "why": "S7 LV jump entry id7 0x60882bf2 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01e8c",
+   "expect": "f32e8860",
+   "new": "5a141e60",
+   "why": "S8 LV jump entry id6 0x60882ef3 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01e90",
+   "expect": "f82e8860",
+   "new": "67141e60",
+   "why": "S8 LV jump entry id7 0x60882ef8 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01eb8",
+   "expect": "e9338860",
+   "new": "74141e60",
+   "why": "S9 LV jump entry id6 0x608833e9 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01ebc",
+   "expect": "ee338860",
+   "new": "81141e60",
+   "why": "S9 LV jump entry id7 0x608833ee -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b1f364",
+   "expect": "d5ac8d60",
+   "new": "8e141e60",
+   "why": "S10 LV jump entry id6 0x608dacd5 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b1f368",
+   "expect": "daac8d60",
+   "new": "99141e60",
+   "why": "S10 LV jump entry id7 0x608dacda -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053e246",
+   "expect": "30024002",
+   "new": "80028002",
+   "why": "rec-view 640-class W ids 6/7 (560, 576) -> (640, 640)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053e258",
+   "expect": "e001e001",
+   "new": "f0001001",
+   "why": "rec-view 640-class H ids 6/7 (480, 480) -> (240, 272)"
   }
  ]
 }

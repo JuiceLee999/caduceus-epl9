@@ -10,7 +10,7 @@ verifier's stand-ins (tools/ep7_verify_look_editor.py).
      child count 0 / 3, held gesture -> both images stop at the stock word target (0x60e22d8b / 0x60e22fae) with
      equal registers and live stack, heap unchanged, no facade call
   H  INFO on each of the 8 records: preset pos steps (fresh heap: resume from the saved MONO name; wrap n -> 1; stale
-     pos -> 1), the 8 SetValue calls == (id of MONO m, preset value) in order, slot name + EP7N (names zeroed first
+     pos -> 1), the 8 SetValue calls == (id of MONO m, preset value) in order, then (test13b) the editor's own child again, slot name + EP7N (names zeroed first
      when the table had none), dirty 1, EP7E block initialised on first use, EP7M; every child refreshed; d0 1;
      d2/d3/a2/a3/sp kept; nothing else in the heap written
 """
@@ -179,6 +179,7 @@ def main():
                 fails['H'].append(f'{k:#x} {lab}: pc {p["registers"]["pc"]:#x} {p["fault"]}')
                 continue
             want, calls, pos = model(b, m, n, tab)
+            calls = calls + [calls[0 if kind_f else 4]]      # test13b: the editor's own child re-written after the refresh
             rl, fl = logs(p)
             rg = p['registers']
             err = []

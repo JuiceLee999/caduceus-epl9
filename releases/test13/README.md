@@ -1,4 +1,76 @@
-# test13: test12e + aspect v5 + Film `*`, red bloom, mono presets
+# test13: test12e + aspect v6 + Film `*`, bloom colour, mono presets
+
+## Aspect v6 in place (254 edits = the 126 non-aspect edits unchanged + aspect v6, 128)
+
+Camera test 13: Panorama/Wide captured correctly (5184×1920 / 5184×2224) but live view kept the stock 7:6/6:5
+pillarbox and looked squished. Cause: the LV output size is not table driven. `CapThr_ThroughImage.cpp` has three
+hard-coded switches on the raw setting-270 id (getOutputSize 0x60882bb3, getOutputSizeForFineZoom 0x60882ec4,
+getTakeAreaSize 0x608833ae; jump tables 0x60b01e48/74/a0) that return 560×480 / 576×480 for ids 6/7. v5 changed the LV
+crop (ratio pair) but not this output box, hence the squish. v6 sends ids 6/7 to new case blocks (640×240 / 640×272)
+in the dead EVF gamma table 0x601e143c; the playback `get_aspect_frame` switch (0x60b1f34c) and the rec-view 640
+arrays 0x6053e23c/0x6053e24e get the same sizes. docs/ASPECT.md §1e.
+- Expect: Panorama/Wide LV full width with top/bottom bars (65:24 / 21:9), not squished; rec view and playback the same shape.
+- Emulator: `patches/aspect/build.py --lean` 70/70 (S7–S10 ids 1,2,3,4,9 stock and 6/7 → 640×240/272; rec-view getters).
+- Package: decode == stock + edits.json, restore == stock; 129 main bytes differ from the previous test13 package, all in aspect spans.
+
+## Fixed in place after camera test 13b (my 243 edits + the 11 later aspect edits = 254; every aspect edit kept)
+
+Shots PB021368–1373 are COLOR1 (CineStill800, effect 2) and PB021376–1379 are COLOR2 (bloom 5). PB021374–1375 are
+MONO1 "Red Contrast". The shots were identified from the makernotes.
+
+1. **CineStill had no red glow: root cause.** Red bloom did run, and its luma glow is visible. Its colour term
+   only multiplies the light's own chroma. A white or clipped light has none: on the LED strip the core reads Cr 0 and
+   the fringe reads Cr +5, which is the lamp's own cast. A red glow around white lights is not possible in this
+   combiner (docs/HALATION_RED.md §8).
+   - **Now: bloom colour.** Each slot has a byte for the bloom colour: Neutral, Red, Amber, Warm or Cool.
+   - Red spreads the red channel 3.5× as far as the glow and blue only 0.5× (before: 2.5× / 0.625×).
+   - The colour shows on warm lights (tungsten, sodium, neon, tail lights). White LEDs stay neutral.
+   - CineStill800 in library v2 is now bloom 4 with colour Red. A slot that still has effect 2 (like COLOR1 on your
+     card) renders red.
+2. **Extras page:** sector 5 shows `5 Bloom Neutral` / `Red` / `Amber` / `Warm` / `Cool`; turn the dial to choose.
+   Sector 2 now shows red bloom as `2 Glow N`.
+3. **Live view:** a red-bloom slot now gets the LV glow. CineStill lost it in test13, because live view previewed
+   effect 1 only.
+   - The weaker LV colour you saw is mainly library v2's 3× smaller WB shifts.
+   - The new hook and the aspect LV change do not touch LV colour.
+4. **Mono presets did apply.** The shots carry red filter strength 2, grain Low, shading −1 and Highlights +1, and the
+   wood renders light grey. Two bugs:
+   - Shadows and Midtones were swapped. Fixed.
+   - The open filter or shading screen did not redraw. Fixed: after the refresh, the preset re-writes the screen's
+     own setting, as the colour editor's page step does.
+5. **Card format:** slot byte +45 = bloom colour 0..4. The loader allows 0..4 there (it allowed only 0).
+   - LOOKS.BIN record +47 carries the colour.
+   - Old BUNDLES.BIN and LOOKS.BIN files still load: 0 = neutral.
+   - A file that uses a colour is rejected by older firmware.
+   - `tools/ep7_bundles_bin.py --check` lists each slot's effect and colour.
+
+Card: BUNDLES.BIN is unchanged. LOOKS.BIN is regenerated: only CineStill800 changed (bloom 4 + Red).
+
+**Camera plan for 13b:**
+- E. **Bloom colour:** on COLOR1 (CineStill800 on your card), shoot a tungsten bulb or a warm street light at night.
+  The fringe should be red beyond the glow. A white LED will stay neutral: that is expected.
+- F. **Extras:** step to Extras, go to sector 5 and turn the dial: Neutral → Red → Amber → Warm → Cool. Save, then
+  shoot the same light with Amber and with Cool.
+- G. **Mono:** in MONO1's filter screen, press INFO. The filter shown should change at once. Then check Highlight &
+  Shadow for Red Contrast: Highlights +1, Shadows −2, Midtones 0.
+- H. **LV:** COLOR1 should show a glow in live view.
+
+Emulator (no mutations):
+- halation F 24, W 84, D 112 (tints × combiners 11/12, guards; tint-0 bloom / clarity / off / erased banks
+  byte-identical to the previous test13);
+- mono S 98, H 48;
+- extras S, G 120, W 224, V 72 (quick);
+- film L 50, P 5, M 50 (quick);
+- lv_art 8/8;
+- loader v3 E 179 and N 29 (on the base spec: tint 4 loads, 5 rejects);
+- package: decode == emulated image, restore == stock (byte-identical). 3160 bytes differ from the previous test13,
+  all inside edit spans.
+
+Rebuild (generated/test13t): as below, with `--out generated/test13t/...`. The base is generated/test13r/base_t11h.json
+with the loader v3 edit rebuilt from the new layout (one byte, 0x605b774e 0→4) and the bloom edits replaced. The
+release edits = test13t/mp + the aspect edits taken from the release's edits.json.
+
+---
 
 ## Added in place (243 edits; aspect v5 kept unchanged)
 

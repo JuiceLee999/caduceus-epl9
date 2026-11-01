@@ -48,9 +48,10 @@ FEAT_HL = ''' movbu ({f_flags},a0),d0               /* H/L enabled (bundles `hl`
  beq 1f
  or 1,d2
 1:'''
-FEAT_BLOOM = ''' movbu ({f_effect},a0),d0              /* effect 1 = bloom (clarity 3 is not previewed: c12 w = 1024) */
- cmp 1,d0
- bne 2f
+FEAT_BLOOM = ''' movbu ({f_effect},a0),d0              /* effect 1 bloom / 2 red bloom (luma glow; clarity 3 is not previewed: c12 w = 1024) */
+ add -1,d0
+ cmp 2,d0
+ bcc 2f
  movbu ({f_strength},a0),d0
  add -1,d0
  cmp 5,d0
@@ -81,7 +82,7 @@ def source(features):
     code = '\n'.join(b.format(**fs) for b in blocks)
     doc = [' *       ' + s for s in (
         ['H/L flag (+31 bit 1)'] if 'hl' in features else []) + (
-        ['bloom (effect_id 1, strength 1..5) -> also job flag 0x80'] if 'bloom' in features else []) + (
+        ['bloom (effect_id 1 or 2, strength 1..5) -> also job flag 0x80'] if 'bloom' in features else []) + (
         ['grain 1..3'] if 'grain' in features else ['and NO grain (a grain slot stays stock: grain is not previewed)'])]
     sub = dict(lv_ret=hex(LV_RET), key_off=KEY_OFF, type_off=TYPE_OFF, flags_off=FLAGS_OFF, prop_profile=hex(PROP_PROFILE),
                tbl_slot=TBL_SLOT_SDV3, feat_code=code, feat_doc='\n'.join(doc), ext_profile=BB.EXT_PROFILE,

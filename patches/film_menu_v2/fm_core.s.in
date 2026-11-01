@@ -277,7 +277,7 @@ fm_check:
  inc d2
  cmp 45,d2
  bne 5b
- movbu (45,a2),d0                 /* class / mask: colour 0 with 1 or 3, mono 1 with 2; +47 = 0 */
+ movbu (45,a2),d0                 /* class / mask: colour 0 with 1 or 3, mono 1 with 2; +47 bloom colour 0..4 */
  movbu (46,a2),d1
  cmp 0,d0
  bne 6f
@@ -292,9 +292,9 @@ fm_check:
  cmp 2,d1
  bne c_bad
 7:
- movbu (47,a2),d0
- cmp 0,d0
- bne c_bad
+ movbu (47,a2),d0                 /* test13b: bloom_tint (placed at slot +45); older files have 0 */
+ cmp 5,d0
+ bcc c_bad
  movbu (48,a2),d0                 /* name: first byte non-zero, byte 15 NUL, 0x20..0x7e except '@', NUL tail */
  cmp 0,d0
  beq c_bad
@@ -382,7 +382,10 @@ fm_mod:
  movbu (d2,a0),d0
  cmp 32,d2
  bcs 2f
- clr d0                           /* bytes 32..63 of a placed colour look are 0 */
+ clr d0                           /* bytes 32..63 of a placed colour look are 0, but +45 = record +47 (bloom colour) */
+ cmp 45,d2
+ bne 2f
+ movbu (47,a0),d0
 2:
  movbu (d2,a1),d1
  cmp d0,d1

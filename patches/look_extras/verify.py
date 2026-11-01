@@ -84,24 +84,30 @@ def model_get(blk, slot, sec):
     if sec == 0:
         return b[24] if b[24] < 4 else 0
     if sec == 1:
-        if 1 <= b[29] <= 5 and b[28] in (1, 3):
+        if 1 <= b[29] <= 5 and b[28] in (1, 2, 3):
             return b[29] if b[28] == 3 else -b[29]
         return 0
     if sec in (2, 3):
         return clamp(s8(b[24 + sec]), -5, 5) if b[25] & 0x81 == 1 else 0
+    if sec == 4:                                  # test13b bloom colour +45 (effect 2 with 0 shows red)
+        return b[45] if 1 <= b[45] <= 4 else (1 if b[45] == 0 and b[28] == 2 else 0)
     return 0
 
 
 def model_set(blk, slot, sec, v, all_on):
     e = bytearray(blk)
-    if all_on or sec >= 4:
+    if all_on or sec >= 5:
         return e
     o = 32 + 64 * slot
     v = clamp(v, -5, 5)
     if sec == 0:
         e[o + 24] = clamp(v, 0, 3)
     elif sec == 1:
+        if e[o + 28] == 2 and e[o + 45] == 0:
+            e[o + 45] = 1
         e[o + 28], e[o + 29] = (0, 0) if v == 0 else ((3, v) if v > 0 else (1, -v))
+    elif sec == 4:
+        e[o + 45] = clamp(v, 0, 4)
     else:
         if e[o + 25] & 0x81 != 1:
             e[o + 26] = e[o + 27] = 0
@@ -116,11 +122,15 @@ FIELDS = [  # (grain, effect id, strength, wb flags, ab, gm) per slot: every rea
 FIELDS2 = [(4, 3, 6, 1, 0x7f, 0x80), (0xff, 0, 0, 0xff, 0xff, 0xff), (0, 1, 5, 1, 6, 0xfa), (3, 3, 1, 2, 3, 3)]
 
 
+TINTS = {id(FIELDS): (0, 3, 0, 9), id(FIELDS2): (4, 0xff, 1, 0)}   # bloom colour +45 per slot
+
+
 def xblock(axis, fields=FIELDS, marker=True):
     b = EV.card_block(axis=axis, marker=marker)
     for k, (gr, eid, st, fl, ab, gm) in enumerate(fields):
         o = 32 + 64 * k
         b[o + 24], b[o + 25], b[o + 26], b[o + 27], b[o + 28], b[o + 29] = gr, fl, ab, gm, eid, st
+        b[o + 45] = TINTS.get(id(fields), (0, 0, 0, 0))[k]
     return b
 
 
@@ -260,7 +270,7 @@ VALS = [-0x80000000, -128, -7, -6, -5, -3, -1, 0, 1, 2, 3, 4, 5, 6, 127, 0x7ffff
 
 
 def w_cases(quick=False):
-    ids = [927, 940, 953, 1658, 931, 926, 111] if quick else [927, 928, 929, 930, 931, 938, 939, 940, 941, 942, 952, 953,
+    ids = [927, 940, 952, 953, 955, 1658, 931, 926, 111] if quick else [927, 928, 929, 930, 931, 938, 939, 940, 941, 942, 952, 953,
                                                               954, 1655, 1656, 1657, 1658, 1666, 926, 963, 111]
     vals = [-6, -1, 0, 4] if quick else VALS
     out = []
@@ -369,7 +379,8 @@ s_get:
 """
 # 12d: stock shows 2755 with ALL off and 2756 with ALL on; the X text is cut at 16 characters together with the
 # editor's key-probe code (EV.probe_suffix, '' when the editor is built without the probe).
-TXT = {'o': 'Extras: 1-4 only', 'all': 'Extras: no All'}
+TXT = {'o': 'Extras: 1-5 only', 'all': 'Extras: no All'}
+TINT_TXT = ['5 Bloom Neutral', '5 Bloom Red', '5 Bloom Amber', '5 Bloom Warm', '5 Bloom Cool']
 GRAIN = ['1 Grain Off', '1 Grain Low', '1 Grain Medium', '1 Grain High']
 SIGNED = {1: ('2 Glow ', '2 Clarity/Glow 0', '2 Clarity +'), 2: ('3 WB Blue ', '3 WB Amber/Blue', '3 WB Amber '),
           3: ('4 WB Magenta ', '4 WB Green/Mag.', '4 WB Green ')}
@@ -381,6 +392,8 @@ def x_text(blk, mode, sec):
     v = model_get(blk, PM_SLOT[mode], sec)
     if sec == 0:
         return GRAIN[v]
+    if sec == 4:
+        return TINT_TXT[v]
     neg, zero, pos = SIGNED[sec]
     return zero if v == 0 else (pos + str(v)) if v > 0 else (neg + str(-v))
 
@@ -423,7 +436,7 @@ def guide_case(args):
     if is_x and kind == 4 and gid == 2756:
         txt = TXT['all']
     elif is_x and kind == 4 and gid == 2755 and mode in (54, 55, 56, 64):
-        txt = x_text(blk, mode, cursor - 1) if 1 <= cursor <= 4 else TXT['o']
+        txt = x_text(blk, mode, cursor - 1) if 1 <= cursor <= 5 else TXT['o']
     if txt:
         if len(txt) > 16:
             return tag, f'label {txt!r} > 16'
@@ -438,7 +451,7 @@ def guide_case(args):
 
 def v_cases(quick=False):
     labels = [(4, 2755), (4, 2756), (4, 2055), (0, 0), (5, 2756), (4, 2757)]
-    mc = [(54, 1), (55, 2), (56, 3), (64, 4), (54, 5), (64, 12), (54, 0), (11, 1), (0, 2)]
+    mc = [(54, 1), (55, 2), (56, 3), (64, 4), (54, 5), (64, 12), (54, 0), (11, 1), (0, 2), (55, 5), (56, 5), (64, 6)]
     out = []
     for lab, h, blk, x in heap_states(quick):
         for kind, gid in (labels[:2] if quick else labels):

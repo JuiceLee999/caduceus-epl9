@@ -1,62 +1,119 @@
-/* E-P7 1.1 red bloom ("halation") chroma stub (ep7-firmware, our own code). docs/HALATION_RED.md.
- * Section 1 0x60210e10 (retired sec-1 bloom block; FF in clarity builds). Entered by `jmp halo` from 0x603a04e8, the
- * tail of combiner-11 handler 0x603a049e, which there holds: d1 = (1024-w) | (1024-w)<<16, d2 = w (exthu),
- * d3 = 1024-w, a3 = bank, d0 = (1024-w)<<16, frame [d2,d3,a2,a3],20. The stub first replays the two replaced
- * stores (+136 = d1, +140 = d3). Only when w is one of the red-bloom weights {h_lut} (bloom_w returns them for
- * effect_id 2 and nothing else does: bloom 942..666, clarity >= 1100, stock Soft Focus 600..200) it re-writes the
- * chroma gains so the blurred share spreads chroma more than luma, Cr more than Cb (b = 1024-w):
- *   ch0 (Y,  +136 lo / +92 lo): B = b, A = w (stock)
- *   ch1 (Cb, +136 hi / +92 hi): B = 0.625 b, A = 1024-B
- *   ch2 (Cr, +140    / +96   ): B = 2.5 b (<= 892 for w >= 667; build-checked), A = 1024-B
- * Channel order Y, Cb, Cr is [I] (docs/HALATION_RED.md section 4). Weights still sum to 1024 per channel.
- * Exit: `ret [d2,d3,a2,a3],20` as the stock tail at 0x603a04f0; d0 and a0 as the stock tail leaves them.
- * Stores: the bank (a3) only. No mul/div, no setlb/Lcc.
+/* E-P7 1.1 bloom colour (tinted bloom) stubs, test13b (ep7-firmware, our own code). docs/HALATION_RED.md section 8.
+ * Section 1 0x601e263c (dead EVF gamma step-6 R table; only ref: the step-table word 0x601e3ce0, build-checked).
+ *
+ *   bw_tint <- `jmp` from bloom_w (bloom_clarity.s.in) for slot effect_id 1 (bloom) and 2 (red bloom, legacy), with
+ *              a0 = slot entry, d0 = effect_id, MDR = the getter's return address (restored by bloom_w).
+ *              tint = slot +{f_tint} (0 neutral, 1 red, 2 amber, 3 warm, 4 cool; effect 2 with tint 0 = red),
+ *              s = strength 1..5 -> w = t_w[5 tint + s - 1]. Row 0 is the plain bloom table (stock-identical
+ *              banks); rows 1..4 are w+1..w+4, weights no other path returns (bloom 942..666, clarity >= 1100,
+ *              Soft Focus 760..200, 600, 1024; build-checked). Bad strength / tint / effect -> 600 (stock key 11).
+ *              Exit `retf [],0` like the stock getter. Clobbers d0, d1, a0 (stock clobbers d0/d1/a0/a1).
+ *   halo    <- `jmp halo` at 0x603a04e8, the tail of combiner-11 handler 0x603a049e: d1 = b | b<<16 (b = 1024-w),
+ *              d2 = w (exthu), d3 = b, a3 = bank, frame [d2,d3,a2,a3],20. It replays the two replaced stores
+ *              (+136 = d1, +140 = d3). Only when w is in rows 1..4 of t_w it rewrites the chroma gains of tint t:
+ *                ch0 (Y,  +136 lo / +92 lo): B = b, A = w                   (as bloom)
+ *                ch1 (Cb, +136 hi / +92 hi): B = min(kcb[t] b / 8, 1024), A = 1024 - B
+ *                ch2 (Cr, +140    / +96   ): B = min(kcr[t] b / 8, 1024), A = 1024 - B
+ *              Channel order Y, Cb, Cr is [I] (HALATION_RED section 4). Gains stay in 0..1024 and sum to 1024.
+ *              Exit `ret [d2,d3,a2,a3],20` as the stock tail at 0x603a04f0, d0 = b << 16 (as stock), a0 untouched.
+ * Stores: the bank (a3) only. No mul/div, no setlb/Lcc, no calls.
  */
  .am33_2
  .text
  .global _start
 _start:
+
+bw_tint:
+ add -1,d0
+ cmp 2,d0
+ bcc t_def                        /* effect not 1 or 2 */
+ movbu ({f_tint},a0),d1
+ cmp 0,d0
+ beq 1f                           /* bloom: its own tint (0 = neutral) */
+ cmp 0,d1
+ bne 1f
+ mov 1,d1                         /* red bloom (effect 2) without a tint: red */
+1:
+ cmp 5,d1
+ bcc t_def
+ mov d1,d0
+ asl 3,d0
+ add d1,d1
+ add d1,d0                        /* 10 tint (bytes) */
+ movbu ({f_strength},a0),d1
+ add -1,d1
+ cmp 5,d1
+ bcc t_def
+ add d1,d1
+ add d1,d0
+ mov t_w,a0
+ movhu (d0,a0),d0                 /* mix weight (Q10) on the first input */
+ retf [],0
+t_def:
+ mov 600,d0                       /* stock result for key 11 */
+ retf [],0
+
+/* d0 = min(k * b / 8, 1024); k in d1 (u8), b in d3. Uses d0, d1. */
+ .macro KMUL
+ clr d0
+ cmp 0,d1
+ beq 92f
+91:
+ add d3,d0
+ add -1,d1
+ bne 91b
+92:
+ lsr 3,d0
+ cmp 1024,d0
+ bls 93f
+ mov 1024,d0
+93:
+ .endm
+
 halo:
  mov d1,(136,a3)                  /* replayed: 0x603a04e8 */
  mov d3,(140,a3)                  /* replayed: 0x603a04ec */
- mov h_lut,a2
-1:
- movhu (a2),d1
- cmp d1,d2
+ mov t_w+10,a2                    /* rows 1..4 */
+ mov t_k,a1
+2:
+ mov 5,d1
+3:
+ movhu (a2),d0
+ cmp d0,d2
  beq h_go
  add 2,a2
- cmp h_end,a2
- bne 1b
- ret [d2,d3,a2,a3],20             /* not a red-bloom weight: exactly the stock tail */
+ add -1,d1
+ bne 3b
+ add 2,a1
+ cmp t_k,a2
+ bne 2b
+ bra h_out                        /* not a tinted weight: exactly the stock tail */
 h_go:
- mov d0,a1                        /* keep the stock d0 */
- mov d3,d1
- lsr 1,d1
+ movbu (1,a1),d1
+ KMUL                             /* d0 = B_Cr */
+ mov d0,(140,a3)
+ mov 1024,d1
+ sub d0,d1
+ mov d1,(96,a3)                   /* A_Cr */
+ movbu (a1),d1
+ KMUL                             /* d0 = B_Cb */
+ mov d0,d1
+ asl 16,d1
+ or d3,d1
+ mov d1,(136,a3)                  /* B ch0 = b | B_Cb << 16 */
+ mov 1024,d1
+ sub d0,d1
+ asl 16,d1
+ or d2,d1
+ mov d1,(92,a3)                   /* A ch0 = w | (1024 - B_Cb) << 16 */
+h_out:
  mov d3,d0
- lsr 3,d0
- add d0,d1                        /* d1 = B_Cb = b/2 + b/8 */
- mov d3,d0
- lsr 1,d0
- add d3,d3
- add d0,d3                        /* d3 = B_Cr = 2b + b/2 (<= 2.5 * 357 = 892 for the table weights: no clamp) */
- mov d3,(140,a3)                  /* B ch2 */
- mov 1024,d0
- sub d3,d0
- mov d0,(96,a3)                   /* A ch2 */
- mov 1024,d0
- sub d2,d0                        /* b */
- mov d1,d3
- asl 16,d3
- or d0,d3
- mov d3,(136,a3)                  /* B ch0 = b | B_Cb << 16 */
- mov 1024,d0
- sub d1,d0
- asl 16,d0
- or d2,d0
- mov d0,(92,a3)                   /* A ch0 = w | (1024 - B_Cb) << 16 */
- mov a1,d0
+ asl 16,d0                        /* stock d0 at the tail */
  ret [d2,d3,a2,a3],20
+
  .balign 2
-h_lut:
- .hword {h_lut}
-h_end:
+t_w:                              /* [tint 0..4][strength 1..5] */
+ .hword {t_w}
+t_k:                              /* tint 1..4: kcb, kcr in eighths */
+ .byte {t_k}
+t_end:

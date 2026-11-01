@@ -12,9 +12,9 @@ compact v3 form the camera keeps in one 2048-byte heap block (at most 20 looks):
   header 64 B: 'EP7B', u16 version 3, u16 64, u32 1100, u32 payload (= 64 n), u32 CRC-32 (zlib over bytes 0..15
                then 20..end, the v1 rule), SHA prefix of the decoded main (4 B), u16 n (1..20), u16 64,
                u32 layout_crc (tools/ep7_library.layout_crc), 32 zero bytes
-  record 64 B: +0..44 canonical bundle bytes 0..44 (layout.json ABI; bundle bytes 45..63 are always 0),
+  record 64 B: +0..44 canonical bundle bytes 0..44 (layout.json ABI; bundle bytes 46..63 are always 0),
                +45 class (0 colour, 1 mono), +46 slot mask (bit0 COLOR, bit1 MONO; colour 1 or 3, mono 2),
-               +47 0, +48 name[16] (1..15 printable ASCII except '@', NUL-padded, byte 15 NUL)
+               +47 bloom_tint 0..4 (test13b; placed at bundle +45; 0 in older files), +48 name[16] (1..15 printable ASCII except '@', NUL-padded, byte 15 NUL)
 
 SLOTS.BIN (20 B) is what the camera writes back when the picker changes a slot (and what it reads at power-on):
   'EP7S', u32 LOOKS.BIN CRC (binds the map to one library), assign[8] (COLOR1-4, MONO1-4: 0..n-1 = look,
@@ -40,6 +40,8 @@ SB = LIB.SB
 MAGIC, VERSION, HDR_LEN, REC_LEN, MAX_LOOKS = b'EP7B', 3, 64, 64, 20
 BUNDLE_USED = 45
 CLASS_OFF, MASK_OFF, NAME_OFF, NAME_LEN = 45, 46, 48, 16
+# test13b: record +47 = bloom_tint (0..4; old files have 0 = neutral), placed at bundle byte +45 (layout.json bloom_tint)
+TINT_OFF, TINT_BUNDLE, TINT_MAX = 47, 45, 4
 SMAGIC, SLOTS_LEN = b'EP7S', 20
 STOCK, UNTOUCHED = 0xFF, 0xFE
 PATH_LOOKS, PATH_SLOTS = 'C:\\EP7MOD\\LOOKS.BIN', 'C:\\EP7MOD\\SLOTS.BIN'
@@ -55,16 +57,17 @@ def header(n, crc=0):
 def record(rec96):
     """LIBRARY v2 96-byte record -> 64-byte LOOKS.BIN record."""
     b = rec96[:64]
-    if any(b[BUNDLE_USED:]):
-        raise ValueError('canonical bundle uses bytes 45..63 (layout.json grew: LOOKS.BIN v3 must be revised)')
+    if any(b[TINT_BUNDLE + 1:]):
+        raise ValueError('canonical bundle uses bytes 46..63 (layout.json grew: LOOKS.BIN v3 must be revised)')
     name = rec96[LIB.NAME_OFF:LIB.NAME_OFF + 16]
-    return bytes(b[:BUNDLE_USED]) + bytes([rec96[LIB.CLASS_OFF], rec96[LIB.MASK_OFF], 0]) + name
+    return bytes(b[:BUNDLE_USED]) + bytes([rec96[LIB.CLASS_OFF], rec96[LIB.MASK_OFF], b[TINT_BUNDLE]]) + name
 
 
 def to_rec96(rec64):
     """Back to the v2 form (for LIB.place())."""
     r = bytearray(LIB.LOOK_LEN)
     r[:BUNDLE_USED] = rec64[:BUNDLE_USED]
+    r[TINT_BUNDLE] = rec64[TINT_OFF]
     r[LIB.NAME_OFF:LIB.NAME_OFF + 16] = rec64[NAME_OFF:NAME_OFF + 16]
     r[LIB.CLASS_OFF], r[LIB.MASK_OFF] = rec64[CLASS_OFF], rec64[MASK_OFF]
     return bytes(r)
@@ -157,8 +160,8 @@ def check_file(data):
                 p.append(f'look {j} byte {k} = {v} out of range')
                 break
         cls, mask = r[CLASS_OFF], r[MASK_OFF]
-        if not (cls == 0 and mask in (1, 3) or cls == 1 and mask == 2) or r[47]:
-            p.append(f'look {j} class/mask/reserved {cls}/{mask}/{r[47]}')
+        if not (cls == 0 and mask in (1, 3) or cls == 1 and mask == 2) or r[TINT_OFF] > TINT_MAX:
+            p.append(f'look {j} class/mask/tint {cls}/{mask}/{r[TINT_OFF]}')
         if not _name_ok(r[NAME_OFF:NAME_OFF + 16]):
             p.append(f'look {j} name')
     return p

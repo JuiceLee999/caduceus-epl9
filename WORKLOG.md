@@ -248,3 +248,19 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - 12e revised in place: camera showed MENU/PLAYBACK open their own screens (outer screen consumes them), so +36 hook dropped (stock again); INFO now cycles Saturation → Sat-All → Hue → Light → Film → Extras → Saturation. 220 edits. Editor S/E 269/V 230/T, film P/H/T pass; package == emulated image, restore == stock.
 - test13 + wheel polygon (ed_poly at 0x609330f9; producer 0x60932fa6 vtable+4972 mapped). 223 edits. verify_poly 595/595 ×4 specs, editor E/T, film H/T; package == emulated, restore == stock. docs/LOOK_MENUS.md: list menus need a host item, not built.
 - test13 in place (243 edits): Film label `*` when the slot differs from its picked look (fm_mod via ed_cfg_fm); red bloom effect_id 2 (bloom --halation + halo stub 0x60210e10, hook 0x603a04e8; CineStill800 uses it, LOOKS.BIN regenerated); mono presets on stock MONO filter/shading editors' INFO (6 presets via stock SetValue + slot name; mono_colour dropped per user). Aspect v5 kept. Emulator: film M 50, halation F/W/D 400, mono S/H 146, editor/extras/film/poly/lv/lv_art regressions pass; package == emulated, restore == stock. No mutations. Not camera-tested.
+- Camera test 13b (PB021368–1379, makernotes parsed without exiftool), fixed in place in test13 (243 edits; the aspect agent then added 11 and packaged 254, which contain every 13b edit unchanged; decode == emulated image re-checked):
+  - **Red bloom:** COLOR1 = CineStill800, effect 2. It renders a luma glow, but the chroma term only scales the
+    light's own chroma: the LED fringe is Cb −5 / Cr +5 and the clipped core has Cr 0. No cross-channel term exists
+    in combiner 11.
+  - **Bloom colour built:** slot byte +45 `bloom_tint` (0 neutral, 1 red, 2 amber, 3 warm, 4 cool; loader span
+    0→4; LOOKS.BIN +47). bw_tint + halo in the dead EVF step-6 R table (w = W[s] + tint), Extras sector 5
+    `5 Bloom …`, and lv_art previews effect 2. CineStill800 v2 = bloom 4 red.
+  - **Mono presets:** the settings landed (filter red s2, grain low, shading −1, HL +1) but 999/1000 =
+    midtones/shadows (swapped), and the open screen did not redraw. Fix: IDs swapped, plus a post-refresh poke of
+    the editor's own child (mp_set; mp moved to 0x601e283c).
+  - **LV report:** CineStill lost its LV glow in test13 (effect 2 was not previewed by lv_art). This is fixed. The
+    weaker colour is library v2's 3× smaller WB shifts. The halo hook and the aspect LV ratio do not touch LV colour.
+  - **Emulator:** halation F 24 / W 84 / D 112; mono S 98 / H 48; extras S / G 120 / W 224 / V 72 (quick); film
+    L 50 / P 5 / M 50 (quick); lv_art 8/8; loader v3 E 179 + N 29 on the base. Package == emulated image; restore
+    == stock (identical to the previous test13); 3160 bytes differ from the previous test13, all inside edit spans.
+    No mutations.

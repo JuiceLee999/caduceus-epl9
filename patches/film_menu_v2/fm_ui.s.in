@@ -197,12 +197,17 @@ u_go:
  mov d0,(8,sp)
  mov 32,d1                        /* bytes 0..31 */
  call fm_copy,[d2,a2],8
- mov 32,d1                        /* +32..63 = 0 (colour slot: +32 = 0, sat advice 33..44 dropped, 45..63 = 0) */
+ mov 32,d1                        /* +32..63 = 0 (colour slot: +32 = 0, sat advice 33..44 dropped, 45..63 = 0; +45 then = record +47) */
  call fm_zero,[d2],8
  mov (8,sp),d0
  add 48,d0                        /* name r+48 */
  mov 16,d1
  call fm_copy,[d2,a2],8
+ mov (8,sp),a1                    /* test13b: T+45 = record +47 (bloom colour) */
+ movbu (47,a1),d0
+ mov a0,a1
+ add 1752,a1
+ movbu d0,(45,a1)
 u_apply:                          /* T -> slot k: flags byte first cleared, last written; then the name */
  mov a0,a1
  add 1752,a1                      /* a1 = T */

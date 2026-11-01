@@ -1,6 +1,6 @@
 # Mono film presets on the stock Mono Profile editors (E-P7 1.1)
 
-Built into test13, emulator-verified, not camera-tested. Replaces the MONO-colour / MONO-wheel plan for this
+Built into test13; camera test 13b found two faults, fixed in place (section "Camera test 13b" below). Replaces the MONO-colour / MONO-wheel plan for this
 release: MONO1–4 keep OM's mono rendering and editors, and nothing on the capture path changes.
 [V] = read from the decoded main. [I] = inference.
 
@@ -42,7 +42,7 @@ From the picture-parameter builder 0x602b7b71 MONO branches (public modes 57/58/
 | toning | 984 | 985 | 986 | 1679 | 0..4 | N, sepia, blue, purple, green [I] |
 | grain | 981 | 982 | 983 | 1678 | 0..3 | off/low/medium/high |
 | shading | 995 | 996 | 997 | 1671 | −5..5 | [I] negative = darker corners |
-| tone | 998–1000 | 1001–1003 | 1004–1006 | 1675–1677 | −7..7 | highlights, shadows, midtones in that order [I] |
+| tone | 998 / 1000 / 999 | 1001 / 1003 / 1002 | 1004 / 1006 / 1005 | 1675 / 1677 / 1676 | −7..7 | highlights / shadows / midtones (MONO1 [V camera 13b], others by analogy) |
 
 `build.py` checks every preset value against each setting's validator list.
 
@@ -64,3 +64,24 @@ From the picture-parameter builder 0x602b7b71 MONO branches (public modes 57/58/
   Highlight & Shadow screen shows the HL/SH values in the right places.
 - Whether the screen redraws after the SetValue calls. The child refresh is stock, as in the colour editor's INFO
   page step.
+
+## Camera test 13b
+
+- **Shots:** PB021374–1375 are MONO1, with the slot named "Red Contrast". Makernotes (CameraSettings, parsed without
+  exiftool):
+  - MonochromeProfileSettings filter = 3 (red), strength 2;
+  - grain Low; vignetting −1; toning "normal" (none);
+  - ToneLevel Highlights +1, Shadows 0, Midtones −2.
+  - The image shows it too: on the red wood the red filter renders light grey.
+- **So SetValue worked, and on the right profile.** Filter, strength, toning, grain and shading landed exactly.
+- **Fault 1: shadows/midtones swapped.** We wrote shadows −2 to 999, and it came out as Midtones. So 999 = midtones and
+  1000 = shadows. Fixed in IDS for all four profiles; MONO2–4 are by analogy.
+- **Fault 2: "no visible change".** The open Mono screen did not redraw after the preset.
+  - After the SetValue calls, mp refreshed the children but sent no further setting change. The colour editor's
+    camera-verified page step does both: refresh, then `ed_poke`.
+  - Fix: after the refresh, mp writes the editor's own first child (filter, or shading) once more with its preset
+    value (`mp_set`), so the stock listeners rebuild the screen from the refreshed children.
+- mp grew to 764 B and now starts at 0x601e283c: the dead EVF step-6 B table, then the step-5 tables. Only refs are the
+  step-table words, build-checked.
+- **Verified:** `patches/mono_presets/verify.py` S 98, H 48. H now expects 9 SetValue calls: the 8 fields, then field 0
+  (filter editors) or field 4 (shading editors).

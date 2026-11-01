@@ -126,6 +126,26 @@ DATA_FLASH, DATA_RAM, DATA_END = 0x60230800, 0x61f98540, 0x6025eb50   # .data co
 RATIO_U16 = 0x604e06ea            # same ratios as u16 pairs (index id); no static reference found, patched for consistency
 GRID320 = 0x604d9cd2              # per-id (x0,x1,y0,y1) bounds in a 320x240 grid (read at 0x602ef370 via 0x602e82a8)
 
+# ---- LV (v6, camera test 13: capture right, LV still pillarboxed 7:6 / 6:5 and squished). The live view output
+# size is NOT table driven: CapThr_ThroughImage.cpp (sec 5) has three hard-coded switches on the raw setting-270 id
+# (index id 0..10) that pick the 640-class LV output / take-area size: getOutputSize (S7), getOutputSizeForFineZoom
+# (S8), getTakeAreaSize (S9). Stock id 6 -> 560x480, id 7 -> 576x480 (= the pillarbox). The playback single-image
+# component (CmpPls_PlaySingleComponent.cpp get_aspect_frame, S10, index id 0..9) has the same switch. The stock case
+# code stores W then H into stack slots (S7-S9) or a0/d3 (S10) and joins; ids 6/7 get new blocks (640 x h640) that
+# replay the stock store and jump to the H-store join. Blocks live in a dead EVF gamma table (no EVF on the E-P7;
+# only reference = the step-table word 0x601e3d40), claim 0x601e143c-0x601e153c.
+# name, dispatch entry (d0 = id, or (40,sp) for S10), jump table (index id), W slot, H-store join, end, H slot
+LV_SW = [('S7', 0x60882bb3, 0x60b01e48, 44, 0x60882c18, 0x60882c1a, 48),
+         ('S8', 0x60882ec4, 0x60b01e74, 40, 0x60882f1e, 0x60882f20, 44),
+         ('S9', 0x608833ae, 0x60b01ea0, 48, 0x60883414, 0x60883416, 52)]
+S10 = dict(entry=0x608daca2, jt=0x60b1f34c, join=0x608dacf2)      # a0 = W, d3 = H
+LV_STOCK = {'S7': (0x60882bed, 0x60882bf2), 'S8': (0x60882ef3, 0x60882ef8), 'S9': (0x608833e9, 0x608833ee),
+            'S10': (0x608dacd5, 0x608dacda)}
+LV_AT, LV_CLAIM = 0x601e1440, (0x601e143c, 0x601e153c)
+# Rec-view (post-capture) 640-class image: u16 W/H arrays 0x6053e23c / 0x6053e24e (index id-1), getters 0x603f0bff /
+# 0x603f0c0f, used by the rec job builder (job +283 = id). Stock 560x480 / 576x480; scan_tables.py missed them (split arrays).
+REC640_W, REC640_H, REC640_GET = 0x6053e23c, 0x6053e24e, (0x603f0bff, 0x603f0c0f)
+
 
 def u16s(d, a, n):
     return list(struct.unpack_from(f'<{n}H', d, a - B))
@@ -227,6 +247,22 @@ def blocks(heights640):
         code += bytes((0x80, rw, 0x42, 0x18, 0x80, rh))     # mov W,d0; mov d0,(24,sp); mov H,d0
         code += jmp32(BLOCKS_AT + len(code), S5['join'])
     assert len(code) <= 0x80
+    return bytes(code), where
+
+
+def lv_blocks(h640):
+    """v6 LV/playback case blocks; return (bytes, {(name, id): addr})."""
+    code, where = bytearray(), {}
+    for name, _, _, wslot, join, _, _ in LV_SW:
+        for i in (6, 7):
+            where[(name, i)] = LV_AT + len(code)
+            code += mov16(0, 640) + bytes((0x42, wslot)) + mov16(0, h640[i])   # mov 640,d0; mov d0,(W,sp); mov H,d0
+            code += jmp32(LV_AT + len(code), join)                            # -> mov d0,(H,sp)
+    for i in (6, 7):
+        where[('S10', i)] = LV_AT + len(code)
+        code += b'\x24' + struct.pack('<h', 640) + mov16(3, h640[i])            # mov 640,a0; mov H,d3
+        code += jmp32(LV_AT + len(code), S10['join'])
+    assert LV_AT + len(code) <= LV_CLAIM[1] - 16
     return bytes(code), where
 
 
@@ -357,6 +393,22 @@ def build(d):
     old = d[GRID320 + 48 - B:GRID320 + 64 - B]
     assert struct.unpack('<8H', old) == (20, 300, 0, 240, 16, 304, 0, 240)
     edit(GRID320 + 48, old, struct.pack('<8H', *grid_row(6), *grid_row(7)), '320x240 per-aspect bounds ids 6/7 -> full width, centred band')
+    # LV (v6): CapThr_ThroughImage output/fine-zoom/take-area switches + playback aspect frame, rec-view 640 arrays
+    code, lw = lv_blocks(h640)
+    assert struct.unpack_from('<I', d, 0x601e3d40 - B)[0] == LV_CLAIM[0]
+    edit(LV_AT, d[LV_AT - B:LV_AT - B + len(code)], code,
+         'v6 LV case blocks S7-S10 (640 x h) in dead EVF gamma table 0x601e143c')
+    for name, jt in [(s[0], s[2]) for s in LV_SW] + [('S10', S10['jt'])]:
+        for i in (6, 7):
+            ea = jt + 4 * i
+            old = d[ea - B:ea - B + 4]
+            assert struct.unpack('<I', old)[0] == LV_STOCK[name][i - 6], (name, i)
+            edit(ea, old, struct.pack('<I', lw[(name, i)]), f'{name} LV jump entry id{i} {struct.unpack("<I", old)[0]:#x} -> block')
+    for base, new in ((REC640_W, (640, 640)), (REC640_H, (h640[6], h640[7]))):
+        old = d[base + 10 - B:base + 14 - B]
+        assert struct.unpack('<2H', old) in ((560, 576), (480, 480))
+        edit(base + 10, old, struct.pack('<2H', *new), f'rec-view 640-class {"W" if base == REC640_W else "H"} ids 6/7 '
+             f'{struct.unpack("<2H", old)} -> {new}')
     # no overlaps
     spans = sorted((int(e['addr'], 16), int(e['addr'], 16) + len(e['new']) // 2) for e in edits)
     assert all(a[1] <= b[0] for a, b in zip(spans, spans[1:])), 'overlap'
@@ -611,6 +663,50 @@ def chk_ratio(d, aid):
     return ok, tuple(m['out'][:2])
 
 
+def chk_lv(d, sw, aid):
+    """Native S7-S9 dispatch (entry d0 = id) / S10 ((40,sp) = id) up to the end of the size join; returns (W, H)."""
+    stack = bytearray(0x2000)
+    sp = STACK + 0x1000
+    blk = img(d, 'blk', LV_CLAIM[0], LV_CLAIM[1], 'rx')
+    if sw == 'S10':
+        struct.pack_into('<I', stack, 0x1000 + 40, aid)
+        regs = [img(d, 'code', S10['entry'], S10['join'] + 1, 'rx'), img(d, 'jt', S10['jt'], S10['jt'] + 40), blk,
+                Region('stack', STACK, bytes(stack), 'rw')]
+        r, _ = run(regs, {'pc': S10['entry'], 'sp': sp, 'a0': 0x5555, 'd3': 0x5555}, S10['join'])
+        R = r['registers']
+        return R['pc'] == S10['join'] and not r['fault'] and R['sp'] == sp, (R['a0'] & 0xffff, R['d3'] & 0xffff)
+    name, entry, jt, ws, _, end, hs = next(s for s in LV_SW if s[0] == sw)
+    regs = [img(d, 'code', entry, end + 1, 'rx'), img(d, 'jt', jt, jt + 44), blk,
+            Region('stack', STACK, bytes(stack), 'rw', True)]
+    r, m = run(regs, {'pc': entry, 'sp': sp, 'd0': aid}, end)
+    ok = r['registers']['pc'] == end and not r['fault'] and r['registers']['sp'] == sp
+    return ok, struct.unpack_from('<II', m['stack'], 0x1000 + ws)[0:1] + struct.unpack_from('<I', m['stack'], 0x1000 + hs)
+
+
+def chk_rec640(d, aid, k):
+    f = REC640_GET[k]
+    regs = [PR.caller(f, 0, 0), img(d, 'fn', f, f + 16, 'rx'), img(d, 'tab', REC640_W, REC640_H + 18),
+            Region('stack', STACK, bytes(0x2000), 'rw')]
+    r, _ = run(regs, {'pc': PR.CALLER, 'sp': STACK + 0x1800, 'd0': aid}, PR.CALLER + 7)
+    return r['registers']['pc'] == PR.CALLER + 7 and not r['fault'], r['registers']['d0'] & 0xffff
+
+
+def lv_checks(d, p, rep, h640):
+    """v6: LV output / fine-zoom / take-area switches, playback frame, rec-view 640 size; ids 6/7 new, 1-4/9 stock."""
+    for sw in ('S7', 'S8', 'S9', 'S10'):
+        for aid in (1, 2, 3, 4, 6, 7, 9):
+            s_ok, s = chk_lv(d, sw, aid)
+            p_ok, q = chk_lv(p, sw, aid)
+            want = {6: (640, h640[6]), 7: (640, h640[7])}.get(aid, s)
+            rep(f'LV {sw} id{aid}', s_ok and p_ok and q == want, s, q)
+    for aid in (1, 3, 4, 6, 7, 9):
+        s = tuple(chk_rec640(d, aid, k) for k in (0, 1))
+        q = tuple(chk_rec640(p, aid, k) for k in (0, 1))
+        sv, qv = (s[0][1], s[1][1]), (q[0][1], q[1][1])
+        want = {6: (640, h640[6]), 7: (640, h640[7])}.get(aid, sv)
+        rep(f'RV rec-view 640 getters id{aid}', all(x[0] for x in s + q) and qv == want, sv, qv)
+
+
 def lean_checks(d, p, rep):
     """v5 checks (W/F/R/G): ids 6/7 get the new geometry, ids 1-4/9 stay stock."""
     exp_w = {i: wh_row(d, i, 0) for i in (6, 7)}
@@ -683,6 +779,7 @@ def main():
         print(f"{'PASS' if good else 'FAIL'} {name}: stock {stock} -> patched {patched}")
 
     lean_checks(d, p, rep)
+    lv_checks(d, p, rep, h640)
     if a.lean:
         a.out.write_text(json.dumps(dict(components=['0x100'], edits=edits), indent=1) + '\n')
         print(f'{len(edits)} edits, {sum(len(e["new"]) // 2 for e in edits)} bytes; wrote {a.out} (lean: v5 checks only)')

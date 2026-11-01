@@ -85,7 +85,7 @@ def model(feats, table, *, ret, key, jtype, profile):
     want = 0
     if 'hl' in feats and s[31] & 2:
         want |= 1
-    if 'bloom' in feats and s[28] == 1 and 1 <= s[29] <= 5:
+    if 'bloom' in feats and s[28] in (1, 2) and 1 <= s[29] <= 5:
         want |= 3
     if 'grain' in feats:
         if 1 <= s[24] <= 3:

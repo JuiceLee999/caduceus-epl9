@@ -9,7 +9,8 @@
             "effect_id": [28, 1, "u8 0 none,1 bloom,2 halation,3 clarity"], "effect_strength": [29, 1, "u8 1..5 when effect_id != 0; bloom (id 1) read by patches/bloom v0.4, clarity (id 3) by patches/bloom --clarity (other values = off)"],
             "vignette": [30, 1, "s8 -5..5"], "flags": [31, 1, "bit0 render colour (MONO, mirror of colour), bit1 H/L enabled"],
             "colour": [32, 1, "u8: exactly 1 = MONO slot renders in colour (patches/mono_colour); any other value = stock mono"],
-            "sat": [33, 12, "s8 x12, -5..5, request+1816 order (as the COLOR profile saturation); read only when colour == 1"]},
+            "sat": [33, 12, "s8 x12, -5..5, request+1816 order (as the COLOR profile saturation); read only when colour == 1"],
+            "bloom_tint": [45, 1, "u8 0 neutral,1 red,2 amber,3 warm,4 cool; bloom colour (patches/bloom --halation, test13b); with effect_id 2, 0 means red (legacy)"]},
  "job_extension": {"job_size": 15512, "profile": 15488, "picture_mode": 15489, "marker": 15490, "marker_value": "0xB2",
                    "note": "valid only behind the callback/record/parent guard; marker != 0xB2 means no capture record"}
 }

@@ -9,7 +9,7 @@ Evidence labels:
 - **[I]** inference: consistent with the data, not proven.
 - **[?]** open question.
 
-Patch: `patches/aspect/build.py` writes `patches/aspect/edits.json`. That file holds **117 edits, 1437 bytes (v5: + 9 runtime-geometry edits, §1d)**; v4 had 108 edits, 1209 bytes (+ the 2 validator edits, §1c; v3 had 106 edits, 1192 bytes),
+Patch: `patches/aspect/build.py` writes `patches/aspect/edits.json`. That file holds **128 edits, 1577 bytes (v6: + 11 LV-switch / rec-view edits, §1e)**; v5 had 117 edits, 1437 bytes (+ 9 runtime-geometry edits, §1d); v4 had 108 edits, 1209 bytes (+ the 2 validator edits, §1c; v3 had 106 edits, 1192 bytes),
 all in component 0x100 (v3, 2026-11-02: the 103 v2 edits unchanged + 3 SCP/Live Control option-strip edits, §1b;
 v2 = 101 table/menu/switch edits as in v0.4 + the 2-edit boot clamp, §3(c)).
 The script also runs 198 emulator and parse checks (174 as in v2 + 24 SCP-strip checks), and all of them pass,
@@ -110,6 +110,25 @@ None of the 44 tables of §3(b) drives capture.
 - [I] Not emulated: the LV pipeline itself. That LV follows the ratio pair (not a size class) is inferred: the test-13 LV kept the stock frame while every size
   table except W/H was already patched, and the ratio pair is the only per-id input sent to the LV/AF side. If LV is still 7:6-framed on camera, the next
   suspects are the AF/LV driver's per-ratio special cases (0x605de36c, 0x605e6eda), which fall through for 7:6 as well as 65:24.
+
+### 1e. The real LV output size: hard-coded CapThr switches (v6, camera test 13 result)
+
+Camera result on test13 (v5): capture correct (5184×1920 / 5184×2224), but LV still pillarboxed 7:6/6:5 and squished.
+- [V] The LV output box is chosen by three hard-coded switches in `CapThr_ThroughImage.cpp` (sec 5) on the raw setting-270 id
+  (index id 0..10, from 0x60881f93 / 0x60882015 / 0x60882085 or the getter directly): **getOutputSize** 0x60882bb3 (JT 0x60b01e48,
+  W→(44,sp), H→(48,sp)), **getOutputSizeForFineZoom** 0x60882ec4 (JT 0x60b01e74, (40)/(44)), **getTakeAreaSize** 0x608833ae
+  (JT 0x60b01ea0, (48)/(52)). Stock: 4:3 640×480, 3:2 624×416, 16:9 640×360, 1:1 480×480, 5:4 640×512, **7:6 560×480, 6:5 576×480**,
+  7:5 672×480, 3:4 384×512, 17:9 640×338. v5's ratio pair changed the LV crop but not this box → squish. Found by searching
+  code for 7:6/6:5 immediate pairs (560/576 within 0x100 B); S1–S4 are the same pattern elsewhere.
+- [V] Same switch in playback `CmpPls_PlaySingleComponent.cpp` get_aspect_frame 0x608daca2 (JT 0x60b1f34c, index id 0..9, a0 = W, d3 = H).
+- [V] Rec-view 640-class u16 arrays W 0x6053e23c / H 0x6053e24e (index id−1; getters 0x603f0bff/0x603f0c0f, rec job builder,
+  job +283 = id) also held 560/576×480 (split arrays, missed by `scan_tables.py`).
+- **Fix (v6, 11 edits, 140 B)**: 8 case blocks (13 B: `mov 640,d0; mov d0,(W,sp); mov H,d0; jmp H-store join`; S10 11 B:
+  `mov 640,a0; mov H,d3; jmp 0x608dacf2`), H = 240 / 272 (the 640-class rows), at **0x601e1440–0x601e14a4** in the dead EVF gamma
+  table 0x601e143c (only ref: step-table word 0x601e3d40); 8 jump entries; rec-view W/H ids 6/7 → 640×240 / 640×272.
+- Checks (`build.py --lean`, 70/70): native S7–S10 dispatch, ids 1,2,3,4,9 identical to stock, 6/7 → 640×240 / 640×272; rec-view getters.
+- [I] Not emulated: what the LV pipeline does with the box (expected: full-width frame, top/bottom bars). Remaining 7:6 immediates
+  (280/288, 840/864, 1120/1152) were checked and are unrelated (lists / vtable offsets).
 
 ## 2. Consumers of the aspect id
 

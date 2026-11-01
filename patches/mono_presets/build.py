@@ -26,8 +26,8 @@ LE = _load('ep7_look_editor_build_mp', ROOT / 'patches/look_editor/build.py')
 B3 = LE.B3
 BASE, MAIN, MAIN_SHA = B3.BASE, B3.MAIN, B3.MAIN_SHA
 
-CODE = (0x601e293c, 0x601e2c3c)          # sec 1: dead EVF gamma step-5 R/G/B tables
-CODE_REFS = {0x601e293c: 0x601e3cd0, 0x601e2a3c: 0x601e3cd4, 0x601e2b3c: 0x601e3cd8}
+CODE = (0x601e283c, 0x601e2c3c)          # sec 1: dead EVF gamma step-6 B + step-5 R/G/B tables (test13b: +256 B)
+CODE_REFS = {0x601e283c: 0x601e3ce8, 0x601e293c: 0x601e3cd0, 0x601e2a3c: 0x601e3cd4, 0x601e2b3c: 0x601e3cd8}
 FALSE_POS = 0x60d37d59                   # 08 2c 1e 60 inside two instructions (dis-checked)
 INFO_F, INFO_S = 0x60e22d8b, 0x60e22fae  # stock +44 words: both `mov 3,d0; retf [],0`
 REC_TABLE, REC_N = 0x6118474c, 167
@@ -36,12 +36,15 @@ KEYS_S = [0x13b9, 0x13ba, 0x13bb, 0x140e]    # MONO1-4 shading editors (995 ...)
 DESC = 0x61186ba4                        # editor descriptor table (47 x {u16 key, u16 n, u32 children})
 # per MONO m: filter, filter strength, toning, grain, shading, highlights, shadows, midtones. From the picture
 # parameter builder 0x602b7b71 MONO branches (public modes 57/58/59/65) and the validator lists 0x604cc98c [V];
-# which of 998/999/1000 is highlights/shadows/midtones and the filter/toning value meanings are [I].
+# Highlights / shadows / midtones: camera test 13b (PB021374/75, MONO1 'Red Contrast' HL +1 SH -2 MID 0 written to
+# 998/999/1000) recorded makernote ToneLevel Highlights +1, Shadows 0, Midtones -2, so 999 = midtones and
+# 1000 = shadows [V camera]; MONO4 assumed the same order (1676 = midtones, 1677 = shadows) [I]. Filter red /
+# strength 2, grain low, shading -1 and toning none landed as written [V camera].
 FIELDS = ['filter', 'strength', 'toning', 'grain', 'shading', 'highlights', 'shadows', 'midtones']
-IDS = [[987, 991, 984, 981, 995, 998, 999, 1000],
-       [988, 992, 985, 982, 996, 1001, 1002, 1003],
-       [989, 993, 986, 983, 997, 1004, 1005, 1006],
-       [1680, 1681, 1679, 1678, 1671, 1675, 1676, 1677]]
+IDS = [[987, 991, 984, 981, 995, 998, 1000, 999],
+       [988, 992, 985, 982, 996, 1001, 1003, 1002],
+       [989, 993, 986, 983, 997, 1004, 1006, 1005],
+       [1680, 1681, 1679, 1678, 1671, 1675, 1677, 1676]]
 # filter values: matrix table 0x60531bc0 (0x603acec9) luminance weights [V]: 1 Y, 2 O, 3 R, 4 G, 5 YG, 6 Mg, 7 B, 8 Cy
 FILTER = dict(none=0, yellow=1, orange=2, red=3, green=4, yellow_green=5, magenta=6, blue=7, cyan=8)
 TONING = dict(none=0, sepia=1, blue=2, purple=3, green=4)      # Olympus picture-tone order [I]
@@ -107,8 +110,9 @@ def validator(d, sid):
 
 def check_stock(d):
     import numpy as np
-    if struct.unpack_from('<B3xIII', d, 0x601e3b3c + 320 + 16 * 5 - BASE) != (5, 0x601e293c, 0x601e2a3c, 0x601e2b3c):
-        raise ValueError('EVF step-5 slot differs')
+    if struct.unpack_from('<B3xIII', d, 0x601e3b3c + 320 + 16 * 5 - BASE) != (5, 0x601e293c, 0x601e2a3c, 0x601e2b3c) or \
+            struct.unpack_from('<B3xIII', d, 0x601e3b3c + 320 + 16 * 6 - BASE) != (6, 0x601e263c, 0x601e273c, 0x601e283c):
+        raise ValueError('EVF step-5/6 slot differs')
     for off in range(4):
         w = np.frombuffer(d[off:off + (len(d) - off) // 4 * 4], dtype='<u4')
         for k in np.nonzero((w >= CODE[0]) & (w < CODE[1]))[0]:
