@@ -1,5 +1,7 @@
 # Caduceus
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-cakelesscoder-FFDD00?logo=buymeacoffee&logoColor=000)](https://buymeacoffee.com/cakelesscoder)
+
 **Caduceus** is a set of open-source firmware patches for the **Olympus PEN E-P7** (firmware 1.1). Film simulations you can pick
 and edit in the camera, per-profile HSL, grain, bloom, clarity and Art Effects, B&W film presets, true log video,
 XPan and 21:9 stills, and longer video recording.
@@ -132,6 +134,11 @@ Per-patch build and verify commands are in each `patches/*/` folder and in `WORK
 - LightSnowDev, Altsoph/mx3 (CHDK forum), the DVXuser and Personal View Olympus threads, and iKenndac for
   earlier Olympus firmware research.
 - Film-look references are listed in `docs/FILM_SIMS.md` and `docs/FILM_LOOK.md`.
+
+## Support
+
+Caduceus is free and open source. If it brings your E-P7 to life and you'd like to say thanks, you can
+[buy me a coffee](https://buymeacoffee.com/cakelesscoder). Bug reports and camera test results are just as welcome.
 
 ## License
 
