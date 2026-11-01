@@ -5,10 +5,11 @@
 
   E  emulator: the real Firmware-screen builder 0x60df5285 on STOCK, PATCHED and the fw_version-stripped BASE (stubs only
      for the version getters, the logger 0x60e9e050 and memset): object + regs identical for every getter status
-     combination; Body label item = kind 4 id 0x6bd ("Body", stock). Then the view's two Body value steps (real
-     `mov (4,sp),a1; add OFF,a1; call` + fw_val, setter 0x60d4c9df stubbed to capture): stock "1.1", patched
-     "1.1 Caduceus <ver>", empty field passed through; widget, callee-saved regs and the caller frame identical.
-  S  static: spec differs from BASE only at the 3 fw_version edits; builder, label copier, Body descriptor, setter,
+     combination except the Body label item: patched = kind 5 "Caduceus" (stock kind 4 id 0x6bd "Body"); version
+     strings unchanged. Then the view's two Body value steps (real `mov (4,sp),a1; add OFF,a1; call` + fw_val, setter
+     0x60d4c9df stubbed to capture): stock "1.1", patched "<ver>", empty field passed through; widget, callee-saved
+     regs and the caller frame identical.
+  S  static: spec differs from BASE only at the 5 fw_version edits; builder, label copier, setter,
      sprintf format, EXIF template, version getters and updater/version-check code == stock; the view differs only
      in the 2 call words; no refs into the claim except the step-table word 0x601e3d28
   P  anti-brick: tools/build_package.build(spec) decodes to stock + edits; restore == stock
@@ -165,7 +166,7 @@ def main():
     a = ap.parse_args()
     spec = json.loads(a.spec.read_text())
     fv = spec['fw_version']
-    sfx = fv['suffix']
+    val = fv['value']
     patched = images(spec)
     base = images(FB.strip(copy.deepcopy(spec)))
     ok = okv = 0
@@ -174,9 +175,17 @@ def main():
         so, sr = run(STOCK_B, st_a, st_b, present)
         po, pr = run(patched, st_a, st_b, present)
         bo, br = run(base, st_a, st_b, present)
-        assert sr == pr == br and so == po == bo, 'builder output differs'
-        blk = so[BLK:BLK + 1004]
-        assert st_a or struct.unpack_from("<HHH", blk, 0) == (4, 0, 0x6bd), struct.unpack_from("<HHH", blk, 0)  # "Body"
+        assert sr == pr == br and so == bo, 'builder output differs'
+        blk, blk_p = so[BLK:BLK + 1004], po[BLK:BLK + 1004]
+        diff = [i for i in range(len(so)) if so[i] != po[i]]
+        if st_a == 0:                              # Body row shown: only its label item differs
+            assert struct.unpack_from("<HHH", blk, 0) == (4, 0, 0x6bd)  # "Body"
+            assert struct.unpack_from('<H', blk_p, 0)[0] == 5 and wstr(blk_p[8:74]) == fv['label'], wstr(blk_p[8:74])
+            assert all(BLK <= i < BLK + 74 for i in diff), [hex(i) for i in diff]
+            if present and st_b == 0:
+                print(f'E  label: stock kind 4 id 0x6bd ("Body")  patched kind 5 "{wstr(blk_p[8:74])}"')
+        else:
+            assert not diff, [hex(i) for i in diff]
         ok += 1
         for site, off in ((0x60d7f271, 940), (0x60d7f2cd, 300)):
             field = wstr(blk[off:off + 8])
@@ -184,19 +193,18 @@ def main():
             tp, wp, rp, kp = view_site(patched, so, site)
             tb, wb, rb, kb = view_site(base, so, site)
             assert ts == tb == field and ws == wp == wb == 0x5a5a0026 and rs == rp == rb and ks == kp == kb
-            assert tp == (field + sfx if field else field), (tp, field)
+            assert tp == (val if field else field), (tp, field)
             if field and present and st_b == (0 if off == 940 else 1):
-                print(f'E  {hex(site)} +{off}: stock "{ts}"  patched "{tp}"  (label item kind 4 id 0x6bd "Body")')
+                print(f'E  {hex(site)} +{off}: stock "{ts}"  patched "{tp}"')
             okv += 1
-    print(f'E  builder: {ok}/8 status combinations, object + regs byte-identical stock == patched == base')
-    print(f'E  view: {okv}/16 Body value runs PASS (suffix only on a non-empty field; widget/regs/caller frame identical)')
+    print(f'E  builder: {ok}/8 status combinations, regs identical; object == stock except the Body label item')
+    print(f'E  view: {okv}/16 Body value runs PASS ("{val}" only for a non-empty field; widget/regs/caller frame identical)')
     # ---- S: static
     d = [i for i in range(len(base)) if base[i] != patched[i]]
     rng = [(int(e['addr'], 16), len(e['new']) // 2) for e in spec['edits'] if e.get('source') == FB.SRC]
-    assert all(any(a - BASE <= i < a - BASE + n for a, n in rng) for i in d) and len(rng) == 3
+    assert all(any(a - BASE <= i < a - BASE + n for a, n in rng) for i in d) and len(rng) == 5
     assert patched[0x60df25b5 - BASE:0x60df2632 - BASE] == base[0x60df25b5 - BASE:0x60df2632 - BASE]  # copier (film-menu hookB) == base
     keep = {'builder 0x60df5285..0x60df58b8': (0x60df5285, 0x60df58b8),
-            'Body descriptor 0x6115d5e8': (0x6115d5e8, 0x6115d5f0), 'old label range 0x61242fc0': (0x61242fc0, 0x61242fe0),
             'setter 0x60d4c9df': (0x60d4c9df, 0x60d4ca80),
             'fmt L"%X.%X"': (0x6115d702, 0x6115d70e), 'EXIF "Version x.x"': (0x604ddeb4, 0x604ddec0),
             'EXIF fill site': (0x603011c0, 0x60301240), 'version getters': (0x607b23fb, 0x607b2400),
@@ -215,7 +223,12 @@ def main():
             refs.append(i + BASE)
         assert refs == ([0x601e3d28] if tgt == 0x601e1c3c else []) or all(ca <= r < ca + fv['code_len'] for r in refs), \
             (hex(tgt), [hex(r) for r in refs])
-    print(f'S  diff vs base = {len(d)} B, only in the 3 fw_version edits; {len(keep)} label/version/updater/EXIF ranges '
+    for tgt, allowed in ((0x6115d5e8, set()), (0x61242fc0, {0x6115d5ec})):   # descriptor / label string refs
+        pat, i, refs = struct.pack('<I', tgt), -1, set()
+        while (i := patched.find(pat, i + 1)) >= 0:
+            refs.add(i + BASE)
+        assert refs - {r for r in refs if STOCK_B.find(pat, r - BASE, r - BASE + 4) >= 0} <= allowed, (hex(tgt), [hex(r) for r in refs])
+    print(f'S  diff vs base = {len(d)} B, only in the 5 fw_version edits; {len(keep)} label/version/updater/EXIF ranges '
           f'== stock; view changed only at {len(vd)} B in the 2 call words; claim refs exact')
     # ---- P: anti-brick
     pkg, restore, info = BP.build(spec, BP.STOCK.read_bytes())

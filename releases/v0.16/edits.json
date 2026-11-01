@@ -2092,7 +2092,7 @@
    "addr": "0x60d7f271",
    "expect": "dd6ed7fcfff018",
    "new": "ddcf2946fff058",
-   "why": "fw_version: Firmware screen +940 (two-version Body value, widget 26) setter call -> fw_val (appends \" Caduceus v0.16\")",
+   "why": "fw_version: Firmware screen +940 (two-version Body value, widget 26) setter call -> fw_val (value \"v0.16\")",
    "source": "patches/fw_version"
   },
   {
@@ -2100,15 +2100,31 @@
    "addr": "0x60d7f2cd",
    "expect": "dd12d7fcfff018",
    "new": "dd732946fff058",
-   "why": "fw_version: Firmware screen +300 (single-version Body value, widget 18) setter call -> fw_val (appends \" Caduceus v0.16\")",
+   "why": "fw_version: Firmware screen +300 (single-version Body value, widget 18) setter call -> fw_val (value \"v0.16\")",
    "source": "patches/fw_version"
   },
   {
    "kind": "0x100",
    "addr": "0x601e1c40",
-   "expect": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e",
-   "new": "b500c82ff061a000c8293e528504f061a000c80cf0722102220229ffc9f2fcdd7b1c1e60f041f072452202a000c9f73d51dd6eadb600f018dff0582043616475636575732076302e313600",
-   "why": "fw_version: fw_val (75 B, dead EVF step-10 B table) + \" Caduceus v0.16\"",
+   "expect": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223242526272829",
+   "new": "b500c80ef061a000c808fcdd5a1c1e60dd8fadb600f018dff058760030002e00310036000000",
+   "why": "fw_version: fw_val (38 B, dead EVF step-10 B table) + L\"v0.16\"",
+   "source": "patches/fw_version"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6115d5e8",
+   "expect": "0400bd06e4d51561",
+   "new": "0500bd06c02f2461",
+   "why": "fw_version: Firmware screen Body row label -> kind 5 text \"Caduceus\" (display only)",
+   "source": "patches/fw_version"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61242fc0",
+   "expect": "ffffffffffffffffffffffff",
+   "new": "436164756365757300000000",
+   "why": "fw_version: label text \"Caduceus\" (sec-6 FF tail)",
    "source": "patches/fw_version"
   }
  ],
@@ -9352,9 +9368,12 @@
  },
  "fw_version": {
   "mod_version": "v0.16",
-  "suffix": " Caduceus v0.16",
+  "value": "v0.16",
+  "label": "Caduceus",
+  "desc": "0x6115d5e8",
+  "str_at": "0x61242fc0",
   "code_at": "0x601e1c40",
-  "code_len": 75,
+  "code_len": 38,
   "sites": [
    "0x60d7f271",
    "0x60d7f2cd"

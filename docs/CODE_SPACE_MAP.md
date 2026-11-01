@@ -25,8 +25,8 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | 0x61242d00–0x61242f00 | 6 | film menu phase 2a (patches/film_menu, docs/FILM_LIBRARY.md 8.7): hookA 0x61242d10–0x61242daf (159 B), 8 NUL marker cells 0x61242e00–0x61242e08, hookB 0x61242e10–0x61242eaf (159 B). FF guards 0x61242d00–d10, 0x61242daf–e00, e08–e10, 0x61242eaf–f00. Takes the dead v1 loader's guard range: v1 (0x61242a00 row) must stay retired. Aspect list 0x61242f00 untouched | built + emulator-verified (test8-filmmenu) |
 | 0x61242f00–0x61242f60 | 6 | aspect: relocated Image Aspect option list, 8 × 12 B data (patches/aspect) | built + list parse verified |
 | 0x61242f60–0x61242fb4 | 6 | aspect v3: SCP/Live Control setting-270 list B (green icons), 7 × 12 B data (patches/aspect, docs/ASPECT.md §1b). 0x61242fb4–0x61243000 (sec-6 load end) stays FF | built + resolver emulated (198/198) |
-| 0x61242fc0–0x61242fe0 | 6 | **[fw_version v0.15 label, retired in v0.15a]** range FF again; the Body descriptor 0x6115d5e8 is stock | free |
-| 0x601e1c40–0x601e1c89 | 1 | **fw_version** (patches/fw_version `--mod-version`): `fw_val` + ASCII suffix " Caduceus vX.YY" (73 B for v0.15). Entered from the Firmware view's two Body value setter calls 0x60d7f271 / 0x60d7f2cd (7 B each, target + frame 88); appends the suffix to the stock "%X.%X" field and calls the setter 0x60d4c9df. Dead EVF gamma step-10 B table 0x601e1c3c–0x601e1d3c (only ref: step-table word 0x601e3d28; build-checked); rest of the table stays stock | built + emulator-verified (v0.15a) |
+| 0x61242fc0–0x61242fe0 | 6 | **fw_version v0.16b label** ASCII "Caduceus" (12 B at 0x61242fc0) for the kind-5 Body row descriptor 0x6115d5e8 (patches/fw_version); rest FF | built + emulator-verified (v0.16) |
+| 0x601e1c40–0x601e1c89 | 1 | **fw_version** (patches/fw_version `--mod-version`): `fw_val` + ASCII suffix " Caduceus vX.YY" (73 B for v0.15). Entered from the Firmware view's two Body value setter calls 0x60d7f271 / 0x60d7f2cd (7 B each, target + frame 88); v0.16b: replaces a non-empty Body value with L"vX.YY" (no "1.1"), 38 B, and calls the setter 0x60d4c9df. Dead EVF gamma step-10 B table 0x601e1c3c–0x601e1d3c (only ref: step-table word 0x601e3d28; build-checked); rest of the table stays stock | built + emulator-verified (v0.15a) |
 | 0x61378c80–0x61378f7c | 7 | MONO-colour LUTs + sel/chroma/fg stubs (patches/mono_colour; 764 B). Guards 0x61378c68–0x61378c80 and 0x61378f7c–0x61378f8c stay FF; 0x61378f8c–0x61379000 (116 B) free. Sec-7 end 0x61379000 re-verified via loader 0x60027068 entry 6 + end getter 0x60045786 → 0x600457c4 | built + emulator-verified (docs/MONO_COLOUR.md) |
 | 0x60210f80–0x60210ff2 | 1 | aperture ring `.lens` (disp_hook + parse_hook, 114 B; patches/aperture_ring, docs/APERTURE_RING.md). 0x60210ff2–0x60210ffe stays FF | built + emulator-verified |
 | 0x60210ffe–0x60211000 | 1 | aperture ring published ring halfword (initial 0x8000, written at run time via 0xa0210ffe) | built + emulator-verified |
@@ -56,6 +56,7 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | Site | Bytes | Owner |
 |---|---|---|
 | 0x60d7f271, 0x60d7f2cd | 7+7 | fw_version (Body value setter call → fw_val) |
+| 0x6115d5e8 | 8 (data) | fw_version v0.16b: Body row label descriptor kind 4 id 0x6bd → kind 5 text 0x61242fc0 "Caduceus" |
 | 0x603b02d9 | 5 | HSL (call builder → jmp); v0.1 and v0.2 are mutually exclusive |
 | 0x60319157, 0x6031915c | 2+2 | recording limit |
 | 0x6030df3d | 5 | video log: `266001f172` (mov 352,a2; add a0,a2) → jmp vlog_hook (test13 probe: 0x601e203c) |
