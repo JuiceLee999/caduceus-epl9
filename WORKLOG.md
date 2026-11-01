@@ -190,3 +190,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - **TEST 3 FAILED (camera): BOOTLOOP** with releases/test3-full (bundles-lachlan, wb, grain, bloom, mono_colour, rec_limit, video_log, buttons, aperture_ring). **Recovered**: battery out → OK+power with stock main restore → success, camera back to stock. ⇒ SD updater reachable even from a bootloop. Next: bisect one feature per flash; test4 = rec_limit + video_log + buttons.
 - Buttons dropped (user). Test 4 = rec_limit + video_log + bundles-lachlan.
 - Aperture ring parked (user) — excluded from builds; kept in repo for community later.
+- Agents: SD loader v2 (boot-safe, post-boot trigger), film-sim library + menu design, log view-assist feasibility.
