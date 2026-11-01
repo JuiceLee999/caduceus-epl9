@@ -152,3 +152,6 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - merge_specs: namespaced per-patch metadata. **v0.3 candidate (me):** all 6 merged = 117 edits / 1,674 B;
   bundles 75/75, grain 5/5, bloom 5/5, video_log, aspect PASS. Saved releases/v0.3-candidate (pkgs local only).
 - Saved v0.3 (releases/v0.3, git tags v0.1/v0.3). Status page v2 published. Agents: v0.3 review, WB patch build, MONO-colour build. SD-loader agent stopped (brief truncated); SD loading paused.
+- MONO-colour agent (interrupted before implementing): mono filter = 3×3 matrix id via guard 0x60353db9 → request+1802
+  (selector 0x603acfe4); toning in chroma stage 0x603b134e; selector redirect needs 6 bytes at 0x603b02bf → 0x603b02d9;
+  H/L hook must accept mode 12; candidate code space section 7 tail 0x61378c68–0x61379000; MONO grain/shading still run.

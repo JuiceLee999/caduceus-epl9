@@ -9,8 +9,10 @@ builds the 8 x 64-byte bundle table, assembles patches/bundles/bundles.s.in at t
 FF tail and emits <out>/edits.json for tools/build_package.py with exact stock-byte
 expectations. Also writes routine.s / routine.lst / routine.bin / symbols.json.
 
-v0.2 consumes only hue/light of COLOR1-4. grain, WB, effect, vignette and all MONO slots are
-stored in the table but nothing reads them yet. Saturation is NOT part of the patch: the
+v0.2 consumes hue/light of COLOR1-4. The WB fields (wb_flags bit0, wb_ab, wb_gm) of all 8 slots are
+read by the per-profile WB patch (patches/wb, merged separately). A slot's "wb": {"a_b": n, "g_m": n}
+sets the override (else the recipe's wb_shift; "wb": null disables an inherited one).
+grain, effect, vignette are stored in the table but nothing reads them yet. Saturation is NOT part of the patch: the
 user's per-profile saturation setting still applies (the recipe value is reported as advice).
 
 Edits (all in main, component 0x100):
@@ -55,11 +57,24 @@ SLOTS = ['COLOR1', 'COLOR2', 'COLOR3', 'COLOR4', 'MONO1', 'MONO2', 'MONO3', 'MON
 GRAIN = {'off': 0, 'low': 1, 'medium': 2, 'med': 2, 'high': 3}
 EFFECT = {'none': 0, 'bloom': 1, 'halation': 2}
 FLAG_RENDER_COLOUR, FLAG_HL = 1, 2
+WB_OVERRIDE = 1                            # wb_flags bit0 (layout.json); bit7 must stay 0
 ENTRY = 64
 # Grain (0x6055e680..0x6055e6fa, hooks 0x6035749f+7, 0x603b5249+7) and rec_limit
 # (0x60319157+2, 0x6031915c+2) reservations: never overlap them.
 RESERVED = [(0x6055e680, 0x6055e6fa), (0x6035749f, 0x603574a6), (0x603b5249, 0x603b5250),
             (0x60319157, 0x60319159), (0x6031915c, 0x6031915e)]
+# Per-profile WB (patches/wb): stub reservation + the rel32 of each redirected getter call.
+WB_STUB = (0x6055e700, 0x6055e7a6)
+
+
+def wb_reserved():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('ep7_wb_build', ROOT / 'patches/wb/build.py')
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    if (m.CODE_AT, m.CODE_END) != WB_STUB:
+        raise ValueError('WB reservation disagrees with patches/wb/build.py')
+    return [WB_STUB] + [(s + 1, s + 5) for s, *_ in m.SITES]
 
 
 def ival(v, lo, hi, what):
@@ -101,11 +116,18 @@ def slot_entry(name, slot, recipes):
     if grain not in GRAIN:
         raise ValueError(f'{name}: grain {grain!r}')
     e[24] = GRAIN[grain]
-    wb = slot.get('wb', rc.get('wb_shift'))
+    # WB fine-tune override (consumed by patches/wb): slot "wb" wins over the recipe's wb_shift;
+    # "wb": null explicitly disables an inherited recipe wb_shift. Present -> wb_flags bit0 + values.
+    wb_src = 'slot' if 'wb' in slot else ('recipe' if rc.get('wb_shift') is not None else None)
+    wb = slot['wb'] if 'wb' in slot else rc.get('wb_shift')
     if wb is not None:
-        e[25] = 1
+        if not isinstance(wb, dict) or not wb or set(wb) - {'a_b', 'g_m'}:
+            raise ValueError(f'{name}: wb ({wb_src}) must be {{"a_b": n, "g_m": n}} (-7..7), got {wb!r}')
+        e[25] = WB_OVERRIDE
         e[26:28] = struct.pack('<2b', ival(wb.get('a_b', 0), -7, 7, f'{name} wb a_b'),
                                ival(wb.get('g_m', 0), -7, 7, f'{name} wb g_m'))
+    else:
+        wb_src = None
     eff = slot.get('effect')
     if eff is not None:
         if eff.get('type') not in EFFECT:
@@ -120,7 +142,7 @@ def slot_entry(name, slot, recipes):
         flags |= FLAG_RENDER_COLOUR
     e[31] = flags
     return bytes(e), dict(slot=name, enabled=bool(flags & FLAG_HL), recipe=rname, recipe_file=rc['_file'],
-                          hue_ui=hue, light_ui=light, grain=e[24], wb_override=bool(e[25]),
+                          hue_ui=hue, light_ui=light, grain=e[24], wb_override=bool(e[25]), wb_source=wb_src,
                           wb=list(struct.unpack('<2b', e[26:28])), effect=[e[28], e[29]],
                           vignette=struct.unpack('<b', e[30:31])[0], flags=flags,
                           advice_sat_ui=rc.get('sat'),
@@ -224,6 +246,8 @@ def make_spec(bundle_path):
     if code[labels['bundle_table'] - CODE_AT:labels['bundle_table_end'] - CODE_AT] != table:
         raise ValueError('table bytes not found at bundle_table')
     lay = json.loads((Path(__file__).parent / 'layout.json').read_text())
+    if [lay['fields'][k][0] for k in ('wb_flags', 'wb_ab', 'wb_gm')] != [25, 26, 27]:
+        raise ValueError('layout.json wb field offsets disagree with slot_entry()')
     if (int(lay['bundle_table'], 16), lay['slot_bytes'], lay['slots'], lay['job_extension']['job_size'],
             lay['job_extension']['marker'], int(lay['job_extension']['marker_value'], 16)) != \
             (BUNDLE_TABLE, ENTRY, SLOTS, JOB_SIZE + EXT, EXT_MAGIC, MAGIC):
@@ -250,10 +274,11 @@ def make_spec(bundle_path):
         dict(kind='0x100', addr=hex(CODE_AT), expect=tail.hex(), new=code.hex(),
              why=f'v0.2 code + LUTs + 8x64 bundle table ({len(code)} B) in section-1 FF tail'),
     ]
+    reserved = RESERVED + wb_reserved()
     for e in edits:
         a = int(e['addr'], 16)
         n = len(bytes.fromhex(e['new']))
-        for lo, hi in RESERVED:
+        for lo, hi in reserved:
             if a < hi and lo < a + n:
                 raise ValueError(f'edit {e["addr"]} overlaps reserved {lo:#x}..{hi:#x}')
     bp = Path(bundle_path).resolve()
