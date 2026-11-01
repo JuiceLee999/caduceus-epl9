@@ -151,3 +151,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   id 7→21:9 5184×2224 (labels reuse "Panorama"/"Wide"). 101 edits; 136/136 checks PASS. Risks: icon miss, 17:9 filter.
 - merge_specs: namespaced per-patch metadata. **v0.3 candidate (me):** all 6 merged = 117 edits / 1,674 B;
   bundles 75/75, grain 5/5, bloom 5/5, video_log, aspect PASS. Saved releases/v0.3-candidate (pkgs local only).
+- Saved v0.3 (releases/v0.3, git tags v0.1/v0.3). Status page v2 published. Agents: v0.3 review, WB patch build, MONO-colour build. SD-loader agent stopped (brief truncated); SD loading paused.

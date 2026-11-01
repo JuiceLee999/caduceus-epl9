@@ -1,0 +1,112 @@
+{
+ "name": "aspect_menu_v03",
+ "canvas": [
+  720,
+  480
+ ],
+ "background": {
+  "type": "image",
+  "path": "generated/film/PA211062/classic_chrome.jpg"
+ },
+ "notes": [
+  "MOCK of v0.3 aspect menu: two new entries reuse stock labels 'Panorama' (XPan 65:24, 5184x1912) and 'Wide' (21:9, 5184x2224)."
+ ],
+ "elements": [
+  {
+   "type": "aspect_frame",
+   "aspect": "65:24",
+   "mask": "#99000000",
+   "line": 4,
+   "label": false
+  },
+  {
+   "type": "rect",
+   "box": [
+    0,
+    0,
+    260,
+    480
+   ],
+   "fill": "#F0121418"
+  },
+  {
+   "type": "text",
+   "text": "Image Aspect",
+   "x": 20,
+   "y": 16,
+   "scale": 0.9
+  },
+  {
+   "type": "text",
+   "text": "4:3",
+   "x": 28,
+   "y": 70,
+   "scale": 0.95
+  },
+  {
+   "type": "text",
+   "text": "16:9",
+   "x": 28,
+   "y": 126,
+   "scale": 0.95
+  },
+  {
+   "type": "text",
+   "text": "3:2",
+   "x": 28,
+   "y": 182,
+   "scale": 0.95
+  },
+  {
+   "type": "text",
+   "text": "1:1",
+   "x": 28,
+   "y": 238,
+   "scale": 0.95
+  },
+  {
+   "type": "text",
+   "text": "3:4",
+   "x": 28,
+   "y": 294,
+   "scale": 0.95
+  },
+  {
+   "type": "rect",
+   "box": [
+    10,
+    342,
+    240,
+    48
+   ],
+   "fill": "#FF1f5fa8",
+   "outline": "#FFFFFFFF",
+   "width": 2
+  },
+  {
+   "type": "text",
+   "text": "Panorama",
+   "x": 28,
+   "y": 350,
+   "scale": 0.95
+  },
+  {
+   "type": "text",
+   "text": "Wide",
+   "x": 28,
+   "y": 406,
+   "scale": 0.95
+  },
+  {
+   "type": "text",
+   "text": "65:24",
+   "x": 276,
+   "y": 118,
+   "scale": 0.7
+  },
+  {
+   "type": "watermark",
+   "text": "MOCK"
+  }
+ ]
+}
