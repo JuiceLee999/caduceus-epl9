@@ -61,6 +61,13 @@ def tail1(main):
     return Region('tail1', TAIL1_LO, sl(main, TAIL1_LO, TAIL1_HI), 'rx')
 
 
+TAIL7_LO, TAIL7_HI = 0x61378c68, 0x61379000      # section-7 tail: patches/mono_colour (selector hook 0x603b02bf)
+
+
+def tail7(main):
+    return Region('tail7', TAIL7_LO, sl(main, TAIL7_LO, TAIL7_HI), 'rx')
+
+
 def regs_of(r):
     return {k: r['registers'][k] for k in REGS_ALL}
 
@@ -84,7 +91,7 @@ def selector_run(main, sat, *, profile=1, mode=11, magic=BB.MAGIC, callback=PR.C
                Region('table', PR.TABLE, sl(main, PR.TABLE, PR.TABLE + PR.TABLE_SIZE)),
                Region('job', JOB, bytes(job), 'rw', True), Region('ctx', CONTEXT, bytes(ctx), 'rw', True),
                Region('out', OUTPUT, bytes(5212), 'rw', True),
-               Region('code', PR.BUILDER, sl(main, PR.BUILDER, PR.SELECTOR_END), 'rx'), tail1(main)]
+               Region('code', PR.BUILDER, sl(main, PR.BUILDER, PR.SELECTOR_END), 'rx'), tail1(main), tail7(main)]
     regions += PR.gain_regions(main)
     regs = {'pc': CALLER, 'sp': STACK + 0x1800, 'a0': CONTEXT, 'd0': 0xd0d0, 'd1': 0xd1d1, 'a1': 0xa1a1,
             'd2': 0x2222, 'd3': 0x3333, 'a2': 0xa2a2, 'a3': 0xa3a3}
