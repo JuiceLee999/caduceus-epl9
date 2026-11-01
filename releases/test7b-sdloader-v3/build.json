@@ -1,0 +1,15 @@
+{
+  "components": [
+    "0x100"
+  ],
+  "edits": 34,
+  "changed_payload_bytes": 2393,
+  "spec": "generated/sd_bundles_v3/t7b.json",
+  "spec_sha256": "9fe55e244e2b30a4db055fedc361fa607689eb9fc397c07d93952606ff7ac7f8",
+  "stock_sha256": "9d1610124ad98f6edae4540182205f06c9c703d9033ef0c4f19847193f95eaeb",
+  "patched_sha256": "d6a85f20abbd1b2871cd4b20e3be22d1722a3ab3a2af9559c27681fb7a48ea42",
+  "restore_sha256": "245b9c8fcf247a0271121238b09769b5d90f682924e3086aacc4762211b82612",
+  "bytes": 26214400,
+  "camera_contacted": false,
+  "note": "Not SD-loadable by name. Container validity != bootability."
+}

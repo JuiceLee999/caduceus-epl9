@@ -1,0 +1,266 @@
+/* E-P7 1.1 look extras: X axis of the Color Profile editor (ep7-firmware, our own code). docs/LOOK_EXTRAS.md.
+ * A layer over the look editor (patches/look_editor, test 12c): every entry below takes the editor's place in
+ * one word or site and falls through to the editor's own routine on a miss, with registers intact.
+ *
+ *   ex_get     <- facade vtable +8  0x60acb0e4 (editor: ed_get)     CALLS, d0 id, a1 out
+ *   ex_default <- facade vtable +152 0x60acb174 (editor: ed_default) CALLS, d0 id, a1 out
+ *   ex_set     <- 0x607fa355 `call ex_set,[d2,d3,a2],16` (editor: call ed_set), d0 id, d1 value, a0/a1 args
+ *
+ * Hit (ex_find): id is a COLOR1-4 sector id (927..962, 1655..1666), the loaded table's handle and 'EP7B' are valid,
+ * the editor marker 'EP7E' is set and the axis byte P+{axis} is {x_axis} (X; build parameter, 3 after H or 4 after F). Sector s of slot k means:
+ *   s 0 (yellow)     grain        slot +24, 0..3
+ *   s 1 (orange)     effect       -5..-1 = bloom 5..1 (id 1), 0 = none, +1..+5 = clarity 1..5 (id 3); +28 id, +29 strength
+ *   s 2 (orange-red) WB A-B       slot +26 (-5..5 here), override bit0 of +25
+ *   s 3 (red)        WB G-M       slot +27
+ *   s 4..11          unused: read 0, writes change nothing
+ * Writes are clamped to the range, then (as the editor's 12c H/L path) the stock settings manager 0x60827440 runs
+ * with the id's unchanged S value so its listeners redraw the screen. In ALL mode (0x61fc3800 / 0x61fc3804 set)
+ * nothing is written. WB: the override bit is set when A-B or G-M is non-zero and cleared at 0/0 (camera fine-tune).
+ * Stores: heap block P only (slot bytes, dirty P+{dirty}) and the stack. No absolute stores, no mul/div/setlb.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+/* ex_find: d0 = id -> hit: d3 = 0, a2 = P, d2 = 64*slot + sector; miss: d3 = 1. Uses d2, d3, a2 (and MDR, (0,sp)).
+ * Called as `add -4,sp; call ex_find,[],0; add 4,sp`. */
+ex_find:
+ mov d0,d2
+ exthu d2
+ add -927,d2
+ cmp 12,d2
+ bcs 1f
+ add -12,d2
+ cmp 12,d2
+ bcs 2f
+ add -12,d2
+ cmp 12,d2
+ bcs 3f
+ add -704,d2                      /* id - 1655 */
+ cmp 12,d2
+ bcc f_miss
+ add 64,d2
+3:
+ add 64,d2
+2:
+ add 64,d2
+1:
+ movhu ({state}),d3
+ add -1,d3
+ cmp {lim},d3
+ bcc f_miss
+ btst 3,d3
+ bne f_miss
+ mov d3,a2
+ add {pool},a2
+ mov (a2),d3
+ cmp {bmagic},d3
+ bne f_miss
+ mov ({emark},a2),d3
+ cmp {emagic},d3
+ bne f_miss
+ movbu ({axis},a2),d3
+ cmp {x_axis},d3
+ bne f_miss
+ clr d3
+ retf [],0
+f_miss:
+ mov 1,d3
+ retf [],0
+
+ex_get:                           /* CALLS entry: (0,sp) = return address = MDR */
+ cmp 0,a1
+ beq g_next
+ movm [d2,d3,a2],(sp)
+ add -4,sp
+ call ex_find,[],0
+ add 4,sp
+ cmp 0,d3
+ bne g_miss
+ mov d2,d3
+ and 63,d3                        /* sector */
+ and 0xc0,d2
+ add d2,a2                        /* a2 = P + 64*slot: slot byte n at (32+n,a2) */
+ cmp 0,d3
+ bne 1f
+ movbu (56,a2),d0                 /* grain +24 */
+ cmp 4,d0
+ bcs g_val
+ bra g_zero
+1:
+ cmp 1,d3
+ bne 2f
+ movbu (61,a2),d2                 /* effect strength +29 */
+ add -1,d2
+ cmp 5,d2
+ bcc g_zero
+ inc d2
+ movbu (60,a2),d0                 /* effect id +28 */
+ cmp 3,d0
+ beq 3f
+ cmp 1,d0
+ bne g_zero
+ clr d0                           /* bloom: negative */
+ sub d2,d0
+ bra g_val
+3:
+ mov d2,d0                        /* clarity: positive */
+ bra g_val
+2:
+ cmp 4,d3
+ bcc g_zero
+ movbu (57,a2),d0                 /* WB: only while the slot overrides (+25 & 0x81 == 1) */
+ and 0x81,d0
+ cmp 1,d0
+ bne g_zero
+ add d3,a2
+ movbu (56,a2),d0                 /* sector 2: +26 A-B, sector 3: +27 G-M */
+ extb d0
+ cmp -5,d0
+ bge 4f
+ mov -5,d0
+4:
+ cmp 5,d0
+ ble g_val
+ mov 5,d0
+ bra g_val
+g_zero:
+ clr d0
+g_val:
+ mov d0,(a1)
+ movm (sp),[d2,d3,a2]
+ clr d0
+ rets
+g_miss:
+ mov (12,sp),d3                   /* MDR back to the CALLS return address */
+ mov d3,mdr
+ movm (sp),[d2,d3,a2]
+g_next:
+ jmp ed_get
+
+ex_default:                       /* X: every sector's default is 0 */
+ cmp 0,a1
+ beq d_next
+ movm [d2,d3,a2],(sp)
+ add -4,sp
+ call ex_find,[],0
+ add 4,sp
+ cmp 0,d3
+ bne d_miss
+ clr d0
+ mov d0,(a1)
+ movm (sp),[d2,d3,a2]
+ rets
+d_miss:
+ mov (12,sp),d3
+ mov d3,mdr
+ movm (sp),[d2,d3,a2]
+d_next:
+ jmp ed_default
+
+ex_set:                           /* entered like 0x60827440: d2/d3/a2 saved by the call, (16,sp) = return = MDR */
+ add -4,sp
+ call ex_find,[],0
+ add 4,sp
+ cmp 0,d3
+ beq 1f
+ mov (16,sp),d3
+ mov d3,mdr
+ jmp ed_set                       /* not X: the editor (and through it stock), registers as at the site */
+1:
+ mov (0x61fc3800),d3              /* ALL mode: write nothing */
+ cmp 0,d3
+ bne s_refresh
+ mov (0x61fc3804),d3
+ cmp 0,d3
+ bne s_refresh
+ mov d2,d3
+ and 63,d3                        /* sector */
+ and 0xc0,d2
+ add d2,a2                        /* a2 = P + 64*slot */
+ cmp 4,d3
+ bcc s_refresh
+ cmp -5,d1                        /* clamp to -5..5 (grain below to 0..3) */
+ bge 2f
+ mov -5,d1
+2:
+ cmp 5,d1
+ ble 3f
+ mov 5,d1
+3:
+ cmp 0,d3
+ bne 4f
+ cmp 0,d1                         /* grain 0..3 */
+ bge 5f
+ clr d1
+5:
+ cmp 3,d1
+ ble 6f
+ mov 3,d1
+6:
+ movbu d1,(56,a2)
+ bra s_dirty
+4:
+ cmp 1,d3
+ bne 7f
+ clr d2                           /* effect: id 0 first, then strength, then the new id */
+ movbu d2,(60,a2)
+ mov d1,d2
+ mov 3,d3
+ cmp 0,d2
+ beq 8f
+ bgt 9f
+ clr d2                           /* negative: bloom, strength -v */
+ sub d1,d2
+ mov 1,d3
+9:
+ movbu d2,(61,a2)
+ movbu d3,(60,a2)
+ bra s_dirty
+8:
+ movbu d2,(61,a2)                 /* 0: none, strength 0 */
+ bra s_dirty
+7:
+ movbu (57,a2),d2                 /* WB: entering override from off -> both axes start at 0 */
+ and 0x81,d2
+ cmp 1,d2
+ beq 10f
+ clr d2
+ movbu d2,(58,a2)
+ movbu d2,(59,a2)
+10:
+ add d3,a2
+ movbu d1,(56,a2)                 /* the value ... */
+ sub d3,a2
+ movbu (58,a2),d2
+ movbu (59,a2),d3
+ or d3,d2
+ cmp 0,d2
+ beq 11f
+ mov 1,d2
+11:
+ movbu d2,(57,a2)                 /* ... then the override bit (0/0 = the camera's own fine-tune) */
+s_dirty:
+ movhu ({state}),d2               /* P again from the handle (validated above; the loader writes it once) */
+ add -1,d2
+ mov d2,a2
+ add {pool},a2
+ mov 1,d2
+ movbu d2,({dirty},a2)            /* ... then dirty: the editor saves the card on the next half-press */
+s_refresh:                        /* as the editor's 12c H/L path: the manager runs with the unchanged S value */
+ mov d0,d2
+ mov a0,d3
+ mov a1,a2
+ add -4,sp
+ call ep7_sget,[],4               /* d0 = S value of id (0x602af887, keeps d2/d3/a2/a3) */
+ add 4,sp
+ mov d0,d1
+ mov (16,sp),d0
+ mov d0,mdr
+ mov d2,d0
+ mov d3,a0
+ mov a2,a1
+ jmp ep7_manager
+
+ex_core_end:

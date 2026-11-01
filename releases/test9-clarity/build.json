@@ -1,0 +1,15 @@
+{
+  "components": [
+    "0x100"
+  ],
+  "edits": 34,
+  "changed_payload_bytes": 2441,
+  "spec": "generated/clarity/t9.json (= releases/test9-clarity/edits.json)",
+  "spec_sha256": "ec2e77a02bb2a7059871dd9b1ece7d1305ef90f76c9e0ad26246406885840e9a",
+  "stock_sha256": "9d1610124ad98f6edae4540182205f06c9c703d9033ef0c4f19847193f95eaeb",
+  "patched_sha256": "5913c948333a1bfe05e019d7251d9645122723b6e9ac79ef45f245238347627c",
+  "restore_sha256": "245b9c8fcf247a0271121238b09769b5d90f682924e3086aacc4762211b82612",
+  "bytes": 26214400,
+  "camera_contacted": false,
+  "note": "Not SD-loadable by name. Container validity != bootability."
+}

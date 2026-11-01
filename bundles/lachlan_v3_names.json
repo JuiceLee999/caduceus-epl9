@@ -1,0 +1,5 @@
+{"_comment": "lachlan_v3 looks + film-menu names (docs/FILM_LIBRARY.md 8.7). COLOR1/COLOR3 are the user's own profiles: neutral (no look), label only.",
+ "COLOR1": {"name": "Kodachrome"},
+ "COLOR2": {"recipe": "classic_neg", "wb": null, "grain": "low", "name": "Classic Neg"},
+ "COLOR3": {"name": "Warm"},
+ "COLOR4": {"recipe": "portra_400_bloom", "wb": {"a_b": 2, "g_m": 0}, "effect": {"type": "bloom", "strength": 2}, "name": "Portra"}}

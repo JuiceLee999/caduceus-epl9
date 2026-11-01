@@ -1,12 +1,13 @@
 # EP7 Unlocked
 
-Open-source firmware patches for the **Olympus PEN E-P7** (firmware 1.1). Per-profile film looks,
-colour grain, bloom, true log video, XPan and 21:9 stills, and longer video recording.
+Open-source firmware patches for the **Olympus PEN E-P7** (firmware 1.1). Film simulations you can pick
+and edit in the camera, per-profile HSL, grain, bloom and clarity, true log video, XPan and 21:9 stills, and
+longer video recording.
 
-> **Status: early testing.** Every patch is verified in an emulator of the camera's CPU. The SD update and
-> recovery path is proven on a real E-P7 (including recovery from a bootloop), and the features marked
-> **camera-tested** below run on a real camera. Flashing modified firmware can still brick your camera.
-> Read [Safety](#safety) first.
+> **Status: pre-release testing.** Every patch is verified in an emulator of the camera's CPU before it goes
+> on a camera. The SD update and recovery path is proven on a real E-P7 (including recovery from a bootloop),
+> and the features marked **camera-tested** below run on a real camera. Flashing modified firmware can still
+> brick your camera. Read [Safety](#safety) first.
 
 ![XPan crop with a Classic Chrome-style look](docs/img/xpan_classic_chrome.jpg)
 
@@ -14,18 +15,38 @@ colour grain, bloom, true log video, XPan and 21:9 stills, and longer video reco
 
 | Feature | What you get | Status |
 |---|---|---|
-| **Profile bundles** | Each Colour Profile slot (COLOR1–4) carries its own full look: per-colour hue and lightness on top of the stock saturation and tone. Switch looks with the profile selector. | Camera-tested |
-| **Per-profile WB shift** | Each slot can carry its own A/B and G/M fine-tune, so a warm look stays warm without touching other profiles. | Built, emulator-verified |
+| **Film simulations** | 16 colour film looks (library v2) in `EP7MOD/LOOKS.BIN`. Pick one per Colour Profile slot on the camera; its name shows in Picture Mode. | Camera-tested |
+| **On-camera look editor** | The stock Colour Profile wheel gains pages: Saturation, Hue, Light, Film and Extras (INFO cycles). The wheel follows the page. Modified looks are marked `*`. | Camera-tested |
+| **Profile bundles** | Each Colour Profile slot (COLOR1–4) carries its own full look: per-colour hue and lightness on top of the stock saturation and tone. | Camera-tested |
+| **Looks on the SD card** | Looks load from `EP7MOD/BUNDLES.BIN` on the first half-press. Edits made in the camera save back to the card (with a `.BAK` of the previous file). | Camera-tested |
+| **Per-profile WB shift** | Each slot carries its own A/B and G/M fine-tune. | Camera-tested |
 | **Colour film grain** | The E-P7's grain hardware, previously Monochrome-only, on colour profiles. | Camera-tested |
-| **Bloom** | The Soft Focus glow engine applied subtly to colour profiles, Pro-Mist style. | Camera-tested (adds a short write delay) |
-| **True log video** | A hidden OM-Log-style curve already present in the firmware (~12.4% output per stop), unlocked in movie mode. | Camera-tested |
-| **XPan 65:24 and 21:9** | Two new still aspect ratios (5184×1912 and 5184×2224) from hidden aspect slots. | Built, emulator-verified |
+| **Bloom and clarity** | The Soft Focus engine as a subtle Pro-Mist glow, or inverted as clarity (one Extras slider, glow ← 0 → clarity). | Bloom camera-tested; clarity in build |
+| **Red bloom** | Tinted bloom for CineStill-style halation (colour options planned). | In progress |
+| **Mono film presets** | Named B&W presets for Monochrome Profile slots, built from OM's own mono settings. | In progress |
+| **Live-view preview** | Hue/light and bloom shown in live view, not only in the saved photo. | In build |
+| **True log video** | A hidden OM-Log-style curve already present in the firmware (~12.4% output per stop), unlocked in movie mode (picture mode Muted). | Camera-tested |
+| **Log View Assist** | Normal-looking preview on the LCD while recording log; HDMI stays log. | Camera-tested |
+| **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel. Boots back to 4:3 each power-on for safety. | Menu camera-tested; sizes in build |
 | **Recording limit** | 29-minute and 2-hour caps raised to 9 hours (file, chapter and heat limits still apply). | Camera-tested |
-| Looks from the SD card | Load bundles from `EP7MOD/BUNDLES.BIN` on the first half-press; change looks without reflashing. | Built, emulator-verified |
-| Film Simulation menu | Look names from the card shown in the Picture Mode list. | Designed |
-| Log View Assist | Normal-looking preview on the LCD while recording log. | Researched (feasible) |
-| MONO slots as colour slots | 8 universal look slots. | In progress |
-| On-camera HSL editor and profile naming | Edit looks and names in the camera. | Planned |
+
+## Using it
+
+Card layout (copy the `card/EP7MOD` folder from a release to the card root):
+
+```
+EP7MOD/BUNDLES.BIN   your four slots: looks, names, edits (written by the camera; .NEW/.BAK alongside)
+EP7MOD/LOOKS.BIN     the film library the Film page picks from
+```
+
+- Switch on and **half-press once**: the card looks load (nothing is read at boot). Without the folder the
+  camera behaves as stock.
+- Open a Colour Profile's colour wheel. **INFO** steps: Saturation → Saturation · All → Hue → Light →
+  Film → Extras. Turn the dial to change the value; on Film it steps through the library.
+- Extras (sectors 1–4): grain, glow/clarity, WB amber/blue, WB green/magenta.
+- Leave the editor and half-press: changes are saved to `BUNDLES.BIN`. The previous file is kept as `.BAK`.
+- Picking a film look replaces that slot's hue, light and extras (saturation stays yours). Tweak on top
+  after picking; the label shows `*` once the slot differs from the look.
 
 ### Film looks
 
@@ -64,7 +85,10 @@ Mock-ups drawn with the camera's own fonts and icons, extracted from its firmwar
 - `tools/build_package.py` turns edit lists into an update file for the camera's own SD updater, plus a
   matching stock-restore file. It refuses overlapping edits or unexpected stock bytes.
 - Every patch has an emulator test that runs the real camera code, patched against stock, and checks that
-  only the intended values change. Mutation tests confirm the tests catch broken patches.
+  only the intended values change. Every package is checked to decode to exactly the emulated image, and its
+  restore file to exactly stock.
+- Runtime state lives only in heap memory the loader allocates; patches never write into the firmware image
+  in RAM.
 - A desktop colour pipeline (`sim/`), calibrated against the camera's own JPEGs, previews looks on your RAW files.
 
 ## Safety
@@ -74,7 +98,8 @@ Mock-ups drawn with the camera's own fonts and icons, extracted from its firmwar
   LED steady while writing, then a ~2 Hz blink when done. It rejects corrupt files without writing, and stock
   firmware has been restored through it, including from a bootloop.
 - A full battery and an uninterrupted write are essential. A failed write can leave the camera unbootable.
-- Test one feature at a time, following `docs/REVIEW_v03.md`.
+- Each release folder has a `restore-stock.pkg.bin`; keep it on hand. Follow the camera plan in the release's
+  `README.md`. Removing `EP7MOD` from the card returns every look feature to stock behaviour.
 
 ## Build
 

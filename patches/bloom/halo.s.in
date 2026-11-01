@@ -1,0 +1,62 @@
+/* E-P7 1.1 red bloom ("halation") chroma stub (ep7-firmware, our own code). docs/HALATION_RED.md.
+ * Section 1 0x60210e10 (retired sec-1 bloom block; FF in clarity builds). Entered by `jmp halo` from 0x603a04e8, the
+ * tail of combiner-11 handler 0x603a049e, which there holds: d1 = (1024-w) | (1024-w)<<16, d2 = w (exthu),
+ * d3 = 1024-w, a3 = bank, d0 = (1024-w)<<16, frame [d2,d3,a2,a3],20. The stub first replays the two replaced
+ * stores (+136 = d1, +140 = d3). Only when w is one of the red-bloom weights {h_lut} (bloom_w returns them for
+ * effect_id 2 and nothing else does: bloom 942..666, clarity >= 1100, stock Soft Focus 600..200) it re-writes the
+ * chroma gains so the blurred share spreads chroma more than luma, Cr more than Cb (b = 1024-w):
+ *   ch0 (Y,  +136 lo / +92 lo): B = b, A = w (stock)
+ *   ch1 (Cb, +136 hi / +92 hi): B = 0.625 b, A = 1024-B
+ *   ch2 (Cr, +140    / +96   ): B = 2.5 b (<= 892 for w >= 667; build-checked), A = 1024-B
+ * Channel order Y, Cb, Cr is [I] (docs/HALATION_RED.md section 4). Weights still sum to 1024 per channel.
+ * Exit: `ret [d2,d3,a2,a3],20` as the stock tail at 0x603a04f0; d0 and a0 as the stock tail leaves them.
+ * Stores: the bank (a3) only. No mul/div, no setlb/Lcc.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+halo:
+ mov d1,(136,a3)                  /* replayed: 0x603a04e8 */
+ mov d3,(140,a3)                  /* replayed: 0x603a04ec */
+ mov h_lut,a2
+1:
+ movhu (a2),d1
+ cmp d1,d2
+ beq h_go
+ add 2,a2
+ cmp h_end,a2
+ bne 1b
+ ret [d2,d3,a2,a3],20             /* not a red-bloom weight: exactly the stock tail */
+h_go:
+ mov d0,a1                        /* keep the stock d0 */
+ mov d3,d1
+ lsr 1,d1
+ mov d3,d0
+ lsr 3,d0
+ add d0,d1                        /* d1 = B_Cb = b/2 + b/8 */
+ mov d3,d0
+ lsr 1,d0
+ add d3,d3
+ add d0,d3                        /* d3 = B_Cr = 2b + b/2 (<= 2.5 * 357 = 892 for the table weights: no clamp) */
+ mov d3,(140,a3)                  /* B ch2 */
+ mov 1024,d0
+ sub d3,d0
+ mov d0,(96,a3)                   /* A ch2 */
+ mov 1024,d0
+ sub d2,d0                        /* b */
+ mov d1,d3
+ asl 16,d3
+ or d0,d3
+ mov d3,(136,a3)                  /* B ch0 = b | B_Cb << 16 */
+ mov 1024,d0
+ sub d1,d0
+ asl 16,d0
+ or d2,d0
+ mov d0,(92,a3)                   /* A ch0 = w | (1024 - B_Cb) << 16 */
+ mov a1,d0
+ ret [d2,d3,a2,a3],20
+ .balign 2
+h_lut:
+ .hword {h_lut}
+h_end:

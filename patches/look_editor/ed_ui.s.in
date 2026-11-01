@@ -1,27 +1,32 @@
 /* E-P7 1.1 look editor, phase 1 UI + save (ep7-firmware, our own code). docs/LOOK_EDITOR.md.
- * Section 6 (same section as the editor code it is reached from).
+ * Section 6.
  *
- *   ed_event <- COLOR1-4 parent records +36 (0x61185c00/c38/c70/ca8; stock 0x60e22191), copied to parent+72
- *               and called by the parent router 0x60e20cdc (vtable+68) for every event it does not route
- *               elsewhere, incl. 0x9016 (Delete). CALLS entry: d0 event, d1 arg, a0 parent.
- *           and <- COLOR1-4 parent records +52 (0x61185c10/c48/c80/cb8; stock 0, so the parent keeps the .data
- *               default 0x60e228fb `clr d0; retf`), copied to parent+88: the router sends 0x9012 (Movie) there.
- *               Same CALLS convention. Delete never reaches the editor on camera; Movie is the working trigger.
+ * 12d: the Delete/Movie cycle (ed_event, record words +36/+52) is gone; the cycle key is INFO (ed_info in
+ * ed_view, record word +44). The records' +36/+52 words are stock again.
  *   ed_init  <- COLOR1-4 parent records +4 (0x61185be0/c18/c50/c88; stock 0x60e20a54), called once when the
- *               editor parent is built (0x60e20864, CALLS, a0 parent, d0 key): axis back to S.
+ *               editor parent is built (0x60e20864, CALLS, a0 parent, d0 key): axis back to S; with the key probe
+ *               built in, the probe slots P+{probe_r}/P+{probe_o} are cleared (P valid, marker or not).
+ *   ed_poke  <- jmp from ed_info (ed_view) after an axis step (frame: [d2,d3,a2,a3] + 12, a3 = parent).
+ *               Re-writes the editor's cursor setting (1091/1096/1097/1686) with its current value through the
+ *               facade (GetValue +8, SetValue +0), as the INFO handler does, so the settings listeners rebuild
+ *               the screen. Returns 1 (handled).
+ *   PROBE 1 only (key probe, shown by ed_guide):
+ *   ed_rprobe <- editor parent vtable +68 word 0x61187578 (stock 0x60e20cdc, the router, every editor parent).
+ *   ed_oprobe <- editor parent vtable +0 word 0x61187534 (stock 0x60dd5250, the object's event entry, which
+ *               calls the router only when (0x61fc1bac) is 0). Both store the event code (u16) at
+ *               P+{probe_r} / P+{probe_o} when P is valid and 0x9000 <= code < 0x9100, code is not 0x9014/0x9015
+ *               (INFO, the redraw key) and code != stored + 1 (the release right after its press); then jmp to
+ *               the stock routine with every register intact.
  *   ed_trig  <- loader v3 sd_back `jmp 0x602c8064` (0x605b7420): runs after the loader on every TRIG event in
  *               HLS_EVENT (the camera-proven file context). On a half-press with dirty set: one save attempt.
  *
  * Heap state (block P of the SD look loader, P+{emark}..): 'EP7E', axis (0 S, 1 L, 2 H), dirty, status.
- * Delete (0x9016) or Movie (0x9012) on a COLOR1-4 editor with a valid loaded table: axis S -> L -> H -> S, then
- * the stock child refresh 0x60de3670 on the 12 sector children (re-reads through the facade, i.e. ed_get),
- * return 1 (handled, the router restarts the parent's refresh timer like Up/Down do). Any guard failure: stock
- * with registers intact: 0x9012 -> the +52 default 0x60e228fb (returns 0), anything else -> 0x60e22191.
  */
  .am33_2
  .text
  .global _start
 _start:
+ .set PROBE, {probe}
 
 /* P validation: out a2 = P; uses d3, a2. */
  .macro PVAL miss
@@ -38,103 +43,13 @@ _start:
  bne \miss
  .endm
 
-ed_event:
- cmp 0x9016,d0
- beq 1f
- cmp 0x9012,d0
- beq 1f
- jmp ep7_event                    /* every other event: stock, untouched */
-1:
- movm [d2,d3,a2,a3],(sp)
- add -12,sp
- mov d0,(0,sp)
- mov d1,(4,sp)
- mov a1,(8,sp)
- mov a0,a3
- cmp 0,a3
- beq e_no
- movhu (100,a3),d0                /* editor key -> first sector setting id in d2 */
- mov 927,d2
- cmp 0x13b3,d0
- beq 2f
- mov 939,d2
- cmp 0x13b4,d0
- beq 2f
- mov 951,d2
- cmp 0x13b5,d0
- beq 2f
- mov 1655,d2
- cmp 0x140c,d0
- bne e_no
-2:
- movhu (120,a3),d0
- cmp 13,d0
- bne e_no
- mov (16,a3),d0                   /* no held-key / timer gesture in progress */
- cmp 0,d0
- bne e_no
- mov (44,a3),d0
- cmp 0,d0
- bne e_no
- PVAL e_no
- mov a3,a0                        /* children 1..12: present, ids d2..d2+11 in order */
- mov 12,d1
- mov d2,d0
-3:
- mov (128,a0),a1
- cmp 0,a1
- beq e_no
- movhu (84,a1),d3
- cmp d0,d3
- bne e_no
- inc d0
- add 4,a0
- add -1,d1
- bne 3b
- mov ({emark},a2),d0              /* axis: S -> L -> H -> S */
- cmp {emagic},d0
- beq 4f
- clr d0
- movbu d0,({axis},a2)
- movbu d0,({dirty},a2)
- movbu d0,({status},a2)
- mov {emagic},d0
- mov d0,({emark},a2)
-4:
- movbu ({axis},a2),d0
- inc d0
- cmp 3,d0
- bcs 5f
- clr d0
-5:
- movbu d0,({axis},a2)
- mov 128,d2                       /* refresh children 1..12 from the facade (stock routine) */
-6:
- mov a3,a0
- add d2,a0
- mov (a0),a0
- call ep7_refresh,[d2,d3,a2,a3],60
- add 4,d2
- cmp 176,d2
- bne 6b
- mov 1,d0
- ret [d2,d3,a2,a3],28
-e_no:
- mov a3,a0
- mov (4,sp),d1
- mov (8,sp),a1
- mov (0,sp),d0
- add 12,sp
- movm (sp),[d2,d3,a2,a3]
- btst 4,d0                        /* d0 is 0x9016 (bit 2 set) or 0x9012 here */
- bne 7f
- jmp ep7_movie                    /* Movie: the stock +52 default (clr d0; retf) */
-7:
- jmp ep7_event
-
 ed_init:                          /* CALLS entry: a0 parent, d0 key */
  movm [d3,a2],(sp)
  PVAL i_out
+ .if PROBE
+ clr d3
+ mov d3,({probe_r},a2)            /* key probe: router + outer slots (u16 each) */
+ .endif
  mov ({emark},a2),d3
  cmp {emagic},d3
  bne i_out
@@ -143,6 +58,71 @@ ed_init:                          /* CALLS entry: a0 parent, d0 key */
 i_out:
  movm (sp),[d3,a2]
  jmp ep7_init
+
+ed_poke:                          /* from ed_info: a3 = parent (key checked there), axis stepped */
+ movhu (100,a3),d0
+ mov 1091,d2                      /* the editor's cursor setting */
+ cmp 0x13b3,d0
+ beq 1f
+ mov 1096,d2
+ cmp 0x13b4,d0
+ beq 1f
+ mov 1097,d2
+ cmp 0x13b5,d0
+ beq 1f
+ mov 1686,d2
+1:
+ call ep7_facade,[],4             /* a0 = OlyApiSettingControllerController */
+ mov (a0),a2
+ mov (8,a2),a2                    /* GetValue(id, &out) */
+ mov sp,a1
+ add 4,a1
+ mov d2,d0
+ calls (a2)
+ cmp 0,d0
+ bne 2f                           /* no value: no write */
+ call ep7_facade,[],4
+ mov (a0),a2
+ mov (a2),a2                      /* SetValue(id, 0, the same value) */
+ mov d2,d0
+ clr d1
+ mov (4,sp),a1
+ calls (a2)
+2:
+ mov 1,d0
+ ret [d2,d3,a2,a3],28
+
+ .if PROBE
+/* key probe: d0 = event; keeps every register (flags aside) */
+ .macro KLOG off
+ cmp 0x9000,d0
+ bcs 93f
+ cmp 0x9100,d0
+ bcc 93f
+ cmp 0x9014,d0
+ beq 93f
+ cmp 0x9015,d0
+ beq 93f
+ PVAL 93f
+ movhu (\off,a2),d3
+ inc d3
+ cmp d3,d0
+ beq 93f
+ movhu d0,(\off,a2)
+93:
+ .endm
+ed_rprobe:                        /* editor vtable +68 (router) */
+ movm [d3,a2],(sp)
+ KLOG {probe_r}
+ movm (sp),[d3,a2]
+ jmp ep7_router
+ed_oprobe:                        /* editor vtable +0 (event entry) */
+ movm [d3,a2],(sp)
+ KLOG {probe_o}
+ movm (sp),[d3,a2]
+ jmp ep7_entry
+ .endif
+
 
 /* ---------------------------------------------------------------- save (HLS_EVENT; ed_trig is in ed_core) */
 /* a2 = P (validated). -> d0 status: 1 saved, 2 no memory, 3 .NEW failed, 4 .BIN failed (.NEW is good).

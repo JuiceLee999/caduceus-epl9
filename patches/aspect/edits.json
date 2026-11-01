@@ -621,6 +621,41 @@
   },
   {
    "kind": "0x100",
+   "addr": "0x61175d78",
+   "expect": "010000000300dd01e4441761030000000300dc01e4441761020000000300de01e44417610400000003007609e4441761090000000300df01e4441761010000000300d801e4441761030000000300d701e4441761",
+   "new": "010000000300dd01e4441761030000000300dc01e4441761020000000300de01e44417610400000003007609e4441761090000000300df01e4441761060000000400f100e4441761070000000400650ae4441761",
+   "why": "SCP/Live Control 270 list A (white) in place: 7 entries, +Panorama/Wide (type-4 text)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61242f60",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "010000000300d801e4441761030000000300d701e4441761020000000300d901e44417610400000003007509e4441761090000000300db01e4441761060000000400f100e4441761070000000400650ae4441761",
+   "why": "SCP/Live Control 270 list B (green) relocated to sec-6 tail: 7 entries"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61176fc0",
+   "expect": "0e010500785d1761b45d1761",
+   "new": "0e010700785d1761602f2461",
+   "why": "SCP/Live Control 270 record: count 5->7, list B ptr"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210f70",
+   "expect": "ffffffffffffff",
+   "new": "01030204090607",
+   "why": "setting 270 validator list relocated: 1,3,2,4,9 + 6 (Panorama), 7 (Wide)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cec18",
+   "expect": "44b74c60000000000500",
+   "new": "700f2160000000000700",
+   "why": "setting 270 validator record: list ptr -> sec-1 tail, bytes 5 -> 7"
+  },
+  {
+   "kind": "0x100",
    "addr": "0x60210f00",
    "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
    "new": "2e80022ff000dc03a467002e80022f1001dcf8a367002f80022ef000dcc0a467002f80022e1001dcb5a467002d80022cf000dc668b68002d80022c1001dc5b8b68002c80022df000dc86a968002c80022d1001dc7ba96800804142188018dc9f186500801542188009dc94186500",
@@ -709,6 +744,83 @@
    "expect": "659e8760",
    "new": "709e8760",
    "why": "S6 fit-group entry id7: height-limited -> width-limited group"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210e90",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "fca8047b2562a001c8222c0e01dd6dad0b0000041c28faa001c5118001fcdcc60e2160dd78880a00f01cfcdc90701e60dcea1af8ffff0e01",
+   "why": "H3 boot clamp: setting 270 in {6,7} -> stock default (4:3) at power-on"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601929a4",
+   "expect": "fcdc90701e60",
+   "new": "dcece40700cb",
+   "why": "H3 boot clamp hook: boot tail mov 0x601e7090,a0 -> jmp boot clamp; nop"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053df0c",
+   "expect": "c01100008c009006e000300280036004400500000000c0080000f00a000000000000d00d0000c00f0000000000000000",
+   "new": "40140000a00080074001800200040005400600000000000a0000800c000000000000c00f000000120000000000000000",
+   "why": "capture size table W@0x6053de1c id6: (4544, 0, 140, 1680, 224, 560, 896, 1120, 1344, 0, 0, 2240, 0, 2800, 0, 0, 0, 3536, 0, 4032, 0, 0, 0, 0) -> (5184, 0, 160, 1920, 320, 640, 1024, 1280, 1600, 0, 0, 2560, 0, 3200, 0, 0, 0, 4032, 0, 4608, 0, 0, 0, 0)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053df3c",
+   "expect": "401200009000c0062001400290038004a0050000000000090000400b000000000000300e000030100000000000000000",
+   "new": "40140000a00080074001800200040005400600000000000a0000800c000000000000c00f000000120000000000000000",
+   "why": "capture size table W@0x6053de1c id7: (4672, 0, 144, 1728, 288, 576, 912, 1152, 1440, 0, 0, 2304, 0, 2880, 0, 0, 0, 3632, 0, 4144, 0, 0, 0, 0) -> (5184, 0, 160, 1920, 320, 640, 1024, 1280, 1600, 0, 0, 2560, 0, 3200, 0, 0, 0, 4032, 0, 4608, 0, 0, 0, 0)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053e0bc",
+   "expect": "300f00007800a005c000e0010003c003800400000000800700006009000000000000d00b0000800d0000000000000000",
+   "new": "800700004000c0027000f0008001e001500200000000b0030000a004000000000000d0050000a0060000000000000000",
+   "why": "capture size table H@0x6053dfcc id6: (3888, 0, 120, 1440, 192, 480, 768, 960, 1152, 0, 0, 1920, 0, 2400, 0, 0, 0, 3024, 0, 3456, 0, 0, 0, 0) -> (1920, 0, 64, 704, 112, 240, 384, 480, 592, 0, 0, 944, 0, 1184, 0, 0, 0, 1488, 0, 1696, 0, 0, 0, 0)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053e0ec",
+   "expect": "300f00007800a005f000e001f802c003b00400000000800700006009000000000000d00b0000800d0000000000000000",
+   "new": "b00800004000300390001001b0012002b00200000000500400006005000000000000c0060000b0070000000000000000",
+   "why": "capture size table H@0x6053dfcc id7: (3888, 0, 120, 1440, 240, 480, 760, 960, 1200, 0, 0, 1920, 0, 2400, 0, 0, 0, 3024, 0, 3456, 0, 0, 0, 0) -> (2224, 0, 64, 816, 144, 272, 432, 544, 688, 0, 0, 1104, 0, 1376, 0, 0, 0, 1728, 0, 1968, 0, 0, 0, 0)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053dd3c",
+   "expect": "d5be3e60",
+   "new": "acbe3e60",
+   "why": "ORF frame fit entry id6: height-limited -> width-limited case"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053dd40",
+   "expect": "d5be3e60",
+   "new": "acbe3e60",
+   "why": "ORF frame fit entry id7: height-limited -> width-limited case"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60236e20",
+   "expect": "07060605",
+   "new": "41181509",
+   "why": "LV/AF ratio pair (u8, .data -> RAM 0x61f9eb60) ids 6/7: 7:6, 6:5 -> 65:24, 21:9"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604e0702",
+   "expect": "0700060006000500",
+   "new": "4100180015000900",
+   "why": "ratio pair (u16) ids 6/7: 7:6, 6:5 -> 65:24, 21:9"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604d9d02",
+   "expect": "14002c010000f000100030010000f000",
+   "new": "000040013d00b300000040013300bd00",
+   "why": "320x240 per-aspect bounds ids 6/7 -> full width, centred band"
   }
  ]
 }

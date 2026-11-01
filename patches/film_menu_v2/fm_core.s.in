@@ -1,0 +1,411 @@
+/* E-P7 1.1 film-sims page "Film" in the Color Profile editor (ep7-firmware, our own code). docs/FILM_MENU_V2.md.
+ * fm_ui: section 1, dead EVF gamma step-4 R/G/B tables 0x601e2c3c.. (only refs: step-table words 0x601e3cc0/c4/c8).
+ * fm_core: section 9, 0x6143a410.. (FF; sec 9 is loaded whenever the loader's handle is valid: its gate needs all 9).
+ *
+ *   fm_valid <- the editor's ed_cfg_fv word (12e ed_page, on Light -> next page). CALLS, a2 = P (validated).
+ *               -> d0 1 when LOOKS.BIN is loaded: P+1020 'EP7F', L = P+1016 inside the class-1 pool and 4-aligned,
+ *               L+1408 'EP7L', L+1412 == P. Clobbers d0, d1, a0.
+ *   fm_load  <- the editor's ed_cfg_fl word (12e ed_trig, every half-press with a valid P). CALLS, a2 = P.
+ *               Once per power-on (P+1020 'EP7F' or 'EP7X' -> nothing): mark 'EP7X', malloc(2048) = L,
+ *               fopen C:\EP7MOD\LOOKS.BIN "r", size = 64 + 64 n (1 <= n <= 20), fread, fclose, fm_check (the rules of
+ *               tools/ep7_looks_bin.py check_file), the slot positions (a slot whose name matches a colour look
+ *               resumes on it), publish L+1408 'EP7L', L+1412 P, P+1016 L, then P+1020 'EP7F' last. Any failure: free
+ *               L, P+1020 stays 'EP7X'.
+ *   fm_up / fm_down <- COLOR1-4 records +12 / +16 (0x61185be8/bec, c20/c24, c58/c5c, c90/c94; stock Up 0x60e20e0a /
+ *               Down 0x60e2107a), copied to parent+48/+52: every value step (dial, arrows, touch) of the editor.
+ *               CALLS: d0 event, d1 arg, a0 parent. Only on the Film page (axis P+{axis} == 3, 'EP7E', fm_valid,
+ *               editor key 0x13b3/0x13b4/0x13b5/0x140c -> slot k): step this slot's position over
+ *               [own, colour looks 1..n, Stock] (wrapping, mono looks skipped), write the slot entry (flags byte
+ *               cleared first, set last) and name P+544+16k ('EP7N' after the name), set dirty P+{dirty} (the
+ *               editor's half-press save writes BUNDLES.BIN), then the editor's ed_poke (cursor re-write: the guide
+ *               shows the new name), return 1. Anything else: jmp to the stock handler with registers intact.
+ * L layout: +0 LOOKS.BIN (<= 1344 B), +1408 'EP7L', +1412 P, +1416 n, +1417 pos[4], +1421 snap[4],
+ *   +1428 own snapshots 4 x 80 B (entry 64 + name 16), +1752 staging 80 B (ends 1832 < 2048).
+ * Stores: P, L (heap) and the stack only. No absolute stores, no mul/div, no setlb/Lcc.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+ .set FL_MAGIC, {lmagic}
+ .set FF_MAGIC, {fmagic}
+ .set FX_MAGIC, {xmagic}
+
+/* L handle check: a2 = P -> a0 = L on success, else branch to \miss. Uses d0, d1, a0. */
+ .macro FVAL miss
+ mov (1020,a2),d0
+ cmp FF_MAGIC,d0
+ bne \miss
+ mov (1016,a2),a0
+ mov a0,d0
+ btst 3,d0
+ bne \miss
+ add {npool},d0
+ cmp {llim},d0
+ bcc \miss
+ mov (1408,a0),d0
+ cmp FL_MAGIC,d0
+ bne \miss
+ mov (1412,a0),d0
+ mov a2,d1
+ cmp d1,d0
+ bne \miss
+ .endm
+
+/* P validation: out a2 = P; uses d3, a2. */
+ .macro PVAL miss
+ movhu ({state}),d3
+ add -1,d3
+ cmp {lim},d3
+ bcc \miss
+ btst 3,d3
+ bne \miss
+ mov d3,a2
+ add {pool},a2
+ mov (a2),d3
+ cmp {bmagic},d3
+ bne \miss
+ .endm
+
+/* ------------------------------------------------------------------ fm_load (HLS_EVENT, half-press) */
+fm_load:                          /* CALLS, a2 = P */
+ movm [d2,d3,a2,a3],(sp)
+ add -16,sp                       /* (0) clobbered by calls, (4) handle, (8) size */
+ mov (1020,a2),d0
+ cmp FF_MAGIC,d0
+ beq l_out
+ cmp FX_MAGIC,d0
+ beq l_out
+ mov FX_MAGIC,d0                  /* one attempt per power-on */
+ mov d0,(1020,a2)
+ mov 2048,d0
+ call ep7_malloc,[],4
+ mov a0,a3                        /* a3 = L */
+ cmp 0,a3
+ beq l_out
+ mov a3,d0
+ btst 3,d0
+ bne l_free
+ add {npool},d0
+ cmp {llim},d0
+ bcc l_free
+ mov fm_path,a0
+ mov fm_mode,a1
+ call ep7_fopen,[],4
+ cmp 0,a0
+ beq l_free                       /* no file */
+ mov a0,(4,sp)
+ clr d0
+ mov 1,d1                         /* whence 1 = END */
+ call ep7_fseek,[d2,d3,a2,a3],20
+ cmp 0,d0
+ bne l_close
+ mov (4,sp),a0
+ call ep7_ftell,[d2,a2,a3],16
+ mov d0,d3                        /* size: 128..1344, a multiple of 64 */
+ mov d3,d1
+ and 63,d1
+ bne l_close
+ cmp 128,d3
+ bcs l_close
+ cmp 1345,d3
+ bcc l_close
+ mov d3,(8,sp)
+ mov (4,sp),a0
+ clr d0
+ mov 2,d1                         /* whence 2 = SET */
+ call ep7_fseek,[d2,d3,a2,a3],20
+ cmp 0,d0
+ bne l_close
+ mov a3,a0
+ mov 1,d0
+ mov (8,sp),d1
+ mov (4,sp),a1
+ call ep7_fread,[d2,d3,a2,a3],24
+ mov d0,d2                        /* bytes read */
+ mov (4,sp),a0
+ call ep7_fclose,[d2,a2,a3],16
+ mov (8,sp),d3
+ cmp d3,d2
+ bne l_free
+ call fm_check,[d2,d3,a2,a3],20   /* a3 = L, d3 = size -> d0 0 valid */
+ cmp 0,d0
+ bne l_free
+ mov d3,d0                        /* n = (size - 64) / 64 */
+ add -64,d0
+ lsr 6,d0
+ movbu d0,(1416,a3)
+ clr d0                           /* pos[4] = own, snap[4] = 0 */
+ mov a3,a0
+ add 1417,a0
+ mov 8,d1
+1:
+ movbu d0,(a0)
+ inc a0
+ add -1,d1
+ bne 1b
+ mov (672,a2),d0                  /* a slot whose name is a colour look's name resumes on that look */
+ cmp {nmagic},d0
+ bne l_pub
+ clr d0                           /* (8,sp) = k (the size is no longer needed) */
+ mov d0,(8,sp)
+2:
+ mov (8,sp),d0
+ asl 4,d0
+ add a2,d0
+ add 544,d0
+ mov d0,a1                        /* a1 = slot name */
+ movbu (a1),d0
+ cmp 0,d0
+ beq 6f
+ clr d3                           /* d3 = j */
+3:
+ mov d3,d0
+ asl 6,d0
+ add a3,d0
+ add 64,d0
+ mov d0,a0                        /* a0 = record j */
+ movbu (46,a0),d0
+ btst 1,d0
+ beq 5f
+ add 48,a0
+ clr d1
+4:
+ movbu (d1,a0),d0
+ movbu (d1,a1),d2
+ cmp d2,d0
+ bne 5f
+ inc d1
+ cmp 16,d1
+ bne 4b
+ mov d3,d0                        /* match: pos = j + 1 */
+ inc d0
+ mov (8,sp),d1
+ mov a3,a0
+ add d1,a0
+ movbu d0,(1417,a0)
+ bra 6f
+5:
+ inc d3
+ movbu (1416,a3),d0
+ cmp d0,d3
+ bcs 3b
+6:
+ mov (8,sp),d0
+ inc d0
+ mov d0,(8,sp)
+ cmp 4,d0
+ bne 2b
+l_pub:
+ mov FL_MAGIC,d0                  /* publish: L tags, then P+1016, then 'EP7F' last */
+ mov d0,(1408,a3)
+ mov a2,(1412,a3)
+ mov a3,(1016,a2)
+ mov FF_MAGIC,d0
+ mov d0,(1020,a2)
+ bra l_out
+l_close:
+ mov (4,sp),a0
+ call ep7_fclose,[d2,a2,a3],16
+l_free:
+ mov a3,a0
+ call ep7_free,[],4
+l_out:
+ ret [d2,d3,a2,a3],32
+
+/* fm_check: a3 = L (file), d3 = size (128..1344, 64 | size) -> d0 0 valid / 1 invalid. Uses d0-d3, a0-a2. */
+fm_check:
+ mov fm_hdr,a1                    /* header bytes 0..11, 20..23, 26..63 against the template */
+ clr d2
+1:
+ mov d2,d0
+ add -12,d0
+ cmp 8,d0
+ bcs 2f                           /* 12..19: payload, CRC (checked below) */
+ mov d2,d0
+ add -24,d0
+ cmp 2,d0
+ bcs 2f                           /* 24..25: n (checked below) */
+ movbu (d2,a3),d0
+ movbu (d2,a1),d1
+ cmp d1,d0
+ bne c_bad
+2:
+ inc d2
+ cmp 64,d2
+ bne 1b
+3:
+ mov (12,a3),d0                   /* payload = size - 64 */
+ mov d3,d1
+ add -64,d1
+ cmp d1,d0
+ bne c_bad
+ movhu (24,a3),d0                 /* n = payload / 64 */
+ lsr 6,d1
+ cmp d1,d0
+ bne c_bad
+ mov -1,d0                        /* CRC-32 of bytes 0..15 then 20..size-1 */
+ mov a3,a0
+ mov 16,d1
+ call fm_crc,[d2,d3],8
+ mov a3,a0
+ add 20,a0
+ mov d3,d1
+ add -20,d1
+ call fm_crc,[d2,d3],8
+ not d0
+ mov (16,a3),d1
+ cmp d1,d0
+ bne c_bad
+ mov a3,a2                        /* records: a2 = record, d3 = bytes left */
+ add 64,a2
+ add -64,d3
+4:
+ clr d2                           /* bundle bytes 0..44 in range */
+5:
+ movbu (d2,a2),d0
+ extb d0
+ mov fm_lo,a1
+ movbu (d2,a1),d1
+ extb d1
+ sub d1,d0
+ mov fm_span,a1
+ movbu (d2,a1),d1
+ cmp d1,d0
+ bhi c_bad                        /* unsigned: below lo wraps high */
+ inc d2
+ cmp 45,d2
+ bne 5b
+ movbu (45,a2),d0                 /* class / mask: colour 0 with 1 or 3, mono 1 with 2; +47 = 0 */
+ movbu (46,a2),d1
+ cmp 0,d0
+ bne 6f
+ cmp 1,d1
+ beq 7f
+ cmp 3,d1
+ beq 7f
+ bra c_bad
+6:
+ cmp 1,d0
+ bne c_bad
+ cmp 2,d1
+ bne c_bad
+7:
+ movbu (47,a2),d0
+ cmp 0,d0
+ bne c_bad
+ movbu (48,a2),d0                 /* name: first byte non-zero, byte 15 NUL, 0x20..0x7e except '@', NUL tail */
+ cmp 0,d0
+ beq c_bad
+ movbu (63,a2),d0
+ cmp 0,d0
+ bne c_bad
+ mov 48,d2
+ clr d1                           /* d1 = 1 after the first NUL */
+8:
+ movbu (d2,a2),d0
+ cmp 0,d0
+ bne 9f
+ mov 1,d1
+ bra 10f
+9:
+ cmp 0,d1
+ bne c_bad
+ cmp 0x40,d0
+ beq c_bad
+ cmp 0x20,d0
+ bcs c_bad
+ cmp 0x7f,d0
+ bcc c_bad
+10:
+ inc d2
+ cmp 64,d2
+ bne 8b
+ add 64,a2
+ add -64,d3
+ bne 4b
+ clr d0
+ ret [d2,d3,a2,a3],20
+c_bad:
+ mov 1,d0
+ ret [d2,d3,a2,a3],20
+
+/* fm_crc: d0 = running CRC, a0 = data, d1 = length (> 0) -> d0. `call fm_crc,[d2,d3],8`. */
+fm_crc:
+ movbu (a0),d2
+ xor d2,d0
+ mov 8,d3
+1:
+ btst 1,d0
+ beq 2f
+ lsr 1,d0
+ xor 0xedb88320,d0
+ bra 3f
+2:
+ lsr 1,d0
+3:
+ add -1,d3
+ bne 1b
+ inc a0
+ add -1,d1
+ bne fm_crc
+ ret [d2,d3],8
+
+/* fm_mod (13) <- the editor's ed_cfg_fm word (ed_guide, Film page). CALLS, a2 = P, d1 = slot k (0..3).
+ * -> d0 1 when slot k sits on a library look (pos 1..n) and its entry P+32+64k differs from that look's place():
+ * record bytes 0..31, then 32 zero bytes. Own / Stock / no LOOKS.BIN -> 0. Reads only; keeps d2/d3/a2/a3. */
+fm_mod:
+ movm [d2,d3],(sp)
+ mov d1,d3
+ FVAL m_no                        /* a0 = L */
+ cmp 4,d3
+ bcc m_no
+ mov a0,a1
+ add d3,a1
+ movbu (1417,a1),d0               /* pos */
+ cmp 0,d0
+ beq m_no                         /* own */
+ movbu (1416,a0),d1
+ inc d1
+ cmp d1,d0
+ bcc m_no                         /* Stock (n + 1) or out of range */
+ asl 6,d0
+ add d0,a0                        /* a0 = record pos-1 = L + 64 pos */
+ mov d3,d0
+ asl 6,d0
+ add a2,d0
+ add 32,d0
+ mov d0,a1                        /* a1 = slot entry */
+ clr d2
+1:
+ movbu (d2,a0),d0
+ cmp 32,d2
+ bcs 2f
+ clr d0                           /* bytes 32..63 of a placed colour look are 0 */
+2:
+ movbu (d2,a1),d1
+ cmp d0,d1
+ bne m_yes
+ inc d2
+ cmp 64,d2
+ bne 1b
+m_no:
+ clr d0
+ ret [d2,d3],8
+m_yes:
+ mov 1,d0
+ ret [d2,d3],8
+
+fm_data:
+fm_path:
+ .asciz "C:\\EP7MOD\\LOOKS.BIN"
+fm_mode:
+ .asciz "r"
+fm_hdr:
+{hdr_bytes}
+fm_lo:
+{lo_bytes}
+fm_span:
+{span_bytes}
+fm_end:

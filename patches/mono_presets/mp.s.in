@@ -1,0 +1,255 @@
+/* E-P7 1.1 mono film presets on the stock Mono Profile editors (ep7-firmware, our own code). docs/MONO_PRESETS.md.
+ * Section 1, dead EVF gamma step-5 R/G/B tables 0x601e293c.. (only refs: step-table words 0x601e3cd0/d4/d8).
+ *
+ *   mp_info_f <- MONO1-4 colour-filter editor records +44 (keys 0x13b6/0x13b7/0x13b8/0x140d; stock 0x60e22d8b)
+ *   mp_info_s <- MONO1-4 shading editor records +44 (keys 0x13b9/0x13ba/0x13bb/0x140e; stock 0x60e22fae)
+ *   Both stock words are `mov 3,d0; retf` (INFO closes the editor). CALLS entry: d0 event, d1 arg, a0 parent.
+ *   INFO (0x9014) with a card table (valid P) and the editor guards (key -> MONO m, child count 1..2, no held
+ *   gesture): step this profile's preset pos (P+{mpos}+m: 0 none, 1..{n}) to the next one (wrapping), then
+ *   - write the preset's {nf} stock settings of MONO m through the facade SetValue (vtable +0), the same call as a
+ *     stock edit: filter, filter strength, toning, grain, shading, highlights, shadows, midtones;
+ *   - write its name to the slot name P+544+16(4+m) ('EP7N'; the names section zeroed first if it had none),
+ *     so Picture Mode / LC / SCP show it through the test-8 name hooks; dirty = 1 (the editor's half-press save
+ *     writes BUNDLES.BIN);
+ *   - refresh the editor's children from the settings (stock 0x60de3670), return 1 (the editor stays open).
+ *   First use since the load: 'EP7E' block initialised as the colour editor does; positions from the saved names
+ *   (a MONO slot whose name is a preset's resumes on it), then 'EP7M' at P+{mmark}.
+ *   Every other event, no table, any guard failure: jmp to the stock word with d0/d1/a0/a1, the stack as at entry.
+ * Stores: P (heap) and the stack only. No absolute stores, no mul/div, no setlb/Lcc.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+ .macro PVAL miss
+ movhu ({state}),d3
+ add -1,d3
+ cmp {lim},d3
+ bcc \miss
+ btst 3,d3
+ bne \miss
+ mov d3,a2
+ add {pool},a2
+ mov (a2),d3
+ cmp {bmagic},d3
+ bne \miss
+ .endm
+
+mp_info_f:
+ cmp 0x9014,d0
+ beq 1f
+ jmp ep7_info_f
+1:
+ movm [d2,d3,a2,a3],(sp)
+ clr d2
+ bra mp_go
+mp_info_s:
+ cmp 0x9014,d0
+ beq 1f
+ jmp ep7_info_s
+1:
+ movm [d2,d3,a2,a3],(sp)
+ mov 1,d2
+mp_go:                            /* frame: (0) calls, (4) d0, (8) d1, (12) a1, (16) kind, (20) value, (24) r, (28) P */
+ add -32,sp
+ mov d2,(16,sp)
+ mov d0,(4,sp)
+ mov d1,(8,sp)
+ mov a1,(12,sp)
+ mov a0,a3
+ cmp 0,a3
+ beq m_miss
+ movhu (100,a3),d0                /* editor key -> m (d2) */
+ mov mp_keys,a1
+ asl 3,d2                         /* kind 0: keys 0..3, kind 1: keys 4..7 */
+ add d2,a1
+ clr d2
+2:
+ movhu (a1),d1
+ cmp d1,d0
+ beq 3f
+ add 2,a1
+ inc d2
+ cmp 4,d2
+ bne 2b
+ bra m_miss
+3:
+ movhu (120,a3),d0                /* 1..2 children (filter: filter + strength; shading: 1) */
+ add -1,d0
+ cmp 2,d0
+ bcc m_miss
+ mov (16,a3),d0                   /* no held-key / timer gesture in progress */
+ cmp 0,d0
+ bne m_miss
+ mov (44,a3),d0
+ cmp 0,d0
+ bne m_miss
+ PVAL m_miss                      /* a2 = P */
+ mov a2,(28,sp)
+ mov ({emark},a2),d0              /* first use since the load: 'EP7E' block as the colour editor sets it */
+ cmp {emagic},d0
+ beq 4f
+ clr d0
+ movbu d0,({axis},a2)
+ movbu d0,({dirty},a2)
+ movbu d0,({status},a2)
+ mov {emagic},d0
+ mov d0,({emark},a2)
+4:
+ mov ({mmark},a2),d0
+ cmp {mmagic},d0
+ beq 5f
+ call mp_resume,[d2,d3,a3],12     /* positions from the saved names, then 'EP7M' */
+5:
+ mov a2,a0
+ add d2,a0
+ movbu ({mpos},a0),d0
+ inc d0
+ cmp {n},d0                       /* next: 1..n, wrapping (and anything stale -> 1) */
+ bls 6f
+ mov 1,d0
+6:
+ movbu d0,({mpos},a0)
+ add -1,d0                        /* r = mp_tab + 24 (pos - 1) */
+ asl 3,d0
+ mov d0,d1
+ add d0,d0
+ add d1,d0
+ add mp_tab,d0
+ mov d0,(24,sp)
+ clr d3                           /* fields 0..{nf}-1 */
+7:
+ mov (24,sp),a0
+ add d3,a0
+ movbu (16,a0),d0
+ extb d0
+ mov d0,(20,sp)                   /* value */
+ call ep7_facade,[],4             /* a0 = OlyApiSettingControllerController */
+ mov (a0),a2
+ mov (a2),a2                      /* SetValue(id, 0, value): the stock edit path */
+ mov d2,d0
+ asl 3,d0
+ add d3,d0
+ add d0,d0
+ mov mp_ids,a1
+ add d0,a1
+ movhu (a1),d0                    /* id of field d3 for MONO m */
+ clr d1
+ mov (20,sp),a1
+ calls (a2)
+ mov (28,sp),a2
+ inc d3
+ cmp {nf},d3
+ bne 7b
+ mov (672,a2),d0                  /* names section: zero it first when the table had none */
+ cmp {nmagic},d0
+ beq 8f
+ mov a2,a0
+ add 544,a0
+ clr d0
+ mov 128,d1
+81:
+ movbu d0,(a0)
+ inc a0
+ add -1,d1
+ bne 81b
+8:
+ mov d2,d0                        /* name P + 608 + 16 m */
+ asl 4,d0
+ add a2,d0
+ add 608,d0
+ mov d0,a0
+ mov (24,sp),a1
+ clr d1
+9:
+ movbu (d1,a1),d0
+ movbu d0,(d1,a0)
+ inc d1
+ cmp 16,d1
+ bne 9b
+ mov {nmagic},d0
+ mov d0,(672,a2)
+ mov 1,d0
+ movbu d0,({dirty},a2)            /* the editor's save writes BUNDLES.BIN on the next half-press */
+ movhu (120,a3),d2                /* children: refresh from the settings (stock routine) */
+ mov 124,d3
+10:
+ mov a3,a0
+ add d3,a0
+ mov (a0),a0
+ cmp 0,a0
+ beq 11f
+ call ep7_refresh,[d2,d3,a2,a3],60
+11:
+ add 4,d3
+ add -1,d2
+ bne 10b
+ mov 1,d0
+ ret [d2,d3,a2,a3],48
+m_miss:
+ mov a3,a0
+ mov (8,sp),d1
+ mov (12,sp),a1
+ mov (4,sp),d0
+ mov (16,sp),d2
+ add 32,sp
+ cmp 0,d2
+ movm (sp),[d2,d3,a2,a3]
+ bne 1f
+ jmp ep7_info_f
+1:
+ jmp ep7_info_s
+
+/* mp_resume: a2 = P. For m 0..3: pos = j+1 when name P+608+16m equals preset j's 16-byte name, else 0 (no names
+ * section: 0). Then P+{mmark} = 'EP7M'. `call mp_resume,[d2,d3,a3],12`; clobbers d0, d1, a0, a1. */
+mp_resume:
+ clr d2                           /* m */
+1:
+ clr d3                           /* pos */
+ mov (672,a2),d0
+ cmp {nmagic},d0
+ bne 5f
+ mov mp_tab,a1
+2:
+ inc d3
+ mov d2,d0
+ asl 4,d0
+ add a2,d0
+ add 608,d0
+ mov d0,a0
+ clr d1                           /* 16-byte compare as 4 words (P, 608 + 16 m and the table are 4-aligned) */
+3:
+ mov (d1,a0),d0
+ mov (d1,a1),a3
+ cmp a3,d0
+ bne 4f
+ add 4,d1
+ cmp 16,d1
+ bne 3b
+ bra 5f                           /* match: pos = d3 */
+4:
+ add 24,a1
+ cmp {n},d3
+ bne 2b
+ clr d3                           /* no preset of that name */
+5:
+ mov a2,a0
+ add d2,a0
+ movbu d3,({mpos},a0)
+ inc d2
+ cmp 4,d2
+ bne 1b
+ mov {mmagic},d0
+ mov d0,({mmark},a2)
+ ret [d2,d3,a3],12
+
+ .balign 4
+mp_data:
+mp_keys:                          /* filter editors MONO1-4, then shading editors MONO1-4 */
+ .hword 0x13b6,0x13b7,0x13b8,0x140d,0x13b9,0x13ba,0x13bb,0x140e
+mp_ids:                           /* per MONO m: filter, strength, toning, grain, shading, highlights, shadows, midtones */
+{ids}
+mp_tab:                           /* 24-byte presets: name[16] (NUL-padded), then the {nf} setting values (s8) */
+{tab}
+mp_end:

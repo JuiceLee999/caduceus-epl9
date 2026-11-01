@@ -19,6 +19,7 @@
  .text
  .global _start
 _start:
+ .set HALO, {halo}                /* --halation (docs/HALATION_RED.md): effect_id 2 = red bloom */
 
 /* ---- entered by jmp from 0x603eabd7 inside 0x603eab39:
  *      a2 = params+12 (job flags word), a3 = capture; frame [a2,a3],20 untouched.
@@ -42,6 +43,10 @@ bloom_flag:
  movbu ({f_effect},a0),d0
  cmp 1,d0                         /* effect_id 1 = bloom */
  beq bf_eff
+ .if HALO
+ cmp 2,d0                         /* effect_id 2 = red bloom (halation): same passes + the halo stub */
+ beq bf_eff
+ .endif
  cmp 3,d0                         /* effect_id 3 = clarity (same passes) */
  bne bf_resume
 bf_eff:
@@ -100,6 +105,11 @@ bw_hit:
  mov w_lut,a1
  cmp 1,d0                         /* bloom */
  beq bw_pick
+ .if HALO
+ mov h_lut,a1
+ cmp 2,d0                         /* red bloom: weights no other path returns (the halo stub keys on them) */
+ beq bw_pick
+ .endif
  cmp 3,d0                         /* clarity */
  bne bw_default
  mov c11_lut,a1
@@ -127,3 +137,7 @@ c11_lut:                          /* clarity, combiner 11: strength 1..5 -> w (>
  .hword {c11_lut}
 c12_lut:                          /* clarity, any other caller: 1024 (A only) */
  .hword {c12_lut}
+ .if HALO
+h_lut:                            /* red bloom: strength 1..5 -> w (luma as bloom; chroma by the halo stub) */
+ .hword {h_lut}
+ .endif

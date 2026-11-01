@@ -1,0 +1,215 @@
+/* E-P7 1.1 look extras: Extras page label (ep7-firmware, our own code). docs/LOOK_EXTRAS.md.
+ *
+ * 12e: the editor's page key (ed_page, MENU / PLAYBACK) steps to the Extras page itself (the build sets the
+ * editor's ed_cfg_x byte to {x_axis}); this layer no longer hooks a key word.
+ *   ex_guide <- .data init word 0x6025aa98 (Color Profile view part 3; editor: ed_guide). CALLS, a0 = view.
+ *               Runs the editor's ed_guide (which runs the stock part), then, only on the Extras page with a
+ *               kind-4 id-2755/2756 label and a loaded table, rewrites it as kind 5 plain text: the sector number,
+ *               the field and its current value (read through ex_get, the same value the wheel number shows):
+ *                 1 Grain Off|Low|Medium|High
+ *                 2 Glow N | 2 Clarity/Glow 0 | 2 Clarity +N
+ *                 3 WB Blue N | 3 WB Amber/Blue | 3 WB Amber N
+ *                 4 WB Magenta N | 4 WB Green/Mag. | 4 WB Green N
+ *                 sectors 5-12: "Extras: 1-4 only"; ALL on (stock 2756): "Extras: no All"
+ *               At most 16 characters.
+ * Stores: the label in the view object, the stack. No absolute stores, no mul/div/setlb.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+/* P validation: out a2 = P; uses d3, a2. */
+ .macro PVAL miss
+ movhu ({state}),d3
+ add -1,d3
+ cmp {lim},d3
+ bcc \miss
+ btst 3,d3
+ bne \miss
+ mov d3,a2
+ add {pool},a2
+ mov (a2),d3
+ cmp {bmagic},d3
+ bne \miss
+ mov ({emark},a2),d3
+ cmp {emagic},d3
+ bne \miss
+ .endm
+
+ex_guide:                         /* CALLS entry, a0 = view */
+ movm [d2,d3,a2,a3],(sp)
+ add -12,sp                       /* (0) clobbered by calls, (4) facade / ex_get out, (8) base id */
+ mov a0,a3
+ calls ex_guide_next              /* the editor's ed_guide (or the stock part), a0 = view */
+ mov d0,d2                        /* its result, returned unchanged */
+ PVAL q_out
+ movbu ({axis},a2),d3
+ cmp {x_axis},d3
+ bne q_out
+ movhu (44,a3),d0
+ cmp 4,d0
+ bne q_out
+ movhu (48,a3),d0
+ mov ex_t_all,a2
+ cmp 2756,d0
+ beq q_put0                       /* ALL on (stock 2756): Extras writes nothing */
+ cmp 2755,d0
+ bne q_out
+ call ep7_facade,[],4             /* picture mode (111) -> the editor's cursor setting + first sector id */
+ mov (a0),a2
+ mov (8,a2),a2
+ mov sp,a1
+ add 4,a1
+ mov 111,d0
+ calls (a2)
+ cmp 0,d0
+ bne q_out
+ mov (4,sp),d0
+ mov 1091,d3
+ mov 927,d1
+ cmp 54,d0
+ beq 5f
+ mov 1096,d3
+ mov 939,d1
+ cmp 55,d0
+ beq 5f
+ mov 1097,d3
+ mov 951,d1
+ cmp 56,d0
+ beq 5f
+ mov 1686,d3
+ mov 1655,d1
+ cmp 64,d0
+ bne q_out
+5:
+ mov d1,(8,sp)
+ call ep7_facade,[],4
+ mov (a0),a2
+ mov (8,a2),a2
+ mov sp,a1
+ add 4,a1
+ mov d3,d0
+ calls (a2)
+ cmp 0,d0
+ bne q_out
+ mov (4,sp),d3                    /* cursor 1..12 = sector 0..11 */
+ add -1,d3
+ mov ex_t_other,a2
+ cmp 4,d3
+ bcc q_put0
+ mov (8,sp),d0                    /* the sector's value through ex_get (as the wheel number) */
+ add d3,d0
+ mov sp,a1
+ add 4,a1
+ calls ex_get
+ cmp 0,d0
+ bne q_out
+ mov (4,sp),d1                    /* d1 = value, d3 = sector */
+ cmp 0,d3
+ bne 6f
+ cmp 4,d1                         /* grain 0..3 (ex_get never returns more) */
+ bcc q_out
+ asl2 d1
+ mov ex_tg,a2
+ add d1,a2
+ mov (a2),a2
+ bra q_put0
+6:
+ add -1,d3                        /* sectors 1..3: neg, zero, pos texts */
+ mov d3,d0
+ asl2 d0
+ asl 3,d3
+ add d3,d0                        /* 12 * (s - 1) */
+ mov ex_tf,a2
+ add d0,a2
+ cmp 0,d1
+ bne 7f
+ mov (4,a2),a2                    /* zero: no digit */
+ bra q_put0
+7:
+ blt 8f
+ mov (8,a2),a2                    /* positive */
+ bra q_put
+8:
+ mov (a2),a2                      /* negative: its magnitude */
+ not d1
+ inc d1
+ bra q_put
+q_put0:
+ clr d1                           /* d1 = digit to append, 0 = none */
+q_put:
+ mov 5,d0
+ movhu d0,(44,a3)                 /* label kind 5: text inline at +8 */
+ mov a3,a0
+ add 52,a0
+ mov 33,d3
+ clr d0
+1:
+ movhu d0,(a0)                    /* clear text[0..32] */
+ add 2,a0
+ add -1,d3
+ bne 1b
+ mov a3,a0
+ add 52,a0
+ mov 16,d3
+2:
+ movbu (a2),d0                    /* at most 16 characters */
+ cmp 0,d0
+ beq 3f
+ movhu d0,(a0)
+ inc a2
+ add 2,a0
+ add -1,d3
+ bne 2b
+ bra q_out
+3:
+ cmp 0,d1
+ beq q_out
+ cmp 10,d1
+ bcc q_out
+ add 0x30,d1                      /* the digit (values are within -5..5) */
+ movhu d1,(a0)
+q_out:
+ mov d2,d0
+ ret [d2,d3,a2,a3],28
+
+ .balign 4
+ex_ui_data:
+ex_tg:
+ .long ex_g0, ex_g1, ex_g2, ex_g3
+ex_tf:
+ .long ex_c_n, ex_c_z, ex_c_p
+ .long ex_a_n, ex_a_z, ex_a_p
+ .long ex_m_n, ex_m_z, ex_m_p
+ex_g0:
+ .asciz "1 Grain Off"
+ex_g1:
+ .asciz "1 Grain Low"
+ex_g2:
+ .asciz "1 Grain Medium"
+ex_g3:
+ .asciz "1 Grain High"
+ex_c_n:
+ .asciz "2 Glow "
+ex_c_z:
+ .asciz "2 Clarity/Glow 0"
+ex_c_p:
+ .asciz "2 Clarity +"
+ex_a_n:
+ .asciz "3 WB Blue "
+ex_a_z:
+ .asciz "3 WB Amber/Blue"
+ex_a_p:
+ .asciz "3 WB Amber "
+ex_m_n:
+ .asciz "4 WB Magenta "
+ex_m_z:
+ .asciz "4 WB Green/Mag."
+ex_m_p:
+ .asciz "4 WB Green "
+ex_t_other:
+ .asciz "Extras: 1-4 only"
+ex_t_all:
+ .asciz "Extras: no All"
+ex_ui_end:

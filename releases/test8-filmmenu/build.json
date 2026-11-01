@@ -1,0 +1,15 @@
+{
+  "components": [
+    "0x100"
+  ],
+  "edits": 79,
+  "changed_payload_bytes": 3016,
+  "spec": "generated/film_menu/t8.json",
+  "spec_sha256": "afa72b798890a013194180f16949f337444b873180a6bdefc6194b36ce8a8b69",
+  "stock_sha256": "9d1610124ad98f6edae4540182205f06c9c703d9033ef0c4f19847193f95eaeb",
+  "patched_sha256": "74db6d788bf9331549b7663ea55f6a3ecaa92c8d7ca06c10e1e508720a82740c",
+  "restore_sha256": "245b9c8fcf247a0271121238b09769b5d90f682924e3086aacc4762211b82612",
+  "bytes": 26214400,
+  "camera_contacted": false,
+  "note": "Not SD-loadable by name. Container validity != bootability."
+}

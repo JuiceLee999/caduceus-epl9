@@ -9,8 +9,12 @@ Evidence labels:
 - **[I]** inference: consistent with the data, not proven.
 - **[?]** open question.
 
-Patch: `patches/aspect/build.py` writes `patches/aspect/edits.json`. That file holds 101 edits, 950 bytes,
-all in component 0x100. The script also runs 136 emulator and parse checks, and all of them pass.
+Patch: `patches/aspect/build.py` writes `patches/aspect/edits.json`. That file holds **117 edits, 1437 bytes (v5: + 9 runtime-geometry edits, §1d)**; v4 had 108 edits, 1209 bytes (+ the 2 validator edits, §1c; v3 had 106 edits, 1192 bytes),
+all in component 0x100 (v3, 2026-11-02: the 103 v2 edits unchanged + 3 SCP/Live Control option-strip edits, §1b;
+v2 = 101 table/menu/switch edits as in v0.4 + the 2-edit boot clamp, §3(c)).
+The script also runs 198 emulator and parse checks (174 as in v2 + 24 SCP-strip checks), and all of them pass,
+standalone and with `--base` = test12d minus its aspect edits (= `generated/look_extras_12d/merged.json`, 101 edits;
+note `releases/test12d-editor/edits.json` itself already contains aspect v2, so it cannot be the base as-is).
 `tools/build_package.py` accepts the spec (it was test-built into the scratchpad only). `patches/aspect/scan_tables.py`
 is the table-inventory scanner.
 
@@ -38,6 +42,75 @@ is the table-inventory scanner.
   framework (0x60e0f8f3..). The relocated list keeps 17:9 **last** and unchanged, so the patch works whether
   the filter tests the value or the last index.
 
+### 1b. Why Panorama/Wide were missing from the SCP (camera test 12d), and every other aspect list (v3)
+
+Camera result on test12d: Panorama/Wide do **not** appear in the Super Control Panel aspect options (the main menu was not reported).
+The main-menu descriptor (above) is not used there. Every list in the image that enumerates the aspect values was
+found by a stride/width search for the value sequence 1,3,2,4,9 and the string-id sequences 292/291/293/1786/295, plus a scan for
+`{u16 270, u16 count, ptr}` records. All hits:
+
+| List | What it is | Enumerates choices? | v3 |
+|---|---|---|---|
+| 0x6117af14 → 0x6117a834 (6) | main menu Image Aspect | yes | relocated 8-entry list (v0.4) |
+| **0x61176fc0** `{270, 5, A 0x61175d78, B 0x61175db4}` | record 14 of the **Lv_Control select array** (header 0x61177140 `{0, 30, 0x61176e70}`, 30 × 24 B, class string `Lv_Control_Mode_Viewer::lv_vertical_select`, user 0x60e0a5fe/0x60e0a92b). Entries `{u32 value, u16 type 3, u16 bitmap, u32 cond 0x611744e4}`; A = white 50×38 icons 477/476/478/2422/479, B = green 64×48 icons 472/471/473/2421/475; values **1,3,2,4,9 only** | **yes**: the SCP/Live Control option strip; also the current-value cell icon (0x60e0aad4 → resolver) | **extended to 7** |
+| 0x6123dc94.. `{id, A, B, count}` (ids 0x1ff/0x200, count 5; lists 0x6123dbc4/dbec) and the skin-2 copy 0x6123f17c.. (0x6123ed6c/ed94) | display resources: value → bitmap u32 pairs, chosen by skin 220/221 (0x60ed8885) | no (value → icon lookup, bitmap only, no type field) | unchanged: a 6/7 lookup misses (no icon) [I] |
+| 0x611d6754 record `{0, 6, row labels, title 70, (28) 0x611d6228, (32..) pixel-string lists}` | quality / pixel-count screen (RAW/L/M/S/Super-L rows + "Image Aspect"; strings "5184x3888"…) | no: resolves the **current** aspect via 0x60df250b; count 6 is shared by all its lists | unchanged: for 6/7 the aspect label and pixel-size text are blank [I] |
+| 0x61162468.. (12 × 6), 0x611d3198.. (8 × 6), 0x61140d98.. (4 × 6), 0x6116daf4 (6 pairs, count at 0x60e00a39), 0x611743e8 → 0x61173d88 (map key 15, 5 entries) | LV display layout/position lookups keyed by the aspect (0x60df78bc.., 0x60e90c22, 0x60e00a1b, 0x60df7e83) | no | unchanged: a miss leaves the stock field as it was [I] |
+
+**Fix (v3):** the 270 record gets 7 entries: `1,3,2,4,9` (stock icons) + `6 = type 4 / string 241 "Panorama"`, `7 = type 4 / string 2661 "Wide"`
+in both lists. There is **no Panorama/Wide/65:24/21:9 bitmap** in the OSD resources (all aspect bitmaps were checked visually: 4:3, 16:9, 3:2, 1:1, 3:4, 17:9 only),
+so text entries are used. [V] The shared resolver 0x60df250b (also used by the main menu and the quality screen) fills
+the bitmap slot for type 3 and the **string slot (out+4) for type 4**, and runs the text path (memset + 0x600daed9 on the
+cond word, which is a zero word here exactly as for the main menu's 0x611799dc). Mixed type-3/type-4 lists under one cond are
+common in the image (e.g. 182 type-3 entries under the main menu cond). [I] Whether the strip widget draws a type-4 entry as text
+in a 50×38 / 64×48 cell, how it clips "Panorama", or whether it shows a blank cell is **not emulated** (renderer not traced). Worst
+expected case: a blank or clipped cell that still selects 6/7.
+Layout: list A is rewritten **in place** over the stock A+B block 0x61175d78–0x61175df0 (84 of 120 B; only the record points
+there [V xref]); list B (84 B) goes to the sec-6 tail **0x61242f60–0x61242fb4** (0x61242fb4–0x61243000 = sec-6 load end stays FF);
+the record becomes `{270, 7, 0x61175d78, 0x61242f60}`. 17:9 was never in this list and is still absent.
+Interaction [V]: the film-menu patch hooks the same resolver at its kind-4 points (0x60df255f → hookA 0x61242d10, 0x60df25dc → hookB).
+The R checks map the whole sec-6 tail, so on the 12d base they execute those hooks: the non-marker cond word falls through and the
+result is the stock text-entry result.
+
+### 1c. The real filter: the static setting validator (v4, camera test 12e)
+
+Camera result on test12e (aspect v3): Panorama/Wide appear in **neither** the main menu nor the SCP; only the stock options.
+- [V] Both option lists are filtered by the **static setting validator** 0x604cc98c (docs/BUTTONS.md §2): record 442 at
+  **0x604cec14** = `{sid 270, attr 0x80, list 0x604cb744, alt 0, bytes 5, elem 1, sub 0, type 1}`, u8 list **1,3,2,4,9**.
+  Count 0x602b9f70 / value-by-index 0x602b9fdb sit behind the GUI facade 0x607f9062 (vt+24 0x60826d53 → 0x602af8dc → 0x602b1776;
+  vt+28 0x60826d5f → 0x602af8a3) and the generic menu builder 0x60886900; dial stepping is 0x602b9cda. Sid 270 has no
+  registry record (0x604317ac, 439 × 60 B), so no dynamic-list hook, and it is not one of the two runtime slots (0x62245800).
+- This also explains the hidden **17:9** (§1): 10 is not in the validator list.
+- **Fix (v4):** the 7-byte list `01 03 02 04 09 06 07` at **0x60210f70** (sec-1 FF tail inside the aspect claim; sec 1 loads
+  first), record +4 → 0x60210f70, +12 bytes 5 → 7 (2 edits, 17 B). The descriptor/SCP lists of v3 stay (they supply labels).
+- Checks V1–V6 (emulated native hash init + count/value/step on stock vs patched): 270 enumerates 1,3,2,4,9,6,7 (stock 1,3,2,4,9);
+  10 still filtered; step walks the new list with stock wrap; 22 other sids unchanged. 205/205 PASS standalone and on the test12e base.
+
+### 1d. The real capture/LV geometry (v5, camera test 13)
+
+Camera result on test13 (v4): Panorama/Wide selectable, but Panorama saved **4544×3888** and Wide **4672×3888** (stock 7:6/6:5),
+embedded previews 896×768 / 912×760, ORF AspectFrame (320,0,4863,3887) / (256,0,4927,3887), and LV pillarboxed in the stock 7:6/6:5 frame.
+None of the 44 tables of §3(b) drives capture.
+- [V] **Capture size source**: two split u16 tables, **W 0x6053de1c / H 0x6053dfcc**, 9 ids × 24 size classes (48 B per id; class 0 = L,
+  2 = 160 thumb, 6 = 1024 preview, …), read through **0x603f0a04 (W) / 0x603f0a18 (H)** (`d0` = id, `d1` = class), ~80 call sites in
+  the job builder 0x603e3000–0x603f1200 and RAW develop 0x60c65fb0. Stock rows id 6 = 4544×3888 / 896×768, id 7 = 4672×3888 / 912×760:
+  exactly the test-13 files. `scan_tables.py` missed them because w and h sit in separate arrays (a stride search for 4544→4672 finds only this table besides the patched ones).
+- [V] **ORF AspectFrame**: 0x603ebe95 (job +5202 id → +5204..5210) dispatches through jump table **0x6053dd28** (index id−1) to a
+  width-limited case 0x603ebeac (ids 2,3,8) or a height-limited case 0x603ebed5 (ids 4,5,6,7,9). Emulated stock frames equal the test-13 ORF values.
+- [V] **LV/AF ratio**: 0x60552d75 returns a u8 (W,H) pair per id from the RAM `.data` copy 0x61f9eb54 of flash **0x60236e14** (boot copy
+  0x600201fe: flash 0x60230800–0x6025eb50 → RAM 0x61f98540, +0x1d67d40). Callers: 0x6029457e/0x60294637 (message +72/+73, sent via 0x605c4023)
+  and 0x60552651 (LV/AF struct +84/+85 → globals 0xa276f955/6, read by the AF/LV driver 0x605d–0x605e with special cases for 4:3/16:9/3:2/6:6/3:4/17:9 only).
+  A second, unreferenced u16 copy sits at 0x604e06ea. Per-id 320×240 bounds (x0,x1,y0,y1) at 0x604d9cd2 (read at 0x602ef370).
+- **Fix (v5, 9 edits)**: W/H rows of ids 6/7 → width = max(4:3, 16:9 width) per class, height to 16 (same rule as §3(b); L 5184×1920 / 5184×2224,
+  1024-class 1024×384/432, thumb 160×64; classes that stock leaves 0 stay 0); frame jump entries ids 6/7 → 0x603ebeac; u8 and u16 ratio pairs
+  7:6/6:5 → 65:24 / 21:9; 320-grid rows → (0,320,61,179) / (0,320,51,189).
+- Checks (`build.py --lean`, 36/36, also on the decoded test13 package): W getters ids 1,2,3,4,6,7,9 × classes 0/2/6 (6/7 new, others stock);
+  F native frame builder: id 6 (0,984,5183,2903), id 7 (0,832,5183,3055), ids 1–4/9 identical to stock (= camera ORF values);
+  R2 native 0x60552d75: 6 → (65,24), 7 → (21,9), others stock; G grid rows.
+- [I] Not emulated: the LV pipeline itself. That LV follows the ratio pair (not a size class) is inferred: the test-13 LV kept the stock frame while every size
+  table except W/H was already patched, and the ratio pair is the only per-id input sent to the LV/AF side. If LV is still 7:6-framed on camera, the next
+  suspects are the AF/LV driver's per-ratio special cases (0x605de36c, 0x605e6eda), which fall through for 7:6 as well as 65:24.
+
 ## 2. Consumers of the aspect id
 
 | # | Site | What it does | Status |
@@ -49,7 +122,7 @@ is the table-inventory scanner.
 | 5 | ORF/RAW: makernote tag table 0x604db9d0 | **0x1112 AspectRatio** (BYTE×2 ← job+5202/5203) and **0x1113 AspectFrame** (← +5204..5210). RAW develop 0x60c6362f–0x60c637ac computes the frame as a centred crop from RAM size tables (0x61fafdb0.., `.data` copies of the 0x6024xxxx arrays, offset +0x1d67d40); another writer is at 0x60c61b55 | [V] code; tag names from ExifTool [I] |
 | 6 | Display/LV geometry tables | 0x601e5fd0 (720×480 panel boxes), 0x601e6004 (1008×672), 0x601e6038 / 0x605223e8 (1024×768), rects 0x60533880 (640×480, 23 refs at 0x603b78b6..0x603c9a24) and 0x60533930 (320×240) | [V] data; [I] role |
 | 7 | Sec-5 UI switches (hard-coded) | **S1** 0x6088b29d, **S2** 0x6088b37f, **S3** 0x60899a34, **S4** 0x6089b7d7: id → 640-class size (immediates equal to table row 0x60b8ced0). **S5** 0x6086275e: id → ratio pair (W→(24,sp), H→(28,sp)). **S6** 0x60879ca9: id → fit group (ids 2,3,10 scale the height; ids 1,4..9 scale the width), plus a 16:9/17:9 special case at 0x60879e9a | [V] emulated |
-| 8 | "Image Aspect" icon (SCP / LV info) | Lists of (value, bitmap) pairs at 0x6123dbc4 (white 477/476/478/479/2422) and 0x6123dbec (green 472/471/473/475/2421), duplicated at 0x6123ed6c/0x6123ed94; descriptors `{id 0x1ff/0x200, listA, listB, count 5}` hold the pointers at 0x6123dd08/0x6123ddb8/0x6123f180/0x6123f43c. **Only ids 1,3,2,9,4** | [V] data |
+| 8 | "Image Aspect" icon (display resources) | Lists of (value, bitmap) pairs at 0x6123dbc4 (white 477/476/478/479/2422) and 0x6123dbec (green 472/471/473/475/2421), duplicated at 0x6123ed6c/0x6123ed94; records `{id 0x1ff/0x200, listA, listB, count 5}` at 0x6123dd04/0x6123ddb4/0x6123f17c/0x6123f438 (table 0x6123dc94, user 0x60ed8885). **Only ids 1,3,2,9,4**. The SCP/Live Control strip has its own lists (§1b) | [V] data |
 | 9 | Menu label | String id taken from the option list (sec-6 data) | [V] |
 | 10 | Playback edit "Aspect" (string 563) | Separate list at 0x61241ddc (3:2/16:9/1:1/3:4); crops an existing JPEG; not the setting | [V] data; [I] role |
 | 11 | LV grid bitmaps 5996–6143 (720×480 / 640×480 / 720×405 / 480×480 / 360×480) | Selection code **not located** | [?] |
@@ -94,7 +167,25 @@ within 3.5 % in u16 (w,h), u16 rects, u16 (id,0,w,h), u16 (w,h,code) and u32 (id
 - **Code** [V]: S1–S4 and S5 get new case blocks (11 B each) at **0x60210f00–0x60210f6e** (sec-1 tail; sec 1 loads before
   sec 5). Only their jump-table entries change (4 B each). S6 entries for ids 6/7 are redirected to the
   existing width-limited case 0x60879e70 (data only).
-- Not changed: the icon lists (#8), the playback edit list (#10), the LV grid bitmaps (#11).
+- Not changed: the icon lists (#8), the playback edit list (#10), the LV grid bitmaps (#11). The SCP/Live Control strip is extended in v3 (§1b).
+
+### (c) Boot clamp: a saved Panorama/Wide never reaches a boot (review v0.3 H3 / v0.4 M4; v2)
+- [V] Boot phase 2 (trace marks "2_l" → "2_o", 0x60190fb9..0x60190fda) calls 0x60192961 once. That function
+  loads the settings store (0x602b039a, between the "MCS"/"MCE" trace strings 0x601e708c/0x601e7090), then runs
+  the stock per-boot resets: 0x602af9e1 (normal) or 0x602af9f9 (boot reasons 7/9), each gated on byte
+  0x62257b04 != 1. Both resets use **0x602b972b(d0 = count, a0 = u16 id list)**: for each id,
+  default = 0x602b9bad(id), then 0x602cbc5d / 0x602cc122 / 0x602cc0d0. The 626-entry list (taken when setting 10049 != 0) already
+  contains 270, so stock itself resets the aspect with this primitive at this point.
+- Hook 0x601929a4 (`mov 0x601e7090,a0`, 6 B, the common tail of both branches) → `jmp clamp; nop`. The clamp
+  (0x60210e90, 56 B incl. the list) is: gate byte == 1 → skip; `v = 0x602cbc0a(270)`; if v ∈ {6, 7}:
+  `0x602b972b(1, [270])` (so v becomes the stock default 1 = 4:3, record `8130 0100 0100`); then it replays
+  the `mov` and jumps to 0x601929aa (`call 0x60023079`, which overwrites d0/d1 first). d2/d3/a2/a3/sp unchanged.
+- Effect: Panorama/Wide is a **per-session** choice. Every power-on starts in 4:3, so a fault that is specific to ids 6/7 cannot recur at every boot.
+  If XPan crashed live view, a battery pull would bring the camera back to 4:3 on the patched firmware, with no reflash.
+  Values 1..5 and 8..10 are never touched (3:2/16:9/1:1/3:4 users keep their choice). A stock restore after a
+  patched power-on finds 4:3 (M4 mitigated unless the camera is switched off while still in Panorama/Wide. Stock reads that as its native hidden 7:6/6:5).
+- Not covered: whether wake from sleep counts as a boot (if it does, XPan also resets on wake: cosmetic), and the real
+  listeners behind 0x602cbc5d at this point (the same calls stock makes here for its 27/6/626-id lists).
 
 ### What the user would see [I]
 - Menu: "Panorama" and "Wide" after 3:4.
@@ -104,7 +195,7 @@ within 3.5 % in u16 (w,h), u16 rects, u16 (id,0,w,h), u16 (w,h,code) and u32 (id
 - LV and info screen: S1–S6 and the rect tables give the new frame. The aspect icon for ids 6/7 has **no entry**.
   What happens on a miss is unknown (blank is likely).
 
-## 4. Emulator checks (`python3 patches/aspect/build.py`, 137/137 PASS in v0.4)
+## 4. Emulator checks (`python3 patches/aspect/build.py [--base SPEC]`, 198/198 PASS in v3; 174/174 in v2; 137/137 in v0.4)
 
 | Check | Stock → patched (id 6 / id 7) |
 |---|---|
@@ -116,6 +207,22 @@ within 3.5 % in u16 (w,h), u16 rects, u16 (id,0,w,h), u16 (w,h,code) and u32 (id
 | S5 ratio, ids 1,2,3,6,7,8,10 | (7,6)/(6,5) → (65,24)/(21,9) |
 | S6 fit group | ids 6/7 now reach the width-limited case 0x60879e70; ids 2/3/10 unchanged |
 | M menu | descriptor → 8 entries, as listed above |
+| B0 | stock boot tail 0x601929a4 → 0x601929aa: a0 = "MCE" string, no reset |
+| B1 | the clamp's id list is the single u16 270 (2-aligned) |
+| B2 (33) | boot tail with getter(270) = 0..10 × gate byte 0/1/2 (0x602b972b recorder): reset called **only** for 6/7 with gate != 1, with (d0 = 1, a0 = list); always reaches 0x601929aa with a0 = stock, d2/d3/a2/a3/sp preserved, no fault |
+| B3 | native 0x602b972b on [270] (callees stubbed): default lookup for 270, then setter(270, default) |
+| B4 | defaults record of key 0x3081 = 1 (4:3) |
+| P1 | SCP/Live Control record 0x61176fc0: count 7, A = 1,3,2,4,9 (white icons) + 6/241, 7/2661 (type 4); B the same with green icons |
+| P2 | record list B = 0x61242f60; 0x61242fb4–0x61243000 still FF |
+| R (22) | native resolver 0x60df250b on the record's list A and B, values 0..10 (memset/strlen stubbed, sec-6 tail mapped): stock 6/7 not found → patched type 4 with string 241/2661; 1,2,3,4,9 identical (type 3, same bitmap); 0,5,8,10 not found in both; regs/sp preserved. On the 12d base this runs through the film-menu resolver hooks |
+
+v3 mutations (scratch): record count left at 5 → R fails for 6/7; list B pointer left at stock → P1/P2 fail (R alone would not: the new list A's tail now sits at the old B address).
+Mutations (scratch, not shipped): bhi→bcc, gate beq→bne, add −7, cmp 2, count 2, list+2, call mask → all caught.
+v2 also re-ran on the merged image test12c + aspect (generated/aspect_v2/): look editor S/G/W/E/V/I/T PASS, SD v3
+E/Q/A/R/N PASS, bloom T1–T5 PASS, clarity C/D/S PASS. Film-menu S and clarity L fail **identically on the 12c spec alone**, which is a pre-existing verifier/spec
+mismatch and not caused by aspect. The look-editor M part rebuilds its mutants from the live patches/look_editor sources, which the 12d work is changing. So M is not meaningful against 12c here: 9/41 on the merged spec and 3/41 on 12c alone, run minutes apart while those files changed. Re-run M on the 12d build.
+The decoded merged package == the emulated stock+12c+aspect image. It differs from test12c's package only at the 621 aspect bytes.
+Restore sha is unchanged (245b9c8f…).
 
 **Not emulated**: the JPEG encoder, thumbnail/EXIF writer, ORF writer, LV pipeline (rect users) and menu rendering.
 
@@ -128,15 +235,42 @@ within 3.5 % in u16 (w,h), u16 rects, u16 (id,0,w,h), u16 (w,h,code) and u32 (id
    so it is consistent on this camera. Stock-firmware cameras or other bodies that read these files see "7:6/6:5" ids with
    XPan pixels. Most likely a wrong frame or letterbox, not a crash, but this is untested. A hard crash path could
    come from consumers that use the id as an index into fixed-size per-aspect arrays not found here (#11, #12, #13).
-4. **Icon lookup miss** (#8): behaviour is unknown. Mitigation: relocate both icon lists (+2 entries each, reusing e.g. 16:9
+4. **Icon lookup miss** (#8, and the quality screen / LV layout lookups in §1b): behaviour is unknown. Mitigation: relocate both icon lists (+2 entries each, reusing e.g. 16:9
    bitmaps) and bump the count to 7.
 5. **17:9 filter unknown** (§1): if the filter hides entries by **index**, the new order could expose 17:9 or hide "Wide".
    Check on camera first. A fallback is to put 17:9 back at index 5.
 6. **Art filters / bracketing / multi-exposure / digital tele-converter (setting 34)**: not traced. These may carry their
    own per-aspect geometry.
 7. **Unverified section residency assumptions**: sec-1 and sec-6 FF tails are inside the loaded ranges
-   (`tools/ep7_code_space.py`); the sec-6 tail has a few static false-positive hits (none in 0x61242f00–0x61242f60).
+   (`tools/ep7_code_space.py`); the sec-6 tail has a few static false-positive hits (none in 0x61242f00–0x61242f60; v3: no abs32/uncached/rel refs into the list-B range 0x61242f60–0x61242fb4 either).
 8. The 3968-px (w,h,code) table and the RAM `.data` copies are patched for consistency. Their users on E-P7 are not traced.
 
 Next steps: trace the 17:9 menu filter and the icon-miss path; locate the LV-grid bitmap selector; test once on a
 camera with JPEG+ORF in each new aspect (check the JPEG dims, the ORF 0x1113 frame, the LV frame, the playback and the info icon).
+9. **Boot clamp is boot-time code (v2)**: it runs on every power-on. On the common path (setting ≠ 6/7) it only reads the
+   gate byte and calls the getter, which stock also does at this point. A fault here would bootloop every boot. The SD updater
+   is camera-proven to recover from a bootloop (WORKLOG, test 3). The reset call runs only when the stored aspect is 6/7.
+10. **Mixing (H3 proper)** is unchanged *within* a session: untraced consumers (grid selector, art/bracketing/tele-converter,
+   18 key-0x3081 sites) can still disagree with the patched tables while Panorama/Wide is selected. The clamp only removes
+   the "every boot" part and gives an escape without a reflash (battery pull → 4:3).
+11. **SCP strip text entries (v3)** [I]: type-4 text in a cell sized for 50×38 icons may clip ("Panorama") or render blank. The value is still selectable.
+   A fallback is to borrow a stock icon (misleading) or add bitmaps through component 0x101.
+
+## 6. Camera plan (folded into the combined 12d build; one session, stop at the first surprise)
+0. Before flashing: aspect 4:3 (it is reset at boot anyway). After flashing, power on: the camera boots normally, in 4:3.
+1a. **SCP (v3)**: SCP → aspect → the option strip shows 4:3, 16:9, 3:2, 1:1, 3:4, then **Panorama**, **Wide** as text cells
+   (or blank/clipped cells: note which). Select each from the SCP and check the cell, then try the front dial on the SCP cell. If the camera has Live Control
+   enabled in some mode, check it once too (same list).
+1. **Menu**: Shooting menu → Image Aspect lists 4:3, 16:9, 3:2, 1:1, 3:4, **Panorama**, **Wide**, (17:9 hidden as on
+   stock?). Note whether 17:9 appears or Wide is missing (risk 5).
+2. **LV framing**: choose Panorama. Live view shows a wide letterboxed frame (65:24), and the info-screen aspect icon may be blank (risk 4).
+   Try the grid display and the Art filters once and note anything odd. Then choose Wide (21:9).
+3. **Shots**: in each of Panorama and Wide, take a JPEG (L-F) + RAW, then JPEG M and S.
+   On the PC: L = **5184×1920** (Panorama) / **5184×2224** (Wide). Other sizes are full width with a height that is a multiple of 16 (e.g. 3200×1184/1376,
+   1280×480/544). `exiftool -AspectRatio -AspectFrame -ImageSize`: AspectRatio prints "7:6"/"6:5" (id, expected), and
+   AspectFrame is the centred crop of those dims.
+4. **Playback**: the shots play back with the right shape. Zoom and the info display work. Thumbnails/index are not distorted.
+5. **Boot clamp**: with Panorama selected, power off and on. The camera boots in **4:3** (by design).
+6. **Back to stock**: select 4:3 and take a shot: 5184×3888, the same as before. Check 3:2 and 16:9 once: 5184×3456 / 5184×2920 (stock sizes).
+Escape: if live view or the camera hangs in Panorama/Wide, pull the battery. The next boot is 4:3. If it does not boot,
+do the OK+power stock restore.

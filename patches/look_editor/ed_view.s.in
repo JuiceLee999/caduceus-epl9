@@ -1,0 +1,270 @@
+/* E-P7 1.1 look editor, test 12e: page key, stock INFO, plain guide text (ep7-firmware, our own code).
+ * docs/LOOK_EDITOR.md. Section 5 FF tail (loads before section 6).
+ *
+ * Pages (axis byte P+{axis}): 0 Saturation (stock), 1 Light, 2 Hue, 3 Film (film_menu_v2 layer), 4 Extras
+ * (look_extras layer). Page order on the page key: Saturation -> Hue -> Light -> Film -> Extras -> Saturation.
+ * Film is a stop only while the film layer's fm_valid says LOOKS.BIN is loaded; Extras only when the extras layer
+ * has set ed_cfg_x (its axis value, 0 = no X stop).
+ *
+ *   ed_page  <- COLOR1-4 parent records +36 (0x61185c00/c38/c70/ca8; stock 0x60e22191), copied to parent+72: the
+ *               router 0x60e20cdc sends every event it does not route elsewhere there, including MENU 0x900e
+ *               (stock: close the editor, a3 = 3) and PLAYBACK 0x9010 (stock: not handled -> the outer screen
+ *               goes to playback). CALLS entry: d0 event, d1 arg, a0 parent.
+ *               {key_a} / {key_b} with a card table and the editor guards: next page. ALL on (only possible on
+ *               Saturation) is first turned off by the stock INFO handler (called with 0x9014); if stock leaves it
+ *               on, its result is returned and nothing else changes. After the step: stock child refresh
+ *               0x60de3670 on children 1..12, then ed_poke (the cursor setting re-written so the screen rebuilds),
+ *               return 1. Every other event, no table or a guard failure: jmp 0x60e22191, registers intact.
+ *   ed_info  <- COLOR1-4 parent records +44 (stock 0x60e22579, INFO 0x9014 -> ALL/Single toggle).
+ *               Saturation page (or no table / guard failure): jmp to the stock handler, registers intact.
+ *               Other pages with ALL off: return 1 (INFO does nothing; ALL stays off). With ALL on: stock (it
+ *               turns ALL off).
+ *   ed_guide <- .data init image word 0x6025aa98 (stock 0x60decbfc, the guide writer, view part 3).
+ *               Stock writes id 2755 "All colors[INFO]" when ALL is off and 2756 when ALL is on. With a card
+ *               table the label becomes kind 5 plain text for the current page (at most 16 characters):
+ *               "Saturation", "Saturation - All", "Hue", "Light", "Film: <name>" ("Film <name>" for an
+ *               11-character name, the name alone above that; "Stock" for an empty slot, "Custom" for a slot
+ *               without a name). Page >= 4: the stock label (the extras layer relabels Extras itself).
+ *               13: on Film a '*' follows the name when the film layer's fm_mod (word ed_cfg_fm) says the slot
+ *               entry differs from the picked library look ("Film: Velvia*"); the name is cut to keep 16.
+ *   ed_poke (ed_ui) <- jmp from ed_page after a page step.
+ * Stores: the label in the view object (heap), the heap block P (axis, marker), the stack.
+ * No absolute stores, no mul/div, no setlb/Lcc.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+ .set PROBE, {probe}
+
+/* P validation: out a2 = P; uses d3, a2. */
+ .macro PVAL miss
+ movhu ({state}),d3
+ add -1,d3
+ cmp {lim},d3
+ bcc \miss
+ btst 3,d3
+ bne \miss
+ mov d3,a2
+ add {pool},a2
+ mov (a2),d3
+ cmp {bmagic},d3
+ bne \miss
+ .endm
+
+/* copy ASCIZ a1 -> label units at a0 while d3 > 0 (d3 = characters left) */
+ .macro PUT
+91:
+ cmp 0,d3
+ beq 92f
+ movbu (a1),d0
+ cmp 0,d0
+ beq 92f
+ movhu d0,(a0)
+ inc a1
+ add 2,a0
+ add -1,d3
+ bra 91b
+92:
+ .endm
+
+ed_guide:                         /* CALLS entry, a0 = view */
+ movm [d2,d3,a2,a3],(sp)
+ add -16,sp                       /* (0) clobbered by calls, (4) facade out / then the '*' flag, (8) stock result, (12) P */
+ mov a0,a3
+ clr d0
+ mov d0,(4,sp)                    /* 13: no '*' unless the Film page finds the slot modified */
+ calls ep7_guide                  /* the stock part, a0 = view */
+ mov d0,(8,sp)                    /* its result, returned unchanged */
+ movhu (44,a3),d0
+ cmp 4,d0
+ bne g_out                        /* not a string-id label */
+ movhu (48,a3),d0
+ mov ed_t_nul,a1                  /* 2755 (stock "All colors[INFO]"): ALL is off */
+ cmp 2755,d0
+ beq 1f
+ mov ed_t_all,a1                  /* 2756 (stock "Single color[INFO]"): ALL is on */
+ cmp 2756,d0
+ bne g_out                        /* not the COLOR editor guide */
+1:
+ mov a1,d2                        /* d2 = second text (suffix) */
+ PVAL g_out                       /* no card table: stock label */
+ clr d1
+ mov ({emark},a2),d3
+ cmp {emagic},d3
+ bne 2f                           /* no page step yet since the load: Saturation */
+ movbu ({axis},a2),d1
+ cmp 4,d1
+ bcc g_out                        /* Extras (or garbage): stock label */
+2:
+ mov d1,d0
+ asl 4,d0
+ mov ed_t_ax,a1
+ add d0,a1                        /* a1 = first text: the page word (16-byte slots) */
+ cmp 3,d1
+ bne g_write
+ mov a2,(12,sp)                   /* Film page: slot k from the picture mode (setting 111) */
+ call ep7_facade,[],4             /* a0 = OlyApiSettingControllerController */
+ mov (a0),a2
+ mov (8,a2),a2                    /* GetValue(111, &out) */
+ mov sp,a1
+ add 4,a1
+ mov 111,d0
+ calls (a2)
+ mov (12,sp),a2
+ cmp 0,d0
+ bne g_out
+ mov (4,sp),d0
+ clr d1
+ cmp 54,d0
+ beq 4f
+ inc d1
+ cmp 55,d0
+ beq 4f
+ inc d1
+ cmp 56,d0
+ beq 4f
+ inc d1
+ cmp 64,d0
+ bne g_out                        /* not a COLOR profile: stock label */
+4:
+ mov d1,(4,sp)                    /* (4,sp) = k until fm_mod has answered */
+ mov d1,d0                        /* d1 = k */
+ asl 6,d0
+ add a2,d0
+ mov d0,a0
+ movbu (63,a0),d3                 /* slot flags (entry +31): 0 = stock entry */
+ mov (672,a2),d0
+ cmp {nmagic},d0
+ bne 5f                           /* no names: Stock / Custom */
+ mov d1,d0                        /* name P+544+16k */
+ asl 4,d0
+ add a2,d0
+ add 544,d0
+ mov d0,a1
+ movbu (a1),d0
+ cmp 0,d0
+ bne 6f                           /* a name */
+5:
+ mov ed_t_stock,a1
+ cmp 0,d3
+ beq 6f
+ mov ed_t_custom,a1
+6:
+ mov a1,d2                        /* d2 = second text: the name; d1 = its length (<= 15 by the file rules) */
+ mov (4,sp),d1                    /* 13: film layer fm_mod(P, k) -> 1 = slot differs from its library look */
+ mov (ed_cfg_fm),a0
+ calls (a0)                       /* keeps d2/d3/a2/a3 */
+ and 1,d0
+ mov d0,(4,sp)                    /* (4,sp) = '*' flag */
+ mov d2,a1
+ mov d0,d1                        /* the '*' counts as one more name character */
+7:
+ movbu (a1),d0
+ cmp 0,d0
+ beq 8f
+ inc a1
+ inc d1
+ bra 7b
+8:
+ mov ed_t_film,a1                 /* "Film: " (6) for names up to 10 characters */
+ cmp 11,d1
+ bcs g_write
+ mov ed_t_film2,a1                /* "Film " (5) for 11 */
+ cmp 11,d1
+ beq g_write
+ mov ed_t_nul,a1                  /* longer: the name alone */
+g_write:                          /* a1 = first text, d2 = second text, (4,sp) = '*' flag */
+ mov 5,d0
+ movhu d0,(44,a3)                 /* label kind 5: text inline at +8 (id at +4 left as is) */
+ mov a3,a0
+ add 52,a0
+ mov 33,d3
+ clr d0
+3:
+ movhu d0,(a0)                    /* clear text[0..32] */
+ add 2,a0
+ add -1,d3
+ bne 3b
+ mov a3,a0
+ add 52,a0
+ mov 16,d3                        /* d3 = characters left: at most 16 */
+ mov (4,sp),d0
+ sub d0,d3                        /* one kept for the '*' */
+ PUT
+ mov d2,a1
+ PUT
+ mov (4,sp),d0
+ cmp 0,d0
+ beq 9f
+ mov 0x2a,d0                      /* '*': the slot differs from the picked look */
+ movhu d0,(a0)
+ add 2,a0
+9:
+ call ed_probe,[d2,a2],8          /* key probe code (PROBE 1), else nothing */
+g_out:
+ mov (8,sp),d0
+ ret [d2,d3,a2,a3],32
+
+/* ed_probe: `call ed_probe,[d2,a2],8`. a0 = next text unit of the label, d3 = characters left. PROBE 1 and a
+ * valid P: appends " RRRR" (last router code) or " oOOOO" (last outer code, when it differs), cut at d3.
+ * Clobbers d0, d1, d3, a0, a1. */
+ed_probe:
+ .if PROBE
+ mov d3,d2
+ PVAL p_out
+ mov d2,d3
+ movhu ({probe_r},a2),d1
+ movhu ({probe_o},a2),d0
+ mov ed_t_sp,a1                   /* " " */
+ cmp d0,d1
+ beq 4f
+ mov d0,d1                        /* the outer level saw a code the router did not: "o" + outer code */
+ mov ed_t_o,a1
+4:
+ PUT
+ mov 4,d2
+5:
+ cmp 0,d3
+ beq p_out
+ mov d1,d0
+ lsr 12,d0
+ and 15,d0
+ cmp 10,d0
+ bcs 6f
+ add 7,d0                         /* 'A'..'F' */
+6:
+ add 0x30,d0
+ movhu d0,(a0)
+ add 2,a0
+ add -1,d3
+ asl 4,d1
+ add -1,d2
+ bne 5b
+ .endif
+p_out:
+ ret [d2,a2],8
+
+ .balign 4
+ed_view_data:
+ed_t_ax:                          /* 16-byte slots: page 0 Saturation, 1 Light, 2 Hue */
+ .ascii "Saturation\0\0\0\0\0\0Light\0\0\0\0\0\0\0\0\0\0\0Hue\0\0\0\0\0\0\0\0\0\0\0\0\0"
+ed_t_all:
+ .asciz " - All"
+ed_t_film:
+ .asciz "Film: "
+ed_t_film2:
+ .asciz "Film "
+ed_t_stock:
+ .asciz "Stock"
+ed_t_custom:
+ .asciz "Custom"
+ed_t_nul:
+ .byte 0
+ .if PROBE
+ed_t_sp:
+ .asciz " "
+ed_t_o:
+ .asciz " o"
+ .endif
+ed_view_end:

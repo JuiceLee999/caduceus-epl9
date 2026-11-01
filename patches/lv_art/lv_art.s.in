@@ -1,0 +1,78 @@
+/* E-P7 1.1 live-view look preview, phase 1 (our own code; ep7-firmware). docs/LV_ART_PREVIEW.md
+ *
+ * Hook: 0x60353c6f in the job constructor 0x603537eb, just before it dispatches the new job to the
+ * work-list builders (0x60354709 -> 0x60356297 -> 0x60357415). Stock there:
+ *     0x60353c6f  9c              mov a3,a0
+ *     0x60353c70  cd 99 0a b0 10  call 0x60354709,[d2,a2,a3],16
+ * Both are replayed below; we resume at 0x60353c75.
+ *
+ * Acts only when ALL hold (anything else: the job is untouched):
+ *   - the constructor was called from the record-path IPCR development handler 0x60321d3b (return word
+ *     (44,sp) == {lv_ret}); still captures come from the converters' own call sites;
+ *   - job key (job+11308) == 11 (COLOR);
+ *   - job type (job+20) high nibble 0x30 and not 0x1xx (the record-path type from 0x60313931; it maps to
+ *     job classes 5..8, which run the single-pass Soft Focus variant 0x6035cc1b);
+ *   - effective COLOR profile (property 0xF6B1, stock getter, as patches/lv_bundles) is 1..4;
+ *   - the slot (bundle table via the SD loader v3 accessor) asks for something this build previews:
+{feat_doc}
+ * Then it writes the same capture transport conv1/conv2 write (job+15488 profile, +15489 = 11,
+ * +15490 = 0xB2), so the existing per-profile readers (bundles `hl`, bloom_w, grain) treat the live-view
+ * job like a capture of that profile, and, for a bloom slot, sets job flag 0x80 (Soft Focus passes).
+ *
+ * Registers: d2/d3 saved in our frame; d0/d1/a0/a1 are dead here (the replayed call clobbers them).
+ * Stores: our stack frame, job+16 (flag word) and the 3 transport bytes. No absolute stores.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+lv_art:
+ add -12,sp                          /* (0,sp) = scratch: call return words land here */
+ mov d2,(4,sp)
+ mov d3,(8,sp)
+ mov (56,sp),d0                      /* constructor return word: (44,sp) at hook + our 12 */
+ cmp {lv_ret},d0
+ bne out
+ mov ({key_off},a3),d0               /* job key */
+ cmp 11,d0
+ bne out
+ movhu ({type_off},a3),d0            /* job type */
+ mov d0,d1
+ and 240,d1
+ cmp 48,d1                           /* 0x30: record-path live-view/movie job */
+ bne out
+ and 3840,d0
+ cmp 256,d0                          /* 0x1xx: stock strips the effect flags */
+ beq out
+ mov {prop_profile},d0               /* effective COLOR profile number (setting 908) */
+ clr d1
+ mov 0,a0                            /* global lookup */
+ call ep7_getter,[d2,d3],12
+ add -1,d0
+ cmp 4,d0
+ bcc out                             /* unsigned: 0 and 5.. rejected */
+ mov d0,d3                           /* slot */
+{tbl_slot}
+ clr d2                              /* bit0 = transport, bit1 = Soft Focus flag */
+{feat_code}
+ cmp 0,d2
+ beq out
+ inc d3                              /* profile 1..4 */
+ movbu d3,({ext_profile},a3)
+ mov 11,d0
+ movbu d0,({ext_mode},a3)
+ mov {magic},d0
+ movbu d0,({ext_magic},a3)
+ btst 2,d2
+ beq out
+ mov ({flags_off},a3),d0
+ or 128,d0                           /* job flag 0x80: Soft Focus passes */
+ mov d0,({flags_off},a3)
+out:
+ mov (4,sp),d2
+ mov (8,sp),d3
+ add 12,sp
+ mov a3,a0                           /* replayed 0x60353c6f */
+ call ep7_dispatch,[d2,a2,a3],16     /* replayed 0x60353c70 */
+ jmp ep7_resume                      /* 0x60353c75 */
+code_end:

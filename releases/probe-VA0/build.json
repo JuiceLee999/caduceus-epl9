@@ -1,0 +1,15 @@
+{
+  "components": [
+    "0x100"
+  ],
+  "edits": 38,
+  "changed_payload_bytes": 2732,
+  "spec": "generated/view_assist/probe_merged.json",
+  "spec_sha256": "46aed94ab6f85f7905eed513a19750bdb909496a92c04e9006a9ac3ee0dbff29",
+  "stock_sha256": "9d1610124ad98f6edae4540182205f06c9c703d9033ef0c4f19847193f95eaeb",
+  "patched_sha256": "8375b622eebd0e73bfce05eb82757fe5460ca7c1ceb7ac9de3953fa8b6e5aea0",
+  "restore_sha256": "245b9c8fcf247a0271121238b09769b5d90f682924e3086aacc4762211b82612",
+  "bytes": 26214400,
+  "camera_contacted": false,
+  "note": "Not SD-loadable by name. Container validity != bootability."
+}

@@ -1,0 +1,250 @@
+/* E-P7 1.1 look editor, test 12e: page key + INFO (sec 1, dead EVF step-3 gamma tables) (ep7-firmware, our own code).
+ * docs/LOOK_EDITOR.md. Section 5 FF tail (loads before section 6).
+ *
+ * Pages (axis byte P+{axis}): 0 Saturation (stock), 1 Light, 2 Hue, 3 Film (film_menu_v2 layer), 4 Extras
+ * (look_extras layer). Page order on the page key: Saturation -> Hue -> Light -> Film -> Extras -> Saturation.
+ * Film is a stop only while the film layer's fm_valid says LOOKS.BIN is loaded; Extras only when the extras layer
+ * has set ed_cfg_x (its axis value, 0 = no X stop).
+ *
+ *   ed_info  <- COLOR1-4 parent records +44 (stock 0x60e22579, INFO 0x9014 -> ALL/Single toggle). With a card
+ *               table and the editor guards INFO steps the page (12e; MENU/PLAYBACK are consumed by the outer screen
+ *               on the camera): Saturation (ALL off) -> stock handler (ALL on = Saturation - All); ALL on -> the stock
+ *               handler is called (ALL off; if stock leaves it on, its result is returned) then the next page;
+ *               other pages -> next page. Next: S -> H -> L -> F (fm_valid) -> X (ed_cfg_x) -> S. After a step:
+ *               child refresh 1..12, ed_poke, return 1. No table / guard failure / other events: jmp stock.
+ *   ed_guide <- .data init image word 0x6025aa98 (stock 0x60decbfc, the guide writer, view part 3).
+ *               Stock writes id 2755 "All colors[INFO]" when ALL is off and 2756 when ALL is on. With a card
+ *               table the label becomes kind 5 plain text for the current page (at most 16 characters):
+ *               "Saturation", "Saturation - All", "Hue", "Light", "Film: <name>" ("Film <name>" for an
+ *               11-character name, the name alone above that; "Stock" for an empty slot, "Custom" for a slot
+ *               without a name). Page >= 4: the stock label (the extras layer relabels Extras itself).
+ *   ed_poke (ed_ui) <- jmp from ed_info after a page step.
+ * Stores: the label in the view object (heap), the heap block P (axis, marker), the stack.
+ * No absolute stores, no mul/div, no setlb/Lcc.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+ .set PROBE, {probe}
+
+/* P validation: out a2 = P; uses d3, a2. */
+ .macro PVAL miss
+ movhu ({state}),d3
+ add -1,d3
+ cmp {lim},d3
+ bcc \miss
+ btst 3,d3
+ bne \miss
+ mov d3,a2
+ add {pool},a2
+ mov (a2),d3
+ cmp {bmagic},d3
+ bne \miss
+ .endm
+
+/* ed_info (record +44): CALLS entry, d0 event, d1 arg, a0 parent. 12e: INFO is the page key:
+ * Saturation -> Saturation-All (stock) -> Hue -> Light -> Film (film layer) -> Extras (extras layer) -> Saturation. */
+ed_info:
+ cmp 0x9014,d0
+ beq k_go
+ jmp ep7_info
+k_go:
+ movm [d2,d3,a2,a3],(sp)
+ add -12,sp
+ mov d0,(0,sp)
+ mov d1,(4,sp)
+ mov a1,(8,sp)
+ mov a0,a3
+ cmp 0,a3
+ beq f_no
+ movhu (100,a3),d0                /* editor key -> first sector setting id in d2 */
+ mov 927,d2
+ cmp 0x13b3,d0
+ beq 2f
+ mov 939,d2
+ cmp 0x13b4,d0
+ beq 2f
+ mov 951,d2
+ cmp 0x13b5,d0
+ beq 2f
+ mov 1655,d2
+ cmp 0x140c,d0
+ bne f_no
+2:
+ movhu (120,a3),d0
+ cmp 13,d0
+ bne f_no
+ mov (16,a3),d0                   /* no held-key / timer gesture in progress */
+ cmp 0,d0
+ bne f_no
+ mov (44,a3),d0
+ cmp 0,d0
+ bne f_no
+ PVAL f_no
+ mov a3,a0                        /* children 1..12: present, ids d2..d2+11 in order */
+ mov 12,d1
+ mov d2,d0
+3:
+ mov (128,a0),a1
+ cmp 0,a1
+ beq f_no
+ movhu (84,a1),d3
+ cmp d0,d3
+ bne f_no
+ inc d0
+ add 4,a0
+ add -1,d1
+ bne 3b
+ mov ({emark},a2),d0              /* first use since the load: marker, page Saturation */
+ cmp {emagic},d0
+ beq 4f
+ clr d0
+ movbu d0,({axis},a2)
+ movbu d0,({dirty},a2)
+ movbu d0,({status},a2)
+ mov {emagic},d0
+ mov d0,({emark},a2)
+4:
+ movbu ({axis},a2),d1
+ mov (0x61fc3800),d0              /* ALL state (read only; only stock code changes it) */
+ mov (0x61fc3804),d3
+ or d3,d0
+ cmp 0,d0
+ bne k_off
+ cmp 0,d1
+ beq f_no                         /* Saturation, ALL off: stock INFO turns ALL on (Saturation - All) */
+ bra k_step                       /* other pages: next page */
+k_off:
+ mov a3,a0                        /* ALL on: the stock INFO handler turns it off */
+ mov 0x9014,d0
+ mov (4,sp),d1
+ mov (8,sp),a1
+ calls ep7_info                   /* keeps d2/d3/a2/a3 (ret [d2,d3,a2,a3],56) */
+ mov d0,(0,sp)
+ mov (0x61fc3800),d1
+ mov (0x61fc3804),d3
+ or d3,d1
+ beq k_step
+ mov (0,sp),d0                    /* stock left ALL on: its result, no page change */
+ ret [d2,d3,a2,a3],28
+k_step:
+ movbu ({axis},a2),d0             /* S -> H -> L -> (F) -> (X) -> S */
+ mov 2,d1
+ cmp 0,d0
+ beq k_set
+ mov 1,d1
+ cmp 2,d0
+ beq k_set
+ cmp 1,d0
+ bne k_afterf
+ mov (ed_cfg_fv),a0               /* film layer: fm_valid (CALLS, a2 = P) -> d0 1 = LOOKS.BIN loaded */
+ calls (a0)
+ mov 3,d1
+ cmp 0,d0
+ bne k_set
+ bra k_x
+k_afterf:
+ clr d1
+ cmp 3,d0
+ bne k_set                        /* Extras (4) and anything else -> Saturation */
+k_x:
+ mov ed_cfg_x,a0                  /* extras layer: its page value, 0 = none */
+ movbu (a0),d1
+k_set:
+ movbu d1,({axis},a2)
+ mov 128,d2                       /* refresh children 1..12 from the facade (stock routine) */
+5:
+ mov a3,a0
+ add d2,a0
+ mov (a0),a0
+ call ep7_refresh,[d2,d3,a2,a3],60
+ add 4,d2
+ cmp 176,d2
+ bne 5b
+ jmp ed_poke                      /* ed_ui: cursor re-write, return 1 */
+f_no:
+ mov a3,a0
+ mov (4,sp),d1
+ mov (8,sp),a1
+ mov (0,sp),d0
+ add 12,sp
+ movm (sp),[d2,d3,a2,a3]
+ jmp ep7_info
+
+/* ed_poly (13): the colour-wheel polygon follows the page. Site 0x609330f9 in the C3d request producer 0x60932fa6
+ * (editor-view vtable +4972, case 1 = COLOR wheel): `call 0x602afa81,[],4` reads sector setting row[1+i] (table
+ * 0x60b40c4c, profile = setting 1648) and the producer stores the low byte as the polygon's s8 value i.
+ * Entered as `call ed_poly,[],4`: d0 = setting id, (4,sp) = return address. Page Light/Hue/Extras: the value the
+ * editor shows, read through the facade GetValue word 0x60acb0e4 (ex_get -> ed_get chain, a0 = the facade singleton
+ * (0x61fa96ac)). Film: 0 (neutral circle). Saturation, no table, no marker, no facade: jmp 0x602afa81 with every
+ * register and the stack as at entry. Stores: the stack only. */
+ed_poly:
+ movm [d2,d3,a2,a3],(sp)
+ add -8,sp                        /* (0,sp) = CALLS return slot, (4,sp) = id / out */
+ mov d0,(4,sp)
+ mov d0,d2                        /* COLOR1-4 sector ids only: 927..962, 1655..1666 */
+ exthu d2
+ add -927,d2
+ cmp 36,d2
+ bcs 1f
+ add -728,d2
+ cmp 12,d2
+ bcc p_stock
+1:
+ PVAL p_stock
+ mov ({emark},a2),d0
+ cmp {emagic},d0
+ bne p_stock
+ movbu ({axis},a2),d3             /* d0/d1/a0/a1 untouched until a hit: the stock path keeps all registers */
+ cmp 0,d3
+ beq p_stock                      /* Saturation */
+ cmp 3,d3
+ bcs p_chain                      /* Light 1, Hue 2 */
+ mov ed_cfg_x,a3
+ movbu (a3),d2
+ cmp d2,d3
+ beq p_chain                      /* Extras (its page value) */
+ cmp 3,d3
+ bne p_stock
+ clr d0                           /* Film: neutral */
+ bra p_ret
+p_chain:
+ mov (0x61fa96ac),a3              /* facade singleton */
+ cmp 0,a3
+ beq p_stock
+ mov a3,a0
+ mov (4,sp),d0
+ clr d1
+ mov d1,(4,sp)
+ mov sp,a1
+ add 4,a1
+ mov (0x60acb0e4),a2              /* GetValue word (ex_get / ed_get) */
+ calls (a2)
+ mov (4,sp),d0
+p_ret:
+ add 8,sp
+ movm (sp),[d2,d3,a2,a3]
+ ret [],4
+p_stock:
+ mov (4,sp),d0
+ add 8,sp
+ movm (sp),[d2,d3,a2,a3]
+ jmp ep7_aget
+
+/* default fm_valid while no film layer is merged: CALLS, -> d0 0 */
+ed_fm_none:
+ clr d0
+ rets
+
+ .balign 4
+ed_keys_data:
+ed_cfg_fv:                        /* film layer: its fm_valid (the film build re-points this word) */
+ .long ed_fm_none
+ed_cfg_fl:                        /* film layer: its fm_load (called by ed_trig on every half-press) */
+ .long ed_fm_none
+ed_cfg_fm:                        /* film layer (13): fm_mod (CALLS, a2 = P, d1 = k -> d0 1 = modified, '*') */
+ .long ed_fm_none
+ed_cfg_x:                         /* extras layer: its page value (4); 0 = no Extras stop */
+ .byte 0
+ed_keys_end:

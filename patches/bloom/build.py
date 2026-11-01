@@ -46,6 +46,13 @@ C11_RET = C11_CALL + 5
 CLARITY_W = [1100, 1180, 1260, 1340, 1420]
 # effect_strength 1..5 -> blur share 8/14/20/27/35 %  (w = 1024 - round(1024*s))
 STRENGTH_W = [942, 881, 819, 748, 666]
+# --halation (docs/HALATION_RED.md): effect_id 2 = red bloom. Luma blur as bloom, but on weights no other path returns
+# (the combiner-11 halo stub keys on them); chroma gains rewritten at the combiner-11 tail 0x603a04e8.
+EFFECT_HALO = 2
+HALO_W = [943, 883, 821, 749, 667]
+HALO_HOOK, HALO_STOCK = 0x603a04e8, bytes.fromhex('fa178800fa1f8c00')    # mov d1,(136,a3); mov d3,(140,a3)
+HALO_TAIL = (0x603a04f0, bytes.fromhex('dff014'))                      # ret [d2,d3,a2,a3],20
+HALO_AT, HALO_END = 0x60210e10, 0x60210e80                            # retired sec-1 bloom block (FF in clarity builds)
 
 
 def layout():
@@ -72,7 +79,7 @@ TBL_W_SDV3 = TBL_FLAG_SDV3 + """
  mov d1,(0,sp)                    /* restore the caller's return word (== MDR at entry) */"""
 
 
-def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT):
+def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=False, template=None):
     lay = layout()
     sub = dict(tbl_flag=TBL_FLAG_SDV3 if sd_v3 else TBL_FLASH, tbl_w=TBL_W_SDV3 if sd_v3 else TBL_FLASH, cap_mode=CAP_MODE, cap_profile=CAP_PROFILE, table=hex(lay['table']), f_effect=lay['f_effect'],
                f_strength=lay['f_strength'], callback=hex(CALLBACK), rec_off=RECORDS_IN_JOB - REQ_IN_JOB,
@@ -81,7 +88,8 @@ def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT):
                w_lut=','.join(str(int(w)) for w in weights))
     if clarity is not None:
         sub.update(c11_ret=hex(C11_RET), c11_lut=','.join(str(int(w)) for w in clarity), c12_lut=','.join(['1024'] * 5))
-    src = (Path(__file__).parent / ('bloom_clarity.s.in' if clarity is not None else 'bloom.s.in')).read_text()
+    sub.update(halo=int(bool(halo)), h_lut=','.join(str(w) for w in HALO_W))
+    src = (Path(__file__).parent / (template or ('bloom_clarity.s.in' if clarity is not None else 'bloom.s.in'))).read_text()
     for k, v in sub.items():
         src = src.replace('{' + k + '}', str(v))
     left = re.findall(r'\{[a-z_]+\}', src)
@@ -108,7 +116,7 @@ def sdv3_accessor():
     return m.accessor_symbols()
 
 
-def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None):
+def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False):
     weights = [int(w) for w in weights]
     if len(weights) != 5 or not all(0 <= w <= 1024 for w in weights):
         raise SystemExit('need 5 weights in 0..1024')
@@ -120,7 +128,11 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None):
             raise SystemExit('need 5 clarity weights in 1025..1536')
     code_at, code_end = (CL_CODE_AT, CL_CODE_END) if clarity is not None else (CODE_AT, CODE_END)
     acc = sdv3_accessor() if sd_v3 else {}
-    code, src, lst, syms, lay = assemble(weights, sd_v3, {'ep7_tbl_idx': acc['tbl_idx']} if sd_v3 else None, clarity, code_at)
+    if halo and clarity is None:
+        raise SystemExit('--halation needs --clarity (section-2 routine; the halo stub takes the sec-1 block)')
+    if any(2.5 * (1024 - w) > 1024 for w in HALO_W) or set(HALO_W) & set(weights + list(clarity or []) + [600, 1024]):
+        raise SystemExit('halation weights must differ from every other weight')
+    code, src, lst, syms, lay = assemble(weights, sd_v3, {'ep7_tbl_idx': acc['tbl_idx']} if sd_v3 else None, clarity, code_at, halo)
     d = MAIN.read_bytes()
     for at, stock in ((FLAG_HOOK, FLAG_STOCK), (W_HOOK, W_STOCK)):
         if d[at - BASE:at - BASE + len(stock)] != stock:
@@ -155,6 +167,21 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None):
              why=f'per-profile COLOR-bloom stubs ({len(code)} B) in section-1 FF tail' if clarity is None else
              f'per-profile COLOR bloom + clarity stubs ({len(code)} B) in section-2 FF tail'),
     ]
+    if halo:
+        hcode, hsrc, hlst, hsyms, _ = assemble(weights, template='halo.s.in', at=HALO_AT)
+        if HALO_AT + len(hcode) > HALO_END or set(d[HALO_AT - 16 - BASE:HALO_END - BASE]) != {0xff}:
+            raise SystemExit(f'halo stub ({len(hcode)} B) does not fit / not FF')
+        if d[HALO_HOOK - BASE:HALO_HOOK - BASE + 8] != HALO_STOCK or d[HALO_TAIL[0] - BASE:HALO_TAIL[0] - BASE + 3] != HALO_TAIL[1]:
+            raise SystemExit('combiner-11 tail bytes differ')
+        for nm, c, at_, ss in (('bloom', code, code_at, syms), ('halo', hcode, HALO_AT, hsyms)):
+            if struct.unpack('<5H', c[ss['h_lut'] - at_:ss['h_lut'] - at_ + 10]) != tuple(HALO_W):
+                raise SystemExit(f'{nm} h_lut bytes wrong')
+        edits.append(dict(kind='0x100', addr=hex(HALO_HOOK), expect=HALO_STOCK.hex(),
+                          new=(b'\xdc' + struct.pack('<i', hsyms['halo'] - HALO_HOOK) + b'\xcb\xcb\xcb').hex(),
+                          why='combiner-11 tail 0x603a04e8: gain stores -> jmp halo (red bloom chroma gains)'))
+        edits.append(dict(kind='0x100', addr=hex(HALO_AT), expect='ff' * len(hcode), new=hcode.hex(),
+                          why=f'red bloom halo stub ({len(hcode)} B) in the retired sec-1 bloom block'))
+        lst += '\n' + hlst
     meta = dict(mode='bundle', strength_w=weights, effect_id=EFFECT_BLOOM, code_at=hex(code_at),
                 table=hex(lay['table']), f_effect=lay['f_effect'], f_strength=lay['f_strength'],
                 ext=dict(profile=lay['ext_profile'], mode=lay['ext_mode'], marker=lay['ext_magic'], magic=lay['magic']),
@@ -164,6 +191,10 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None):
     if clarity is not None:
         meta['clarity'] = dict(effect_id=EFFECT_CLARITY, strength_w=clarity, other_caller_w=1024, c11_ret=hex(C11_RET),
                                code_end=hex(code_at + len(code)), claim=[hex(CL_CODE_AT), hex(CL_CODE_END)])
+    if halo:
+        meta['halation'] = dict(effect_id=EFFECT_HALO, strength_w=HALO_W, hook=hex(HALO_HOOK), stub=hex(HALO_AT),
+                                stub_len=len(hcode), symbols={k: hex(v) for k, v in hsyms.items() if k in ('halo', 'h_lut', 'h_end', 'h_go')},
+                                bloom_h_lut=hex(syms['h_lut']), k_cb=0.625, k_cr=2.5, channels='Y,Cb,Cr [I]')
     if sd_v3:
         meta['sd_v3'] = dict(accessor={k: hex(v) for k, v in acc.items()}, requires='sd_bundles_v3 (accessor edit)')
     spec = dict(components=['0x100'], patch=('color_bloom_clarity_sdv3' if clarity is not None else 'color_bloom_sdv3') if sd_v3 else 'color_bloom', requires=['bundles-v0.2'],
@@ -177,11 +208,12 @@ def main():
     ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--sd-v3', action='store_true', help='read the table through the SD loader v3 accessor')
     ap.add_argument('--clarity', action='store_true', help='add effect_id 3 = clarity (needs --sd-v3; section-2 placement)')
+    ap.add_argument('--halation', action='store_true', help='effect_id 2 = red bloom (needs --clarity; docs/HALATION_RED.md)')
     ap.add_argument('--clarity-weights', help='5 comma-separated Q10 weights > 1024 for clarity strength 1..5')
     a = ap.parse_args()
     weights = [int(x) for x in a.weights.split(',')] if a.weights else STRENGTH_W
     clarity = ([int(x) for x in a.clarity_weights.split(',')] if a.clarity_weights else CLARITY_W) if a.clarity else None
-    spec, code, src, lst, syms = build_spec(weights, a.sd_v3, clarity)
+    spec, code, src, lst, syms = build_spec(weights, a.sd_v3, clarity, a.halation)
     a.out.mkdir(parents=True, exist_ok=False)
     (a.out / 'edits.json').write_text(json.dumps(spec, indent=1) + '\n')
     (a.out / 'routine.s').write_text(src)

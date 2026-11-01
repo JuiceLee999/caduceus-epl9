@@ -1,5 +1,7 @@
 # MONO slots rendering colour (E-P7 1.1)
 
+**Not in test13.** The user chose stock MONO rendering plus mono presets instead (docs/MONO_PRESETS.md). This patch is unchanged and not merged.
+
 Offline only. Nothing here has run on a camera. No SD-named file was created and nothing was
 committed. "Verified" means executed in the emulator on the exact package bytes. "Static" means
 reasoned from the disassembly only.

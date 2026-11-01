@@ -1,0 +1,15 @@
+{
+  "components": [
+    "0x100"
+  ],
+  "edits": 33,
+  "changed_payload_bytes": 1784,
+  "spec": "generated/sd_probe/P1/merged.json",
+  "spec_sha256": "18fb3c8eb0e24120c5392111f42ac75bd6b94f2110c8ff9f61f2f37fa318f6a0",
+  "stock_sha256": "9d1610124ad98f6edae4540182205f06c9c703d9033ef0c4f19847193f95eaeb",
+  "patched_sha256": "2647d1b26943bfed4fc6a4829d79067e4f51634777fc32ee15c2a03d2d12bc98",
+  "restore_sha256": "245b9c8fcf247a0271121238b09769b5d90f682924e3086aacc4762211b82612",
+  "bytes": 26214400,
+  "camera_contacted": false,
+  "note": "Not SD-loadable by name. Container validity != bootability."
+}

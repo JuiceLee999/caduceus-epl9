@@ -1,0 +1,15 @@
+{
+  "components": [
+    "0x100"
+  ],
+  "edits": 102,
+  "changed_payload_bytes": 5109,
+  "spec": "releases/test12c-editor/edits.json",
+  "spec_sha256": "3d551800a0ef5839d671e4b9b225813bb4ca1e22bde4a0306c8414f6a5983d2e",
+  "stock_sha256": "9d1610124ad98f6edae4540182205f06c9c703d9033ef0c4f19847193f95eaeb",
+  "patched_sha256": "f3ee7c24a927e5742e239a8b01b42895e46ad455f77c885c4e0381ef7fe3cc9b",
+  "restore_sha256": "245b9c8fcf247a0271121238b09769b5d90f682924e3086aacc4762211b82612",
+  "bytes": 26214400,
+  "camera_contacted": false,
+  "note": "Not SD-loadable by name. Container validity != bootability."
+}

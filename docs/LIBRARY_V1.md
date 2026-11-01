@@ -81,3 +81,38 @@ Overview, one row per look: portrait, roof, sunset, valley (PA211089), flower:
   input order is reversed (BLOOM_HALATION.md risk 1), it will be much stronger.
 - **Stock Olympus mono filters have no blue.** Acros therefore uses green, which only approximates
   ACROS's lighter blues.
+
+## Library v2 (camera-tuned, test 13)
+
+- Files:
+  - recipes: `sim/recipes/library_v2.json` (keys `lib2_*`, registered in `patches/bundles/build.py`
+    RECIPE_FILES);
+  - library: `bundles/library_v2.json`.
+- The card file `releases/test13/card/EP7MOD/LOOKS.BIN` holds the 16 colour looks with the same names. The
+  slot resume still matches, and `--check` passes.
+- Validation: `ep7_looks_bin.py --check` OK; `ep7_library.py --dry-run` OK.
+
+**Camera finding: the WB fine-tune step is about 3× the sim's step.**
+- Method: test-13 EXIF `WB_RBLevels` from the same lamp, comparing fine-tune 0/0 against 3/1, 2/2 and −7/1.
+- Result: each A–B step moves R and B by about 4.4 % each; the sim assumed 1.5 %.
+- So the v1 WB values, which were tuned in the sim, came out about 3× too strong on the camera.
+- In v2 the WB values are re-scaled to camera steps. Previews use `WB_STEP` 0.044; `sim/film.py` is unchanged.
+- Hue and light are still uncalibrated.
+
+**Saturation is advice only.** The Film page does not set it, so set the profile's own saturation by hand.
+
+| Look | v2 change (H/L in sector order Y,O,OR,R,M,V,B,BC,C,GC,G,YG) |
+|---|---|
+| CineStill800 | Halation stand-in: bloom 3→4; light OR/R +2; hue OR −1 (towards red); blue light −1. WB B7 G1 → **B3 G0**, so warm practicals stay warm and glow red-orange while daylight is still clearly cool. Sat advice OR +2, R +3; tone advice HL −1, SH +2. True red halation: docs/HALATION_RED.md |
+| Kodachrome64 | No longer a copy of Cl. Chrome's hue. Hue: M +1, B −1, BC −2, C −1, GC +1, G/YG −1 (olive greens). Light: dense, −1..−2 everywhere. Sat advice: reds/OR +2. WB A3 → A1 |
+| Velvia | Red hue −1 (towards magenta); light G/YG −1 (denser foliage) |
+| Nostalgic | WB A3 → A2; orange hue +1 (amber) |
+| Gold 200 | WB A4 M1 → A2 |
+| Portra 400 | WB A3 G1 → A1 |
+| Ektachrome | WB B2 → B1 |
+| Pro 400H | WB B2 M1 → B1 |
+| Classic Neg, Ektar 100 | WB +1 removed (no override, so the user's own fine-tune is kept) |
+| Provia, Astia, Cl. Chrome, Reala Ace, Eterna, Bleach Byp. | unchanged |
+
+Slots already saved with a v1 look keep the v1 values. To get v2, step the slot off the look and back on in
+the Film page.

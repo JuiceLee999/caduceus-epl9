@@ -13,7 +13,11 @@
  * Values: table byte P + 32 + 64*slot + sector (+12 for Light), UI -7..7; phase 1 shows and accepts -5..5
  * (the stock saturation lists): reads clamp to -5..5, writes outside -5..5 are refused.
  * Stores (H/L path only): the table byte, the slot flags byte P+32+64*slot+31 (bit 1, after the value), the
- * dirty byte P+{dirty}; plus stack. No calls, no mul/div, no setlb/Lcc.
+ * dirty byte P+{dirty}; plus stack. No mul/div, no setlb/Lcc.
+ * 12c: after the H/L store ed_set no longer returns by itself: it reads the id's current S value with the stock
+ * getter 0x602af887 and enters the stock settings manager 0x60827440 with (id, S value, a0, a1) exactly as the
+ * setter would for an S edit to the same value. The manager's listeners (0x608280ac, 0x60813ffe, ...) then run,
+ * which is what refreshes the editor screen after an S edit. Saturation itself does not change.
  */
  .am33_2
  .text
@@ -111,23 +115,32 @@ ed_set:                           /* entered by call ...,[d2,d3,a2],16 exactly l
  blt s_bad
  cmp 5,d1
  bgt s_bad
- mov a2,a0
- add d2,a0
  cmp 0,d3
  bne 7f
- add 12,a0
+ add 12,d2                        /* Light */
 7:
- movbu d1,(32,a0)                 /* the value first ... */
- mov d2,d0
- and 0xc0,d0
- add a2,d0
- mov d0,a0
- movbu (63,a0),d1
+ add 32,d2
+ movbu d1,(d2,a2)                 /* the value first ... */
+ and 0xc0,d2                      /* 64*slot (32 + 12 + 11 < 64) */
+ add 63,d2
+ movbu (d2,a2),d1
  or 2,d1
- movbu d1,(63,a0)                 /* ... then the slot's H/L enable bit ... */
- mov 1,d0
- movbu d0,({dirty},a2)            /* ... then dirty (saved to the card on the next half-press) */
- ret [d2,d3,a2],16                /* d0 = 1: success, no settings write */
+ movbu d1,(d2,a2)                 /* ... then the slot's H/L enable bit ... */
+ mov 1,d1
+ movbu d1,({dirty},a2)            /* ... then dirty (saved to the card on the next half-press) */
+ mov d0,d2                        /* 12c refresh: the stock settings manager runs for this id with its */
+ mov a0,d3                        /* unchanged S value, so its listeners fire as after an S edit */
+ mov a1,a2
+ add -4,sp                        /* its return address goes below our frame: the live stack stays stock */
+ call ep7_sget,[],4               /* d0 = S value of id (0x602af887, keeps d2/d3/a2/a3) */
+ add 4,sp
+ mov d0,d1
+ mov (16,sp),d0                   /* MDR = the setter's return address again, as the stock call left it */
+ mov d0,mdr
+ mov d2,d0
+ mov d3,a0
+ mov a2,a1
+ jmp ep7_manager                  /* returns 1 to the setter; ret [d2,d3,a2],16 of our frame */
 s_bad:
  clr d0
  ret [d2,d3,a2],16
@@ -162,6 +175,8 @@ ed_trig:                          /* jmp from sd_back; frame = 0x602c7f5a's: eve
  movm [d2,d3,a2,a3],(sp)
  add -4,sp                        /* (0,sp) receives the return address of the call below */
  PVAL t_back
+ mov (ed_cfg_fl),a0               /* 12e: film layer fm_load (CALLS, a2 = P; it runs once per power-on), */
+ calls (a0)                       /* default ed_fm_none (clr d0; rets) when no film layer is merged */
  mov ({emark},a2),d0
  cmp {emagic},d0
  bne t_back

@@ -111,7 +111,7 @@ loaded before the word can be used.
 
 | Item | PEN-F | E-P7 status / leads |
 |---|---|---|
-| Wheel **polygon** source (12 values + cursor → C3d) | 0x6081b780 cmd 5, 3 MOV hooks | Receiver `0x602dd8aa` (kind byte; kind 1 → value-code converter `0x602dcdb3`, payload 12 × s8 + cursor at +12). Callers 0x602e2412/0x602e262e ← 0x607989a0 (`fwOpe::drawC3dAsync` dispatcher 0x60798348, types 0–13) / 0x60939702. The producer for the COLOR wheel is not found; it does **not** use the facade ID tables. |
+| Wheel **polygon** source (12 values + cursor → C3d) — **mapped in test13, §6** | 0x6081b780 cmd 5, 3 MOV hooks | Receiver `0x602dd8aa` (kind byte; kind 1 → value-code converter `0x602dcdb3`, payload 12 × s8 + cursor at +12). Callers 0x602e2412/0x602e262e ← 0x607989a0 (`fwOpe::drawC3dAsync` dispatcher 0x60798348, types 0–13) / 0x60939702. The producer for the COLOR wheel is not found; it does **not** use the facade ID tables. |
 | Current-editor globals for the Delete handler | 0x6161b810 (holder: +0 parent, +4 viewer), 0x6161b81c (key), guards 0x61618eb0/0x6161ad04, dial marker 0x6161bf84 | not found. Lead: the null record slots +48/+52 (§1.6) would give a0 = parent directly. ALL flags are 0x61fc3800/0x61fc3804 [V]. |
 | Viewer redraw call | `stock_viewer` + `stock_draw_request(65516,1,0,2)` | candidate 0x60e81064 (different convention, HSL_PORT); viewer update hooks 0x60db3072/0x60db3113 (medium). |
 | Reset path for H/L | default getter + ordinary commit | the reset handler for `0x903e` was not followed past 0x60de5ab6 (not in its event list); the +152 redirect may already cover it. |
@@ -238,3 +238,66 @@ current-editor holder and H5 the polygon producer (§1.5), and neither is mapped
   default 0x60e228fb `clr d0; retf`) → `ed_event`, which accepts 0x9016 or 0x9012. On a guard failure, 0x9012 →
   0x60e228fb and the rest → 0x60e22191. The Delete hook stays. ed_ui is 815 B. Verified: E 96/96 (Movie cycle,
   fallback, router INFO/OK unchanged), M 22/22. See `releases/test12b-editor/README.md`.
+- **test12c (axis indicator + refresh).** 12b on camera: Movie showed nothing, and nothing showed whether
+  `ed_event` ran.
+  - Mapped [V]: the Color Profile view (vtable 0x61155e14, update 0x60dec790) rebuilds a 96-B state block (GUI data
+    175) by `calls`-ing 5 parts from .data 0x61fc27d0 (init image 0x6025aa90). Part 3 (0x60decbfc) writes the guide
+    label at view+44, kind 4, id 2755 "All colors[INFO]" / 2756 "Single color[INFO]".
+  - The init word 0x6025aa98 → `ed_guide` (sec 5 0x60b9dd10). It rewrites that label as kind 5
+    "[S]/[L]/[H] All colors|Single color" when a table is loaded.
+  - After a cycle, `ed_poke` re-writes the cursor setting with its own value through the facade (the INFO
+    handler's call), so listeners rebuild the screen.
+  - After an H/L heap write, `ed_set` enters 0x60827440 with the id's unchanged S value (stock getter 0x602af887),
+    so the listeners run as after an S edit.
+  - The §1.3 "picture-mode refresh 0x602ccfcb/0x602cd045" runs only for ids 111/1645/1646/15271, not for sector ids.
+  - Live view still cannot show H/L: the bundle reader is capture-only (V02 residual risk 2), and an LV-side reader
+    is a separate step.
+  - Verified: W 1233, E 97, V 99, M 41/41. See `releases/test12c-editor/README.md`.
+- **test12d (INFO cycle + state label + key probe; combined release with look_extras X and aspect).** 12c on
+  camera: the guide showed `[S] ...` (kind-5 label works) but never changed for Movie, dial or INFO, so 0x9012
+  never reached `ed_event`. The 12c wording was also backwards: stock 2755 "All colors[INFO]" is shown when ALL is
+  **off** (0x60decf5b) and 2756 when ALL is **on** (0x60decf21) [V].
+  - INFO (0x9014 → record +44, stock 0x60e22579) → `ed_info` (sec 5): S·Single → S·All → L·Single → H·Single
+    (→ X with look_extras) → S·Single. S·Single: `jmp` to stock (it turns ALL on). ALL on: the stock handler is
+    called (only stock code changes 0x61fc3800/04), then the axis steps; if stock leaves ALL on, nothing else
+    changes. L/H/≥3: axis steps (≥3 → S), ALL stays off. Then child refresh + `ed_poke`, return 1. No table or a
+    guard failure: stock with registers intact. L·All/H·All are never entered.
+  - The 12b/12c Delete/Movie words (+36/+52) are stock again; `ed_event` is gone (ed_ui now ed_init/ed_poke/probes/save).
+  - Guide label = current state: `Sat Single 9012`, `Lgt All o9004` (probe build) / `Light - Single` (`--no-probe`),
+    ≤16 characters. Key probe: editor vtable +68 (router) and +0 (object entry 0x60dd5250, which calls the router
+    only when (0x61fc1bac) == 0 [V]) log the last code 0x9000–0x90ff (not INFO 0x9014/15, not a release right after
+    its press) at P+1000/P+1002; the label shows the router code, or `o`+entry code when they differ. One build flag.
+  - Verified: S/G/W/E 104/V 135/K 42/I/T pass, M 56/56; look_extras G 744/W 4048/E 150/V 648, M 16/16 on the
+    layer; aspect 174/174 on the layer. See `releases/test12d-editor/README.md`.
+- **test12e (page key, plain labels, Film page).** 12d on camera: INFO reached the editor and the save worked;
+  Movie/Delete never reach it, MENU and PLAYBACK leave it. Codes from the GUI key table 0x6113e938 (HFW key order):
+  MENU 0x900e / long 0x9040 / release 0x900f, PLAYBACK 0x9010 / release 0x9011. Both take the entry's default
+  case (0x60dd568e → router) and the router's catch-all slot parent+72 = record +36 (0x60e22191, which returns 3
+  = close for MENU). Record +36 → `ed_page` (new sec-1 claim, EVF step-3 tables): MENU/PLAYBACK step the page
+  S → H → L → F (film layer, LOOKS.BIN loaded) → X (extras layer) → S; ALL is first turned off by stock INFO.
+  INFO (+44, `ed_info`) is the stock toggle on S and a no-op elsewhere. Labels are plain text ("Saturation",
+  "Saturation - All", "Hue", "Light", "Film: <name>"); probe off by default (`--probe`). Layer words in ed_keys:
+  ed_cfg_x (extras sets 4), ed_cfg_fv / ed_cfg_fl (film sets fm_valid / fm_load; ed_trig calls fm_load on each
+  half-press). Verified E 474, V 230, S/I/T pass. See `releases/test12e/README.md`.
+- **test13 (wheel polygon follows the page; H5 done).**
+  - Mapped [V]: the producer is the method at **vtable +4972 = 0x60932fa6** of the 10 view vtables that hold the
+    C3d request builder 0x609394be at +1056 (0x60b3b870, 0x60b3df34, 0x60b49240, 0x60b4b9f8, 0x60b4f134, 0x60b51904,
+    0x60b54448, 0x60b5754c, 0x60b59d28, 0x60b5e2e8). 0x609394be sends request types 6–10 (→ C3d type 12 via
+    0x60835016 → 0x602e251a → receiver 0x602dd8aa, kind 1 → converter 0x602dcdb3) after calling (4972) to fill the
+    buffer. Case 1 (COLOR wheel): kind 1; profile = setting **1648** (1..4); row = 13 u16 ids from table
+    **0x60b40c4c** (cursor 1091/1096/1097/1686, then the 12 sector ids); cursor byte +12 and values +0..+11 come from
+    the stock getter **0x602afa81** (not the facade, hence H/L never showed).
+  - Hook: 0x609330f9 (the sector read in the 12-step loop) `call 0x602afa81,[],4` → `call ed_poly,[],4` (ed_keys,
+    sec 1). Sector id ∧ valid P ∧ `EP7E`: Light/Hue/Extras → the value the editor shows, through the facade GetValue
+    word 0x60acb0e4 (ex_get → ed_get) with a0 = facade singleton (0x61fa96ac); Film → 0 (neutral circle);
+    Saturation and every other case → jmp 0x602afa81 with registers and stack as at entry. Stack-only stores.
+  - Limits: the axis byte persists after the editor closes (as for ed_get), so another screen that draws the COLOR
+    wheel outside the editor shows the last page's shape until the editor is opened again (ed_init resets it).
+    Whether the polygon redraws on a page step (no setting changes) is camera-only; the ed_poke cursor re-write is
+    the same trigger the numbers already use.
+  - Verified: `patches/look_editor/verify_poly.py` on the editor, editor+extras and editor+extras+film specs (real
+    site, image read-only).
+- **test13 (modified marker).** On Film, `ed_guide` asks the film layer (new layer word `ed_cfg_fm` in ed_keys, default
+  `ed_fm_none`) whether the slot entry still equals its picked look's `place()`. If it does not, the label gets a `*`,
+  e.g. `Film: Velvia*`, and the prefix and name are cut so the label stays at 16 characters. Without the film layer the
+  label is unchanged. Verified: the editor V labels (editor-only spec), and film part M (fm_mod + label).
