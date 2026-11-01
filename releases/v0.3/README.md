@@ -1,4 +1,4 @@
-# v0.3 candidate — all features combined (NOT cleared for flashing)
+# v0.3 — all features combined (NOT cleared for flashing; review + camera validation pending)
 
 Merged: v0.2 profile bundles (bundles/example.json) · colour grain L2 · bloom S2 · recording limit ·
 log video (movie + Muted → log) · XPan/21:9 aspects. 117 edits, 1,674 payload bytes, main component only.
