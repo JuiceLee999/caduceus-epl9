@@ -1,0 +1,213 @@
+/* E-P7 1.1 SD-card bundle loader, phase 1: data only (ep7-firmware, our own code). docs/SD_BUNDLES.md
+ *
+ * Hook: the app media manager (method 0x60863da7, section 5) reaches the 7-byte
+ *   0x60863e90  call 0x6077d590,[d2],20      (d0 = media type, d1 = 0xF000 "MOUNT OK")
+ * only behind `cmp 61440,d2; bne` (0x60863e81), i.e. exactly when it records a successful mount.
+ * The rel32 of that call now points at sd_hook, so sd_hook is entered with the stock callee's frame
+ * and contract. sd_hook always ends by TAIL-JUMPING into the stock 0x6077d590 with the original
+ * d0/d1 (and a0/a1 restored) on the original frame; that routine's own `ret [d2],20` returns to the site.
+ *
+ * Once per power cycle (sd_state 0xFF -> 0x00 after the file has been opened) sd_load reads
+ * {path} through the firmware's synchronous file API (fileif, served by task 16 FILECLBK):
+ *   malloc(1024) -> fopen(path,"r") -> fseek(END) / ftell -> size must be {file_len}
+ *   -> fseek(SET) -> fread(buf,1,size) must return size -> fclose -> validate -> copy -> free.
+ * Validation, all before the first table write:
+ *   header bytes 0..15 and 20..31 == sd_hdr (magic, version, header length, firmware build 1100,
+ *   payload length 512, decoded-main SHA-256 prefix, reserved zero);
+ *   CRC-32 (IEEE, reflected 0xEDB88320, init/xorout 0xFFFFFFFF) over bytes 0..15 ++ 20..{file_len_m1}
+ *   == LE word at 16;
+ *   every payload byte k: lo[k%64] <= (s8)byte <= lo[k%64]+span[k%64] (ranges from layout.json).
+ * Any failure (no card, no file, malloc fail, I/O error, wrong size, bad header/CRC/range) leaves
+ * the flashed table untouched. A missing file / failed malloc keeps sd_state = 0xFF (retry at the
+ * next mount); once the file was opened it is never re-read until power-off.
+ * No mul/div/setlb in our code. a0/a1 are restored; d2 is the site's saved register;
+ * d3/a2/a3 are saved by our own `call sd_load,[d2,d3,a2,a3],36`.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+sd_hook:
+ cmp 61440,d1
+ bne sd_pass                      /* not "mount OK": stock (unreachable from the site, kept defensive) */
+ movbu (sd_state),d2
+ cmp 0,d2
+ beq sd_pass                      /* already loaded/attempted this power cycle */
+ mov d0,d2                        /* media type; d2 is saved in the site's frame */
+ call sd_load,[d2,d3,a2,a3],36
+ mov d2,d0
+ mov 61440,d1
+sd_pass:
+ jmp ep7_mount_set                /* stock 0x6077d590 on the site's frame */
+
+sd_load:                          /* frame 36: 16 B saved regs, scratch 0..19; (0..11) left to callees */
+ mov a0,(12,sp)
+ mov a1,(16,sp)
+ mov {buf_size},d0
+ call ep7_malloc,[],4
+ mov a0,a2
+ cmp 0,a2
+ beq sd_out                       /* no memory: retry at the next mount */
+ mov sd_path,a0
+ mov sd_mode,a1
+ call ep7_fopen,[],4
+ mov a0,a3
+ cmp 0,a3
+ beq sd_free                      /* no card / no file: retry at the next mount */
+ clr d0
+ movbu d0,(sd_state)              /* opened: never again this power cycle */
+ mov a3,a0
+ clr d0
+ mov 1,d1                         /* whence 1 = END (0x6064610d) */
+ call ep7_fseek,[d2,d3,a2,a3],20
+ cmp 0,d0
+ bne sd_close
+ mov a3,a0
+ call ep7_ftell,[d2,a2,a3],16
+ mov d0,d3                        /* file size */
+ cmp {file_len},d3
+ bne sd_close
+ mov a3,a0
+ clr d0
+ mov 2,d1                         /* whence 2 = SET */
+ call ep7_fseek,[d2,d3,a2,a3],20
+ cmp 0,d0
+ bne sd_close
+ mov a2,a0
+ mov 1,d0
+ mov d3,d1
+ mov a3,a1
+ call ep7_fread,[d2,d3,a2,a3],24
+ mov d0,d2                        /* bytes read */
+ mov a3,a0
+ call ep7_fclose,[d2,a2,a3],16
+ cmp d3,d2
+ bne sd_free
+ mov a2,a0
+ call sd_check,[d2,d3,a2,a3],16
+ cmp 0,d0
+ bne sd_free
+ mov a2,a0
+ add {hdr_len},a0
+ mov {table},a1
+ clr d2
+sd_copy:
+ movbu (d2,a0),d0
+ movbu d0,(d2,a1)
+ inc d2
+ cmp {payload_len},d2
+ bne sd_copy
+ bra sd_free
+sd_close:
+ mov a3,a0
+ call ep7_fclose,[d2,a2,a3],16
+sd_free:
+ mov a2,a0
+ call ep7_free,[],4
+sd_out:
+ mov (12,sp),a0
+ mov (16,sp),a1
+ ret [d2,d3,a2,a3],36
+
+/* sd_check: a0 = file buffer ({file_len} bytes) -> d0 = 0 valid, 1 invalid. */
+sd_check:
+ mov a0,a2
+ mov sd_hdr,a3
+ clr d2
+sd_h1:
+ movbu (d2,a2),d0
+ movbu (d2,a3),d1
+ cmp d1,d0
+ bne sd_bad
+ inc d2
+ cmp 16,d2
+ bne sd_h1
+ mov 20,d2
+sd_h2:
+ movbu (d2,a2),d0
+ movbu (d2,a3),d1
+ cmp d1,d0
+ bne sd_bad
+ inc d2
+ cmp {hdr_len},d2
+ bne sd_h2
+ mov -1,d0
+ mov a2,a0
+ mov 16,d1
+ call sd_crc,[d2,d3],12
+ mov a2,a0
+ add 20,a0
+ mov {crc_tail},d1
+ call sd_crc,[d2,d3],12
+ not d0
+ clr d2
+sd_c1:
+ movbu (16,a2),d1                 /* stored CRC, little-endian, one byte at a time */
+ mov d0,d3
+ and 255,d3
+ cmp d3,d1
+ bne sd_bad
+ lsr 8,d0
+ inc a2
+ inc d2
+ cmp 4,d2
+ bne sd_c1
+ add -4,a2
+ mov a2,a0
+ add {hdr_len},a0
+ clr d2
+sd_r1:
+ movbu (d2,a0),d0
+ extb d0                          /* value, signed */
+ mov d2,d1
+ and 63,d1                        /* offset in the 64-byte slot */
+ mov sd_lo,a1
+ movbu (d1,a1),d3
+ extb d3
+ sub d3,d0                        /* value - lo */
+ mov sd_span,a1
+ movbu (d1,a1),d3
+ cmp d3,d0
+ bhi sd_bad                       /* unsigned: below lo wraps high */
+ inc d2
+ cmp {payload_len},d2
+ bne sd_r1
+ clr d0
+ ret [d2,d3,a2,a3],16
+sd_bad:
+ mov 1,d0
+ ret [d2,d3,a2,a3],16
+
+/* sd_crc: d0 = running CRC, a0 = data, d1 = length (> 0) -> d0. */
+sd_crc:
+ movbu (a0),d2
+ xor d2,d0
+ mov 8,d3
+sd_b1:
+ btst 1,d0
+ beq sd_b0
+ lsr 1,d0
+ xor 0xedb88320,d0
+ bra sd_b2
+sd_b0:
+ lsr 1,d0
+sd_b2:
+ add -1,d3
+ bne sd_b1
+ inc a0
+ add -1,d1
+ bne sd_crc
+ ret [d2,d3],12
+
+sd_path:
+ .asciz "{path_asm}"
+sd_mode:
+ .asciz "r"
+sd_hdr:
+{hdr_bytes}
+sd_lo:
+{lo_bytes}
+sd_span:
+{span_bytes}
+sd_state:
+ .byte 0xff
