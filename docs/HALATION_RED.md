@@ -337,3 +337,47 @@ After that, the mask route above is a small, well-defined build.
   - halation F 24 / W 84 / D 112 against the 04:36 spec.
   - video_log build_probe: all PASS. Q-dump: 4/4.
   - Anti-brick: decode == stock + edits, restore == stock.
+
+### 10e. Blur-buffer probe: camera crash (removed by the log agent)
+A COLOR1 Red capture crashed about 1 s after the shot. The only CPU access new in that build was bp_set/bp_cb **reading
+the reduce buffer 0x1060 through its descriptor address**. Inference [I]: that address is not CPU-readable (an ISP/DMA
+address, or unmapped for the CPU), and the read faulted.
+
+Rules for later:
+- Never CPU-read image buffers through a job-buffer descriptor.
+- Every route that needs the blur buffer on the CPU is closed until the address space is mapped.
+
+## 11. v0.14: per-channel bloom colour (not possible) and COLOR Art Effect (built)
+**Per-channel bloom weights are not possible in this blend.**
+- Combiner 11 works on **YCbCr**: signed chroma, offsets of −128 on channels 1 and 2. Its per-channel gains are
+  diagonal in Y, Cb and Cr.
+- An RGB weight diag(w_R, w_G, w_B) is a full 3 × 3 matrix in YCbCr, so it needs cross-channel terms the combiner
+  does not have (§9).
+- For a white light the blur difference B − I is pure luma, so any diagonal YCbCr weighting adds luma only.
+  This is exactly the existing chroma spread, which the 13c camera shots confirmed.
+- Normalising the per-channel gains to sum to 1 cannot change that. The current bloom colour therefore stays as it is.
+
+**Art Effect (slot +46, `art_effect`):**
+- Values: 0 off, 1 Star Light, 2 Pin Hole, 3 Blur (Diorama V), 4 White Edge, 5 Frame.
+- Loader v3 range 0..5 (span byte 0x605b774f). `bundles` "art_effect": "star_light|pin_hole|blur|white_edge|frame".
+- The byte is kept out of layout_crc, so old LOOKS.BIN files load, and old files (0) mean off.
+- `patches/bloom --art`: bloom_flag jumps to `art` (76 B, dead EVF step-9 R 0x601e1d3c) right after the slot lookup,
+  so only key-11 COLOR stills with profile 1..4 get it. The stub applies the stock converter's own flag update for
+  that Art Effect id: 0x40 / 0x400 / (&~0x300) | 0x100 / 0x2000 / 0x8000.
+- LV is untouched: the LV route is 0x60312f42 / lv_art, and neither reads +46.
+- **Extras:** sector 5 = `5 Art <name>`, sector 6 = `6 Bloom <colour>`, sectors 7–12 = the log probe label / "Extras: 1-6 only"
+  (build_probe constants updated).
+- Film page: placing a look writes 0 to +46, and fm_mod counts +46, so a slot with an art effect shows `*`.
+
+**Verified** (`tools/ep7_art_verify.py`, native):
+- F 768: the converter for art 0..6/255 × effects × profiles × modes × keys × erased table. Flags == the stock
+  converter's own result for that id. Everything else == before.
+- L 20: the full work-list builder run to its `ret`, for each flag, classes 0/5, with and without bloom. A COLOR job's
+  entries == before with the same flags, and the entries each flag adds on key 11 == the entries it adds on the Pop Art
+  key in stock (ART mode).
+- S 4096: the kind-3 selector gives the same combiner for key 11 and Pop Art for every effect 0x000–0xfff.
+- Extras S / G 936 / W 5392 / V 864. Bloom-colour check F/W/D unchanged. build_probe all PASS.
+- Anti-brick: decode == stock + edits, restore == stock.
+
+**Not verified:** the effects' own pass setups (buffer allocation, frame and overlay data) do not run in the emulator.
+They are the stock ART-mode setups for the same job flags.

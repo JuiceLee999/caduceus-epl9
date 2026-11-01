@@ -286,3 +286,11 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   buffer as a per-pixel mask). Reverted in place: 273 edits, bloom edits == pre-probe build, log probe kept. Halation
   F/W/D pass; decode == stock+edits, restore == stock; SHA256SUMS regenerated. HALATION_RED §10b.
 - **v0.14 LOG FIXED (camera):** log hook now keys on the movie picture mode (stills pm ≠ movie pm broke it since 12e) and View Assist removed (its display LUT was baked into recordings, cancelling log). PB021401: p1 13 / p50 88 vs p1 1 before, visibly flat. View Assist must not come back in that form.
+- v0.14 Art Effect + Extras re-layout (271 edits, on the 04:54:39 spec):
+  - Bloom colour as per-channel weights is not possible: combiner 11 is diagonal YCbCr, and an RGB weight needs a cross
+    term (HALATION_RED §11).
+  - COLOR Art Effect, slot +46 (loader span 0..5, layout_crc unchanged): `art` stub 0x601e1d3c from bloom_flag.
+  - Extras: sector 5 Art, sector 6 Bloom colour, log label on 7–12.
+  - Checks: art F 768 / L 20 / S 4096, extras G 936 / W 5392 / V 864, halation F/W/D, build_probe PASS; decode ==
+    stock + edits, restore == stock.
+  - The blur probe crash is noted in HALATION_RED §10e.
