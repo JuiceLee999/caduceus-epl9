@@ -13,8 +13,9 @@ below. They all pass (`python3 -I tools/ep7_view_assist_probe.py [--json r.json]
 
 ## Verdict
 
-**Feasible, using the display engine and not the ISP. Nothing is built yet, because the trigger site is
-not settled.**
+**Feasible, using the display engine and not the ISP. Nothing is built yet. The trigger site is now
+chosen (T-D below), but the build is stopped: no verified playback signal exists to switch the LUT off
+in playback.**
 
 The live-view gamma cannot be split from the recorded gamma inside the ISP. There is one development
 per frame and one gamma for it. The display controller ("VSC") has its own hardware LUT, though:
@@ -212,9 +213,48 @@ with no traced registers.
   the preview looks about 2 EV dark. A second look tuned for EC −2 (grey at about −5 EV) is a good use
   of slot 18.
 
+## Trigger measurement (2026-11-01, offline, static)
+
+Display command ids are the 1-based name index (`0x601d78e2` + 12·k); the dispatcher indexes jump table
+`0x601d3a20` with id − 2. Senders were found by scanning every reference to the display mailbox id
+`0x60040df4` and every call to `0x602c9cf1` [V].
+
+| Candidate | How often it fires | Verdict |
+|---|---|---|
+| T-A UPD_IMG (id 18, handler `0x60174a92` → `0x60185062` per device) | Rare. It is an image-adjust command (halfwords +16/+18 centred on 128, LPF/attr pointers), not a frame update. Senders: display-internal `0x60186bd5` (from `0x60175eca`/`0x60175edf`, the device-routing path), `0x60c7d8b4`, and app function `0x603207e0`, which has no caller (its only references are its own error-log arguments) [V] | **Rejected.** Does not fire on picture-mode, movie/stills or playback changes |
+| T-A OPEN (id 2, `0x60174686`) | Once per display open; the open path writes bypass (`0x6018819c`) | **Rejected** as sole trigger. Useful only as a reset |
+| T-B send from `vlog_hook` | Once per capture request (message handler `0x6054d116` → `0x60303ef6` → `0x603263c7` → `0x6030df3d`) | **Rejected (unsafe).** `0x602c9cf1` → `0x60054b33` is a synchronous RPC: reply queue, post, then `0x600513e6` with d1 = −1 (no timeout) [V]. The capture-control task would block until the display task has drained its queue. No evidence was found that this task sends display commands in stock (not exhaustively checked), so a deadlock cannot be ruled out (same failure class as SD_V2_CRASH cause (b)). It also needs RAM state for edge detection and never runs on entry to playback |
+| **T-D (chosen): reconcile at the display task's common reply tail `0x601751f4`** | After **every** display command. 37 handler branches converge on `0x601750ef`, which falls through to `0x601751f4` [V] | **Safe by construction**: runs in the task that owns the VSC and the locks (same context as QUALITY), never blocks, no stores outside the stack, the hardware mode register `0x9c000204` is the only state, so the LUT loads once and survives reopen. Hook = 5 bytes at an instruction boundary: `f8 bc 2c 08 81` (`movhu (44,sp),d0; clr d2; mov d0,d1`) → `jmp stub`; the stub replays them and returns to `0x601751f9` |
+
+T-D stub (designed, not built):
+1. Skip unless TFT is running: `(0xa272c40c) & 1` (the same running-device mask the UPD_IMG/UPD_SCRN
+   handlers test before touching a device). This keeps register reads and writes away from a closed VSC.
+2. `want = record[(0xa273104c)].+925 == 2` **and not playback**.
+3. `cur = (0x9c000204) != 0`. If they differ, call `0x60187439(d0 = 1, a0 = &step17 or &step16)`.
+   Save and restore d1/a0/a1 around the call.
+
+**Blocking item: the playback signal.** The display task does not track playback. NOTIFY_PLY (id 41,
+`0x60175006`) is a no-op, and no stock code sends it. Record +925 keeps its last value in playback.
+Candidates that were looked at and are **not** usable without a camera trace:
+- `through_permit` in the screen/layer packets (strings `0x601d7cd8`, `0x601d8158`);
+- the img_hd source;
+- the ISP descriptor gamma pointer;
+- appevent states.
+
+Without this signal, T-D would leave the VA curve on playback stills after a log session. That is
+cosmetic, not a brick risk, but it fails the acceptance rule. So no stub, no edits and no
+`releases/test10-viewassist/` were produced.
+
+Next step options:
+1. Find a playback/live-view flag in RAM. Statically: trace the CBS_*PLAY* or EV_PRESS_PLAY_KEY
+   consumers to a global. Or use a read-only camera probe.
+2. Accept "+925 only" and build T-D, documenting that playback looks graded after a log session until
+   the next picture-mode change away from the trigger mode.
+
 ## Open items before building
 
-1. How often the trigger sites fire (UPD_IMG, OPEN, playback switch); whether the send is synchronous.
+1. Done: see "Trigger measurement". T-D chosen; the send (T-B) is synchronous with no timeout.
+   **Still open: a verified playback signal (blocks the build).**
 2. Whether the VSC gamma applies before or after OSD mixing. On the camera this shows directly.
 3. The first camera test of `patches/video_log` must confirm that live view is in fact log (Q1
    inference).

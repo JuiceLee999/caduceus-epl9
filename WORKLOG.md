@@ -211,3 +211,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - SD loader v3 (agent, docs/SD_BUNDLES_V3.md): state 0x622cbcc2, heap buffer + accessor in 6 readers, zero image-region stores (audited + emulator read-only). test7b = test6 + v3 (34 edits); readers pass with flashed and heap tables; loader 179 runs + 10 seq + 10/10 mutations. Test file: COLOR1 greens hue +7. New camera risk: first real fopen from HLS_EVENT → test without EP7MOD first.
 - **TEST 7b step A PASSED (camera):** loader v3 + half-press with no EP7MOD → no issues (fopen of missing file OK).
 - **TEST 7b step B PASSED (camera):** EP7MOD/BUNDLES.BIN (COLOR1 greens hue +7) loaded on first half-press → teal greens. SD look loading proven on camera.
+- View Assist: safe trigger found (display reply tail 0x601751f4); blocker = no playback flag → LUT can't auto-off in playback. Awaiting user choice.
