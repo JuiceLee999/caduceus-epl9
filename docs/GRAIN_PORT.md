@@ -119,6 +119,18 @@ This would use the mask pass (0x0900, LUT 0x605003aa) + grain pass (0x0901, gain
 It needs the mask job, a 0302 intermediate plus an output pass, and a key-11 → 31 rule. fishcu notes that
 the mask wrapper forces a mono word and the buffers are about 96 MiB. It is much larger.
 
+### v0.16: COLOR-only gain boost (patches/grain_boost; releases/v0.16)
+Camera feedback: COLOR grain (combiner 32, 50/75/100) is far too weak. The blanket fix (table pointer at 0x603a06dd
+→ 0x604ec0ce) would also change stock MONO small-job grain, so the boost is keyed on the job key instead:
+hook A 0x603a065b (handler-32 entry) replays its two loads and puts the key (52,ctx) in d2 (free in handler 32;
+restored by `ret [d2,d3,a2,a3],20`); hook B 0x603a06dd adds 0x604ec0d4 and, for key 11 only, subtracts 6 →
+0x604ec0ce. COLOR levels 1/2/3 → gain **110/300/600** (MONO full-size values; no mask pass, so the look is not
+identical to the mask route). Key 11 reaches combiner 32 only via our sel_hook, so MONO/art keep stock banks.
+Verifier (`tools/ep7_grain_verify.py`): T4 COLOR gain 110/300/600, bank == stock MONO 0902 except +136; new T8:
+keys 12/0x01010068/0/5/10 × stages 0x0901/0x0902 × levels 0–3 byte-identical to stock, erased table → stock.
+Negative control (unconditional strong table) fails T8. Desktop estimate: `sim/grain_boost_preview.py`
+(model uncalibrated to camera; midtone std ×2.2/×4/×6 vs the old levels).
+
 ## 4. Verification (emulator; `tools/ep7_grain_verify.py`, fishcu's libsim runner)
 
 **v0.4 (current verifier, `generated/v04/grain/verify.json`).** A synthetic bundle table is injected at

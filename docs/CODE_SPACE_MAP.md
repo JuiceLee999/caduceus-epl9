@@ -16,6 +16,7 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | 0x60210c90–0x60210cd0 | 1 | video log vlog_hook (patches/video_log; 42 B, 53 B with Flat; 0x60210c80–0x60210c90 guard) | built + emulator verified |
 | 0x60210ce0–0x60210e00 | 1 | v0.4 per-profile colour grain: wl_hook (job-type gate + bundle slot), sel_hook, grain_mod (patches/grain; 0x60210cd0–0x60210ce0 guard) | claimed (v0.4) |
 | 0x60210e10–0x60210ef0 | 1 | v0.4 per-profile colour bloom: bloom_flag, bloom_w (+strength LUT) (patches/bloom; 0x60210e00–0x60210e10 and 0x60210ef0–0x60210f00 guards) | claimed (v0.4) |
+| 0x60210e10–0x60210e40 | 1 | **v0.16 COLOR grain boost** gb_a / gb_b (patches/grain_boost; 31 B, 0x60210e10–0x60210e2f). Inside the v0.4 sec-1 bloom block, FF in clarity builds (the current line); guards 0x60210e00–e10 and 0x60210e40–e90 FF | built + emulator-verified (v0.16) |
 | 0x60210f00–0x60210f80 | 1 | aspect case blocks S1–S5 (patches/aspect; 110 B used, 0x60210f00–0x60210f6e); v4: setting-270 validator list 7 B at 0x60210f70–0x60210f77 (0x60210f6e–f70 and f77–f80 FF) | built + emulator-verified |
 | 0x60210e80–0x60210ef0 | 1 | **aspect v2 boot clamp** (patches/aspect, docs/ASPECT.md §3(c); 56 B at 0x60210e90–0x60210ec8 incl. the u16 id list at 0x60210ec6). FF guards 0x60210e80–e90 and 0x60210ec8–0x60210ef0. Inside the v0.4 sec-1 bloom block, which clarity builds (the current line) leave stock FF: **never combine with sec-1 (non-clarity) bloom** | built + emulator-verified (2026-11-02, merged with test12c) |
 | 0x61242a00–0x61242d00 | 6 | SD-card bundle loader sd_hook/sd_load/sd_check/sd_crc + path, header, range tables, `sd_state` byte (patches/sd_bundles; 564 B used, 0x61242a00–0x61242c34, sd_state at 0x61242c33 is written at run time). Guards 0x612429b0–0x61242a00 and 0x61242d00–0x61242f00 stay FF; stock data ends 0x612429af | **superseded by v2** (dead hook, REVIEW_v04 H1-new); never combine with v2 |
@@ -60,6 +61,7 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | 0x6030df3d | 5 | video log: `266001f172` (mov 352,a2; add a0,a2) → jmp vlog_hook (test13 probe: 0x601e203c) |
 | 0x6035749f | 7 | grain work-list |
 | 0x603b5249 | 7 | grain combiner selector |
+| 0x603a065b (6), 0x603a06dd (6) | 12 | v0.16 grain boost: combiner-32 handler entry loads → jmp gb_a (replayed + job key → d2); gain-table add → jmp gb_b (key 11: 0x604ec0ce 110/300/600, else stock 0x604ec0d4) |
 | 0x603eabd7 | 6 | bloom: art-effect flag converter (key 11 → job flag 0x80); clarity builds: same hook, also effect_id 3 |
 | 0x6039fee8 | 6 | bloom: Soft Focus mix-weight getter (key 11 → w); clarity builds: w > 1024 when called from combiner 11 (return address 0x603a04ac) |
 | 0x60302c46, 0x60302c60, 0x60302da3, 0x60302db8, 0x60302e35, 0x60302e4b, 0x60302f23, 0x60302f3b, 0x60302f8f, 0x60302fa8, 0x6030bb5b, 0x6030bb6e, 0x6030eb61, 0x6030eb77 (edit at site+1) | 4 each | per-profile WB: rel32 of `call 0x6005e971,[d2,d3],12` → wb_get (docs/WB_PATCH.md) |

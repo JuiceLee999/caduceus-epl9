@@ -21,6 +21,10 @@ grain-only spec (a synthetic bundle table is injected) or on a merged spec (the 
      level byte = slot grain; invalid slot or kind 3 -> request untouched; returns 0; job untouched.
   T4 end to end: combiner config 0x603a013b on a COLOR request after the modifier: slot level L ->
      handler 32 with gain table[L-1], bank byte-identical to stock MONO key 12 + stage 0x0902; L = 0 -> stock.
+     With the v0.16 grain boost (spec 'grain_boost'): COLOR gain = table 0x604ec0ce[L-1] = 110/300/600 and the
+     bank equals stock MONO 0x0902 except the gain word (+136).
+  T8 (grain boost) handler 32/31 for every non-COLOR key (MONO 12, art 0x01010068, 0, 5, 10) x stage 0x0901/0x0902
+     x level 0..3: bank, RAM counter, regs byte-identical to stock; COLOR with an erased (no) table -> stock.
   T5 changed bytes all inside edit spans.
   T7 (merged spec only) the real bundle table in the image: per COLOR slot, attach + level follow its grain byte.
 """
@@ -307,9 +311,9 @@ def t3_modifier(stock, patched, mod_addr):
 
 
 # ------------------------------------------------------------------ T4
-def t4_combiner(stock, patched, mod_addr):
+def t4_combiner(stock, patched, mod_addr, boost=False):
     res, ok = [], True
-    gains = struct.unpack_from('<3H', stock, 0x604ec0d4 - BASE)
+    gains = struct.unpack_from('<3H', stock, (0x604ec0ce if boost else 0x604ec0d4) - BASE)
     for lv in (0, 1, 2, 3):
         table = fixture_table([lv, 0, 0, 0])
         out = []
@@ -338,14 +342,66 @@ def t4_combiner(stock, patched, mod_addr):
                             ramctr=hex(struct.unpack_from('<I', m['ramctr'], 0)[0]), bank=bank.hex()))
         s, p, mref = out
         if lv:
-            good = (s['ok'] and p['ok'] and p['bank'] == mref['bank'] and p['gain136'] == gains[lv - 1] and
+            pb, mb = bytearray.fromhex(p['bank']), bytearray.fromhex(mref['bank'])
+            pb[136:140] = mb[136:140] = b'\0\0\0\0'      # gain word compared separately
+            good = (s['ok'] and p['ok'] and pb == mb and (boost or p['bank'] == mref['bank']) and p['gain136'] == gains[lv - 1] and
                     p['w172'] == '0x80001235' and p['ramctr'] == '0x1235' and s['ramctr'] == '0x1234')
         else:
             good = s['ok'] and p['ok'] and p['bank'] == s['bank'] and p['ramctr'] == s['ramctr'] == '0x1234'
         ok &= good
         res.append(dict(slot_grain=lv, expected_gain=gains[lv - 1] if lv else None, patched_gain=p['gain136'],
+                        stock_mono_0902_gain=mref['gain136'],
                         patched_bank_equals_stock_mono_0902=(p['bank'] == mref['bank']) if lv else None,
                         patched_equals_stock=p['bank'] == s['bank'], ok=good))
+    return ok, res
+
+
+# ------------------------------------------------------------------ T8 (grain boost: non-COLOR untouched)
+MASKD = 0x1a100000
+
+
+def cfg_run(main, table, key, stage, lv):
+    req = request(0, stage, 0x0400, lv)
+    struct.pack_into('<I', req, 276, MASKD)            # mask descriptor for handler 31 (stage 0x0901)
+    struct.pack_into('<HHH', req, 276 + 10, 3, 1, 2)   # (10) row, (14) divisor != 0, (20) column
+    ctx = bytearray(128)
+    struct.pack_into('<I', ctx, 4, REQ)
+    struct.pack_into('<I', ctx, 8, BANKB)
+    struct.pack_into('<I', ctx, 52, key)
+    rg = regions(main, table, [stack(), PR.caller(CFG, 0xf0, 20), Region('ctx', CTX, bytes(ctx), 'rw', True),
+                               Region('req', REQ, bytes(req), 'rw', True),
+                               Region('bank', BANKB, bytes(7364 + 256), 'rw', True),
+                               Region('maskd', MASKD, bytes(range(256)) * 2, 'r')])
+    r = execute(rg, {'pc': CALLER, 'sp': STACK + 0x1800, 'a0': CTX, **REGS0}, CALLER + 7, limit=20000)
+    m = mem(r)
+    return dict(ok=regs_ok(r, CALLER + 7), bank=m['bank'], ramctr=m['ramctr'], req=m['req'], ctx=m['ctx'])
+
+
+def t8_boost_isolation(stock, patched, mod_addr):
+    res, ok = [], True
+    table = fixture_table([3, 3, 3, 3, 3, 3, 3, 3])
+    for key in (12, 0x01010068, 0, 5, 10):
+        for stage in (0x0901, 0x0902):
+            for lv in (0, 1, 2, 3):
+                s, p = cfg_run(stock, table, key, stage, lv), cfg_run(patched, table, key, stage, lv)
+                good = s['ok'] and p['ok'] and all(s[k] == p[k] for k in ('bank', 'ramctr', 'req', 'ctx'))
+                ok &= good
+                res.append(dict(key=hex(key), stage=hex(stage), level=lv, gain136=struct.unpack_from('<I', p['bank'], 7364 + 136)[0], ok=good))
+    # COLOR job with no table (erased 0xFF, as without the bundles table): modifier leaves the request alone -> stock
+    erased = b'\xff' * (8 * SLOT)
+    for prof in (1, 2, 3, 4):
+        out = []
+        for main in (stock, patched):
+            rg = regions(main, erased, [stack(), caller_calls(mod_addr) if main is patched else caller_calls(MOD_STOCK),
+                                        Region('req', REQ, bytes(request(0, 0, 0x0400, 0)), 'rw', True),
+                                        Region('job', JOB, bytes(job_bytes(ext=(prof, 11, MAGIC))), 'rw', True)])
+            r = execute(rg, {'pc': CALLER, 'sp': STACK + 0x1800, 'a0': JOB, 'a1': REQ, **REGS0}, CALLER + 7, limit=1000)
+            out.append(mem(r)['req'])
+        untouched = out[1] == bytes(request(0, 0, 0x0400, 0))
+        s, p = cfg_run(stock, erased, 11, 0, 0), cfg_run(patched, erased, 11, 0, 0)
+        good = untouched and s['ok'] and p['ok'] and all(s[k] == p[k] for k in ('bank', 'ramctr', 'req'))
+        ok &= good
+        res.append(dict(case=f'erased table, COLOR{prof}', request_untouched=untouched, config_equals_stock=good, ok=good))
     return ok, res
 
 
@@ -389,7 +445,9 @@ def main():
              ('T2 work list (per-profile)', lambda: t2_worklist(stock, patched, mod_addr)),
              ('T6 job-type gate vs stock MONO (H1)', lambda: t6_jobtype(stock, patched, mod_addr)),
              ('T3 modifier (per-profile)', lambda: t3_modifier(stock, patched, mod_addr)),
-             ('T4 combiner config', lambda: t4_combiner(stock, patched, mod_addr))]
+             ('T4 combiner config', lambda: t4_combiner(stock, patched, mod_addr, 'grain_boost' in spec))]
+    if 'grain_boost' in spec:
+        tests.append(('T8 boost isolation (non-COLOR keys, erased table)', lambda: t8_boost_isolation(stock, patched, mod_addr)))
     if 'table_hex' in spec:
         tests.append(('T7 real bundle table (merged)', lambda: t7_real_table(stock, patched, mod_addr, spec)))
     for name, fn in tests:
