@@ -202,3 +202,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - SD loader v2 review (agent, docs/REVIEW_SD_V2.md): no blockers; OK for camera test as its own step on test-5 base. H1 section-RAM writability unproven (crash on 1st half-press if faulting; SD updater still recovers). M1 UI freeze during read / narrow deadlock window. Test plan: step1 card without BUNDLES.BIN; step2 file = flashed table + 1 visible change.
 - Test 6 verified (WB 26 functional, grain 7, bloom 6, bundles 73; config-dependent mutation misses only). Loaded on card.
 - **TEST 6 PASSED (camera):** per-profile WB — COLOR4 shot EXIF WB fine-tune A+2 G0 (override) vs COLOR3 0/0 (global); R/B 1.31 vs 1.19.
+- Test 7a verified (SD v2 suite 21 PASS incl. mutations); loaded on card with NO EP7MOD folder.
