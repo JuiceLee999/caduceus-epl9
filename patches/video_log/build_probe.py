@@ -65,15 +65,10 @@ def source(name, trig):
     return src
 
 
-BQ = {}                                           # ep7_bq_gate / ep7_bq_dump (patches/bloom --blur-probe), from the spec
-
-
 def apply(spec, stock, trig):
-    bq = spec['bloom']['blur_probe']['symbols']
-    BQ.update(ep7_bq_gate=int(bq['bq_gate'], 16), ep7_bq_dump=int(bq['bq_dump'], 16))
     edits = [e for e in spec['edits'] if e['addr'] not in (hex(HOOK), hex(OLD_AT), hex(CODE_AT), hex(DUMP_AT))]
     code, syms, dis = asm(source('video_log_probe.s.in', trig), CODE_AT)
-    dump, dsyms, ddis = asm(source('vlog_dump.s.in', trig), DUMP_AT, dict(LIB, **BQ))
+    dump, dsyms, ddis = asm(source('vlog_dump.s.in', trig), DUMP_AT)
     assert syms['vlog_hook'] == CODE_AT and CODE_AT + len(code) <= CODE_END, hex(CODE_AT + len(code))
     assert dsyms['vlog_dump'] == DUMP_AT and DUMP_AT + len(dump) <= DUMP_END, hex(DUMP_AT + len(dump))
     ex = next(e for e in edits if e['addr'] == hex(EX_BLOB))
@@ -180,13 +175,22 @@ def check(img, stock):
     _, ok2, p = run_hook(img, f(), 3, 17, 1, bytearray(p), old=2)
     _, ok3, p = run_hook(img, f(), 3, 17, 1, bytearray(p), old=2)
     _, ok4, p = run_hook(img, f(mov=0), 11, 11, 1, bytearray(p), old=2)
-    rec = lambda i: p[704 + 12 * i:716 + 12 * i]
+    rec = lambda i: p[832 + 12 * i:844 + 12 * i]
     good = (ok1 and ok2 and ok3 and ok4 and p[980:997] == b'V04 03/17 m1t0 L\0' and p[966] == 3
             and rec(1)[:10] == bytes([0, 254, 3, 17, 0, 1, 0, 2, 1, 0]) and rec(2)[:9] == bytes([0, 254, 3, 17, 0, 1, 2, 2, 3])
             and rec(3)[:9] == bytes([0, 254, 11, 11, 0, 0, 2, 0, 4]) and p[967] == 1 and p[965] == 1
-            and struct.unpack_from('<I', p, 960)[0] == VMAGIC and p[:704] == bytes(p_block()[:704]) and p[1000:] == bytes(24))
+            and struct.unpack_from('<I', p, 960)[0] == VMAGIC and p[:832] == bytes(p_block()[:832]) and p[1000:] == bytes(24))
     res.append(dict(case='T ring + label', label=p[980:996].decode('latin1'), idx=p[966],
                     recs=[rec(i).hex() for i in range(1, 4)], passed=bool(good)))
+    # G: stale heap bytes (no 'VLGP' yet): the probe area is zeroed first, nothing outside 832..999 is touched
+    q = bytearray(p_block())
+    q[680:1024] = b'\x41' * 344
+    _, okg, q2 = run_hook(img, f(), 3, 17, 1, q)
+    good = (okg and q2[:832] == bytes(q[:832]) and q2[1000:] == bytes(q[1000:]) and q2[980:997] == b'V01 03/17 m1t0 L\0'
+            and q2[966] == 1 and q2[965] == 1 and q2[967] == 1 and q2[844:856] == bytes([0, 254, 3, 17, 0, 1, 0, 2, 1, 0, 0, 0])
+            and q2[856:960] == bytes(104))
+    res.append(dict(case='G stale heap -> probe area zeroed, rest untouched', label=q2[980:996].decode('latin1'),
+                    passed=bool(good)))
     return res, p
 
 
@@ -236,7 +240,7 @@ def run_dump(img, p, ev=None, handle=HANDLE, h=1):
     struct.pack_into('<H', st, 2, h)
     stack = bytearray(0x400)
     struct.pack_into('<I', stack, 0x200 + 16, B3.EV_PRESS if ev is None else ev)
-    regions = [VP.img(img, 'dump', DUMP_AT, DUMP_END, 'rx'), VP.img(img, 'bq', 0x601e1d3c, 0x601e203c, 'rx'),
+    regions = [VP.img(img, 'dump', DUMP_AT, DUMP_END, 'rx'),
                Region('stack', VP.STACK, bytes(stack), 'rw'),
                Region('state', B3.STATE - 2, bytes(st), 'r'), Region('P', B3.POOL, bytes(p), 'rw', True),
                Region('buf', BUF, bytes(512), 'rw', True), Region('spy', SPY, bytes(32), 'rw', True),

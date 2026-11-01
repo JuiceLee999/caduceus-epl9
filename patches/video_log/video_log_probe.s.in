@@ -10,8 +10,9 @@
    otherwise the untouched stock body (0x6030df42) runs. Everything else is probe.
    Entry (stock caller 0x6032641f: call 0x6030df3d,[a2],4): a0 = message A, a1 = &rec68[13]; a0/a1 preserved,
    d2/d3/a3 saved/restored with movm, MDR saved/restored (vrec calls set it), d0/d1/a2 free.
-   Probe (heap block P only, when P is valid; never the image):
-     P+704 + 12*i, i = 0..7: ring of records, appended when bytes 0..7 change:
+   Heap audit: loader 0..679 (+ name staging up to +815 at load time), editor/extras 680..703, film 1016..1023,
+   probe 832..999 (zeroed on first use after each load). Probe (heap block P only, when P is valid; never the image):
+     P+832 + 12*i, i = 0..7: ring of records, appended when bytes 0..7 change:
        +0 A+352 t, +1 A+353 MovPicMode (setting 323), +2 A+354 movie pm, +3 rec68[29] (0x9481 pm),
        +4 A+8, +5 A+332 movie flag, +6 +925 before (rec68[13]), +7 +925 result, +8 call counter, +9 A+355, +10/11 0
      P+960 'VLGP', P+964 counter 0..99, P+965 trigger-pm seen, P+966 ring index, P+967 dump pending (movie call),
@@ -89,6 +90,21 @@ vlog_hook:
  mov (a2),d0
  cmp {bmagic},d0
  bne decide
+ mov (960,a2),d0                   /* first use since the load: zero the probe area P+832..999, then 'VLGP' */
+ cmp {vmagic},d0
+ beq 11f
+ mov a2,a3
+ add 832,a3
+ mov 42,d1
+ clr d0
+12:
+ mov d0,(a3)
+ add 4,a3
+ add -1,d1
+ bne 12b
+ mov {vmagic},d0
+ mov d0,(960,a2)
+11:
  movbu (964,a2),d0                 /* call counter 0..99 */
  inc d0
  cmp 100,d0
@@ -191,8 +207,6 @@ vlog_hook:
  movbu d0,(980,a2)
  mov 0x20,d0
  movbu d0,(983,a2)
- mov {vmagic},d0
- mov d0,(960,a2)
 decide:
  mov (4,sp),d0
  mov d0,mdr
@@ -208,13 +222,13 @@ stock:
  add a0,a2
  jmp ep7_stock_body                /* 0x6030df42 */
 
-vrec:                              /* d0 = index -> a3 = P+704+12*(d0&7); uses d0,d1 */
+vrec:                              /* d0 = index -> a3 = P+832+12*(d0&7); uses d0,d1 */
  and 7,d0
  mov d0,d1
  asl2 d1
  asl 3,d0
  add d1,d0
- add 704,d0
+ add 832,d0
  mov d0,a3
  add a2,a3
  ret [],0

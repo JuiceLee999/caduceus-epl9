@@ -1,5 +1,5 @@
 
-/tmp/tmpejxz9apf/p.elf:     file format elf32-mn10300
+/tmp/tmpjw466bts/p.elf:     file format elf32-mn10300
 
 
 Disassembly of section .text:
@@ -48,12 +48,12 @@ Disassembly of section .text:
 601e2090:	fc c8 41 a9 	cmp	43329,d0
 601e2094:	00 00 
 601e2096:	c4 05       	bcs	601e209b <.L0^A_0>
-601e2098:	cc a3 01    	jmp	601e223b <decide>
+601e2098:	cc be 01    	jmp	601e2256 <decide>
 
 601e209b <.L0^A_0>:
 601e209b:	f8 ec 03    	btst	3,d0
 601e209e:	c8 05       	beq	601e20a3 <.L0^A_1>
-601e20a0:	cc 9b 01    	jmp	601e223b <decide>
+601e20a0:	cc b6 01    	jmp	601e2256 <decide>
 
 601e20a3 <.L0^A_1>:
 601e20a3:	f1 e2       	mov	d0,a2
@@ -63,249 +63,265 @@ Disassembly of section .text:
 601e20ac:	fc c8 45 50 	cmp	1110921285,d0
 601e20b0:	37 42 
 601e20b2:	c8 05       	beq	601e20b7 <.L0^A_2>
-601e20b4:	cc 87 01    	jmp	601e223b <decide>
+601e20b4:	cc a2 01    	jmp	601e2256 <decide>
 
 601e20b7 <.L0^A_2>:
-601e20b7:	fa 42 c4 03 	movbu	(964,a2),d0
-601e20bb:	40          	inc	d0
-601e20bc:	a0 64       	cmp	100,d0
-601e20be:	c4 03       	bcs	601e20c1 <.L4^B1>
+601e20b7:	fa 02 c0 03 	mov	(960,a2),d0
+601e20bb:	fc c8 56 4c 	cmp	1346849878,d0
+601e20bf:	47 50 
+601e20c1:	c8 1b       	beq	601e20dc <.L11^B1>
+601e20c3:	9b          	mov	a2,a3
+601e20c4:	fa d3 40 03 	add	832,a3
+601e20c8:	85 2a       	mov	42,d1
 	...
 
-601e20c1 <.L4^B1>:
-601e20c1:	fa 52 c4 03 	movbu	d0,(964,a2)
-601e20c5:	85 30       	mov	48,d1
+601e20cb <.L12^B1>:
+601e20cb:	63          	mov	d0,(a3)
+601e20cc:	23 04       	add	4,a3
+601e20ce:	29 ff       	add	-1,d1
+601e20d0:	c9 fb       	bne	601e20cb <.L12^B1>
+601e20d2:	fc cc 56 4c 	mov	1346849878,d0
+601e20d6:	47 50 
+601e20d8:	fa 12 c0 03 	mov	d0,(960,a2)
 
-601e20c7 <L91_0>:
-601e20c7:	a0 0a       	cmp	10,d0
-601e20c9:	c4 07       	bcs	601e20d0 <L92_0>
-601e20cb:	28 f6       	add	-10,d0
-601e20cd:	44          	inc	d1
-601e20ce:	ca f9       	bra	601e20c7 <L91_0>
+601e20dc <.L11^B1>:
+601e20dc:	fa 42 c4 03 	movbu	(964,a2),d0
+601e20e0:	40          	inc	d0
+601e20e1:	a0 64       	cmp	100,d0
+601e20e3:	c4 03       	bcs	601e20e6 <.L4^B1>
+	...
 
-601e20d0 <L92_0>:
-601e20d0:	a5 39       	cmp	57,d1
-601e20d2:	c7 04       	bls	601e20d6 <L93_0>
-601e20d4:	85 3f       	mov	63,d1
+601e20e6 <.L4^B1>:
+601e20e6:	fa 52 c4 03 	movbu	d0,(964,a2)
+601e20ea:	85 30       	mov	48,d1
 
-601e20d6 <L93_0>:
-601e20d6:	fa 56 d5 03 	movbu	d1,(981,a2)
-601e20da:	28 30       	add	48,d0
-601e20dc:	fa 52 d6 03 	movbu	d0,(982,a2)
-601e20e0:	fa 00 4c 01 	mov	(332,a0),d0
-601e20e4:	a0 01       	cmp	1,d0
-601e20e6:	c9 06       	bne	601e20ec <.L5^B1>
-601e20e8:	fa 52 c7 03 	movbu	d0,(967,a2)
+601e20ec <L91_0>:
+601e20ec:	a0 0a       	cmp	10,d0
+601e20ee:	c4 07       	bcs	601e20f5 <L92_0>
+601e20f0:	28 f6       	add	-10,d0
+601e20f2:	44          	inc	d1
+601e20f3:	ca f9       	bra	601e20ec <L91_0>
 
-601e20ec <.L5^B1>:
-601e20ec:	fa 44 60 01 	movbu	(352,a0),d1
-601e20f0:	fa 40 61 01 	movbu	(353,a0),d0
-601e20f4:	f8 c0 08    	asl	8,d0
-601e20f7:	f2 11       	or	d0,d1
-601e20f9:	fa 40 62 01 	movbu	(354,a0),d0
-601e20fd:	f8 c0 10    	asl	16,d0
-601e2100:	f2 11       	or	d0,d1
-601e2102:	f8 41 10    	movbu	(16,a1),d0
-601e2105:	f8 c0 18    	asl	24,d0
-601e2108:	f2 11       	or	d0,d1
-601e210a:	fa 16 c8 03 	mov	d1,(968,a2)
-601e210e:	f8 44 08    	movbu	(8,a0),d1
-601e2111:	fa 00 4c 01 	mov	(332,a0),d0
-601e2115:	f8 e0 ff    	and	255,d0
-601e2118:	f8 c0 08    	asl	8,d0
-601e211b:	f2 11       	or	d0,d1
-601e211d:	f0 41       	movbu	(a1),d0
-601e211f:	f8 c0 10    	asl	16,d0
-601e2122:	f2 11       	or	d0,d1
-601e2124:	88          	mov	d2,d0
-601e2125:	f8 c0 18    	asl	24,d0
-601e2128:	f2 11       	or	d0,d1
-601e212a:	fa 16 cc 03 	mov	d1,(972,a2)
-601e212e:	fa 42 c6 03 	movbu	(966,a2),d0
-601e2132:	cd 29 01 00 	call	601e225b <vrec>,[],0
-601e2136:	00 
-601e2137:	73          	mov	(a3),d0
-601e2138:	fa 06 c8 03 	mov	(968,a2),d1
-601e213c:	a1          	cmp	d0,d1
-601e213d:	c9 0c       	bne	601e2149 <.L6^B1>
-601e213f:	f8 03 04    	mov	(4,a3),d0
-601e2142:	fa 06 cc 03 	mov	(972,a2),d1
-601e2146:	a1          	cmp	d0,d1
-601e2147:	c8 2a       	beq	601e2171 <.L7^B1>
+601e20f5 <L92_0>:
+601e20f5:	a5 39       	cmp	57,d1
+601e20f7:	c7 04       	bls	601e20fb <L93_0>
+601e20f9:	85 3f       	mov	63,d1
 
-601e2149 <.L6^B1>:
-601e2149:	fa 42 c6 03 	movbu	(966,a2),d0
-601e214d:	40          	inc	d0
-601e214e:	f8 e0 07    	and	7,d0
-601e2151:	fa 52 c6 03 	movbu	d0,(966,a2)
-601e2155:	cd 06 01 00 	call	601e225b <vrec>,[],0
-601e2159:	00 
-601e215a:	fa 02 c8 03 	mov	(968,a2),d0
-601e215e:	63          	mov	d0,(a3)
-601e215f:	fa 02 cc 03 	mov	(972,a2),d0
-601e2163:	f8 13 04    	mov	d0,(4,a3)
-601e2166:	00          	clr	d0
-601e2167:	f8 13 08    	mov	d0,(8,a3)
-601e216a:	fa 40 63 01 	movbu	(355,a0),d0
-601e216e:	f8 53 09    	movbu	d0,(9,a3)
+601e20fb <L93_0>:
+601e20fb:	fa 56 d5 03 	movbu	d1,(981,a2)
+601e20ff:	28 30       	add	48,d0
+601e2101:	fa 52 d6 03 	movbu	d0,(982,a2)
+601e2105:	fa 00 4c 01 	mov	(332,a0),d0
+601e2109:	a0 01       	cmp	1,d0
+601e210b:	c9 06       	bne	601e2111 <.L5^B1>
+601e210d:	fa 52 c7 03 	movbu	d0,(967,a2)
 
-601e2171 <.L7^B1>:
-601e2171:	fa 42 c4 03 	movbu	(964,a2),d0
-601e2175:	f8 53 08    	movbu	d0,(8,a3)
-601e2178:	fa 40 62 01 	movbu	(354,a0),d0
-601e217c:	a0 03       	cmp	3,d0
-601e217e:	c8 0d       	beq	601e218b <.L0^A_3>
-601e2180:	fa 42 c5 03 	movbu	(965,a2),d0
-601e2184:	a0 00       	cmp	0,d0
-601e2186:	c8 05       	beq	601e218b <.L0^A_3>
-601e2188:	cc 9d 00    	jmp	601e2225 <.L9^B1>
+601e2111 <.L5^B1>:
+601e2111:	fa 44 60 01 	movbu	(352,a0),d1
+601e2115:	fa 40 61 01 	movbu	(353,a0),d0
+601e2119:	f8 c0 08    	asl	8,d0
+601e211c:	f2 11       	or	d0,d1
+601e211e:	fa 40 62 01 	movbu	(354,a0),d0
+601e2122:	f8 c0 10    	asl	16,d0
+601e2125:	f2 11       	or	d0,d1
+601e2127:	f8 41 10    	movbu	(16,a1),d0
+601e212a:	f8 c0 18    	asl	24,d0
+601e212d:	f2 11       	or	d0,d1
+601e212f:	fa 16 c8 03 	mov	d1,(968,a2)
+601e2133:	f8 44 08    	movbu	(8,a0),d1
+601e2136:	fa 00 4c 01 	mov	(332,a0),d0
+601e213a:	f8 e0 ff    	and	255,d0
+601e213d:	f8 c0 08    	asl	8,d0
+601e2140:	f2 11       	or	d0,d1
+601e2142:	f0 41       	movbu	(a1),d0
+601e2144:	f8 c0 10    	asl	16,d0
+601e2147:	f2 11       	or	d0,d1
+601e2149:	88          	mov	d2,d0
+601e214a:	f8 c0 18    	asl	24,d0
+601e214d:	f2 11       	or	d0,d1
+601e214f:	fa 16 cc 03 	mov	d1,(972,a2)
+601e2153:	fa 42 c6 03 	movbu	(966,a2),d0
+601e2157:	cd 1f 01 00 	call	601e2276 <vrec>,[],0
+601e215b:	00 
+601e215c:	73          	mov	(a3),d0
+601e215d:	fa 06 c8 03 	mov	(968,a2),d1
+601e2161:	a1          	cmp	d0,d1
+601e2162:	c9 0c       	bne	601e216e <.L6^B1>
+601e2164:	f8 03 04    	mov	(4,a3),d0
+601e2167:	fa 06 cc 03 	mov	(972,a2),d1
+601e216b:	a1          	cmp	d0,d1
+601e216c:	c8 2a       	beq	601e2196 <.L7^B1>
 
-601e218b <.L0^A_3>:
-601e218b:	fc cc 78 78 	mov	2016376952,d0
-601e218f:	2f 78 
-601e2191:	fa 12 d8 03 	mov	d0,(984,a2)
-601e2195:	fc cc 78 20 	mov	2020417656,d0
-601e2199:	6d 78 
-601e219b:	fa 12 dc 03 	mov	d0,(988,a2)
-601e219f:	fc cc 74 78 	mov	2015393908,d0
-601e21a3:	20 78 
-601e21a5:	fa 12 e0 03 	mov	d0,(992,a2)
-601e21a9:	00          	clr	d0
-601e21aa:	fa 12 e4 03 	mov	d0,(996,a2)
-601e21ae:	fa 40 62 01 	movbu	(354,a0),d0
-601e21b2:	85 30       	mov	48,d1
+601e216e <.L6^B1>:
+601e216e:	fa 42 c6 03 	movbu	(966,a2),d0
+601e2172:	40          	inc	d0
+601e2173:	f8 e0 07    	and	7,d0
+601e2176:	fa 52 c6 03 	movbu	d0,(966,a2)
+601e217a:	cd fc 00 00 	call	601e2276 <vrec>,[],0
+601e217e:	00 
+601e217f:	fa 02 c8 03 	mov	(968,a2),d0
+601e2183:	63          	mov	d0,(a3)
+601e2184:	fa 02 cc 03 	mov	(972,a2),d0
+601e2188:	f8 13 04    	mov	d0,(4,a3)
+601e218b:	00          	clr	d0
+601e218c:	f8 13 08    	mov	d0,(8,a3)
+601e218f:	fa 40 63 01 	movbu	(355,a0),d0
+601e2193:	f8 53 09    	movbu	d0,(9,a3)
 
-601e21b4 <L91_1>:
-601e21b4:	a0 0a       	cmp	10,d0
-601e21b6:	c4 07       	bcs	601e21bd <L92_1>
-601e21b8:	28 f6       	add	-10,d0
-601e21ba:	44          	inc	d1
-601e21bb:	ca f9       	bra	601e21b4 <L91_1>
+601e2196 <.L7^B1>:
+601e2196:	fa 42 c4 03 	movbu	(964,a2),d0
+601e219a:	f8 53 08    	movbu	d0,(8,a3)
+601e219d:	fa 40 62 01 	movbu	(354,a0),d0
+601e21a1:	a0 03       	cmp	3,d0
+601e21a3:	c8 0d       	beq	601e21b0 <.L0^A_3>
+601e21a5:	fa 42 c5 03 	movbu	(965,a2),d0
+601e21a9:	a0 00       	cmp	0,d0
+601e21ab:	c8 05       	beq	601e21b0 <.L0^A_3>
+601e21ad:	cc 9d 00    	jmp	601e224a <.L9^B1>
 
-601e21bd <L92_1>:
-601e21bd:	a5 39       	cmp	57,d1
-601e21bf:	c7 04       	bls	601e21c3 <L93_1>
-601e21c1:	85 3f       	mov	63,d1
+601e21b0 <.L0^A_3>:
+601e21b0:	fc cc 78 78 	mov	2016376952,d0
+601e21b4:	2f 78 
+601e21b6:	fa 12 d8 03 	mov	d0,(984,a2)
+601e21ba:	fc cc 78 20 	mov	2020417656,d0
+601e21be:	6d 78 
+601e21c0:	fa 12 dc 03 	mov	d0,(988,a2)
+601e21c4:	fc cc 74 78 	mov	2015393908,d0
+601e21c8:	20 78 
+601e21ca:	fa 12 e0 03 	mov	d0,(992,a2)
+601e21ce:	00          	clr	d0
+601e21cf:	fa 12 e4 03 	mov	d0,(996,a2)
+601e21d3:	fa 40 62 01 	movbu	(354,a0),d0
+601e21d7:	85 30       	mov	48,d1
 
-601e21c3 <L93_1>:
-601e21c3:	fa 56 d8 03 	movbu	d1,(984,a2)
-601e21c7:	28 30       	add	48,d0
-601e21c9:	fa 52 d9 03 	movbu	d0,(985,a2)
-601e21cd:	f8 41 10    	movbu	(16,a1),d0
-601e21d0:	85 30       	mov	48,d1
+601e21d9 <L91_1>:
+601e21d9:	a0 0a       	cmp	10,d0
+601e21db:	c4 07       	bcs	601e21e2 <L92_1>
+601e21dd:	28 f6       	add	-10,d0
+601e21df:	44          	inc	d1
+601e21e0:	ca f9       	bra	601e21d9 <L91_1>
 
-601e21d2 <L91_2>:
-601e21d2:	a0 0a       	cmp	10,d0
-601e21d4:	c4 07       	bcs	601e21db <L92_2>
-601e21d6:	28 f6       	add	-10,d0
-601e21d8:	44          	inc	d1
-601e21d9:	ca f9       	bra	601e21d2 <L91_2>
+601e21e2 <L92_1>:
+601e21e2:	a5 39       	cmp	57,d1
+601e21e4:	c7 04       	bls	601e21e8 <L93_1>
+601e21e6:	85 3f       	mov	63,d1
 
-601e21db <L92_2>:
-601e21db:	a5 39       	cmp	57,d1
-601e21dd:	c7 04       	bls	601e21e1 <L93_2>
-601e21df:	85 3f       	mov	63,d1
+601e21e8 <L93_1>:
+601e21e8:	fa 56 d8 03 	movbu	d1,(984,a2)
+601e21ec:	28 30       	add	48,d0
+601e21ee:	fa 52 d9 03 	movbu	d0,(985,a2)
+601e21f2:	f8 41 10    	movbu	(16,a1),d0
+601e21f5:	85 30       	mov	48,d1
 
-601e21e1 <L93_2>:
-601e21e1:	fa 56 db 03 	movbu	d1,(987,a2)
-601e21e5:	28 30       	add	48,d0
-601e21e7:	fa 52 dc 03 	movbu	d0,(988,a2)
-601e21eb:	fa 00 4c 01 	mov	(332,a0),d0
-601e21ef:	a0 09       	cmp	9,d0
-601e21f1:	c7 04       	bls	601e21f5 <L94_3>
-601e21f3:	80 0f       	mov	15,d0
+601e21f7 <L91_2>:
+601e21f7:	a0 0a       	cmp	10,d0
+601e21f9:	c4 07       	bcs	601e2200 <L92_2>
+601e21fb:	28 f6       	add	-10,d0
+601e21fd:	44          	inc	d1
+601e21fe:	ca f9       	bra	601e21f7 <L91_2>
 
-601e21f5 <L94_3>:
-601e21f5:	28 30       	add	48,d0
-601e21f7:	fa 52 df 03 	movbu	d0,(991,a2)
-601e21fb:	fa 40 60 01 	movbu	(352,a0),d0
-601e21ff:	a0 09       	cmp	9,d0
-601e2201:	c7 04       	bls	601e2205 <L94_4>
-601e2203:	80 0f       	mov	15,d0
+601e2200 <L92_2>:
+601e2200:	a5 39       	cmp	57,d1
+601e2202:	c7 04       	bls	601e2206 <L93_2>
+601e2204:	85 3f       	mov	63,d1
 
-601e2205 <L94_4>:
-601e2205:	28 30       	add	48,d0
-601e2207:	fa 52 e1 03 	movbu	d0,(993,a2)
-601e220b:	80 53       	mov	83,d0
-601e220d:	af 00       	cmp	0,d3
-601e220f:	c8 04       	beq	601e2213 <.L10^B1>
-601e2211:	80 4c       	mov	76,d0
+601e2206 <L93_2>:
+601e2206:	fa 56 db 03 	movbu	d1,(987,a2)
+601e220a:	28 30       	add	48,d0
+601e220c:	fa 52 dc 03 	movbu	d0,(988,a2)
+601e2210:	fa 00 4c 01 	mov	(332,a0),d0
+601e2214:	a0 09       	cmp	9,d0
+601e2216:	c7 04       	bls	601e221a <L94_3>
+601e2218:	80 0f       	mov	15,d0
 
-601e2213 <.L10^B1>:
-601e2213:	fa 52 e3 03 	movbu	d0,(995,a2)
-601e2217:	fa 40 62 01 	movbu	(354,a0),d0
-601e221b:	a0 03       	cmp	3,d0
-601e221d:	c9 08       	bne	601e2225 <.L9^B1>
-601e221f:	80 01       	mov	1,d0
-601e2221:	fa 52 c5 03 	movbu	d0,(965,a2)
+601e221a <L94_3>:
+601e221a:	28 30       	add	48,d0
+601e221c:	fa 52 df 03 	movbu	d0,(991,a2)
+601e2220:	fa 40 60 01 	movbu	(352,a0),d0
+601e2224:	a0 09       	cmp	9,d0
+601e2226:	c7 04       	bls	601e222a <L94_4>
+601e2228:	80 0f       	mov	15,d0
 
-601e2225 <.L9^B1>:
-601e2225:	80 56       	mov	86,d0
-601e2227:	fa 52 d4 03 	movbu	d0,(980,a2)
-601e222b:	80 20       	mov	32,d0
-601e222d:	fa 52 d7 03 	movbu	d0,(983,a2)
-601e2231:	fc cc 56 4c 	mov	1346849878,d0
-601e2235:	47 50 
-601e2237:	fa 12 c0 03 	mov	d0,(960,a2)
+601e222a <L94_4>:
+601e222a:	28 30       	add	48,d0
+601e222c:	fa 52 e1 03 	movbu	d0,(993,a2)
+601e2230:	80 53       	mov	83,d0
+601e2232:	af 00       	cmp	0,d3
+601e2234:	c8 04       	beq	601e2238 <.L10^B1>
+601e2236:	80 4c       	mov	76,d0
 
-601e223b <decide>:
-601e223b:	58 04       	mov	(4,sp),d0
-601e223d:	f2 f2       	mov	d0,mdr
-601e223f:	f8 fe 08    	add	8,sp
-601e2242:	af 00       	cmp	0,d3
-601e2244:	c8 0b       	beq	601e224f <stock>
-601e2246:	ce d0       	movm	(sp),[d2,d3,a3]
-601e2248:	80 02       	mov	2,d0
-601e224a:	dc 1d bd 12 	jmp	6030df67 <ep7_store_ret>
-601e224e:	00 
+601e2238 <.L10^B1>:
+601e2238:	fa 52 e3 03 	movbu	d0,(995,a2)
+601e223c:	fa 40 62 01 	movbu	(354,a0),d0
+601e2240:	a0 03       	cmp	3,d0
+601e2242:	c9 08       	bne	601e224a <.L9^B1>
+601e2244:	80 01       	mov	1,d0
+601e2246:	fa 52 c5 03 	movbu	d0,(965,a2)
 
-601e224f <stock>:
-601e224f:	ce d0       	movm	(sp),[d2,d3,a3]
-601e2251:	26 60 01    	mov	352,a2
-601e2254:	f1 72       	add	a0,a2
-601e2256:	dc ec bc 12 	jmp	6030df42 <ep7_stock_body>
-601e225a:	00 
+601e224a <.L9^B1>:
+601e224a:	80 56       	mov	86,d0
+601e224c:	fa 52 d4 03 	movbu	d0,(980,a2)
+601e2250:	80 20       	mov	32,d0
+601e2252:	fa 52 d7 03 	movbu	d0,(983,a2)
 
-601e225b <vrec>:
-601e225b:	f8 e0 07    	and	7,d0
-601e225e:	81          	mov	d0,d1
-601e225f:	55          	asl2	d1
-601e2260:	f8 c0 03    	asl	3,d0
-601e2263:	e4          	add	d1,d0
-601e2264:	fa c0 c0 02 	add	704,d0
-601e2268:	f1 e3       	mov	d0,a3
-601e226a:	f1 7b       	add	a2,a3
-601e226c:	df 00 00    	ret	[],0
+601e2256 <decide>:
+601e2256:	58 04       	mov	(4,sp),d0
+601e2258:	f2 f2       	mov	d0,mdr
+601e225a:	f8 fe 08    	add	8,sp
+601e225d:	af 00       	cmp	0,d3
+601e225f:	c8 0b       	beq	601e226a <stock>
+601e2261:	ce d0       	movm	(sp),[d2,d3,a3]
+601e2263:	80 02       	mov	2,d0
+601e2265:	dc 02 bd 12 	jmp	6030df67 <ep7_store_ret>
+601e2269:	00 
 
-601e226f <vlog_txt>:
-601e226f:	fc ac c2 bc 	movhu	(622cbcc2 <ep7_fwrite+0x1c96c81>),d0
-601e2273:	2c 62 
-601e2275:	28 ff       	add	-1,d0
-601e2277:	fc c8 41 a9 	cmp	43329,d0
-601e227b:	00 00 
-601e227d:	c6 2a       	bcc	601e22a7 <.L20^B1>
-601e227f:	f8 ec 03    	btst	3,d0
-601e2282:	c9 25       	bne	601e22a7 <.L20^B1>
-601e2284:	f1 e2       	mov	d0,a2
-601e2286:	fc d2 00 d8 	add	-1577527296,a2
-601e228a:	f8 a1 
-601e228c:	72          	mov	(a2),d0
-601e228d:	fc c8 45 50 	cmp	1110921285,d0
-601e2291:	37 42 
-601e2293:	c9 14       	bne	601e22a7 <.L20^B1>
-601e2295:	fa 02 c0 03 	mov	(960,a2),d0
-601e2299:	fc c8 56 4c 	cmp	1346849878,d0
-601e229d:	47 50 
-601e229f:	c9 08       	bne	601e22a7 <.L20^B1>
-601e22a1:	fa d2 d4 03 	add	980,a2
-601e22a5:	f0 fc       	rets	
+601e226a <stock>:
+601e226a:	ce d0       	movm	(sp),[d2,d3,a3]
+601e226c:	26 60 01    	mov	352,a2
+601e226f:	f1 72       	add	a0,a2
+601e2271:	dc d1 bc 12 	jmp	6030df42 <ep7_stock_body>
+601e2275:	00 
 
-601e22a7 <.L20^B1>:
-601e22a7:	fc de 36 37 	mov	1612592950,a2
-601e22ab:	1e 60 
-601e22ad:	f0 fc       	rets	
+601e2276 <vrec>:
+601e2276:	f8 e0 07    	and	7,d0
+601e2279:	81          	mov	d0,d1
+601e227a:	55          	asl2	d1
+601e227b:	f8 c0 03    	asl	3,d0
+601e227e:	e4          	add	d1,d0
+601e227f:	fa c0 40 03 	add	832,d0
+601e2283:	f1 e3       	mov	d0,a3
+601e2285:	f1 7b       	add	a2,a3
+601e2287:	df 00 00    	ret	[],0
 
-/tmp/tmpdr6n26e5/p.elf:     file format elf32-mn10300
+601e228a <vlog_txt>:
+601e228a:	fc ac c2 bc 	movhu	(622cbcc2 <ep7_fwrite+0x1c96c81>),d0
+601e228e:	2c 62 
+601e2290:	28 ff       	add	-1,d0
+601e2292:	fc c8 41 a9 	cmp	43329,d0
+601e2296:	00 00 
+601e2298:	c6 2a       	bcc	601e22c2 <.L20^B1>
+601e229a:	f8 ec 03    	btst	3,d0
+601e229d:	c9 25       	bne	601e22c2 <.L20^B1>
+601e229f:	f1 e2       	mov	d0,a2
+601e22a1:	fc d2 00 d8 	add	-1577527296,a2
+601e22a5:	f8 a1 
+601e22a7:	72          	mov	(a2),d0
+601e22a8:	fc c8 45 50 	cmp	1110921285,d0
+601e22ac:	37 42 
+601e22ae:	c9 14       	bne	601e22c2 <.L20^B1>
+601e22b0:	fa 02 c0 03 	mov	(960,a2),d0
+601e22b4:	fc c8 56 4c 	cmp	1346849878,d0
+601e22b8:	47 50 
+601e22ba:	c9 08       	bne	601e22c2 <.L20^B1>
+601e22bc:	fa d2 d4 03 	add	980,a2
+601e22c0:	f0 fc       	rets	
+
+601e22c2 <.L20^B1>:
+601e22c2:	fc de 36 37 	mov	1612592950,a2
+601e22c6:	1e 60 
+601e22c8:	f0 fc       	rets	
+
+/tmp/tmprgc72eel/p.elf:     file format elf32-mn10300
 
 
 Disassembly of section .text:
@@ -320,7 +336,7 @@ Disassembly of section .text:
 601e2349:	fc c8 00 01 	cmp	33554688,d0
 601e234d:	00 02 
 601e234f:	c8 05       	beq	601e2354 <.L0^A_0>
-601e2351:	cc 12 01    	jmp	601e2463 <d_out>
+601e2351:	cc 1c 01    	jmp	601e246d <d_out>
 
 601e2354 <.L0^A_0>:
 601e2354:	cf f0       	movm	[d2,d3,a2,a3],(sp)
@@ -331,12 +347,12 @@ Disassembly of section .text:
 601e2361:	fc c8 41 a9 	cmp	43329,d0
 601e2365:	00 00 
 601e2367:	c4 05       	bcs	601e236c <.L0^A_1>
-601e2369:	cc f5 00    	jmp	601e245e <d_back>
+601e2369:	cc ff 00    	jmp	601e2468 <d_back>
 
 601e236c <.L0^A_1>:
 601e236c:	f8 ec 03    	btst	3,d0
 601e236f:	c8 05       	beq	601e2374 <.L0^A_2>
-601e2371:	cc ed 00    	jmp	601e245e <d_back>
+601e2371:	cc f7 00    	jmp	601e2468 <d_back>
 
 601e2374 <.L0^A_2>:
 601e2374:	f1 e2       	mov	d0,a2
@@ -346,163 +362,169 @@ Disassembly of section .text:
 601e237d:	fc c8 45 50 	cmp	1110921285,d0
 601e2381:	37 42 
 601e2383:	c8 05       	beq	601e2388 <.L0^A_3>
-601e2385:	cc d9 00    	jmp	601e245e <d_back>
+601e2385:	cc e3 00    	jmp	601e2468 <d_back>
 
 601e2388 <.L0^A_3>:
-601e2388:	dd a8 fa ff 	call	601e1e30 <ep7_bq_gate>,[],4
-601e238c:	ff 00 04 
-601e238f:	a0 00       	cmp	0,d0
-601e2391:	c9 05       	bne	601e2396 <.L0^A_4>
-601e2393:	cc cb 00    	jmp	601e245e <d_back>
+601e2388:	fa 02 c0 03 	mov	(960,a2),d0
+601e238c:	fc c8 56 4c 	cmp	1346849878,d0
+601e2390:	47 50 
+601e2392:	c8 05       	beq	601e2397 <.L0^A_4>
+601e2394:	cc d4 00    	jmp	601e2468 <d_back>
 
-601e2396 <.L0^A_4>:
-601e2396:	2c 00 04    	mov	1024,d0
-601e2399:	dd e9 03 e4 	call	60022782 <ep7_malloc>,[],4
-601e239d:	ff 00 04 
-601e23a0:	b0 00       	cmp	0,a0
-601e23a2:	c9 05       	bne	601e23a7 <.L0^A_5>
-601e23a4:	cc ba 00    	jmp	601e245e <d_back>
+601e2397 <.L0^A_4>:
+601e2397:	fa 42 c7 03 	movbu	(967,a2),d0
+601e239b:	a0 00       	cmp	0,d0
+601e239d:	c9 05       	bne	601e23a2 <.L0^A_5>
+601e239f:	cc c9 00    	jmp	601e2468 <d_back>
 
-601e23a7 <.L0^A_5>:
-601e23a7:	93          	mov	a0,a3
-601e23a8:	99          	mov	a2,a1
-601e23a9:	fa d1 d4 03 	add	980,a1
-601e23ad:	8f 10       	mov	16,d3
+601e23a2 <.L0^A_5>:
+601e23a2:	00          	clr	d0
+601e23a3:	fa 52 c7 03 	movbu	d0,(967,a2)
+601e23a7:	2c 00 02    	mov	512,d0
+601e23aa:	dd d8 03 e4 	call	60022782 <ep7_malloc>,[],4
+601e23ae:	ff 00 04 
+601e23b1:	b0 00       	cmp	0,a0
+601e23b3:	c9 05       	bne	601e23b8 <.L0^A_6>
+601e23b5:	cc b3 00    	jmp	601e2468 <d_back>
 
-601e23af <.L1^B1>:
-601e23af:	f0 41       	movbu	(a1),d0
-601e23b1:	a0 00       	cmp	0,d0
-601e23b3:	c8 0a       	beq	601e23bd <.L2^B1>
-601e23b5:	f0 50       	movbu	d0,(a0)
-601e23b7:	41          	inc	a0
-601e23b8:	45          	inc	a1
-601e23b9:	2b ff       	add	-1,d3
-601e23bb:	c9 f4       	bne	601e23af <.L1^B1>
+601e23b8 <.L0^A_6>:
+601e23b8:	93          	mov	a0,a3
+601e23b9:	99          	mov	a2,a1
+601e23ba:	fa d1 d4 03 	add	980,a1
+601e23be:	8f 10       	mov	16,d3
 
-601e23bd <.L2^B1>:
-601e23bd:	cd c1 00 00 	call	601e247e <d_crlf>,[],0
-601e23c1:	00 
-601e23c2:	08          	clr	d2
+601e23c0 <.L1^B1>:
+601e23c0:	f0 41       	movbu	(a1),d0
+601e23c2:	a0 00       	cmp	0,d0
+601e23c4:	c8 0a       	beq	601e23ce <.L2^B1>
+601e23c6:	f0 50       	movbu	d0,(a0)
+601e23c8:	41          	inc	a0
+601e23c9:	45          	inc	a1
+601e23ca:	2b ff       	add	-1,d3
+601e23cc:	c9 f4       	bne	601e23c0 <.L1^B1>
 
-601e23c3 <.L3^B1>:
-601e23c3:	80 20       	mov	32,d0
-601e23c5:	fa 46 c6 03 	movbu	(966,a2),d1
-601e23c9:	a6          	cmp	d1,d2
-601e23ca:	c9 04       	bne	601e23ce <.L4^B1>
-601e23cc:	80 2a       	mov	42,d0
+601e23ce <.L2^B1>:
+601e23ce:	cd ba 00 00 	call	601e2488 <d_crlf>,[],0
+601e23d2:	00 
+601e23d3:	08          	clr	d2
 
-601e23ce <.L4^B1>:
-601e23ce:	f0 50       	movbu	d0,(a0)
-601e23d0:	88          	mov	d2,d0
-601e23d1:	28 30       	add	48,d0
-601e23d3:	f8 50 01    	movbu	d0,(1,a0)
-601e23d6:	80 3a       	mov	58,d0
-601e23d8:	f8 50 02    	movbu	d0,(2,a0)
-601e23db:	20 03       	add	3,a0
-601e23dd:	88          	mov	d2,d0
-601e23de:	81          	mov	d0,d1
-601e23df:	55          	asl2	d1
-601e23e0:	f8 c0 03    	asl	3,d0
-601e23e3:	e4          	add	d1,d0
-601e23e4:	fa c0 c0 02 	add	704,d0
-601e23e8:	f1 e1       	mov	d0,a1
-601e23ea:	f1 79       	add	a2,a1
-601e23ec:	8f 0c       	mov	12,d3
+601e23d4 <.L3^B1>:
+601e23d4:	80 20       	mov	32,d0
+601e23d6:	fa 46 c6 03 	movbu	(966,a2),d1
+601e23da:	a6          	cmp	d1,d2
+601e23db:	c9 04       	bne	601e23df <.L4^B1>
+601e23dd:	80 2a       	mov	42,d0
 
-601e23ee <.L5^B1>:
-601e23ee:	80 20       	mov	32,d0
-601e23f0:	f0 50       	movbu	d0,(a0)
-601e23f2:	f0 41       	movbu	(a1),d0
-601e23f4:	f8 c4 04    	lsr	4,d0
-601e23f7:	cd 7c 00 00 	call	601e2473 <d_hex>,[],0
-601e23fb:	00 
-601e23fc:	f8 50 01    	movbu	d0,(1,a0)
-601e23ff:	f0 41       	movbu	(a1),d0
-601e2401:	f8 e0 0f    	and	15,d0
-601e2404:	cd 6f 00 00 	call	601e2473 <d_hex>,[],0
-601e2408:	00 
-601e2409:	f8 50 02    	movbu	d0,(2,a0)
-601e240c:	20 03       	add	3,a0
-601e240e:	45          	inc	a1
-601e240f:	2b ff       	add	-1,d3
-601e2411:	c9 dd       	bne	601e23ee <.L5^B1>
-601e2413:	cd 6b 00 00 	call	601e247e <d_crlf>,[],0
-601e2417:	00 
-601e2418:	48          	inc	d2
-601e2419:	aa 08       	cmp	8,d2
-601e241b:	c9 a8       	bne	601e23c3 <.L3^B1>
-601e241d:	dd 52 fa ff 	call	601e1e6f <ep7_bq_dump>,[d2,a2],12
-601e2421:	ff a0 0c 
-601e2424:	f1 d2       	mov	a0,d2
-601e2426:	f1 1e       	sub	a3,d2
-601e2428:	fc dc 8c 24 	mov	1612588172,a0
-601e242c:	1e 60 
-601e242e:	fc dd a1 24 	mov	1612588193,a1
-601e2432:	1e 60 
-601e2434:	dd 88 2b 45 	call	60634fbc <ep7_fopen>,[],4
-601e2438:	00 00 04 
-601e243b:	b0 00       	cmp	0,a0
-601e243d:	c8 19       	beq	601e2456 <.L6^B1>
-601e243f:	43 04       	mov	a0,(4,sp)
-601e2441:	91          	mov	a0,a1
-601e2442:	89          	mov	d2,d1
-601e2443:	80 01       	mov	1,d0
-601e2445:	9c          	mov	a3,a0
-601e2446:	dd fb 2b 45 	call	60635041 <ep7_fwrite>,[d2,d3,a2,a3],24
-601e244a:	00 f0 18 
-601e244d:	5c 04       	mov	(4,sp),a0
-601e244f:	dd 76 2b 45 	call	60634fc5 <ep7_fclose>,[d2,a2,a3],16
-601e2453:	00 b0 10 
+601e23df <.L4^B1>:
+601e23df:	f0 50       	movbu	d0,(a0)
+601e23e1:	88          	mov	d2,d0
+601e23e2:	28 30       	add	48,d0
+601e23e4:	f8 50 01    	movbu	d0,(1,a0)
+601e23e7:	80 3a       	mov	58,d0
+601e23e9:	f8 50 02    	movbu	d0,(2,a0)
+601e23ec:	20 03       	add	3,a0
+601e23ee:	88          	mov	d2,d0
+601e23ef:	81          	mov	d0,d1
+601e23f0:	55          	asl2	d1
+601e23f1:	f8 c0 03    	asl	3,d0
+601e23f4:	e4          	add	d1,d0
+601e23f5:	fa c0 40 03 	add	832,d0
+601e23f9:	f1 e1       	mov	d0,a1
+601e23fb:	f1 79       	add	a2,a1
+601e23fd:	8f 0c       	mov	12,d3
 
-601e2456 <.L6^B1>:
-601e2456:	9c          	mov	a3,a0
-601e2457:	dd 5d 03 e4 	call	600227b4 <ep7_free>,[],4
-601e245b:	ff 00 04 
+601e23ff <.L5^B1>:
+601e23ff:	80 20       	mov	32,d0
+601e2401:	f0 50       	movbu	d0,(a0)
+601e2403:	f0 41       	movbu	(a1),d0
+601e2405:	f8 c4 04    	lsr	4,d0
+601e2408:	cd 75 00 00 	call	601e247d <d_hex>,[],0
+601e240c:	00 
+601e240d:	f8 50 01    	movbu	d0,(1,a0)
+601e2410:	f0 41       	movbu	(a1),d0
+601e2412:	f8 e0 0f    	and	15,d0
+601e2415:	cd 68 00 00 	call	601e247d <d_hex>,[],0
+601e2419:	00 
+601e241a:	f8 50 02    	movbu	d0,(2,a0)
+601e241d:	20 03       	add	3,a0
+601e241f:	45          	inc	a1
+601e2420:	2b ff       	add	-1,d3
+601e2422:	c9 dd       	bne	601e23ff <.L5^B1>
+601e2424:	cd 64 00 00 	call	601e2488 <d_crlf>,[],0
+601e2428:	00 
+601e2429:	48          	inc	d2
+601e242a:	aa 08       	cmp	8,d2
+601e242c:	c9 a8       	bne	601e23d4 <.L3^B1>
+601e242e:	f1 d2       	mov	a0,d2
+601e2430:	f1 1e       	sub	a3,d2
+601e2432:	fc dc 96 24 	mov	1612588182,a0
+601e2436:	1e 60 
+601e2438:	fc dd ab 24 	mov	1612588203,a1
+601e243c:	1e 60 
+601e243e:	dd 7e 2b 45 	call	60634fbc <ep7_fopen>,[],4
+601e2442:	00 00 04 
+601e2445:	b0 00       	cmp	0,a0
+601e2447:	c8 19       	beq	601e2460 <.L6^B1>
+601e2449:	43 04       	mov	a0,(4,sp)
+601e244b:	91          	mov	a0,a1
+601e244c:	89          	mov	d2,d1
+601e244d:	80 01       	mov	1,d0
+601e244f:	9c          	mov	a3,a0
+601e2450:	dd f1 2b 45 	call	60635041 <ep7_fwrite>,[d2,d3,a2,a3],24
+601e2454:	00 f0 18 
+601e2457:	5c 04       	mov	(4,sp),a0
+601e2459:	dd 6c 2b 45 	call	60634fc5 <ep7_fclose>,[d2,a2,a3],16
+601e245d:	00 b0 10 
 
-601e245e <d_back>:
-601e245e:	f8 fe 08    	add	8,sp
-601e2461:	ce f0       	movm	(sp),[d2,d3,a2,a3]
+601e2460 <.L6^B1>:
+601e2460:	9c          	mov	a3,a0
+601e2461:	dd 53 03 e4 	call	600227b4 <ep7_free>,[],4
+601e2465:	ff 00 04 
 
-601e2463 <d_out>:
-601e2463:	58 00       	mov	(sp),d0
-601e2465:	59 04       	mov	(4,sp),d1
-601e2467:	5c 08       	mov	(8,sp),a0
-601e2469:	5d 0c       	mov	(12,sp),a1
-601e246b:	f8 fe 10    	add	16,sp
-601e246e:	dc d2 4e 3d 	jmp	605b7340 <ep7_ed_trig>
-601e2472:	00 
+601e2468 <d_back>:
+601e2468:	f8 fe 08    	add	8,sp
+601e246b:	ce f0       	movm	(sp),[d2,d3,a2,a3]
 
-601e2473 <d_hex>:
-601e2473:	28 30       	add	48,d0
-601e2475:	a0 3a       	cmp	58,d0
-601e2477:	c4 04       	bcs	601e247b <.L1^B2>
-601e2479:	28 07       	add	7,d0
+601e246d <d_out>:
+601e246d:	58 00       	mov	(sp),d0
+601e246f:	59 04       	mov	(4,sp),d1
+601e2471:	5c 08       	mov	(8,sp),a0
+601e2473:	5d 0c       	mov	(12,sp),a1
+601e2475:	f8 fe 10    	add	16,sp
+601e2478:	dc c8 4e 3d 	jmp	605b7340 <ep7_ed_trig>
+601e247c:	00 
 
-601e247b <.L1^B2>:
-601e247b:	df 00 00    	ret	[],0
+601e247d <d_hex>:
+601e247d:	28 30       	add	48,d0
+601e247f:	a0 3a       	cmp	58,d0
+601e2481:	c4 04       	bcs	601e2485 <.L1^B2>
+601e2483:	28 07       	add	7,d0
 
-601e247e <d_crlf>:
-601e247e:	80 0d       	mov	13,d0
-601e2480:	f0 50       	movbu	d0,(a0)
-601e2482:	80 0a       	mov	10,d0
-601e2484:	f8 50 01    	movbu	d0,(1,a0)
-601e2487:	20 02       	add	2,a0
-601e2489:	df 00 00    	ret	[],0
+601e2485 <.L1^B2>:
+601e2485:	df 00 00    	ret	[],0
 
-601e248c <d_path>:
-601e248c:	43 3a       	mov	a0,(58,sp)
-601e248e:	5c 45       	mov	(69,sp),a0
-601e2490:	50          	inc4	a0
-601e2491:	37 4d 4f    	movbu	(4f4d <_stack-0x7b0b3>),d3
-601e2494:	44          	inc	d1
-601e2495:	5c 4c       	mov	(76,sp),a0
-601e2497:	4f 47       	mov	a3,(71,sp)
-601e2499:	44          	inc	d1
-601e249a:	42 47       	mov	d0,(71,sp)
-601e249c:	2e 54 58    	mov	22612,d2
-601e249f:	54          	asl2	d0
+601e2488 <d_crlf>:
+601e2488:	80 0d       	mov	13,d0
+601e248a:	f0 50       	movbu	d0,(a0)
+601e248c:	80 0a       	mov	10,d0
+601e248e:	f8 50 01    	movbu	d0,(1,a0)
+601e2491:	20 02       	add	2,a0
+601e2493:	df 00 00    	ret	[],0
+
+601e2496 <d_path>:
+601e2496:	43 3a       	mov	a0,(58,sp)
+601e2498:	5c 45       	mov	(69,sp),a0
+601e249a:	50          	inc4	a0
+601e249b:	37 4d 4f    	movbu	(4f4d <_stack-0x7b0b3>),d3
+601e249e:	44          	inc	d1
+601e249f:	5c 4c       	mov	(76,sp),a0
+601e24a1:	4f 47       	mov	a3,(71,sp)
+601e24a3:	44          	inc	d1
+601e24a4:	42 47       	mov	d0,(71,sp)
+601e24a6:	2e 54 58    	mov	22612,d2
+601e24a9:	54          	asl2	d0
 	...
 
-601e24a1 <d_mode>:
-601e24a1:	77          	mov	(a3),d1
+601e24ab <d_mode>:
+601e24ab:	77          	mov	(a3),d1
 	...

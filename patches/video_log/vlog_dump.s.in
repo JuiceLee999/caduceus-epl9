@@ -6,10 +6,8 @@
    (HLS_EVENT TRIG, event at (16,sp), the camera-proven file context of the look-editor save). Leaves with every
    register and sp as on entry and jumps to ed_trig, so the editor save and film load run as before.
    Only when: event == half-press, P valid, P+960 == 'VLGP', P+967 (pending) != 0. Clears pending first (one
-   attempt), malloc(1024), formats, fopen "w" / fwrite / fclose, free. Any failure just skips (no card = fopen 0).
-   File: line 1 = the label text, then 8 lines "*k: b0 .. b11" (ring records, hex; '*' = newest), then (v0.14
-   bloom blur probe, docs/HALATION_RED.md 10d) 10 lines "Qk: b0 .. b11" = record R+0..119 when R is valid.
-   Also runs when only the bloom record is pending (the label / ring lines then show whatever P holds). */
+   attempt), malloc(512), formats, fopen "w" / fwrite / fclose, free. Any failure just skips (no card = fopen 0).
+   File: line 1 = the label text, then 8 lines "*k: b0 .. b11" (ring records, hex; '*' = newest). */
 _start:
 vlog_dump:
  add -16,sp
@@ -33,11 +31,15 @@ vlog_dump:
  mov (a2),d0
  cmp {bmagic},d0
  bne d_back
- call ep7_bq_gate,[],4            /* video-log batch (P+960 'VLGP', P+967) or bloom blur probe (patches/bloom
-                                     --blur-probe, R+6) pending? Clears both flags: one attempt per batch */
+ mov (960,a2),d0
+ cmp {vmagic},d0
+ bne d_back
+ movbu (967,a2),d0
  cmp 0,d0
  beq d_back
- mov 1024,d0
+ clr d0
+ movbu d0,(967,a2)                /* one attempt per pending batch */
+ mov 512,d0
  call ep7_malloc,[],4
  cmp 0,a0
  beq d_back
@@ -71,12 +73,12 @@ vlog_dump:
  mov 0x3a,d0
  movbu d0,(2,a0)
  add 3,a0
- mov d2,d0                        /* a1 = P+704+12k */
+ mov d2,d0                        /* a1 = P+832+12k */
  mov d0,d1
  asl2 d1
  asl 3,d0
  add d1,d0
- add 704,d0
+ add 832,d0
  mov d0,a1
  add a2,a1
  mov 12,d3
@@ -99,9 +101,8 @@ vlog_dump:
  inc d2
  cmp 8,d2
  bne 3b
- call ep7_bq_dump,[d2,a2],12      /* bloom blur probe: 10 lines "Qk: .." when its record is valid */
  mov a0,d2
- sub a3,d2                        /* d2 = length (<= 346 + 10 * 41 = 756 < 1024) */
+ sub a3,d2                        /* d2 = length (<= 16 + 2 + 8 * 41 = 346 < 512) */
  mov d_path,a0
  mov d_mode,a1
  call ep7_fopen,[],4
