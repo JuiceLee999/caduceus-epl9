@@ -1,0 +1,31 @@
+{
+ "name": "film_sim_menu",
+ "canvas": [720, 480],
+ "background": {"type": "image", "path": "generated/film/PA211062/classic_neg.jpg"},
+ "notes": [
+  "MOCK, phase 1 (docs/FILM_LIBRARY.md 5.2): stock Picture Mode list; the 8 profile entries switch label kind 4 (string id) -> 5 (char*)",
+  "pointing at names the LIBRARY.BIN loader writes. Values 54-59/64/65 unchanged. Badges = stock bitmaps 4350-4355/7530/7528.",
+  "Names are runtime ASCII drawn with the font res 35 glyphs. Layout, scale and colours are guesses (candidate palette)."
+ ],
+ "elements": [
+  {"type": "rect", "box": [0, 0, 330, 480], "fill": "#F0121418"},
+  {"type": "text", "string_id": 203, "x": 18, "y": 12, "scale": 0.85},
+  {"type": "bitmap", "id": 4794, "x": 150, "y": 54},
+  {"type": "text", "text": "Monochrome", "x": 84, "y": 92, "scale": 0.8},
+  {"type": "bitmap", "id": 6309, "x": 0, "y": 132},
+  {"type": "bitmap", "id": 4344, "x": 14, "y": 137},
+  {"type": "text", "text": "Classic Neg", "x": 84, "y": 147, "scale": 0.8, "fg": 1},
+  {"type": "bitmap", "id": 4351, "x": 20, "y": 206},
+  {"type": "text", "text": "Kchrome Grn", "x": 84, "y": 206, "scale": 0.8},
+  {"type": "bitmap", "id": 4352, "x": 20, "y": 258},
+  {"type": "text", "text": "Chrome Grain", "x": 84, "y": 258, "scale": 0.8},
+  {"type": "bitmap", "id": 7530, "x": 20, "y": 310},
+  {"type": "text", "text": "Portra Glow", "x": 84, "y": 310, "scale": 0.8},
+  {"type": "bitmap", "id": 4353, "x": 20, "y": 362},
+  {"type": "text", "text": "Acros G", "x": 84, "y": 362, "scale": 0.8},
+  {"type": "bitmap", "id": 4795, "x": 150, "y": 404},
+  {"type": "rect", "box": [330, 430, 390, 50], "fill": "#99000000"},
+  {"type": "bitmap", "id": 1388, "x": 360, "y": 428},
+  {"type": "bitmap", "id": 1387, "x": 600, "y": 428}
+ ]
+}

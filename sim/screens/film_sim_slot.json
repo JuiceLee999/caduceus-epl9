@@ -1,0 +1,25 @@
+{
+ "name": "film_sim_slot",
+ "canvas": [720, 480],
+ "background": {"type": "image", "path": "generated/film/PA211062/classic_neg.jpg"},
+ "notes": [
+  "MOCK, phase 1: Live Control picture-mode column. COLOR1 is highlighted; the option label at the bottom is the assigned",
+  "look's name (kind-5 text from the loader's name table) instead of 'Color Profile 1'. Badge bitmaps stay stock.",
+  "Whether this LC label path uses 0x60df250b/0x60df25b5 (kind 5 OK) is the first thing to confirm. Layout guessed."
+ ],
+ "elements": [
+  {"type": "rect", "box": [0, 0, 720, 44], "fill": "#99000000"},
+  {"type": "bitmap", "id": 4534, "x": 10, "y": 6},
+  {"type": "text", "text": "ISO-A  1/250  F5.6  0.0", "x": 300, "y": 2, "scale": 0.7},
+  {"type": "rect", "box": [632, 44, 88, 386], "fill": "#B0000000"},
+  {"type": "bitmap", "id": 4800, "x": 644, "y": 50},
+  {"type": "bitmap", "id": 4344, "x": 644, "y": 55},
+  {"type": "bitmap", "id": 4351, "x": 651, "y": 125},
+  {"type": "bitmap", "id": 4352, "x": 651, "y": 180},
+  {"type": "bitmap", "id": 7530, "x": 651, "y": 235},
+  {"type": "bitmap", "id": 4353, "x": 651, "y": 290},
+  {"type": "bitmap", "id": 4354, "x": 651, "y": 345},
+  {"type": "rect", "box": [0, 430, 720, 50], "fill": "#99000000"},
+  {"type": "text", "text": "Classic Neg", "x": 360, "y": 434, "scale": 0.9, "anchor": "tc", "fg": 1}
+ ]
+}

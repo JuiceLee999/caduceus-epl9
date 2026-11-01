@@ -1,0 +1,18 @@
+{"_comment": "Film Simulation library v2 example (docs/FILM_LIBRARY.md). looks: key -> {recipe, name<=12, notes, wb, grain, effect, vignette, sat}; include_recipes adds every shipped recipe with its default name; slots maps COLOR1-4/MONO1-4 to a look key (missing = stock).",
+ "include_recipes": "all",
+ "looks": {
+   "classic_neg":   {"name": "Classic Neg", "recipe": "classic_neg", "wb": {"a_b": 2, "g_m": 1},
+                     "notes": "Superia-like negative: hard shadows, cyan-green cast, muted reds."},
+   "kchrome_grain": {"name": "Kchrome Grn", "recipe": "kodachrome_64", "grain": "low",
+                     "notes": "Kodachrome 64 with low colour grain."},
+   "chrome_grain":  {"name": "Chrome Grain", "recipe": "classic_chrome", "grain": "low"},
+   "portra_glow":   {"name": "Portra Glow", "recipe": "portra_400_bloom", "wb": null,
+                     "effect": {"type": "bloom", "strength": 2},
+                     "notes": "Pastel skin, Pro-Mist style bloom (bloom v0.4)."},
+   "acros_g":       {"name": "Acros G", "recipe": "acros", "grain": "medium"},
+   "chrome_mono":   {"name": "Chrome Mono", "recipe": "classic_chrome",
+                     "notes": "Classic Chrome rendered in a MONO slot (patches/mono_colour)."}
+ },
+ "slots": {"COLOR1": "classic_neg", "COLOR2": "kchrome_grain", "COLOR3": "chrome_grain", "COLOR4": "portra_glow",
+           "MONO1": "acros_g", "MONO2": "chrome_mono", "MONO3": "cinestill_800t"}
+}
