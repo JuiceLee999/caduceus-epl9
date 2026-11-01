@@ -44,8 +44,9 @@ FEATURES = ('hl', 'bloom', 'grain', 'art')
 F_ART = 46
 # v0.14 Art Effect in LV (slot +46, patches/bloom --art): only the effects whose stages exist in stock LV job classes
 # 5-8 (work-list builder run natively, tools/ep7_lv_art_effect_verify.py): 2 Pin Hole 0x400, 3 Blur 0x100 (Diorama V),
-# 4 White Edge 0x2000, 5 Frame 0x8000. 1 Star Light has no stage in classes 5-7 and stock LV gates it: not previewed.
-LV_ART_FLAGS = {2: 0x400, 3: 0x100, 4: 0x2000, 5: 0x8000}
+# (v0.15: 4 White Edge / 5 Frame removed, read Off; Frame froze LV in Panorama/Wide). 1 Star Light has no stage in
+# classes 5-7 and stock LV gates it: not previewed.
+LV_ART_FLAGS = {2: 0x400, 3: 0x100}
 
 TBL_SLOT_SDV3 = ' call ep7_tbl_idx,[d2,d3],8          /* a0 = slot d0 of the active table (d0 preserved) */'
 FEAT_HL = ''' movbu ({f_flags},a0),d0               /* H/L enabled (bundles `hl` reads it) */
@@ -76,9 +77,9 @@ GRAIN_OFF = ''' movbu ({f_grain},a0),d0               /* grain slot: the transpo
 3:'''
 
 
-FEAT_ART = ''' movbu ({f_art},a0),d0                 /* v0.14 Art Effect: 2 Pin Hole, 3 Blur, 4 White Edge, 5 Frame (Star Light: no LV stage) */
+FEAT_ART = ''' movbu ({f_art},a0),d0                 /* Art Effect: 2 Pin Hole, 3 Blur (Star Light: no LV stage; old 4/5: nothing) */
  add -2,d0
- cmp 4,d0
+ cmp {n_art},d0
  bcc 4f
  asl2 d0
  mov lv_art_tab,a1
@@ -91,7 +92,7 @@ FEAT_ART = ''' movbu ({f_art},a0),d0                 /* v0.14 Art Effect: 2 Pin 
 
 
 def source(features):
-    fs = dict(f_flags=F_FLAGS, f_effect=F_EFFECT, f_strength=F_STRENGTH, f_grain=F_GRAIN, f_art=F_ART, flags_off=FLAGS_OFF)
+    fs = dict(f_flags=F_FLAGS, f_effect=F_EFFECT, f_strength=F_STRENGTH, f_grain=F_GRAIN, f_art=F_ART, flags_off=FLAGS_OFF, n_art=len(LV_ART_FLAGS))
     blocks = []
     if 'hl' in features:
         blocks.append(FEAT_HL)
@@ -105,11 +106,11 @@ def source(features):
         ['H/L flag (+31 bit 1)'] if 'hl' in features else []) + (
         ['bloom (effect_id 1 or 2, strength 1..5) -> also job flag 0x80'] if 'bloom' in features else []) + (
         ['grain 1..3'] if 'grain' in features else ['and NO grain (a grain slot stays stock: grain is not previewed)']) + (
-        ['art effect +46: 2/3/4/5 -> job flag 0x400/0x100/0x2000/0x8000 (no transport needed)'] if 'art' in features else [])]
+        ['art effect +46: 2/3 -> job flag 0x400/0x100 (no transport needed; 4/5 nothing)'] if 'art' in features else [])]
     sub = dict(lv_ret=hex(LV_RET), key_off=KEY_OFF, type_off=TYPE_OFF, flags_off=FLAGS_OFF, prop_profile=hex(PROP_PROFILE),
                tbl_slot=TBL_SLOT_SDV3, feat_code=code, feat_doc='\n'.join(doc), ext_profile=BB.EXT_PROFILE,
                ext_mode=BB.EXT_MODE, ext_magic=BB.EXT_MAGIC, magic=hex(BB.MAGIC))
-    sub['art_tab'] = ('\n .balign 4\nlv_art_tab:\n .long ' + ', '.join(hex(LV_ART_FLAGS[k]) for k in (2, 3, 4, 5))) if 'art' in features else ''
+    sub['art_tab'] = ('\n .balign 4\nlv_art_tab:\n .long ' + ', '.join(hex(LV_ART_FLAGS[k]) for k in sorted(LV_ART_FLAGS))) if 'art' in features else ''
     src = (Path(__file__).parent / 'lv_art.s.in').read_text()
     for k, v in sub.items():
         src = src.replace('{' + k + '}', str(v))

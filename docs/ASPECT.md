@@ -152,6 +152,28 @@ Camera result on test13 (v6): Panorama/Wide preview and capture right, but the s
 - [I] Not emulated: the "%dx%d" rendering and the icon draw. Panorama and Wide show the **same** 16:9 icon (no better bitmap). The quality/pixel-count screen of §1b
   (type-5 string lists, record 0x611d6754) is a different screen and still shows a blank aspect label / size for 6/7 if it is ever reached.
 
+### 1g. Real XPAN / 21:9 icons and "XPAN WxH" / "UW WxH" size text (v8)
+
+- **Icons [V decoder, I camera]** (`patches/aspect/osd_icons.py`, OSD component 0x101): four new 8-bit mode-11 bitmaps in the stock aspect-icon
+  format: white 50x38 (SCP strip list A, info display skin 1/2 list A) and green/selected 64x48 (list B). "21:9" is built from the stock glyph
+  pixels ('2' of 3:2, '1' ':' '9' of 16:9, 16:9 spacing) on the stock 16:9 box; "XPAN" is Fira Sans Condensed Bold at the stock digit band,
+  quantised to the stock icon's own indices (white 4/5/6/16; green: row background blended to 16 + the stock anti-alias indices).
+  The encoder reproduces all 4976 stock mode-11 payloads byte for byte. Placement: payload+descriptor pairs (4.6 KB) appended after resource 69
+  (component offset 0x15115e0, zero in stock; runtime 0xa3e22600..0xa3e23788), resource-69 directory size 0x811600 -> 0x812800. The bank loader
+  0x6015ad92 copies `size` bytes to 0xa3611000 under the bound 0xf26140 (region 0xa3091000..0xa3fb7140, fonts at 0xa3fb7540) [V code, I region use].
+  Bitmap table entries of four stock placeholders (fmt 1, 0x0) -> the new descriptors: **5687 XPAN white, 5685 XPAN green, 4859 21:9 white,
+  4431 21:9 green** (no type-3 entry, UI-data u32 or UI-code `mov imm16` of these ids in main; not provably unused [I]).
+  SCP entries 6/7 are now type-3 bitmap entries (were type-4 text "Panorama"/"Wide"); the info-display lists point 6/7 at the new ids. The main
+  menu stays text ("Panorama"/"Wide"). The package now carries main **and** OSD (restore = stock main + stock OSD).
+- **Size text [V emulated]**: the four UTF-16 `"%dx%d"` formatters (readout callers 0x60dfac8a / 0x60dfae4f, info-item kinds 57/58 0x60d91a58,
+  0x60d9c401) `mov fmt,d0` -> `jmp stub; nop` (stubs + "XPAN %dx%d" / "UW %dx%d" at 0x601e1660..0x601e16f6). The stub picks the format by the
+  size itself: h/w < 0.4 -> XPAN, < 0.5 -> UW, else stock (stock sizes are all >= 0.53; id 6 rows 0.367..0.375, id 7 rows 0.42..0.43), so L/M/S
+  print e.g. `XPAN 5184x1920`, `UW 5184x2224`, `XPAN 1280x480`. Sites 3/4 now use 0x61163d76 for the stock case (same "%dx%d" text). Not traced:
+  which screen each of sites 3/4 draws (likely LV info / playback info; a playback of an XPAN file would also show the prefix, by design).
+- Checks (`build.py`, 377/377 with `--base` = v0.15 minus aspect): LB 4 sites x 78 sizes (ids 1-4/9 + movie/0x0 unchanged, 6/7 prefixed,
+  callee-saved regs/sp intact); O0-O4 (patched OSD re-parses with osd_extract, new ids decode with valid fmt-14/mode-11 headers to the new pixels,
+  only 4 table words changed, stock aspect icons byte-identical, loader bound); P1/R/I (SCP + info lists: 6/7 -> new ids, 1-4/9 unchanged).
+
 ## 2. Consumers of the aspect id
 
 | # | Site | What it does | Status |

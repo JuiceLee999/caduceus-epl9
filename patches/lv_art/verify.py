@@ -78,7 +78,7 @@ TABLES = {
     'A2': fixture({0: dict(art=1), 1: dict(art=6), 2: dict(art=0, eff=1, s=2), 3: dict(art=0xff, hl=True)}),
     'A3': fixture({0: dict(art=5, eff=3, s=2), 1: dict(art=2, grain=1, hl=True), 2: dict(art=3, eff=2, s=4), 3: dict(art=4)}),
 }
-LV_ART_FLAGS = {2: 0x400, 3: 0x100, 4: 0x2000, 5: 0x8000}
+LV_ART_FLAGS = {2: 0x400, 3: 0x100}   # v0.15: 4 White Edge / 5 Frame removed (old values: no flag)
 
 
 def art_flag(feats, table, *, ret, key, jtype, profile):

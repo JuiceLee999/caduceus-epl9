@@ -29,16 +29,24 @@ Edits (all in main, component 0x100):
      common tail 0x601929a4 after the stock per-boot resets (0x602af9e1 / 0x602af9f9). Same gate as stock
      (byte 0x62257b04 != 1). Values 1..5, 8..10 are untouched.
   U  (v7) pixel-size readout 0x60eac4a9 ("0x0" for 6/7): 7-column table copy + pointer/immediate edits;
-     info-display aspect icon records -> 7-entry lists (6/7 borrow the 16:9 bitmaps). docs/ASPECT.md §1f.
+     info-display aspect icon records -> 7-entry lists. docs/ASPECT.md §1f.
+  O  (v8) real icons: XPAN / 21:9 bitmaps (white 50x38, green 64x48) added to the OSD component (kind 0x101,
+     patches/aspect/osd_icons.py); ids 6/7 of the info-display lists and the SCP strip lists point at them (SCP entries
+     6/7 become type-3 bitmap entries like 1-4/9). docs/ASPECT.md §1g.
+  LB (v8) text labels: the four "%dx%d" size formatters get "XPAN %dx%d" / "UW %dx%d" when h/w < 0.4 / < 0.5 (no stock
+     size is narrower than 17:9 = 0.53; every id-6 row is 0.37, every id-7 row 0.43), so L/M/S keep their real size.
 """
 import argparse, json, struct, sys
+import numpy as np
 from math import gcd
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
+sys.path.insert(0, str(ROOT / 'patches/aspect'))
 sys.path.insert(0, str(ROOT / 'external/oly_fw_analysis/tools'))
 import ep7_color_probe as PR  # noqa: E402
+import osd_icons as OI  # noqa: E402
 from penf_emulator import Region, execute  # noqa: E402
 
 B = 0x60020020
@@ -176,7 +184,20 @@ PIX_IMM = [(0x60eac51b, b'\x20\x0c', b'\x20\x10', 'h offset (a0) 12 -> 16'),
 PIX_CALLERS = (0x60dfac83, 0x60dfae48, 0x60ed951f)
 ICON_RECS = (0x6123dd04, 0x6123ddb4, 0x6123f17c, 0x6123f438)
 ICON_STOCK = ((0x6123dbc4, 0x6123dbec), (0x6123dbc4, 0x6123dbec), (0x6123ed6c, 0x6123ed94), (0x6123ed6c, 0x6123ed94))
-ICON_NEW = {6: (476, 471), 7: (476, 471)}      # 16:9 white / green
+ICON_NEW = {6: (OI.NEW_IDS[('xpan', 'white')], OI.NEW_IDS[('xpan', 'green')]),      # v8: new OSD bitmaps
+            7: (OI.NEW_IDS[('219', 'white')], OI.NEW_IDS[('219', 'green')])}       # (v7 borrowed 16:9: 476 / 471)
+# ---- LB (v8): size-text labels. Four formatters print UTF-16 "%dx%d" with swprintf 0x60d1d0d5 (fmt at (4,sp), w, h):
+# the readout callers 0x60dfac8a / 0x60dfae4f (fmt 0x61163d76), the info-item renderer kinds 57/58 0x60d91a58 (fmt
+# 0x610796fa, w/h (60,sp)/(62,sp)) and 0x60d9c401 (fmt 0x610896f8, w/h (a3)/(2,a3)). Each `mov fmt,d0` (6 B) ->
+# `jmp site stub; nop`; the stub loads w/h, a1 = return, and the shared tail picks the format by ratio. d1/a0/a1 are
+# dead there (a0 is set before the call, d1/a1 hold garbage from the preceding call in stock).
+LB_SITES = [  # site, stock fmt, return, w/h loads (bytes)
+    (0x60dfac8a, 0x61163d76, 0x60dfac90, bytes.fromhex('f8bc1c') + bytes.fromhex('f8bd1e')),   # movhu (28,sp),d0; (30,sp),d1
+    (0x60dfae4f, 0x61163d76, 0x60dfae55, bytes.fromhex('f8bc18') + bytes.fromhex('f8bd1a')),   # (24,sp) / (26,sp)
+    (0x60d91a58, 0x610796fa, 0x60d91a5e, bytes.fromhex('f8bc3c') + bytes.fromhex('f8bd3e')),   # (60,sp) / (62,sp)
+    (0x60d9c401, 0x610896f8, 0x60d9c407, bytes.fromhex('f063') + bytes.fromhex('f86702'))]     # (a3) / (2,a3)
+LB_FMT = {'stock': 0x61163d76, 6: 'XPAN %dx%d', 7: 'UW %dx%d'}
+LB_AT, LB_CLAIM = 0x601e1660, (0x601e1660, 0x601e1730)   # rest of the aspect step-12 claim (mono B starts 0x601e173c)
 ICON_A, ICON_B = 0x601e15f0, 0x601e1628   # 7 x 8 B each -> 0x601e1660
 UI_CLAIM = (0x601e14a4, 0x601e1660)       # inside the dead EVF step-12 R/G/B tables 0x601e143c-0x601e173c
 EVF12 = (0x601e143c, 0x601e173c, (0x601e3d40, 0x601e3d44, 0x601e3d48))
@@ -367,13 +388,13 @@ def build(d):
         ents = [struct.unpack_from('<IHHI', d, base + 12 * j - B) for j in range(5)]
         assert ents == [(v, 3, SCP_ICONS[v][k], SCP_COND) for v in (1, 3, 2, 4, 9)], hex(base)
     assert SCP_B == SCP_A + 60 and SCP_END == SCP_B + 60
-    extra = b''.join(struct.pack('<IHHI', i, 4, STR_LABEL[i], SCP_COND) for i in (6, 7))
-    new_a = d[SCP_A - B:SCP_B - B] + extra
-    new_b = d[SCP_B - B:SCP_END - B] + extra
+    extra = lambda k: b''.join(struct.pack('<IHHI', i, 3, ICON_NEW[i][k], SCP_COND) for i in (6, 7))   # v8: bitmaps
+    new_a = d[SCP_A - B:SCP_B - B] + extra(0)
+    new_b = d[SCP_B - B:SCP_END - B] + extra(1)
     assert len(new_a) == len(new_b) == 84 and SCP_A + 84 <= SCP_END
     assert d[SCP_NEWB - B:SEC6_END - B] == b'\xff' * (SEC6_END - SCP_NEWB)
     assert MENU_NEW + len(newlist) <= SCP_NEWB
-    edit(SCP_A, d[SCP_A - B:SCP_A - B + 84], new_a, 'SCP/Live Control 270 list A (white) in place: 7 entries, +Panorama/Wide (type-4 text)')
+    edit(SCP_A, d[SCP_A - B:SCP_A - B + 84], new_a, 'SCP/Live Control 270 list A (white) in place: 7 entries, +Panorama/Wide (type-3 XPAN / 21:9 bitmaps)')
     edit(SCP_NEWB, b'\xff' * 84, new_b, 'SCP/Live Control 270 list B (green) relocated to sec-6 tail: 7 entries')
     edit(SCP_DESC, sdesc[:12], struct.pack('<HHII', 270, 7, SCP_A, SCP_NEWB), 'SCP/Live Control 270 record: count 5->7, list B ptr')
     # V: validator list for sid 270 (relocated, 5 -> 7 values)
@@ -460,15 +481,23 @@ def build(d):
     for site, old, new, why in PIX_IMM:
         edit(site, old, new, f'0x60eac4a9 {why}')
     la, lb = icon_lists(d)
-    edit(ICON_A, d[ICON_A - B:ICON_A - B + len(la)], la, 'v7 info-display aspect icon list A (white): 7 entries, 6/7 -> 16:9 bitmap 476')
-    edit(ICON_B, d[ICON_B - B:ICON_B - B + len(lb)], lb, 'v7 info-display aspect icon list B (green): 7 entries, 6/7 -> 16:9 bitmap 471')
+    edit(ICON_A, d[ICON_A - B:ICON_A - B + len(la)], la, f'info-display aspect icon list A (white): 7 entries, 6/7 -> XPAN/21:9 {ICON_NEW[6][0]}/{ICON_NEW[7][0]}')
+    edit(ICON_B, d[ICON_B - B:ICON_B - B + len(lb)], lb, f'info-display aspect icon list B (green): 7 entries, 6/7 -> XPAN/21:9 {ICON_NEW[6][1]}/{ICON_NEW[7][1]}')
+    # LB (v8): size-text labels
+    for site, fmt, ret, _ in LB_SITES:
+        assert d[site - B:site - B + 6] == b'\xfc\xcc' + struct.pack('<I', fmt), hex(site)
+        assert d[fmt - B:fmt - B + 12] == '%dx%d'.encode('utf-16le') + b'\0\0', hex(fmt)   # all three formats identical
+    code, ents = label_stub()
+    edit(LB_AT, d[LB_AT - B:LB_AT - B + len(code)], code, 'v8 size-text label stubs + "XPAN %dx%d" / "UW %dx%d" (dead EVF step-12)')
+    for (site, fmt, ret, _), ent in zip(LB_SITES, ents):
+        edit(site, d[site - B:site - B + 6], jmp32(site, ent) + b'\xcb', f'v8 size label: mov {fmt:#x},d0 -> jmp stub {ent:#x}; nop')
     for rec, (sa, sb) in zip(ICON_RECS, ICON_STOCK):
         old = d[rec + 4 - B:rec + 16 - B]
         assert struct.unpack('<3I', old) == (sa, sb, 5), hex(rec)
         edit(rec + 4, old, struct.pack('<3I', ICON_A, ICON_B, 7), f'icon record {rec:#x}: lists -> v7 lists, count 5 -> 7')
     # the claim stays inside the dead step-12 tables, and nothing but the step-table words points into them
     assert EVF12[0] <= LV_AT and UI_CLAIM[0] >= LV_AT + 100 and UI_CLAIM[1] <= EVF12[1]
-    assert PIX_AT + len(tab) <= ICON_A and ICON_B + len(lb) <= UI_CLAIM[1]
+    assert PIX_AT + len(tab) <= ICON_A and ICON_B + len(lb) <= UI_CLAIM[1] <= LB_AT and LB_AT + len(code) <= LB_CLAIM[1]
     hits = [h for h in abs_refs(d, EVF12[0], EVF12[1]) if h not in EVF12_FP]
     assert hits == list(EVF12[2]), [hex(h) for h in hits]
     # no overlaps
@@ -527,8 +556,35 @@ def icon_lists(d):
             lb + b''.join(struct.pack('<II', i, ICON_NEW[i][1]) for i in (6, 7)))
 
 
+def label_stub():
+    """v8 LB code: [fmt XPAN][fmt UW][tail][4 site stubs]. Returns (bytes, [site stub entry per LB_SITES])."""
+    c = bytearray()
+    fx = LB_AT + len(c); c += LB_FMT[6].encode('utf-16le') + b'\0\0'
+    fu = LB_AT + len(c); c += LB_FMT[7].encode('utf-16le') + b'\0\0'
+    tail = LB_AT + len(c)
+    # d0 = w, d1 = h, a1 = return. 5h < 2w -> XPAN; 4h < 2w -> UW; else (incl. h = 0) the stock "%dx%d"
+    c += bytes.fromhex('a500')          # cmp 0,d1
+    i0 = len(c); c += b'\xc8\x00'      # beq stock
+    c += bytes.fromhex('f1e4 55 f151 e0 a1')   # mov d1,a0; asl2 d1; add a0,d1 (5h); add d0,d0 (2w); cmp d0,d1
+    i1 = len(c); c += b'\xc4\x00'      # bcs xpan  (5h < 2w)
+    c += bytes.fromhex('f1d1 55 a1')    # mov a0,d1; asl2 d1 (4h); cmp d0,d1
+    i2 = len(c); c += b'\xc4\x00'      # bcs uw    (4h < 2w)
+    st = len(c); c += b'\xfc\xcc' + struct.pack('<I', LB_FMT['stock']) + b'\xf0\xf5'   # mov stock,d0; jmp (a1)
+    xp = len(c); c += b'\xfc\xcc' + struct.pack('<I', fx) + b'\xf0\xf5'
+    uw = len(c); c += b'\xfc\xcc' + struct.pack('<I', fu) + b'\xf0\xf5'
+    for i, t in ((i0, st), (i1, xp), (i2, uw)):
+        c[i + 1] = t - i
+    ents = []
+    for site, fmt, ret, loads in LB_SITES:
+        ents.append(LB_AT + len(c))
+        c += loads + b'\xfc\xdd' + struct.pack('<I', ret)      # w,h loads; mov ret,a1
+        c += jmp32(LB_AT + len(c), tail)
+    return bytes(c), ents
+
+
 def apply(d, edits):
     p = bytearray(d)
+    edits = [e for e in edits if e.get('kind', '0x100') == '0x100']
     for e in edits:
         a = int(e['addr'], 16) - B
         n = bytes.fromhex(e['new'])
@@ -872,13 +928,132 @@ def ui_checks(d, p, rep):
     want_b = [(v, SCP_ICONS[v][1]) for v in (1, 3, 2, 9, 4)] + [(i, ICON_NEW[i][1]) for i in (6, 7)]
     sr, pr_ = icon_recs(d), icon_recs(p)
     for rec, s, q in zip(ICON_RECS, sr, pr_):
-        rep(f'I icon record {rec:#x}: 7 entries, stock 5 unchanged, 6/7 -> 16:9',
+        rep(f'I icon record {rec:#x}: 7 entries, stock 5 unchanged, 6/7 -> XPAN/21:9 bitmaps {ICON_NEW[6]}/{ICON_NEW[7]}',
             q == (want_a, want_b) and s == (want_a[:5], want_b[:5]), [e[0] for e in s[0]], [e[0] for e in q[0]])
     hits = [h for h in abs_refs(p, EVF12[0], EVF12[1]) if h not in EVF12_FP]
     rep('U2 refs into the step-12 tables: the step-table words + the v7 pointers only',
         sorted(set(hits) - set(EVF12[2])) == sorted([s for s, _ in PIX_CODE] + [r + o for r in ICON_RECS for o in (4, 8)] +
-                                                   [jt + 4 * i for jt in [x[2] for x in LV_SW] + [S10['jt']] for i in (6, 7)]),
+                                                   [jt + 4 * i for jt in [x[2] for x in LV_SW] + [S10['jt']] for i in (6, 7)] +
+                                                   lb_abs_refs()),
         'n/a', len(hits))
+
+
+def lb_abs_refs():
+    """Positions of the two format-string pointers (mov imm32,d0) inside the v8 label stub."""
+    code, _ = label_stub()
+    return [LB_AT + k for k in range(len(code) - 3)
+            if code[k - 2:k] == b'\xfc\xcc' and LB_AT <= struct.unpack_from('<I', code, k)[0] < LB_AT + 44]
+
+
+def chk_label(d, site, w, h):
+    """Run from a size-formatter site (`mov fmt,d0`, or the v8 jmp) to its next instruction with w/h where the site's
+    stub reads them; returns (ok, d0 = format pointer, UTF-16 text at d0)."""
+    s_, fmt, ret, _ = next(x for x in LB_SITES if x[0] == site)
+    stack = bytearray(0x2000)
+    sp = STACK + 0x1000
+    WH = 0x19800000
+    if site == 0x60d9c401:
+        a3 = WH
+    else:
+        a3 = 0x3333
+        off = {0x60dfac8a: 28, 0x60dfae4f: 24, 0x60d91a58: 60}[site]
+        struct.pack_into('<HH', stack, 0x1000 + off, w, h)
+    regs = [img(d, 'site', site, site + 8, 'rx'), img(d, 'lb', LB_CLAIM[0], LB_CLAIM[1], 'rx'),
+            Region('wh', WH, struct.pack('<HH', w, h) + bytes(12), 'rw'), Region('stack', STACK, bytes(stack), 'rw')]
+    r, _ = run(regs, {'pc': site, 'sp': sp, 'a3': a3, 'd2': 0x2222, 'd3': 0x2323, 'a2': 0x4444, 'a0': 0x5555,
+                      'd1': 0x6666, 'a1': 0x7777}, ret)
+    R = r['registers']
+    ok = (R['pc'] == ret and not r['fault'] and R['sp'] == sp and R['d2'] == 0x2222 and R['d3'] == 0x2323 and
+          R['a2'] == 0x4444 and R['a3'] == a3)
+    f = R['d0']
+    z = f - B
+    while d[z:z + 2] != b'\0\0':
+        z += 2
+    return ok, f, d[f - B:z].decode('utf-16le')
+
+
+def label_checks(d, p, rep):
+    """LB (v8): every readout size (10 size keys x ids 1,2,3,4,9,6,7) + movie/odd sizes through all four sites."""
+    sizes = {}
+    for r in range(PIX_ROWS):
+        row = struct.unpack_from(f'<{1 + 2 * len(PIX_IDS)}H', p, PIX_AT + 2 * len(PIX_IDS) + PIX_STRIDE * r - B)
+        for j, aid in enumerate(PIX_IDS):
+            sizes.setdefault(aid, set()).add((row[1 + j], row[1 + len(PIX_IDS) + j]))
+    sizes['other'] = {(0, 0), (5184, 0), (1920, 1080), (3840, 2160), (4096, 2160), (1280, 720), (640, 480), (8160, 6120)}
+    for site, fmt, _, _ in LB_SITES:
+        bad = []
+        n = 0
+        for aid, ss in sizes.items():
+            for w, h in sorted(ss):
+                s_ok, sf, st = chk_label(d, site, w, h)
+                p_ok, pf, pt = chk_label(p, site, w, h)
+                want = {6: 'XPAN %dx%d', 7: 'UW %dx%d'}.get(aid, '%dx%d')
+                good = s_ok and p_ok and sf == fmt and st == '%dx%d' and pt == want
+                n += 1
+                if not good:
+                    bad.append((aid, w, h, st, pt))
+        ex6 = sorted(sizes[6])[-1]
+        rep(f'LB size label at {site:#x}: {n} sizes, ids 6 -> "XPAN WxH", 7 -> "UW WxH", stock ids/movie/0x0 unchanged',
+            not bad, '%dx%d', bad or f'e.g. {"XPAN %dx%d" % ex6}')
+    for aid, ss in ((6, sizes[6]), (7, sizes[7])):
+        txt = [chk_label(p, LB_SITES[0][0], w, h)[2] % (w, h) for w, h in sorted(ss, reverse=True)]
+        rep(f'LB rendered labels id{aid}', all(t.startswith(('XPAN ', 'UW ')[aid - 6]) for t in txt), 'n/a', txt)
+
+
+def osd_checks(stock_osd, o_edits, imgs, rep):
+    """O (v8): the patched OSD component re-parses with tools/osd_extract.py; new ids decode to the new icons with
+    valid fmt-14 / mode-11 headers; every other bitmap/table word is untouched; loader bound; ids unused in main."""
+    import tempfile
+    pd = OI.apply_osd(stock_osd.data, o_edits)
+    with tempfile.NamedTemporaryFile(suffix='.bin') as f:
+        f.write(pd)
+        f.flush()
+        po = OI.X.OSD(component=f.name, check_hash=False)
+    rep('O0 patched OSD parses (bank bases unique and unchanged)', (po.base0, po.base69) == (stock_osd.base0, stock_osd.base69),
+        (hex(stock_osd.base0), hex(stock_osd.base69)), (hex(po.base0), hex(po.base69)))
+    for key, a in imgs.items():
+        i = OI.NEW_IDS[key]
+        r = po.descriptor(i)
+        px, mode, data = po.decode_bitmap(r)
+        h, w = a.shape
+        good = (r['kind'] == 'rle' and r['fmt'] == 14 and (r['width'], r['height']) == (w, h) and r['field6'] == 8 and
+                r['reserved'] == [0, 0] and r.get('extra') == 0 and mode == 11 and OI.X.stream_header(data) == (w, h, 11)
+                and px == a.tobytes() and r['bank'] == 69 and set(np.unique(a)) <= set(range(128)))
+        rep(f'O1 id {i} ({key[0]} {key[1]}) decodes: fmt 14, {w}x{h}, 8-bit, mode 11, pixels = new icon',
+            good, stock_osd.descriptor(i)['kind'], (r['kind'], r['width'], r['height'], mode, r['encoded_bytes']))
+    t0 = stock_osd.bitmap_table - stock_osd.base0
+    st = struct.unpack_from(f'<{stock_osd.bitmap_count}I', stock_osd.bank0, t0)
+    pt = struct.unpack_from(f'<{po.bitmap_count}I', po.bank0, t0)
+    changed = sorted(i for i in range(len(st)) if st[i] != pt[i])
+    rep('O2 bitmap table: only the four new ids changed', changed == sorted(OI.NEW_IDS.values()), 'n/a', changed)
+    same = all(po.decode_bitmap(po.descriptor(i))[2] == stock_osd.decode_bitmap(stock_osd.descriptor(i))[2]
+               for i in (477, 476, 478, 2422, 479, 472, 471, 473, 2421, 475, 4989))
+    rep('O2b stock aspect icons (1-4/9 white+green, 17:9) byte-identical', same, 'n/a', same)
+    r69 = po.resources[69]
+    end = po.base69 + r69['size']
+    rep('O4 resource 69 still inside the loader bound (size <= 0xf26140, end <= 0xa3fb7140 < font base 0xa3fb7540)',
+        r69['size'] <= 0xf26140 and end <= 0xa3091000 + 0xf26140 and stock_osd.data[16 * 70:16 * 71] == bytes(16),
+        hex(stock_osd.resources[69]['size']), hex(r69['size']))
+    # O3: the reused placeholder ids carry no typed bitmap reference in main: no {u32 value, u16 type 3, u16 id} option
+    # entry anywhere, no aligned u32 (value -> bitmap pair lists) in the sec-6 UI data 0x61100000-0x61243000, no
+    # `mov imm16` of the id in the UI code 0x60d00000-0x60f00000 (where the stock aspect/icon ids are loaded)
+    m = stock_osd.main
+    a8 = np.frombuffer(m, np.uint8).astype(np.int64)
+    u16 = np.frombuffer(m[:len(m) // 2 * 2], '<u2')
+    u32 = np.frombuffer(m[:len(m) // 4 * 4], '<u4')
+    p32 = np.arange(len(u32)) * 4 + B
+    p8 = np.arange(len(a8) - 2) + B
+    isop = np.isin(a8[:-2], list(range(0x24, 0x28)) + list(range(0x2c, 0x30))) & (p8 >= 0x60d00000) & (p8 < 0x60f00000)
+    mvv = (a8[1:-1] | (a8[2:] << 8))[isop]
+    hits = {}
+    for i in OI.NEW_IDS.values():
+        k = np.nonzero(u16 == i)[0]
+        t3 = int(sum(1 for x in k if x > 0 and u16[x - 1] == 3))
+        hits[i] = (stock_osd.descriptor(i)['kind'], t3, int(((u32 == i) & (p32 >= 0x61100000) & (p32 < 0x61243000)).sum()),
+                   int((mvv == i).sum()))
+    rep('O3 reused ids were stock placeholders with no typed reference in main (type-3 entry / UI-data u32 / UI-code mov)',
+        all(v == ('placeholder', 0, 0, 0) for v in hits.values()), 'n/a', hits)
+    return pd
 
 
 def lean_checks(d, p, rep):
@@ -926,13 +1101,18 @@ def main():
     ap.add_argument('--base', type=Path, help='run every check on this spec + aspect (e.g. a merged release spec); '
                     'the "stock" side of each check is then stock + base')
     ap.add_argument('--out', type=Path, default=ROOT / 'patches/aspect/edits.json', help='standalone spec to write')
+    ap.add_argument('--previews', type=Path, help='write PNG renders of the stock + new aspect icons here')
     ap.add_argument('--lean', action='store_true', help='v5-v7 checks only (W/F/R2/G, LV, U/I); skip the v1-v4 suite')
     a = ap.parse_args()
     stock = PR.main_image()
     edits, where, h640 = build(stock)          # standalone: every expect is a stock byte
+    sosd = OI.X.OSD()
+    imgs = OI.build_images(sosd)
+    o_edits, o_info = OI.osd_edits(sosd, imgs)
     d = stock
     if a.base:
         bspec = json.loads(a.base.read_text())
+        bspec['edits'] = [e for e in bspec['edits'] if e.get('kind', '0x100') == '0x100']
         bsp = sorted((int(e['addr'], 16), int(e['addr'], 16) + len(e['new']) // 2) for e in bspec['edits'])
         asp = sorted((int(e['addr'], 16), int(e['addr'], 16) + len(e['new']) // 2) for e in edits)
         clash = [(hex(x[0]), hex(y[0])) for x in asp for y in bsp if x[0] < y[1] and y[0] < x[1]]
@@ -955,8 +1135,13 @@ def main():
     lean_checks(d, p, rep)
     lv_checks(d, p, rep, h640)
     ui_checks(d, p, rep)
+    label_checks(d, p, rep)
+    osd_checks(sosd, o_edits, imgs, rep)
+    if a.previews:
+        OI.save_previews(sosd, imgs, a.previews)
+    spec = dict(components=['0x100', '0x101'], edits=edits + o_edits)
     if a.lean:
-        a.out.write_text(json.dumps(dict(components=['0x100'], edits=edits), indent=1) + '\n')
+        a.out.write_text(json.dumps(spec, indent=1) + '\n')
         print(f'{len(edits)} edits, {sum(len(e["new"]) // 2 for e in edits)} bytes; wrote {a.out} (lean: v5 checks only)')
         if a.json:
             a.json.write_text(json.dumps(dict(passed=bool(ok), checks=res), indent=1))
@@ -1012,8 +1197,8 @@ def main():
     rep('M menu list', menu_list(p) == [(1, 292), (3, 291), (2, 293), (4, 1786), (9, 295), (6, 241), (7, 2661), (10, 3261)],
         menu_list(d), menu_list(p))
     # P: SCP / Live Control option strip
-    want_a = [(v, 3, SCP_ICONS[v][0]) for v in (1, 3, 2, 4, 9)] + [(6, 4, 241), (7, 4, 2661)]
-    want_b = [(v, 3, SCP_ICONS[v][1]) for v in (1, 3, 2, 4, 9)] + [(6, 4, 241), (7, 4, 2661)]
+    want_a = [(v, 3, SCP_ICONS[v][0]) for v in (1, 3, 2, 4, 9)] + [(i, 3, ICON_NEW[i][0]) for i in (6, 7)]
+    want_b = [(v, 3, SCP_ICONS[v][1]) for v in (1, 3, 2, 4, 9)] + [(i, 3, ICON_NEW[i][1]) for i in (6, 7)]
     pc_, pa_, pb_ = scp_lists(p)
     rep('P1 SCP/Live Control 270 record: 7 entries, lists A/B', (pc_, pa_, pb_) == (7, want_a, want_b),
         scp_lists(d)[0], (pc_, [e[0] for e in pa_]))
@@ -1025,7 +1210,7 @@ def main():
             s_ok, s = chk_resolve(d, v, which)
             p_ok, q = chk_resolve(p, v, which)
             if v in (6, 7):
-                good = s[0] == 0xeeee and q[0] == 4 and q[2] == STR_LABEL[v]
+                good = s[0] == 0xeeee and q[0] == 3 and q[1] == ICON_NEW[v][which]
             else:
                 good = q == s and (q[0] == 0xeeee) == (v not in SCP_ICONS)
             rep(f'R resolver 0x60df250b list {"AB"[which]} value {v}', s_ok and p_ok and good, s, q)
@@ -1065,7 +1250,7 @@ def main():
     dflt = p[0x60097044 - B:0x60097044 - B + 6]
     rep('B4 defaults record for key 0x3081 is 1 (4:3)', dflt == bytes.fromhex('813001000100'), 'n/a', dflt.hex())
     out = a.out
-    out.write_text(json.dumps(dict(components=['0x100'], edits=edits), indent=1) + '\n')
+    out.write_text(json.dumps(spec, indent=1) + '\n')
     nbytes = sum(len(e['new']) // 2 for e in edits)
     print(f'{len(edits)} edits, {nbytes} bytes; blocks {min(where.values()):#x}..; wrote {out}')
     if a.json:

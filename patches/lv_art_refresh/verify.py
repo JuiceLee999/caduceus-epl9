@@ -85,9 +85,9 @@ def set_run(im, idv, val, h, blk, all_on):
 
 
 def wrap(v):
-    v = max(-6, min(11, v))
-    v = v + 6 if v < 0 else v
-    return v - 6 if v >= 6 else v
+    v = max(-4, min(7, v))                    # v0.15: art 0..3, wrap modulo 4
+    v = v + 4 if v < 0 else v
+    return v - 4 if v >= 4 else v
 
 
 def w_case(args):

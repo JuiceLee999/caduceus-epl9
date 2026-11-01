@@ -63,7 +63,7 @@ GRAIN = {'off': 0, 'low': 1, 'medium': 2, 'med': 2, 'high': 3}
 EFFECT = {'none': 0, 'bloom': 1, 'halation': 2, 'clarity': 3}   # clarity: patches/bloom --clarity
 TINT = {'neutral': 0, 'red': 1, 'amber': 2, 'warm': 3, 'cool': 4}   # bloom_tint +45 (layout.json; test13b)
 TINT_OFF = 45
-ART = {'off': 0, 'star_light': 1, 'pin_hole': 2, 'blur': 3, 'white_edge': 4, 'frame': 5}   # art_effect +46 (v0.14)
+ART = {'off': 0, 'star_light': 1, 'pin_hole': 2, 'blur': 3, 'white_edge': 4, 'frame': 5}   # art_effect +46 (v0.14); v0.15 camera treats 4/5 as Off (accepted, legacy)
 ART_OFF = 46
 FLAG_RENDER_COLOUR, FLAG_HL = 1, 2
 COLOUR_OFF, SAT_OFF = 32, 33               # MONO colour rendering (patches/mono_colour): u8 == 1, s8 x12

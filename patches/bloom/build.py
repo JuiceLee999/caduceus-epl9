@@ -72,7 +72,7 @@ MASK_ID, BUF_TAB = 0x1060, 6592
 ART_AT, ART_END = 0x601e1d3c, 0x601e1e3c
 ART_REFS = (0x601e3d10, 0x601e3d14, 0x601e3d18)
 F_ART = 46
-ART_FLAGS = {1: (0xffffffff, 0x40), 2: (0xffffffff, 0x400), 3: (0xfffffcff, 0x100), 4: (0xffffffff, 0x2000), 5: (0xffffffff, 0x8000)}
+ART_FLAGS = {1: (0xffffffff, 0x40), 2: (0xffffffff, 0x400), 3: (0xfffffcff, 0x100)}   # v0.15: 4 White Edge / 5 Frame removed (read Off)
 SF_W = [600, 653, 707, 760, 680, 520, 440, 360, 280, 200, 1024]       # stock Soft Focus table 0x604ec02e, A-effect, A-only
 
 
@@ -204,7 +204,7 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=
         if asyms['art'] != ART_AT or ART_AT + len(acode) > ART_END:
             raise SystemExit('art stub layout')
         tab = acode[asyms['art_tab'] - ART_AT:asyms['art_end'] - ART_AT]
-        if tab != b''.join(struct.pack('<II', *ART_FLAGS[k]) for k in range(1, 6)):
+        if tab != b''.join(struct.pack('<II', *ART_FLAGS[k]) for k in sorted(ART_FLAGS)):
             raise SystemExit('art table bytes wrong')
     if eff2 and (halo or clarity is None):
         raise SystemExit('--eff2-bloom needs --clarity and no --halation')
@@ -298,7 +298,7 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=
     if eff2:
         meta['eff2_bloom'] = 'effect_id 2 -> plain bloom (flag and weight); bloom_tint +45 ignored (no halo hook)'
     if art:
-        meta['art'] = dict(byte=F_ART, values=['off', 'star_light', 'pin_hole', 'blur', 'white_edge', 'frame'],
+        meta['art'] = dict(byte=F_ART, values=['off', 'star_light', 'pin_hole', 'blur'],
                            flags={k: [hex(a), hex(o)] for k, (a, o) in ART_FLAGS.items()}, stub=hex(ART_AT), stub_len=len(acode),
                            return_to=hex(syms['bf_art']))
     if sd_v3:

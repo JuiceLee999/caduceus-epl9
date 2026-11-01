@@ -12,8 +12,9 @@
  *   s 1 (orange)     effect       -5..-1 = bloom 5..1 (id 1), 0 = none, +1..+5 = clarity 1..5 (id 3); +28 id, +29 strength
  *   s 2 (orange-red) WB A-B       slot +26 (-5..5 here), override bit0 of +25
  *   s 3 (red)        WB G-M       slot +27
- *   s 4              art effect slot +46 (v0.14): 0 off, 1 star light, 2 pin hole, 3 blur, 4 white edge, 5 frame.
- *                    Writes wrap modulo 6 (-1 -> 5 ... -5 -> 1, 6 -> 0), so the dial never parks outside 0..5.
+ *   s 4              art effect slot +46 (v0.15): 0 off, 1 star light, 2 pin hole, 3 blur. Writes wrap modulo 4
+ *                    (-1 -> 3, 4 -> 0), so the dial never parks outside 0..3. White Edge / Frame (old 4 / 5,
+ *                    removed: Frame froze LV in Panorama/Wide) and anything else read 0 (Off).
  *   s 5..11          unused: read 0, writes change nothing (v0.14: the bloom colour field is hidden; +45 is kept
  *                    but ignored, patches/bloom --eff2-bloom)
  * Effect 2 (old red bloom) reads as glow (negative) like bloom; a sector-2 write makes it id 1 / 3 / 0.
@@ -132,8 +133,8 @@ ex_get:                           /* CALLS entry: (0,sp) = return address = MDR 
  mov 5,d0
  bra g_val
 23:
- movbu (78,a2),d0                 /* art effect +46: 0..5, anything else reads 0 */
- cmp 6,d0
+ movbu (78,a2),d0                 /* art effect +46: 0..3, anything else (old 4/5 too) reads 0 */
+ cmp 4,d0
  bcs g_val
  bra g_zero
 g_zero:
@@ -194,21 +195,21 @@ ex_set:                           /* entered like 0x60827440: d2/d3/a2 saved by 
  bcc s_refresh
  cmp 4,d3
  bne 1f
- cmp -6,d1                        /* art effect: pre-clamp to -6..11, then wrap into 0..5 */
+ cmp -4,d1                        /* art effect: pre-clamp to -4..7, then wrap into 0..3 */
  bge 12f
- mov -6,d1
+ mov -4,d1
 12:
- cmp 11,d1
+ cmp 7,d1
  ble 13f
- mov 11,d1
+ mov 7,d1
 13:
  cmp 0,d1
  bge 14f
- add 6,d1
+ add 4,d1
 14:
- cmp 6,d1
+ cmp 4,d1
  bcs 15f
- add -6,d1
+ add -4,d1
 15:
  movbu d1,(78,a2)
  bra s_dirty

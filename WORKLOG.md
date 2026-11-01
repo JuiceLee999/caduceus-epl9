@@ -300,3 +300,10 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   - LV Art Effect: Pin Hole, Blur, White Edge and Frame via lv_art; Star Light not. V 20; lv_art S / H 49 / gates / C / D / R.
   - Log probe and LOGDBG dump removed; the decision fix (A+354) is kept at 0x60210c90. H/M/G/L PASS.
   - Art F 768 / L 20 / S 4096. Decode == stock + edits, restore == stock; 11365 B in spans. AE-grid mask idea parked (§12).
+- v0.15 MONO colour (agent, docs/MONO_COLOUR.md "v0.15"): MONO1-4 hold colour or B&W per slot (+32 colour byte). Capture =
+  mono_colour --sd-v3 (sec-7 tail). New `mc` (2275 B 0x601e1e3c + data 0x601e383c): colour MONO slot opens the COLOR m wheel
+  editor (lookups 0x60e4cea8/cf21 + type-7 word), 111 spoof at 13 editor/view return addresses, virtual S/H/L on the MONO
+  slot, polygon, Film page lists colour looks + mono presets + B&W, label, `mc_pick` API for the mono picker. COLOR slots
+  stay colour (mono-in-COLOR not cheap). Card: MONO1 Portra 400 / MONO2 Kodachrome64 colour, MONO3/4 B&W. Capture
+  A213/L210/B30/V12/N32, UI R634/G1237/S204/P48/U190/L12/T9/K48, mp verify PASS; decode == stock+edits, restore == stock.
+  LV/movie of a colour MONO slot stay B&W. Not camera-tested.

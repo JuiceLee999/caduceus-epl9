@@ -1,6 +1,7 @@
 {
  "components": [
-  "0x100"
+  "0x100",
+  "0x101"
  ],
  "edits": [
   {
@@ -652,7 +653,7 @@
    "kind": "0x100",
    "addr": "0x6025aa98",
    "expect": "fccbde60",
-   "new": "60341e60",
+   "new": "2a261e60",
    "why": "Color Profile view part 3 (guide label) -> ed_guide -> look extras layer",
    "source": "patches/look_extras"
   },
@@ -660,7 +661,7 @@
    "kind": "0x100",
    "addr": "0x607fa355",
    "expect": "ddebd00200e010",
-   "new": "dd04909effe010",
+   "new": "dd187e9effe010",
    "why": "GUI setter -> ed_set -> look extras layer",
    "source": "patches/look_extras"
   },
@@ -668,7 +669,7 @@
    "kind": "0x100",
    "addr": "0x609330f9",
    "expect": "dd88c997ff0004",
-   "new": "ddc2ff8aff0004",
+   "new": "dd26f18aff0004",
    "why": "wheel polygon producer: sector value read -> ed_poly (page values)",
    "source": "patches/look_editor"
   },
@@ -676,7 +677,7 @@
    "kind": "0x100",
    "addr": "0x60acb0e4",
    "expect": "49957f60",
-   "new": "a3321e60",
+   "new": "47201e60",
    "why": "facade GetValue -> ed_get -> look extras layer",
    "source": "patches/look_extras"
   },
@@ -684,7 +685,7 @@
    "kind": "0x100",
    "addr": "0x60acb174",
    "expect": "4a967f60",
-   "new": "33331e60",
+   "new": "03211e60",
    "why": "facade GetDefault -> ed_default -> look extras layer",
    "source": "patches/look_extras"
   },
@@ -756,8 +757,8 @@
    "kind": "0x100",
    "addr": "0x601e323c",
    "expect": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b",
-   "new": "821efac261fcaa0cc41c2af4aa0cc4142af4aa0cc40cfac240fdaa0cc6462a402a402a40fcafc2bc2c622bfffccb41a90000c630f8ef03c92bf1eefcd200d8f8a17efccb45503742c91afa0ea802fccb45503745c90efa4eac02af04c9060cde00008f01de0000b500c905cc8700cfe0f8fefccd8dff0000f8fe04af00c96f8bf8e33ff8e2c0f16aaf00c90bf84238a004c455ca52af01c921f84a3d2affaa05c64548f8423ca003c80d28ffa002c63700f108ca3388ca30af04c822c629f84239f8e081a001c91ff16ef8423810a0fbc20480fba005c3108005ca0cf8424ea006c405ca020061cee000f0fc5b0cf2fecee0dc623e3d00b500c81fcfe0f8fefccd00ff0000f8fe04af00c9080061cee0f0fc5b0cf2fecee0dcca3e3d00f8fefccde0fe0000f8fe04af00c80b5b10f2fedc253f3d00fca70038fc61af00c805ccc300fca70438fc61af00c805ccb6008bf8e33ff8e2c0f16aaf05c405cca600af04c91fa5fac20485faa50bc304850ba500c2042906a506c40429fadca1030000a5fbc20485fba505c3048505af00c912a500c20304a503c3048503f85638ca4eaf01c92108f85a3c868f03aa00c811c10708f1068f01f85a3df85e3cca30f85a3dca2bf84a39f8e281aa01c80908f85a3af85a3bf16ef85638f12ef84a3af84e3bf21eaa00c8048a01f85a39fcaec2bc2c622afff1eafcd200d8f8a18a01fa5aad0282f1d396f8fefcdd42c40c000004f8fe04815810f2f288f1ec99dce83f6400ffffffcff0f8fef493fcffaaa89b0082fcafc2bc2c622bfffccb41a90000c405cc6d01f8ef03c805cc6501f1eefcd200d8f8a17efccb45503742c805cc5101fa0ea802fccb45503745c805cc4201fa4eac02af04c805cc3701f8632ca004c805cc2d01f86330fcde49371e60fac8c40ac905cce500fac8c30ac805cc1201dd875b61000004f008f82a083d2104806ff0f2a000c805ccf80058042f43042d9f03a036c8232f48042dab03a037c8192f49042db703a038c80f2f96062d7706a040c805cccb004608dd3e5b61000004f008f82a083d21048cf0f2a000c805ccb0005b042bfffcde38371e60af05c66b5808ec3d2104fcff52fdffffa000c805cc8f005904af00c916a504c405cc820055fcdef0351e60f166f00aca3eaf04c913a506c66c55fcde00361e60f166f00aca292bff8c54f8c303ecfcde18361e60f162a500c907f82a04ca10c007f82a08ca0af00af23144ca03048005f8732c9c20348f2100f07020022bffc9fa9c20348f10f042a000c80df0704920022bffc9f3ca0ea500c80aa50ac6062930f07488dff01c00003c361e6048361e6054361e6063361e6070361e607a361e608b361e609a361e60a5361e60b6361e60c2361e60ca361e60db361e60e7361e60f2361e6002371e600e371e601c371e602c371e603120477261696e204f6666003120477261696e204c6f77003120477261696e204d656469756d003120477261696e2048696768003520417274204f66660035204172742053746172204c696768740035204172742050696e20486f6c6500352041727420426c75720035204172742057686974652045646765003520417274204672616d65003220476c6f7720003220436c61726974792f476c6f772030003220436c6172697479202b003320574220426c756520003320574220416d6265722f426c7565003320574220416d626572200034205742204d6167656e746120003420574220477265656e2f4d61672e003420574220477265656e20004578747261733a20312d35206f6e6c79004578747261733a206e6f20416c6c00",
-   "why": "look extras ex_core + ex_ui (sec 1, dead EVF step-2/1 gamma tables) (v0.14: sector 5 Art Effect with wrap; bloom colour hidden) [v0.14 LV art refresh: ex_art site 0x601e33b7 -> ex_art]",
+   "new": "821efac261fcaa0cc41c2af4aa0cc4142af4aa0cc40cfac240fdaa0cc6462a402a402a40fcafc2bc2c622bfffccb41a90000c630f8ef03c92bf1eefcd200d8f8a17efccb45503742c91afa0ea802fccb45503745c90efa4eac02af04c9060cde00008f01de0000b500c905cc8700cfe0f8fefccd8dff0000f8fe04af00c96f8bf8e33ff8e2c0f16aaf00c90bf84238a004c455ca52af01c921f84a3d2affaa05c64548f8423ca003c80d28ffa002c63700f108ca3388ca30af04c822c629f84239f8e081a001c91ff16ef8423810a0fbc20480fba005c3108005ca0cf8424ea004c405ca020061cee000f0fc5b0cf2fecee0dc623e3d00b500c81fcfe0f8fefccd00ff0000f8fe04af00c9080061cee0f0fc5b0cf2fecee0dcca3e3d00f8fefccde0fe0000f8fe04af00c80b5b10f2fedc253f3d00fca70038fc61af00c805ccc300fca70438fc61af00c805ccb6008bf8e33ff8e2c0f16aaf05c405cca600af04c91fa5fcc20485fca507c3048507a500c2042904a504c40429fcdca1030000a5fbc20485fba505c3048505af00c912a500c20304a503c3048503f85638ca4eaf01c92108f85a3c868f03aa00c811c10708f1068f01f85a3df85e3cca30f85a3dca2bf84a39f8e281aa01c80908f85a3af85a3bf16ef85638f12ef84a3af84e3bf21eaa00c8048a01f85a39fcaec2bc2c622afff1eafcd200d8f8a18a01fa5aad0282f1d396f8fefcdd42c40c000004f8fe04815810f2f288f1ec99dce83f6400ffffffcff0f8fef493fcffaaa89b0082fcafc2bc2c622bfffccb41a90000c405cc6d01f8ef03c805cc6501f1eefcd200d8f8a17efccb45503742c805cc5101fa0ea802fccb45503745c805cc4201fa4eac02af04c805cc3701f8632ca004c805cc2d01f86330fcde24371e60fac8c40ac905cce500fac8c30ac805cc1201dd875b61000004f008f82a083d2104806ff0f2a000c805ccf80058042f43042d9f03a036c8232f48042dab03a037c8192f49042db703a038c80f2f96062d7706a040c805cccb004608dd3e5b61000004f008f82a083d21048cf0f2a000c805ccb0005b042bfffcde13371e60af05c66b5808ec3d2104fcff52fdffffa000c805cc8f005904af00c916a504c405cc820055fcdef0351e60f166f00aca3eaf04c913a504c66c55fcde00361e60f166f00aca292bff8c54f8c303ecfcde10361e60f162a500c907f82a04ca10c007f82a08ca0af00af23144ca03048005f8732c9c20348f2100f07020022bffc9fa9c20348f10f042a000c80df0704920022bffc9f3ca0ea500c80aa50ac6062930f07488dff01c000034361e6040361e604c361e605b361e6068361e6072361e6083361e6092361e609d361e60a5361e60b6361e60c2361e60cd361e60dd361e60e9361e60f7361e6007371e603120477261696e204f6666003120477261696e204c6f77003120477261696e204d656469756d003120477261696e2048696768003520417274204f66660035204172742053746172204c696768740035204172742050696e20486f6c6500352041727420426c7572003220476c6f7720003220436c61726974792f476c6f772030003220436c6172697479202b003320574220426c756520003320574220416d6265722f426c7565003320574220416d626572200034205742204d6167656e746120003420574220477265656e2f4d61672e003420574220477265656e20004578747261733a20312d35206f6e6c79004578747261733a206e6f20416c6c0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "why": "look extras ex_core + ex_ui (sec 1, dead EVF step-2/1 gamma tables) (v0.14: sector 5 Art Effect with wrap; bloom colour hidden) [v0.14 LV art refresh: ex_art site 0x601e33b7 -> ex_art] [v0.15: Art Off/Star Light/Pin Hole/Blur only, wrap 0..3; old 4/5 read Off]",
    "source": "patches/look_extras"
   },
   {
@@ -780,7 +781,7 @@
    "kind": "0x100",
    "addr": "0x61185be8",
    "expect": "0a0ee260",
-   "new": "7d2c1e60",
+   "new": "ed221e60",
    "why": "record 0x13b3 Up (+12) -> fm_up",
    "source": "patches/film_menu_v2"
   },
@@ -788,7 +789,7 @@
    "kind": "0x100",
    "addr": "0x61185bec",
    "expect": "7a10e260",
-   "new": "862c1e60",
+   "new": "f6221e60",
    "why": "record 0x13b3 Down (+16) -> fm_down",
    "source": "patches/film_menu_v2"
   },
@@ -796,7 +797,7 @@
    "kind": "0x100",
    "addr": "0x61185c20",
    "expect": "0a0ee260",
-   "new": "7d2c1e60",
+   "new": "ed221e60",
    "why": "record 0x13b4 Up (+12) -> fm_up",
    "source": "patches/film_menu_v2"
   },
@@ -804,7 +805,7 @@
    "kind": "0x100",
    "addr": "0x61185c24",
    "expect": "7a10e260",
-   "new": "862c1e60",
+   "new": "f6221e60",
    "why": "record 0x13b4 Down (+16) -> fm_down",
    "source": "patches/film_menu_v2"
   },
@@ -812,7 +813,7 @@
    "kind": "0x100",
    "addr": "0x61185c58",
    "expect": "0a0ee260",
-   "new": "7d2c1e60",
+   "new": "ed221e60",
    "why": "record 0x13b5 Up (+12) -> fm_up",
    "source": "patches/film_menu_v2"
   },
@@ -820,7 +821,7 @@
    "kind": "0x100",
    "addr": "0x61185c5c",
    "expect": "7a10e260",
-   "new": "862c1e60",
+   "new": "f6221e60",
    "why": "record 0x13b5 Down (+16) -> fm_down",
    "source": "patches/film_menu_v2"
   },
@@ -828,7 +829,7 @@
    "kind": "0x100",
    "addr": "0x61185c90",
    "expect": "0a0ee260",
-   "new": "7d2c1e60",
+   "new": "ed221e60",
    "why": "record 0x140c Up (+12) -> fm_up",
    "source": "patches/film_menu_v2"
   },
@@ -836,7 +837,7 @@
    "kind": "0x100",
    "addr": "0x61185c94",
    "expect": "7a10e260",
-   "new": "862c1e60",
+   "new": "f6221e60",
    "why": "record 0x140c Down (+16) -> fm_down",
    "source": "patches/film_menu_v2"
   },
@@ -867,1176 +868,16 @@
   {
    "kind": "0x100",
    "addr": "0x601e113c",
-   "expect": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3",
-   "new": "f8fef44a044e085838fcc8af1e3260c805ccaf00fa032c2ca00bc805cca400f8631481f8e1f0a530c805cc9600fae0000ffac80001c905cc8900fcccb1f60000049000ddf2d7e7ffc00c28ffa004c67283dd23d63700c00808f8401ff8ec02c805f8e601f8401c28ffa002c60ef8401d28ffa005c605f8e603f84018a000c80308f8402e28fea004c61454fcdd10121e60f16175f80310f214f81310aa00c8224cfa5f803c800bfa53813c2cb200fa53823cf8ee02c80bf80310f8e480f813105a045b08f8fe0c9cdd05351700b010dc6a2a170000040000000100000020000000800000",
-   "why": "lv_art (228 B) in the dead EVF step-13 R gamma table (section 1)"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e5fe4",
-   "expect": "3002e001",
-   "new": "d0021001",
-   "why": "u16wh@0x601e5fd0 id6 (560, 480) -> (720, 272) (XPan 65:24, align 16, stock class 4)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e5fe8",
-   "expect": "4002e001",
-   "new": "d0023001",
-   "why": "u16wh@0x601e5fd0 id7 (576, 480) -> (720, 304) (21:9, align 16, stock class 4)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e6018",
-   "expect": "1003a002",
-   "new": "f0037001",
-   "why": "u16wh@0x601e6004 id6 (784, 672) -> (1008, 368) (XPan 65:24, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e601c",
-   "expect": "2603a002",
-   "new": "f003b001",
-   "why": "u16wh@0x601e6004 id7 (806, 672) -> (1008, 432) (21:9, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e604c",
-   "expect": "80030003",
-   "new": "00048001",
-   "why": "u16wh@0x601e6038 id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e6050",
-   "expect": "98030003",
-   "new": "0004b001",
-   "why": "u16wh@0x601e6038 id7 (920, 768) -> (1024, 432) (21:9, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60248060",
-   "expect": "80030003",
-   "new": "00048001",
-   "why": "u16wh@0x6024804c id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60248064",
-   "expect": "9003f802",
-   "new": "0004b001",
-   "why": "u16wh@0x6024804c id7 (912, 760) -> (1024, 432) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60248088",
-   "expect": "80030003",
-   "new": "00048001",
-   "why": "u16wh@0x60248074 id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6024808c",
-   "expect": "9003f802",
-   "new": "0004b001",
-   "why": "u16wh@0x60248074 id7 (912, 760) -> (1024, 432) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x602480b0",
-   "expect": "6004c003",
-   "new": "0005e001",
-   "why": "u16wh@0x6024809c id6 (1120, 960) -> (1280, 480) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x602480b4",
-   "expect": "8004c003",
-   "new": "00052002",
-   "why": "u16wh@0x6024809c id7 (1152, 960) -> (1280, 544) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x602480d8",
-   "expect": "3002e001",
-   "new": "8002f000",
-   "why": "u16wh@0x602480c4 id6 (560, 480) -> (640, 240) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x602480dc",
-   "expect": "4002e001",
-   "new": "80021001",
-   "why": "u16wh@0x602480c4 id7 (576, 480) -> (640, 272) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60248100",
-   "expect": "8c007800",
-   "new": "a0004000",
-   "why": "u16wh@0x602480ec id6 (140, 120) -> (160, 64) (XPan 65:24, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60248104",
-   "expect": "90007800",
-   "new": "a0004000",
-   "why": "u16wh@0x602480ec id7 (144, 120) -> (160, 64) (21:9, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60248150",
-   "expect": "9006a005",
-   "new": "8007c002",
-   "why": "u16wh@0x6024813c id6 (1680, 1440) -> (1920, 704) (XPan 65:24, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60248154",
-   "expect": "c006a005",
-   "new": "80073003",
-   "why": "u16wh@0x6024813c id7 (1728, 1440) -> (1920, 816) (21:9, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60248178",
-   "expect": "3002e001",
-   "new": "8002f000",
-   "why": "u16wh@0x60248164 id6 (560, 480) -> (640, 240) (XPan 65:24, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6024817c",
-   "expect": "4002e001",
-   "new": "80021001",
-   "why": "u16wh@0x60248164 id7 (576, 480) -> (640, 272) (21:9, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x602481a0",
-   "expect": "9006a005",
-   "new": "8007c002",
-   "why": "u16wh@0x6024818c id6 (1680, 1440) -> (1920, 704) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x602481a4",
-   "expect": "c006a005",
-   "new": "80073003",
-   "why": "u16wh@0x6024818c id7 (1728, 1440) -> (1920, 816) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x602481c8",
-   "expect": "6004c003",
-   "new": "0005e001",
-   "why": "u16wh@0x602481b4 id6 (1120, 960) -> (1280, 480) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x602481cc",
-   "expect": "8004c003",
-   "new": "00052002",
-   "why": "u16wh@0x602481b4 id7 (1152, 960) -> (1280, 544) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x602481f0",
-   "expect": "3002e001",
-   "new": "8002f000",
-   "why": "u16wh@0x602481dc id6 (560, 480) -> (640, 240) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x602481f4",
-   "expect": "4002e001",
-   "new": "80021001",
-   "why": "u16wh@0x602481dc id7 (576, 480) -> (640, 272) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60248218",
-   "expect": "e000c000",
-   "new": "40017000",
-   "why": "u16wh@0x60248204 id6 (224, 192) -> (320, 112) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6024821c",
-   "expect": "2001f000",
-   "new": "40019000",
-   "why": "u16wh@0x60248204 id7 (288, 240) -> (320, 144) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x605223fc",
-   "expect": "80030003",
-   "new": "00048001",
-   "why": "u16wh@0x605223e8 id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60522400",
-   "expect": "9003f802",
-   "new": "0004b001",
-   "why": "u16wh@0x605223e8 id7 (912, 760) -> (1024, 432) (21:9, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x605338d0",
-   "expect": "280000003002e001280022005702bd01",
-   "new": "000078008002f000000078007f026701",
-   "why": "rect16@0x60533880 id6 (40, 0, 560, 480, 40, 34, 599, 445) -> (0, 120, 640, 240, 0, 120, 639, 359) (XPan 65:24, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x605338e0",
-   "expect": "200000004002e001200022005f02bd01",
-   "new": "0000680080021001000068007f027701",
-   "why": "rect16@0x60533880 id7 (32, 0, 576, 480, 32, 34, 607, 445) -> (0, 104, 640, 272, 0, 104, 639, 375) (21:9, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60533980",
-   "expect": "b40078001801f000140011002b01de00",
-   "new": "a000b80040017000000040003f01af00",
-   "why": "rect16@0x60533930 id6 (180, 120, 280, 240, 20, 17, 299, 222) -> (160, 184, 320, 112, 0, 64, 319, 175) (XPan 65:24, align 16, stock class 4)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60533990",
-   "expect": "b00078002001f000100011002f01de00",
-   "new": "a000a80040019000000030003f01bf00",
-   "why": "rect16@0x60533930 id7 (176, 120, 288, 240, 16, 17, 303, 222) -> (160, 168, 320, 144, 0, 48, 319, 191) (21:9, align 16, stock class 4)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6024350c",
-   "expect": "06000000e01be817",
-   "new": "06000000e01fc00b",
-   "why": "u16id0wh@0x602434e4 id6 (6, 0, 7136, 6120) -> (6, 0, 8160, 3008) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60243514",
-   "expect": "07000000b01ce817",
-   "new": "07000000e01fb00d",
-   "why": "u16id0wh@0x602434e4 id7 (7, 0, 7344, 6120) -> (7, 0, 8160, 3504) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60243564",
-   "expect": "06000000b013e010",
-   "new": "0600000080165008",
-   "why": "u16id0wh@0x6024353c id6 (6, 0, 5040, 4320) -> (6, 0, 5760, 2128) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6024356c",
-   "expect": "070000004014e010",
-   "new": "070000008016a009",
-   "why": "u16id0wh@0x6024353c id7 (7, 0, 5184, 4320) -> (7, 0, 5760, 2464) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a220",
-   "expect": "06000000d00dd00b",
-   "new": "06000000c00fd005",
-   "why": "u16id0wh@0x60b0a1f8 id6 (6, 0, 3536, 3024) -> (6, 0, 4032, 1488) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a228",
-   "expect": "07000000300ed00b",
-   "new": "07000000c00fc006",
-   "why": "u16id0wh@0x60b0a1f8 id7 (7, 0, 3632, 3024) -> (7, 0, 4032, 1728) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a278",
-   "expect": "060000006004c003",
-   "new": "060000000005e001",
-   "why": "u16id0wh@0x60b0a250 id6 (6, 0, 1120, 960) -> (6, 0, 1280, 480) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a280",
-   "expect": "070000008004c003",
-   "new": "0700000000052002",
-   "why": "u16id0wh@0x60b0a250 id7 (7, 0, 1152, 960) -> (7, 0, 1280, 544) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a2c8",
-   "expect": "0600000040058004",
-   "new": "0600000040065002",
-   "why": "u16id0wh@0x60b0a2a0 id6 (6, 0, 1344, 1152) -> (6, 0, 1600, 592) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a2d0",
-   "expect": "07000000a005b004",
-   "new": "070000004006b002",
-   "why": "u16id0wh@0x60b0a2a0 id7 (7, 0, 1440, 1200) -> (7, 0, 1600, 688) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a318",
-   "expect": "060000009006a005",
-   "new": "060000008007c002",
-   "why": "u16id0wh@0x60b0a2f0 id6 (6, 0, 1680, 1440) -> (6, 0, 1920, 704) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a320",
-   "expect": "07000000c006a005",
-   "new": "0700000080073003",
-   "why": "u16id0wh@0x60b0a2f0 id7 (7, 0, 1728, 1440) -> (7, 0, 1920, 816) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a3b8",
-   "expect": "06000000c0088007",
-   "new": "06000000000ab003",
-   "why": "u16id0wh@0x60b0a390 id6 (6, 0, 2240, 1920) -> (6, 0, 2560, 944) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a3c0",
-   "expect": "0700000000098007",
-   "new": "07000000000a5004",
-   "why": "u16id0wh@0x60b0a390 id7 (7, 0, 2304, 1920) -> (7, 0, 2560, 1104) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a458",
-   "expect": "06000000f00a6009",
-   "new": "06000000800ca004",
-   "why": "u16id0wh@0x60b0a430 id6 (6, 0, 2800, 2400) -> (6, 0, 3200, 1184) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a460",
-   "expect": "07000000400b6009",
-   "new": "07000000800c6005",
-   "why": "u16id0wh@0x60b0a430 id7 (7, 0, 2880, 2400) -> (7, 0, 3200, 1376) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a548",
-   "expect": "06000000c011300f",
-   "new": "0600000040148007",
-   "why": "u16id0wh@0x60b0a520 id6 (6, 0, 4544, 3888) -> (6, 0, 5184, 1920) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a550",
-   "expect": "070000004012300f",
-   "new": "070000004014b008",
-   "why": "u16id0wh@0x60b0a520 id7 (7, 0, 4672, 3888) -> (7, 0, 5184, 2224) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a5e8",
-   "expect": "06000000e000c000",
-   "new": "0600000040017000",
-   "why": "u16id0wh@0x60b0a5c0 id6 (6, 0, 224, 192) -> (6, 0, 320, 112) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a5f0",
-   "expect": "070000002001f000",
-   "new": "0700000040019000",
-   "why": "u16id0wh@0x60b0a5c0 id7 (7, 0, 288, 240) -> (7, 0, 320, 144) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a638",
-   "expect": "060000003002e001",
-   "new": "060000008002f000",
-   "why": "u16id0wh@0x60b0a610 id6 (6, 0, 560, 480) -> (6, 0, 640, 240) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a640",
-   "expect": "070000004002e001",
-   "new": "0700000080021001",
-   "why": "u16id0wh@0x60b0a610 id7 (7, 0, 576, 480) -> (7, 0, 640, 272) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a688",
-   "expect": "0600000080030003",
-   "new": "0600000000048001",
-   "why": "u16id0wh@0x60b0a660 id6 (6, 0, 896, 768) -> (6, 0, 1024, 384) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0a690",
-   "expect": "070000009003f802",
-   "new": "070000000004b001",
-   "why": "u16id0wh@0x60b0a660 id7 (7, 0, 912, 760) -> (7, 0, 1024, 432) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x604e92e4",
-   "expect": "c011300f0706",
-   "new": "401480074118",
-   "why": "u16whcode@0x604e92c6 id6 (4544, 3888, 1543) -> (5184, 1920, 6209) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x604e92ea",
-   "expect": "4012300f0605",
-   "new": "4014b0081509",
-   "why": "u16whcode@0x604e92c6 id7 (4672, 3888, 1286) -> (5184, 2224, 2325) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x605221bc",
-   "expect": "900da00b0706",
-   "new": "800fc0054118",
-   "why": "u16whcode@0x6052219e id6 (3472, 2976, 1543) -> (3968, 1472, 6209) (XPan 65:24, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x605221c2",
-   "expect": "f40da00b0605",
-   "new": "800fa0061509",
-   "why": "u16whcode@0x6052219e id7 (3572, 2976, 1286) -> (3968, 1696, 2325) (21:9, align 16, stock class 2)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8c6ec",
-   "expect": "06000000d00d0000d00b0000",
-   "new": "06000000c00f0000d0050000",
-   "why": "u32idwh@0x60b8c6b0 id6 (6, 3536, 3024) -> (6, 4032, 1488) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8c6f8",
-   "expect": "07000000300e0000d00b0000",
-   "new": "07000000c00f0000c0060000",
-   "why": "u32idwh@0x60b8c6b0 id7 (7, 3632, 3024) -> (7, 4032, 1728) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8c764",
-   "expect": "0600000060040000c0030000",
-   "new": "0600000000050000e0010000",
-   "why": "u32idwh@0x60b8c728 id6 (6, 1120, 960) -> (6, 1280, 480) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8c770",
-   "expect": "0700000080040000c0030000",
-   "new": "070000000005000020020000",
-   "why": "u32idwh@0x60b8c728 id7 (7, 1152, 960) -> (7, 1280, 544) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8c7dc",
-   "expect": "060000004005000080040000",
-   "new": "060000004006000050020000",
-   "why": "u32idwh@0x60b8c7a0 id6 (6, 1344, 1152) -> (6, 1600, 592) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8c7e8",
-   "expect": "07000000a0050000b0040000",
-   "new": "0700000040060000b0020000",
-   "why": "u32idwh@0x60b8c7a0 id7 (7, 1440, 1200) -> (7, 1600, 688) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8c944",
-   "expect": "06000000c008000080070000",
-   "new": "06000000000a0000b0030000",
-   "why": "u32idwh@0x60b8c908 id6 (6, 2240, 1920) -> (6, 2560, 944) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8c950",
-   "expect": "070000000009000080070000",
-   "new": "07000000000a000050040000",
-   "why": "u32idwh@0x60b8c908 id7 (7, 2304, 1920) -> (7, 2560, 1104) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8ca34",
-   "expect": "06000000f00a000060090000",
-   "new": "06000000800c0000a0040000",
-   "why": "u32idwh@0x60b8c9f8 id6 (6, 2800, 2400) -> (6, 3200, 1184) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8ca40",
-   "expect": "07000000400b000060090000",
-   "new": "07000000800c000060050000",
-   "why": "u32idwh@0x60b8c9f8 id7 (7, 2880, 2400) -> (7, 3200, 1376) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cb9c",
-   "expect": "06000000c0110000300f0000",
-   "new": "060000004014000080070000",
-   "why": "u32idwh@0x60b8cb60 id6 (6, 4544, 3888) -> (6, 5184, 1920) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cba8",
-   "expect": "0700000040120000300f0000",
-   "new": "0700000040140000b0080000",
-   "why": "u32idwh@0x60b8cb60 id7 (7, 4672, 3888) -> (7, 5184, 2224) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cc8c",
-   "expect": "0600000090060000a0050000",
-   "new": "0600000080070000c0020000",
-   "why": "u32idwh@0x60b8cc50 id6 (6, 1680, 1440) -> (6, 1920, 704) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cc98",
-   "expect": "07000000c0060000a0050000",
-   "new": "070000008007000030030000",
-   "why": "u32idwh@0x60b8cc50 id7 (7, 1728, 1440) -> (7, 1920, 816) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cd04",
-   "expect": "06000000e0000000c0000000",
-   "new": "060000004001000070000000",
-   "why": "u32idwh@0x60b8ccc8 id6 (6, 224, 192) -> (6, 320, 112) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cd10",
-   "expect": "0700000020010000f0000000",
-   "new": "070000004001000090000000",
-   "why": "u32idwh@0x60b8ccc8 id7 (7, 288, 240) -> (7, 320, 144) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cd7c",
-   "expect": "06000000e01b0000e8170000",
-   "new": "06000000e01f0000c00b0000",
-   "why": "u32idwh@0x60b8cd40 id6 (6, 7136, 6120) -> (6, 8160, 3008) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cd88",
-   "expect": "07000000b01c0000e8170000",
-   "new": "07000000e01f0000b00d0000",
-   "why": "u32idwh@0x60b8cd40 id7 (7, 7344, 6120) -> (7, 8160, 3504) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cdf4",
-   "expect": "06000000b0130000e0100000",
-   "new": "060000008016000050080000",
-   "why": "u32idwh@0x60b8cdb8 id6 (6, 5040, 4320) -> (6, 5760, 2128) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8ce00",
-   "expect": "0700000040140000e0100000",
-   "new": "0700000080160000a0090000",
-   "why": "u32idwh@0x60b8cdb8 id7 (7, 5184, 4320) -> (7, 5760, 2464) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cf0c",
-   "expect": "0600000030020000e0010000",
-   "new": "0600000080020000f0000000",
-   "why": "u32idwh@0x60b8ced0 id6 (6, 560, 480) -> (6, 640, 240) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cf18",
-   "expect": "0700000040020000e0010000",
-   "new": "070000008002000010010000",
-   "why": "u32idwh@0x60b8ced0 id7 (7, 576, 480) -> (7, 640, 272) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cf84",
-   "expect": "060000008003000000030000",
-   "new": "060000000004000080010000",
-   "why": "u32idwh@0x60b8cf48 id6 (6, 896, 768) -> (6, 1024, 384) (XPan 65:24, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b8cf90",
-   "expect": "0700000090030000f8020000",
-   "new": "0700000000040000b0010000",
-   "why": "u32idwh@0x60b8cf48 id7 (7, 912, 760) -> (7, 1024, 432) (21:9, align 16, stock class 8)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61242f00",
-   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-   "new": "0100000004002401dc9917610300000004002301dc9917610200000004002501dc991761040000000400fa06dc9917610900000004002701dc991761060000000400f100dc991761070000000400650adc9917610a0000000400bd0cdc991761",
-   "why": "Image Aspect option list (8 entries) relocated to sec-6 tail",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6117af14",
-   "expect": "0e01060034a81761",
-   "new": "0e010800002f2461",
-   "why": "setting 270 option descriptor: count 6->8, list ptr",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61175d78",
-   "expect": "010000000300dd01e4441761030000000300dc01e4441761020000000300de01e44417610400000003007609e4441761090000000300df01e4441761010000000300d801e4441761030000000300d701e4441761",
-   "new": "010000000300dd01e4441761030000000300dc01e4441761020000000300de01e44417610400000003007609e4441761090000000300df01e4441761060000000400f100e4441761070000000400650ae4441761",
-   "why": "SCP/Live Control 270 list A (white) in place: 7 entries, +Panorama/Wide (type-4 text)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61242f60",
-   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-   "new": "010000000300d801e4441761030000000300d701e4441761020000000300d901e44417610400000003007509e4441761090000000300db01e4441761060000000400f100e4441761070000000400650ae4441761",
-   "why": "SCP/Live Control 270 list B (green) relocated to sec-6 tail: 7 entries",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61176fc0",
-   "expect": "0e010500785d1761b45d1761",
-   "new": "0e010700785d1761602f2461",
-   "why": "SCP/Live Control 270 record: count 5->7, list B ptr",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60210f70",
-   "expect": "ffffffffffffff",
-   "new": "01030204090607",
-   "why": "setting 270 validator list relocated: 1,3,2,4,9 + 6 (Panorama), 7 (Wide)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x604cec18",
-   "expect": "44b74c60000000000500",
-   "new": "700f2160000000000700",
-   "why": "setting 270 validator record: list ptr -> sec-1 tail, bytes 5 -> 7",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60210f00",
-   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-   "new": "2e80022ff000dc03a467002e80022f1001dcf8a367002f80022ef000dcc0a467002f80022e1001dcb5a467002d80022cf000dc668b68002d80022c1001dc5b8b68002c80022df000dc86a968002c80022d1001dc7ba96800804142188018dc9f186500801542188009dc94186500",
-   "why": "aspect case blocks (S1-S5) in sec-1 tail",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b04428",
-   "expect": "ecb28860",
-   "new": "000f2160",
-   "why": "S1 jump entry id6 0x6088b2ec -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0442c",
-   "expect": "f1b28860",
-   "new": "0b0f2160",
-   "why": "S1 jump entry id7 0x6088b2f1 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b04454",
-   "expect": "bfb38860",
-   "new": "160f2160",
-   "why": "S2 jump entry id6 0x6088b3bf -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b04458",
-   "expect": "c4b38860",
-   "new": "210f2160",
-   "why": "S2 jump entry id7 0x6088b3c4 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0daf8",
-   "expect": "7b9a8960",
-   "new": "2c0f2160",
-   "why": "S3 jump entry id6 0x60899a7b -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0dafc",
-   "expect": "809a8960",
-   "new": "370f2160",
-   "why": "S3 jump entry id7 0x60899a80 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0e0ec",
-   "expect": "b1b88960",
-   "new": "420f2160",
-   "why": "S4 jump entry id6 0x6089b8b1 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0e0f0",
-   "expect": "b6b88960",
-   "new": "4d0f2160",
-   "why": "S4 jump entry id7 0x6089b8b6 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60af4a18",
-   "expect": "d3278660",
-   "new": "580f2160",
-   "why": "S5 ratio jump entry id6 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b01548",
-   "expect": "659e8760",
-   "new": "709e8760",
-   "why": "S6 fit-group entry id6: height-limited -> width-limited group",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60af4a1c",
-   "expect": "db278660",
-   "new": "630f2160",
-   "why": "S5 ratio jump entry id7 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b0154c",
-   "expect": "659e8760",
-   "new": "709e8760",
-   "why": "S6 fit-group entry id7: height-limited -> width-limited group",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60210e90",
-   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-   "new": "fca8047b2562a001c8222c0e01dd6dad0b0000041c28faa001c5118001fcdcc60e2160dd78880a00f01cfcdc90701e60dcea1af8ffff0e01",
-   "why": "H3 boot clamp: setting 270 in {6,7} -> stock default (4:3) at power-on",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601929a4",
-   "expect": "fcdc90701e60",
-   "new": "dcece40700cb",
-   "why": "H3 boot clamp hook: boot tail mov 0x601e7090,a0 -> jmp boot clamp; nop",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6053df0c",
-   "expect": "c01100008c009006e000300280036004400500000000c0080000f00a000000000000d00d0000c00f0000000000000000",
-   "new": "40140000a00080074001800200040005400600000000000a0000800c000000000000c00f000000120000000000000000",
-   "why": "capture size table W@0x6053de1c id6: (4544, 0, 140, 1680, 224, 560, 896, 1120, 1344, 0, 0, 2240, 0, 2800, 0, 0, 0, 3536, 0, 4032, 0, 0, 0, 0) -> (5184, 0, 160, 1920, 320, 640, 1024, 1280, 1600, 0, 0, 2560, 0, 3200, 0, 0, 0, 4032, 0, 4608, 0, 0, 0, 0)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6053df3c",
-   "expect": "401200009000c0062001400290038004a0050000000000090000400b000000000000300e000030100000000000000000",
-   "new": "40140000a00080074001800200040005400600000000000a0000800c000000000000c00f000000120000000000000000",
-   "why": "capture size table W@0x6053de1c id7: (4672, 0, 144, 1728, 288, 576, 912, 1152, 1440, 0, 0, 2304, 0, 2880, 0, 0, 0, 3632, 0, 4144, 0, 0, 0, 0) -> (5184, 0, 160, 1920, 320, 640, 1024, 1280, 1600, 0, 0, 2560, 0, 3200, 0, 0, 0, 4032, 0, 4608, 0, 0, 0, 0)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6053e0bc",
-   "expect": "300f00007800a005c000e0010003c003800400000000800700006009000000000000d00b0000800d0000000000000000",
-   "new": "800700004000c0027000f0008001e001500200000000b0030000a004000000000000d0050000a0060000000000000000",
-   "why": "capture size table H@0x6053dfcc id6: (3888, 0, 120, 1440, 192, 480, 768, 960, 1152, 0, 0, 1920, 0, 2400, 0, 0, 0, 3024, 0, 3456, 0, 0, 0, 0) -> (1920, 0, 64, 704, 112, 240, 384, 480, 592, 0, 0, 944, 0, 1184, 0, 0, 0, 1488, 0, 1696, 0, 0, 0, 0)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6053e0ec",
-   "expect": "300f00007800a005f000e001f802c003b00400000000800700006009000000000000d00b0000800d0000000000000000",
-   "new": "b00800004000300390001001b0012002b00200000000500400006005000000000000c0060000b0070000000000000000",
-   "why": "capture size table H@0x6053dfcc id7: (3888, 0, 120, 1440, 240, 480, 760, 960, 1200, 0, 0, 1920, 0, 2400, 0, 0, 0, 3024, 0, 3456, 0, 0, 0, 0) -> (2224, 0, 64, 816, 144, 272, 432, 544, 688, 0, 0, 1104, 0, 1376, 0, 0, 0, 1728, 0, 1968, 0, 0, 0, 0)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6053dd3c",
-   "expect": "d5be3e60",
-   "new": "acbe3e60",
-   "why": "ORF frame fit entry id6: height-limited -> width-limited case",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6053dd40",
-   "expect": "d5be3e60",
-   "new": "acbe3e60",
-   "why": "ORF frame fit entry id7: height-limited -> width-limited case",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60236e20",
-   "expect": "07060605",
-   "new": "41181509",
-   "why": "LV/AF ratio pair (u8, .data -> RAM 0x61f9eb60) ids 6/7: 7:6, 6:5 -> 65:24, 21:9",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x604e0702",
-   "expect": "0700060006000500",
-   "new": "4100180015000900",
-   "why": "ratio pair (u16) ids 6/7: 7:6, 6:5 -> 65:24, 21:9",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x604d9d02",
-   "expect": "14002c010000f000100030010000f000",
-   "new": "000040013d00b300000040013300bd00",
-   "why": "320x240 per-aspect bounds ids 6/7 -> full width, centred band",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e1440",
-   "expect": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f6061626364656667",
-   "new": "2c8002422c2cf000dcd0176a002c8002422c2c1001dcc3176a002c800242282cf000dcbc1a6a002c800242282c1001dcaf1a6a002c800242302cf000dc981f6a002c800242302c1001dc8b1f6a002480022ff000dc5e986f002480022f1001dc53986f00",
-   "why": "v6 LV case blocks S7-S10 (640 x h) in dead EVF gamma table 0x601e143c",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b01e60",
-   "expect": "ed2b8860",
-   "new": "40141e60",
-   "why": "S7 LV jump entry id6 0x60882bed -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b01e64",
-   "expect": "f22b8860",
-   "new": "4d141e60",
-   "why": "S7 LV jump entry id7 0x60882bf2 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b01e8c",
-   "expect": "f32e8860",
-   "new": "5a141e60",
-   "why": "S8 LV jump entry id6 0x60882ef3 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b01e90",
-   "expect": "f82e8860",
-   "new": "67141e60",
-   "why": "S8 LV jump entry id7 0x60882ef8 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b01eb8",
-   "expect": "e9338860",
-   "new": "74141e60",
-   "why": "S9 LV jump entry id6 0x608833e9 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b01ebc",
-   "expect": "ee338860",
-   "new": "81141e60",
-   "why": "S9 LV jump entry id7 0x608833ee -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b1f364",
-   "expect": "d5ac8d60",
-   "new": "8e141e60",
-   "why": "S10 LV jump entry id6 0x608dacd5 -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60b1f368",
-   "expect": "daac8d60",
-   "new": "99141e60",
-   "why": "S10 LV jump entry id7 0x608dacda -> block",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6053e246",
-   "expect": "30024002",
-   "new": "80028002",
-   "why": "rec-view 640-class W ids 6/7 (560, 576) -> (640, 640)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6053e258",
-   "expect": "e001e001",
-   "new": "f0001001",
-   "why": "rec-view 640-class H ids 6/7 (480, 480) -> (240, 272)",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e14b0",
-   "expect": "7475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacad",
-   "new": "01000300020004000900060007000000401440144014300f600b40144014300f680b800d300f300f8007b0080d00800c800c900c60092007800c800c60090807600860098009a00460050b00000a000af0098007a005000a000a8007a005a00680078007b00350040800400600063006c004600340064006b00460032004c00480045002b0020700000500051005c003d00200050005c003d0026003c003c003e0012002060000040004f003000340020004000400034002a002000300038001b0010500800280027002e001800180028002e0016801a001e0010002f00010010300800780078007a005500480078007a00538040005a005c005c00230031400e01fe01fe01fe017f011e01fe01fe817f0114015e017e817c00bb00d1500801680168016e010b00c80168016e010a80c000fe010e0105008a009",
-   "why": "v7 pixel-size readout table (ids (1, 3, 2, 4, 9, 6, 7), 10 x 30-B rows) in dead EVF step-12 tables",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60eac4b8",
-   "expect": "ec091f61",
-   "new": "c0141e60",
-   "why": "0x60eac4a9 readout table pointer (row0w) -> 0x601e14c0",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60eac4c0",
-   "expect": "f6091f61",
-   "new": "ce141e60",
-   "why": "0x60eac4a9 readout table pointer (row0h) -> 0x601e14ce",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60eac4f5",
-   "expect": "ea091f61",
-   "new": "be141e60",
-   "why": "0x60eac4a9 readout table pointer (rows) -> 0x601e14be",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60eac508",
-   "expect": "e0091f61",
-   "new": "b0141e60",
-   "why": "0x60eac4a9 readout table pointer (ids) -> 0x601e14b0",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60eac53d",
-   "expect": "ea091f61",
-   "new": "be141e60",
-   "why": "0x60eac4a9 readout table pointer (rows) -> 0x601e14be",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60eac51b",
-   "expect": "200c",
-   "new": "2010",
-   "why": "0x60eac4a9 h offset (a0) 12 -> 16",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60eac52a",
-   "expect": "a505",
-   "new": "a507",
-   "why": "0x60eac4a9 aspect id count 5 -> 7",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60eac530",
-   "expect": "2016",
-   "new": "201e",
-   "why": "0x60eac4a9 row stride (a0) 22 -> 30",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60eac536",
-   "expect": "f90216",
-   "new": "f9021e",
-   "why": "0x60eac4a9 row index * stride (debug print) 22 -> 30",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x60eac54f",
-   "expect": "220c",
-   "new": "2210",
-   "why": "0x60eac4a9 h offset (a2, debug print) 12 -> 16",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e15f0",
-   "expect": "b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaeb",
-   "new": "01000000dd01000003000000dc01000002000000de01000009000000df010000040000007609000006000000dc01000007000000dc010000",
-   "why": "v7 info-display aspect icon list A (white): 7 entries, 6/7 -> 16:9 bitmap 476",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e1628",
-   "expect": "ecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223",
-   "new": "01000000d801000003000000d701000002000000d901000009000000db010000040000007509000006000000d701000007000000d7010000",
-   "why": "v7 info-display aspect icon list B (green): 7 entries, 6/7 -> 16:9 bitmap 471",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6123dd08",
-   "expect": "c4db2361ecdb236105000000",
-   "new": "f0151e6028161e6007000000",
-   "why": "icon record 0x6123dd04: lists -> v7 lists, count 5 -> 7",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6123ddb8",
-   "expect": "c4db2361ecdb236105000000",
-   "new": "f0151e6028161e6007000000",
-   "why": "icon record 0x6123ddb4: lists -> v7 lists, count 5 -> 7",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6123f180",
-   "expect": "6ced236194ed236105000000",
-   "new": "f0151e6028161e6007000000",
-   "why": "icon record 0x6123f17c: lists -> v7 lists, count 5 -> 7",
-   "source": "patches/aspect/edits.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6123f43c",
-   "expect": "6ced236194ed236105000000",
-   "new": "f0151e6028161e6007000000",
-   "why": "icon record 0x6123f438: lists -> v7 lists, count 5 -> 7",
-   "source": "patches/aspect/edits.json"
+   "expect": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadb",
+   "new": "f8fef44a044e085838fcc8af1e3260c805ccaf00fa032c2ca00bc805cca400f8631481f8e1f0a530c805cc9600fae0000ffac80001c905cc8900fcccb1f60000049000ddf2d7e7ffc00c28ffa004c67283dd23d63700c00808f8401ff8ec02c805f8e601f8401c28ffa002c60ef8401d28ffa005c605f8e603f84018a000c80308f8402e28fea002c61454fcdd10121e60f16175f80310f214f81310aa00c8224cfa5f803c800bfa53813c2cb200fa53823cf8ee02c80bf80310f8e480f813105a045b08f8fe0c9cdd05351700b010dc6a2a17000004000000010000",
+   "why": "lv_art (220 B) in the dead EVF step-13 R gamma table (section 1) [v0.15: art 2/3 only]"
   },
   {
    "kind": "0x100",
    "addr": "0x601e1d3c",
-   "expect": "00010203040405060708090a0a0b0c0d0e0f1011111213141516171818191a1b1c1d1e1f1f20212223242526272728292a2b2c2d2e2f2f30313233343536373738393a3b3c3d3e3f40404142",
-   "new": "f8402e28ffa005c617f8c003fcdd601d1e60f1617275f204f80504f21462dc96c8370000ffffffff40000000ffffffff00040000fffcffff00010000ffffffff00200000ffffffff00800000",
-   "why": "COLOR Art Effect stub (76 B, slot +46 -> stock converter flag) in the dead EVF step-9 R table"
+   "expect": "00010203040405060708090a0a0b0c0d0e0f1011111213141516171818191a1b1c1d1e1f1f20212223242526272728292a2b2c2d2e2f2f3031323334",
+   "new": "f8402e28ffa003c617f8c003fcdd601d1e60f1617275f204f80504f21462dc96c8370000ffffffff40000000ffffffff00040000fffcffff00010000",
+   "why": "COLOR Art Effect stub (60 B, slot +46 1..3 -> stock converter flag; v0.15: 4/5 nothing) in the dead EVF step-9 R table"
   },
   {
    "kind": "0x100",
@@ -2155,6 +996,1178 @@
    "new": "dd81a13bff0000",
    "why": "Profile view MONO page guide label -> mp_lbl2 (call 0x601e1742,[],0)",
    "source": "patches/mono_presets"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e383c",
+   "expect": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f90919293949596",
+   "new": "250ee2609510e2602412e260d413e260b616e2606c18e2609425e2602fc5de60adc5de60b6c6de605cc8de60d6cade6018ccde60b313b413b5130c1436373840db03df03d803d503e303e603e803e703dc03e003d903d603e403e903eb03ea03dd03e103da03d703e503ec03ee03ed03900691068f068e0687068b068d068c06010100000001fd010401000100fffe000001000000ff000103030002ff02fe000102000200fffd000001000300fe010000010003fefe020100010101feff010000010301ff00fe00010102000000ff0050616e204620353000000000000000004163726f730000000000000000000000542d4d61782031303000000000000000534658203230300000000000000000005472692d58203430300000000000000048503520506c7573000000000000000044656c746120333230300000000000005365706961205072696e74000000000053656c656e69756d00000000000000004379616e6f74797065000000000000000000000000000000000000000000000046696c6d3a2000000000000042265700437573746f6d00",
+   "owner": "mono_colour_ui",
+   "why": "v0.15 MONO-colour UI data (407 B: GetValue(111) return addresses, keys, MONO preset ids/values/names, label texts) in the dead EVF step-0 R/G gamma tables"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e1e3c",
+   "expect": "00010203040506070708090a0b0c0d0e0f10111112131415161718191a1b1c1c1d1e1f20212223242525262728292a2b2c2d2e2f2f30313233343536373838393a3b3c3d3e3f40414142434445464748494a4a4b4c4d4e4f50515253545455565758595a5b5c5d5e5e5f60616263646566676868696a6b6c6d6e6f70717273737475767778797a7b7c7d7e7e7f80818283848586878889898a8b8c8d8e8f90919293939495969798999a9b9c9d9e9e9fa0a1a2a3a4a5a6a7a8a8a9aaabacadaeafb0b1b2b2b3b4b5b6b7b8b9babbbbbcbdbebfc0c1c2c3c4c4c5c6c7c8c9cacbcccdcececfd0d1d2d3d4d5d6d7d7d8d9dadbdcdddedfe0e1e1e2e3e4e5e6e7e8000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff00010203040506070808090a0b0c0d0e0f10111213141516171718191a1b1c1d1e1f20212223242526262728292a2b2c2d2e2f30313233343435363738393a3b3c3d3e3f40414242434445464748494a4b4c4d4e4f50515252535455565758595a5b5c5d5e5f60616263636465666768696a6b6c6d6e6f70717273747575767778797a7b7c7d7e7f808182838485868788898a8a8b8c8d8e8f909192939495969798999a9b9c9d9e9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafafb0b1b2b3b4b5b6b7b8b9babbbcbdbebebfc0c1c2c3c4c5c6c7c8c9cacbcccccdcecfd0d1d2d3d4d5d6d7d8d9d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e8e9eaebecedeeeff0000102030405060708090a0b0c0c0d0e0f101112131415161718191a1b1c1d1e1f20212122232425262728292a2b2c2d2e2f30313233343536373839393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f50515253545555565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f70707172737475767778797a7b7c7d7e7f80818283848586878788898a8b8c8d8e8f909192939495969798999a9b9c9d9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeeeff0f1f2f3f4f5000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000202020405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000202020405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000202020405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030205060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2",
+   "new": "fcafc2bc2c622bfffccb41a90000c668f8ef03c963f1eefcd200d8f8a17efccb45503742c952f8fefc806fdd20da0c000004f8fe0408a039c81148a03ac80c48a03bc80748a041c92f88f8c006f158f1e0fa444001a501c81bfa06bc03fcc945503743c913fa46a00388fac08100a1c9070488dfc00c80ff04dfc00c04fa02a802fcc845503745c90bfa46ac02a505c403048021a501c904800ca502c90300e8fac02001f158f1ecf170f170f170f170f170f170f160de0000fa02bc03fcc845503743c81b98fad0a003851c00f0504129ffc9fbfccc45503743fa12bc03de0000fcafc2bc2c622bfffccb41a90000c629f8ef03c924f1eefcd200d8f8a17efccb45503742c913fa02bc03fcc845503743c90700fa52a003df4004f1e3821e0cfacab613c8174cfacab713c8104cfacab813c8094cfaca0d14c922cda6ff4004cdc0fec00cacc915a501c9118de5fcdc70381e60f164f060dff014f1dc85ffdff014f8fee842044608430c4710f2e042145804f060cda6fff014a5ffc80cfcdc70381e60f164430c5814f2f2580459085c0c5d10f8fe18dc7be5c300f8fee842044608430c4710f2e042145804a012c90a84cd69fff01442085814f2f2580459085c0c5d10f8fe18f8972004461cdca4aec600f8fee842044608430c4710f2e042145804a012c90a84cd32fff01442085814f2f2580459085c0c5d10f8fe18431cf1d6f89b22dce6aec600cff0f8fee842044608430c4710f2e042145804b500c905cc8f00821eaa6fc93a5928fcdc3c381e608f0d78a9c81920042bffc9f8fcce336be260a9c96bfa478c01a501c963cdb0fdc00ca000c05afcdc78381e60f400ca3d821efac261fc0caa0cc4192af44caa0cc4122af44caa0cc40bfac240fd4caa0cc62ecd7bfdc00cacc926cdeffd000000a504c809f040cd880000005d10615814f2f259085c0cf8fe18cef000f0fc5814f2f2580459085c0c5d10f8fe18cef0dca5110000cff0f8fee842044608430c4710f2e042145804b500c82f821efac261fc0caa0cc4192af44caa0cc4122af44caa0cc40bfac240fd4caa0cc60dcd00fdc00cacc90500ca955814f2f2580459085c0c5d10f8fe18cef0dcdb11000010a0fbc20480fba005c3048005de0000f8fee842044608430c4710f2e042145804821efac261fc0caa0cc4192af44caa0cc4122af44caa0cc40bfac240fd4caa0cc66dcd9cfcc00cacc965cd10fd0000a504c8515808a0fbc04ba005c147f050a501c806a502c9158cf8c006f158f1e0fa443f01f8e502fa543f018501fa56ad025804f8fefcdda4d60c000004f8fe04815814f2f258045c0c5d10f8fe18dc455264005814f2f2f8fe1800dfe0105814f2f2580459085c0c5d10f8fe18dc3f110000cff0f8fee842044608430c4710f2e042145804821efac261fc0caa0cc4192af44caa0cc4122af44caa0cc40bfac240fd4caa0cc635cde8fbc00cacc92dcd5cfc000000a503c80da504c809f040cdf1fe000042045814f2f2580459085c0c5d10f8fe18cef0df00045814f2f2580459085c0c5d10f8fe18cef0dc230e0000cff0f8fee842044608430c4710f2e0421458041cfac87006c922cd85fbc00ca000c0194042045814f2f2580459085c0c5d10f8fe18cef0df00045814f2f2580459085c0c5d10f8fe18cef0dc99d70c00cff0f8feec8a01ca09cff0f8feec8aff42044608470cf2e04210580493bf00c905ccb301fcafc2bc2c622bfffccb41a90000c405cca001f8ef03c805cc9801f1eefcd200d8f8a17efccb45503742c805cc8401fa02a802fcc845503745c805cc7501fa42ac02a003c805cc6a01f86364fcdc70381e600cf064a4c80c20024caf04c9f6cc5101cdc9fac00cacc805cc4601fa02fc03fcc845503746c805cc3701fa22f803f1d0f8ec03c805cc2901fcc00028075efcc841a50000c405cc1801fa008005fcc84550374cc805cc0901fa008405f1d9a4c805ccfd00cd2efb0000fa22f803fa408805420881290b99f16dfa41a403a4c70300e8a000c10384a4c70480015d08f194c520420cf8c006f150f1e1f8412da000c90af8412ef8ec02c906580ccad5580c420c99f16dfa51a4038cf8c006f158fac02001f1e100f8511f590c5808a1c51584f8c006f160cda60000008afff1d02830ca3300854094f0504129ffc9fb8cfac08100fa52a003590c5808f10129ff86fcccac391e60a50ac60cf8c104fccc0c391e60e4cd98000000aa0ac63b4b044a0808dddd6b61000004f008f00a8cf8c003e8e0fcdd7c381e60f4815908f8c103e9fcddbc381e60f41511f1e504f0f248aa08c9d05e04f8fe08dc440506015810f2f29c59085d0c5804f8fe14aa00cef0c007dca8070000dcac07000000f8511f04a51fc811f404a520c9048001a52dc40300f44544a540c9eaf8402ff8512d8003f8511f00fa52a003de0000f1e1fa02a002fcc84550374ec81298fad02002002d8000f0504129ffc9fb8cf8c004f158fac06002f1e004f405f44444a510c9f9fccc4550374efa12a0028001fa52ad02de0000cff0f8fef882f1e7f2e04204fcafc2bc2c622bfffccb41a90000c405ccb000f8ef03c805cca800f1eefcd200d8f8a17efccb45503742c805cc94008baf04c405cc8c00fa02fc03fcc845503746c97ffa22f803f1d0f8ec03c974fcc00028075efcc841a50000c666fa008005fcc84550374cc95afa008405f1d9a4c951cd22f90000fa22f803f1dcfa448805a4c63f40f8c006f160f8402da000c932f8402ef8ec02c82a8cf8c006f158fac02001f1e1cdd9fe000099f16df1dc40fa51a403f1d02830cdf6fe00008001ca03005904f2f6dff018cff0f8fef893fcff300e00004204fcafc2bc2c622bfffccb41a90000c405ccd200f8ef03c805ccca00f1eefcd200d8f8a17efccb45503742c805ccb600fa02a802fcc845503745c805cca700fa42ac02a003c805cc9c00cdbbf7c00ca000c205cc900083fcddc8391e60a500c808fcddcc391e60fa02a002fcc84550374ec9158cf8c004f158fac06002f1e0f040a000c80391f1d604f041a000c8064544caf8fcddbc391e60a50bc408fcddc4391e608005f8732c9c20348f2100f07020022bffc9fa9c20348f10af00c811f041a000c80bf0704520022bffcaeff1e9af00c811f041a000c80bf0704520022bffcaef5804dff018",
+   "owner": "mono_colour_ui",
+   "why": "v0.15 MONO-colour UI mc (2275 B) in the dead EVF step-9 G/B .. step-6 R/G gamma tables"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61140398",
+   "expect": "4e05e260",
+   "new": "9e1f1e60",
+   "owner": "mono_colour_ui",
+   "why": "type-7 dispatcher 0x60e2054e -> mc_open1 (colour MONO slot -> COLOR m key)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x609330bf",
+   "expect": "ddc2c997ff0004",
+   "new": "dddef18aff0004",
+   "owner": "mono_colour_ui",
+   "why": "polygon profile read (setting 1648) -> mc_prof"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60e4cea8",
+   "expect": "f8972004461c",
+   "new": "dc305139ffcb",
+   "owner": "mono_colour_ui",
+   "why": "screen lookup 0x60e4cea8 entry -> mc_scr (group 0x12 colour MONO key -> COLOR key)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60e4cf21",
+   "expect": "431cf1d6f89b22",
+   "new": "dcee5039ffcbcb",
+   "owner": "mono_colour_ui",
+   "why": "screen lookup 0x60e4cf21 entry -> mc_scr2"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603b02bf",
+   "expect": "f219a50bc936",
+   "new": "dc098afc00cb",
+   "owner": "mono_colour",
+   "why": "selector 0x603b0252 mode test -> jmp sel (MONO colour slot -> COLOR builder)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603b134e",
+   "expect": "cdadfee010",
+   "new": "dccd7afc00",
+   "owner": "mono_colour",
+   "why": "chroma stage 0x603b132a tone lookup -> jmp chroma (colour slot: no grey/toning)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60353db9",
+   "expect": "fa002c2ca00cc92a",
+   "new": "dc2a510201cbcbcb",
+   "owner": "mono_colour",
+   "why": "packer mono-filter merge -> jmp fg (colour slot: filter/tone = 0)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61378c80",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "581b70178813a00fb80bd007e803000018fc30f848f460f078ec90e8a8e4d4fe06ff38ff6aff9cffceffe7ff00001900320064009600c800fa002c0100020406080a01030507090bf219a50bc907dcf77503ffa50cc807dc227603fff8fef0420046044a08430c73fcc8d45f3560c805cc1b01f803049cfad08c0c8a10f190c80b20382affc9f8cc0401749cfad09cd3f191c805ccf700fa40823cfac8b200c805ccea00fa40813ca00cc805ccdf00fa40803c28ffa004c405ccd2002804f2e2dd705a1effc008f2faf84020a001c805ccbb008a21f408102805a00bc405ccad0048aa2dc9f1f8401ff8ec02c81408f408102807a00fc405cc930048aa18c9f15a08f8fe10f8060c9323219dfcacfce95160fcdc2cde5160ddd07203fff060f8fee4420046044a084e0c431047144f189c20dff8401ff8ec02c83cf82e0cfad3c20208fcddbc8c3761f419f404102807e0fcdd808c3761f4b1f07f290cf404102807e0fcdd9e8c3761f4b1f87f04231848aa0cc9d0580059045a085b0c5c105d145f18f8fe1cdcd87403ff580059045a085c0cf8fe10dce37403ffdde08303ffe010f8fef0420046044a08430cfccc53133b60f2f2b000c905cc9a00f80334a00cc805cc900072fcc8d45f3560c805cc8400f8020498fad08c0c8a10f190c80a20382affc9f8ca6d7498fad09cd3f191c963fa40823cfac8b200c959fa40813ca00cc951fa40803c28ffa004c6472804f2e2f8fefcdd1b591effc008f8fe04f2faf84020a001c92d8a21f408102805a00bc62248aa2dc9f4f8401ff8ec02c81108f408102807a00fc60b48aa18c9f49000430c580059045a085c0cf8fe10dc758403fffa002c2ca00cc807dcfeaefdfef8fef84a004304fa40823cfac8b200c96cfa40813ca00cc964fa40803c28ffa004c65a2804f2e2f8fefcdd96581effc008f8fe04f2faf84020a001c9408a21f408102805a00bc63548aa2dc9f4f8401ff8ec02c81108f408102807a00fc61e48aa18c9f45c0400fa50bc15fa50bd155a00f8fe08800cdc83aefdfe5a005c04f8fe08800cdc4daefdfe000000",
+   "owner": "mono_colour",
+   "why": "MONO-colour LUTs + code (764 B) in section-7 FF tail"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e5fe4",
+   "expect": "3002e001",
+   "new": "d0021001",
+   "why": "u16wh@0x601e5fd0 id6 (560, 480) -> (720, 272) (XPan 65:24, align 16, stock class 4)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e5fe8",
+   "expect": "4002e001",
+   "new": "d0023001",
+   "why": "u16wh@0x601e5fd0 id7 (576, 480) -> (720, 304) (21:9, align 16, stock class 4)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e6018",
+   "expect": "1003a002",
+   "new": "f0037001",
+   "why": "u16wh@0x601e6004 id6 (784, 672) -> (1008, 368) (XPan 65:24, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e601c",
+   "expect": "2603a002",
+   "new": "f003b001",
+   "why": "u16wh@0x601e6004 id7 (806, 672) -> (1008, 432) (21:9, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e604c",
+   "expect": "80030003",
+   "new": "00048001",
+   "why": "u16wh@0x601e6038 id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e6050",
+   "expect": "98030003",
+   "new": "0004b001",
+   "why": "u16wh@0x601e6038 id7 (920, 768) -> (1024, 432) (21:9, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248060",
+   "expect": "80030003",
+   "new": "00048001",
+   "why": "u16wh@0x6024804c id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248064",
+   "expect": "9003f802",
+   "new": "0004b001",
+   "why": "u16wh@0x6024804c id7 (912, 760) -> (1024, 432) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248088",
+   "expect": "80030003",
+   "new": "00048001",
+   "why": "u16wh@0x60248074 id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6024808c",
+   "expect": "9003f802",
+   "new": "0004b001",
+   "why": "u16wh@0x60248074 id7 (912, 760) -> (1024, 432) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602480b0",
+   "expect": "6004c003",
+   "new": "0005e001",
+   "why": "u16wh@0x6024809c id6 (1120, 960) -> (1280, 480) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602480b4",
+   "expect": "8004c003",
+   "new": "00052002",
+   "why": "u16wh@0x6024809c id7 (1152, 960) -> (1280, 544) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602480d8",
+   "expect": "3002e001",
+   "new": "8002f000",
+   "why": "u16wh@0x602480c4 id6 (560, 480) -> (640, 240) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602480dc",
+   "expect": "4002e001",
+   "new": "80021001",
+   "why": "u16wh@0x602480c4 id7 (576, 480) -> (640, 272) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248100",
+   "expect": "8c007800",
+   "new": "a0004000",
+   "why": "u16wh@0x602480ec id6 (140, 120) -> (160, 64) (XPan 65:24, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248104",
+   "expect": "90007800",
+   "new": "a0004000",
+   "why": "u16wh@0x602480ec id7 (144, 120) -> (160, 64) (21:9, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248150",
+   "expect": "9006a005",
+   "new": "8007c002",
+   "why": "u16wh@0x6024813c id6 (1680, 1440) -> (1920, 704) (XPan 65:24, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248154",
+   "expect": "c006a005",
+   "new": "80073003",
+   "why": "u16wh@0x6024813c id7 (1728, 1440) -> (1920, 816) (21:9, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248178",
+   "expect": "3002e001",
+   "new": "8002f000",
+   "why": "u16wh@0x60248164 id6 (560, 480) -> (640, 240) (XPan 65:24, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6024817c",
+   "expect": "4002e001",
+   "new": "80021001",
+   "why": "u16wh@0x60248164 id7 (576, 480) -> (640, 272) (21:9, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481a0",
+   "expect": "9006a005",
+   "new": "8007c002",
+   "why": "u16wh@0x6024818c id6 (1680, 1440) -> (1920, 704) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481a4",
+   "expect": "c006a005",
+   "new": "80073003",
+   "why": "u16wh@0x6024818c id7 (1728, 1440) -> (1920, 816) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481c8",
+   "expect": "6004c003",
+   "new": "0005e001",
+   "why": "u16wh@0x602481b4 id6 (1120, 960) -> (1280, 480) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481cc",
+   "expect": "8004c003",
+   "new": "00052002",
+   "why": "u16wh@0x602481b4 id7 (1152, 960) -> (1280, 544) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481f0",
+   "expect": "3002e001",
+   "new": "8002f000",
+   "why": "u16wh@0x602481dc id6 (560, 480) -> (640, 240) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481f4",
+   "expect": "4002e001",
+   "new": "80021001",
+   "why": "u16wh@0x602481dc id7 (576, 480) -> (640, 272) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248218",
+   "expect": "e000c000",
+   "new": "40017000",
+   "why": "u16wh@0x60248204 id6 (224, 192) -> (320, 112) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6024821c",
+   "expect": "2001f000",
+   "new": "40019000",
+   "why": "u16wh@0x60248204 id7 (288, 240) -> (320, 144) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x605223fc",
+   "expect": "80030003",
+   "new": "00048001",
+   "why": "u16wh@0x605223e8 id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60522400",
+   "expect": "9003f802",
+   "new": "0004b001",
+   "why": "u16wh@0x605223e8 id7 (912, 760) -> (1024, 432) (21:9, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x605338d0",
+   "expect": "280000003002e001280022005702bd01",
+   "new": "000078008002f000000078007f026701",
+   "why": "rect16@0x60533880 id6 (40, 0, 560, 480, 40, 34, 599, 445) -> (0, 120, 640, 240, 0, 120, 639, 359) (XPan 65:24, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x605338e0",
+   "expect": "200000004002e001200022005f02bd01",
+   "new": "0000680080021001000068007f027701",
+   "why": "rect16@0x60533880 id7 (32, 0, 576, 480, 32, 34, 607, 445) -> (0, 104, 640, 272, 0, 104, 639, 375) (21:9, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60533980",
+   "expect": "b40078001801f000140011002b01de00",
+   "new": "a000b80040017000000040003f01af00",
+   "why": "rect16@0x60533930 id6 (180, 120, 280, 240, 20, 17, 299, 222) -> (160, 184, 320, 112, 0, 64, 319, 175) (XPan 65:24, align 16, stock class 4)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60533990",
+   "expect": "b00078002001f000100011002f01de00",
+   "new": "a000a80040019000000030003f01bf00",
+   "why": "rect16@0x60533930 id7 (176, 120, 288, 240, 16, 17, 303, 222) -> (160, 168, 320, 144, 0, 48, 319, 191) (21:9, align 16, stock class 4)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6024350c",
+   "expect": "06000000e01be817",
+   "new": "06000000e01fc00b",
+   "why": "u16id0wh@0x602434e4 id6 (6, 0, 7136, 6120) -> (6, 0, 8160, 3008) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60243514",
+   "expect": "07000000b01ce817",
+   "new": "07000000e01fb00d",
+   "why": "u16id0wh@0x602434e4 id7 (7, 0, 7344, 6120) -> (7, 0, 8160, 3504) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60243564",
+   "expect": "06000000b013e010",
+   "new": "0600000080165008",
+   "why": "u16id0wh@0x6024353c id6 (6, 0, 5040, 4320) -> (6, 0, 5760, 2128) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6024356c",
+   "expect": "070000004014e010",
+   "new": "070000008016a009",
+   "why": "u16id0wh@0x6024353c id7 (7, 0, 5184, 4320) -> (7, 0, 5760, 2464) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a220",
+   "expect": "06000000d00dd00b",
+   "new": "06000000c00fd005",
+   "why": "u16id0wh@0x60b0a1f8 id6 (6, 0, 3536, 3024) -> (6, 0, 4032, 1488) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a228",
+   "expect": "07000000300ed00b",
+   "new": "07000000c00fc006",
+   "why": "u16id0wh@0x60b0a1f8 id7 (7, 0, 3632, 3024) -> (7, 0, 4032, 1728) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a278",
+   "expect": "060000006004c003",
+   "new": "060000000005e001",
+   "why": "u16id0wh@0x60b0a250 id6 (6, 0, 1120, 960) -> (6, 0, 1280, 480) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a280",
+   "expect": "070000008004c003",
+   "new": "0700000000052002",
+   "why": "u16id0wh@0x60b0a250 id7 (7, 0, 1152, 960) -> (7, 0, 1280, 544) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a2c8",
+   "expect": "0600000040058004",
+   "new": "0600000040065002",
+   "why": "u16id0wh@0x60b0a2a0 id6 (6, 0, 1344, 1152) -> (6, 0, 1600, 592) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a2d0",
+   "expect": "07000000a005b004",
+   "new": "070000004006b002",
+   "why": "u16id0wh@0x60b0a2a0 id7 (7, 0, 1440, 1200) -> (7, 0, 1600, 688) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a318",
+   "expect": "060000009006a005",
+   "new": "060000008007c002",
+   "why": "u16id0wh@0x60b0a2f0 id6 (6, 0, 1680, 1440) -> (6, 0, 1920, 704) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a320",
+   "expect": "07000000c006a005",
+   "new": "0700000080073003",
+   "why": "u16id0wh@0x60b0a2f0 id7 (7, 0, 1728, 1440) -> (7, 0, 1920, 816) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a3b8",
+   "expect": "06000000c0088007",
+   "new": "06000000000ab003",
+   "why": "u16id0wh@0x60b0a390 id6 (6, 0, 2240, 1920) -> (6, 0, 2560, 944) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a3c0",
+   "expect": "0700000000098007",
+   "new": "07000000000a5004",
+   "why": "u16id0wh@0x60b0a390 id7 (7, 0, 2304, 1920) -> (7, 0, 2560, 1104) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a458",
+   "expect": "06000000f00a6009",
+   "new": "06000000800ca004",
+   "why": "u16id0wh@0x60b0a430 id6 (6, 0, 2800, 2400) -> (6, 0, 3200, 1184) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a460",
+   "expect": "07000000400b6009",
+   "new": "07000000800c6005",
+   "why": "u16id0wh@0x60b0a430 id7 (7, 0, 2880, 2400) -> (7, 0, 3200, 1376) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a548",
+   "expect": "06000000c011300f",
+   "new": "0600000040148007",
+   "why": "u16id0wh@0x60b0a520 id6 (6, 0, 4544, 3888) -> (6, 0, 5184, 1920) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a550",
+   "expect": "070000004012300f",
+   "new": "070000004014b008",
+   "why": "u16id0wh@0x60b0a520 id7 (7, 0, 4672, 3888) -> (7, 0, 5184, 2224) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a5e8",
+   "expect": "06000000e000c000",
+   "new": "0600000040017000",
+   "why": "u16id0wh@0x60b0a5c0 id6 (6, 0, 224, 192) -> (6, 0, 320, 112) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a5f0",
+   "expect": "070000002001f000",
+   "new": "0700000040019000",
+   "why": "u16id0wh@0x60b0a5c0 id7 (7, 0, 288, 240) -> (7, 0, 320, 144) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a638",
+   "expect": "060000003002e001",
+   "new": "060000008002f000",
+   "why": "u16id0wh@0x60b0a610 id6 (6, 0, 560, 480) -> (6, 0, 640, 240) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a640",
+   "expect": "070000004002e001",
+   "new": "0700000080021001",
+   "why": "u16id0wh@0x60b0a610 id7 (7, 0, 576, 480) -> (7, 0, 640, 272) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a688",
+   "expect": "0600000080030003",
+   "new": "0600000000048001",
+   "why": "u16id0wh@0x60b0a660 id6 (6, 0, 896, 768) -> (6, 0, 1024, 384) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a690",
+   "expect": "070000009003f802",
+   "new": "070000000004b001",
+   "why": "u16id0wh@0x60b0a660 id7 (7, 0, 912, 760) -> (7, 0, 1024, 432) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604e92e4",
+   "expect": "c011300f0706",
+   "new": "401480074118",
+   "why": "u16whcode@0x604e92c6 id6 (4544, 3888, 1543) -> (5184, 1920, 6209) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604e92ea",
+   "expect": "4012300f0605",
+   "new": "4014b0081509",
+   "why": "u16whcode@0x604e92c6 id7 (4672, 3888, 1286) -> (5184, 2224, 2325) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x605221bc",
+   "expect": "900da00b0706",
+   "new": "800fc0054118",
+   "why": "u16whcode@0x6052219e id6 (3472, 2976, 1543) -> (3968, 1472, 6209) (XPan 65:24, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x605221c2",
+   "expect": "f40da00b0605",
+   "new": "800fa0061509",
+   "why": "u16whcode@0x6052219e id7 (3572, 2976, 1286) -> (3968, 1696, 2325) (21:9, align 16, stock class 2)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c6ec",
+   "expect": "06000000d00d0000d00b0000",
+   "new": "06000000c00f0000d0050000",
+   "why": "u32idwh@0x60b8c6b0 id6 (6, 3536, 3024) -> (6, 4032, 1488) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c6f8",
+   "expect": "07000000300e0000d00b0000",
+   "new": "07000000c00f0000c0060000",
+   "why": "u32idwh@0x60b8c6b0 id7 (7, 3632, 3024) -> (7, 4032, 1728) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c764",
+   "expect": "0600000060040000c0030000",
+   "new": "0600000000050000e0010000",
+   "why": "u32idwh@0x60b8c728 id6 (6, 1120, 960) -> (6, 1280, 480) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c770",
+   "expect": "0700000080040000c0030000",
+   "new": "070000000005000020020000",
+   "why": "u32idwh@0x60b8c728 id7 (7, 1152, 960) -> (7, 1280, 544) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c7dc",
+   "expect": "060000004005000080040000",
+   "new": "060000004006000050020000",
+   "why": "u32idwh@0x60b8c7a0 id6 (6, 1344, 1152) -> (6, 1600, 592) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c7e8",
+   "expect": "07000000a0050000b0040000",
+   "new": "0700000040060000b0020000",
+   "why": "u32idwh@0x60b8c7a0 id7 (7, 1440, 1200) -> (7, 1600, 688) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c944",
+   "expect": "06000000c008000080070000",
+   "new": "06000000000a0000b0030000",
+   "why": "u32idwh@0x60b8c908 id6 (6, 2240, 1920) -> (6, 2560, 944) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c950",
+   "expect": "070000000009000080070000",
+   "new": "07000000000a000050040000",
+   "why": "u32idwh@0x60b8c908 id7 (7, 2304, 1920) -> (7, 2560, 1104) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8ca34",
+   "expect": "06000000f00a000060090000",
+   "new": "06000000800c0000a0040000",
+   "why": "u32idwh@0x60b8c9f8 id6 (6, 2800, 2400) -> (6, 3200, 1184) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8ca40",
+   "expect": "07000000400b000060090000",
+   "new": "07000000800c000060050000",
+   "why": "u32idwh@0x60b8c9f8 id7 (7, 2880, 2400) -> (7, 3200, 1376) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cb9c",
+   "expect": "06000000c0110000300f0000",
+   "new": "060000004014000080070000",
+   "why": "u32idwh@0x60b8cb60 id6 (6, 4544, 3888) -> (6, 5184, 1920) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cba8",
+   "expect": "0700000040120000300f0000",
+   "new": "0700000040140000b0080000",
+   "why": "u32idwh@0x60b8cb60 id7 (7, 4672, 3888) -> (7, 5184, 2224) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cc8c",
+   "expect": "0600000090060000a0050000",
+   "new": "0600000080070000c0020000",
+   "why": "u32idwh@0x60b8cc50 id6 (6, 1680, 1440) -> (6, 1920, 704) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cc98",
+   "expect": "07000000c0060000a0050000",
+   "new": "070000008007000030030000",
+   "why": "u32idwh@0x60b8cc50 id7 (7, 1728, 1440) -> (7, 1920, 816) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cd04",
+   "expect": "06000000e0000000c0000000",
+   "new": "060000004001000070000000",
+   "why": "u32idwh@0x60b8ccc8 id6 (6, 224, 192) -> (6, 320, 112) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cd10",
+   "expect": "0700000020010000f0000000",
+   "new": "070000004001000090000000",
+   "why": "u32idwh@0x60b8ccc8 id7 (7, 288, 240) -> (7, 320, 144) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cd7c",
+   "expect": "06000000e01b0000e8170000",
+   "new": "06000000e01f0000c00b0000",
+   "why": "u32idwh@0x60b8cd40 id6 (6, 7136, 6120) -> (6, 8160, 3008) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cd88",
+   "expect": "07000000b01c0000e8170000",
+   "new": "07000000e01f0000b00d0000",
+   "why": "u32idwh@0x60b8cd40 id7 (7, 7344, 6120) -> (7, 8160, 3504) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cdf4",
+   "expect": "06000000b0130000e0100000",
+   "new": "060000008016000050080000",
+   "why": "u32idwh@0x60b8cdb8 id6 (6, 5040, 4320) -> (6, 5760, 2128) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8ce00",
+   "expect": "0700000040140000e0100000",
+   "new": "0700000080160000a0090000",
+   "why": "u32idwh@0x60b8cdb8 id7 (7, 5184, 4320) -> (7, 5760, 2464) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cf0c",
+   "expect": "0600000030020000e0010000",
+   "new": "0600000080020000f0000000",
+   "why": "u32idwh@0x60b8ced0 id6 (6, 560, 480) -> (6, 640, 240) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cf18",
+   "expect": "0700000040020000e0010000",
+   "new": "070000008002000010010000",
+   "why": "u32idwh@0x60b8ced0 id7 (7, 576, 480) -> (7, 640, 272) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cf84",
+   "expect": "060000008003000000030000",
+   "new": "060000000004000080010000",
+   "why": "u32idwh@0x60b8cf48 id6 (6, 896, 768) -> (6, 1024, 384) (XPan 65:24, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cf90",
+   "expect": "0700000090030000f8020000",
+   "new": "0700000000040000b0010000",
+   "why": "u32idwh@0x60b8cf48 id7 (7, 912, 760) -> (7, 1024, 432) (21:9, align 16, stock class 8)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61242f00",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "0100000004002401dc9917610300000004002301dc9917610200000004002501dc991761040000000400fa06dc9917610900000004002701dc991761060000000400f100dc991761070000000400650adc9917610a0000000400bd0cdc991761",
+   "why": "Image Aspect option list (8 entries) relocated to sec-6 tail"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6117af14",
+   "expect": "0e01060034a81761",
+   "new": "0e010800002f2461",
+   "why": "setting 270 option descriptor: count 6->8, list ptr"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61175d78",
+   "expect": "010000000300dd01e4441761030000000300dc01e4441761020000000300de01e44417610400000003007609e4441761090000000300df01e4441761010000000300d801e4441761030000000300d701e4441761",
+   "new": "010000000300dd01e4441761030000000300dc01e4441761020000000300de01e44417610400000003007609e4441761090000000300df01e44417610600000003003716e4441761070000000300fb12e4441761",
+   "why": "SCP/Live Control 270 list A (white) in place: 7 entries, +Panorama/Wide (type-3 XPAN / 21:9 bitmaps)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61242f60",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "010000000300d801e4441761030000000300d701e4441761020000000300d901e44417610400000003007509e4441761090000000300db01e44417610600000003003516e44417610700000003004f11e4441761",
+   "why": "SCP/Live Control 270 list B (green) relocated to sec-6 tail: 7 entries"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61176fc0",
+   "expect": "0e010500785d1761b45d1761",
+   "new": "0e010700785d1761602f2461",
+   "why": "SCP/Live Control 270 record: count 5->7, list B ptr"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210f70",
+   "expect": "ffffffffffffff",
+   "new": "01030204090607",
+   "why": "setting 270 validator list relocated: 1,3,2,4,9 + 6 (Panorama), 7 (Wide)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cec18",
+   "expect": "44b74c60000000000500",
+   "new": "700f2160000000000700",
+   "why": "setting 270 validator record: list ptr -> sec-1 tail, bytes 5 -> 7"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210f00",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "2e80022ff000dc03a467002e80022f1001dcf8a367002f80022ef000dcc0a467002f80022e1001dcb5a467002d80022cf000dc668b68002d80022c1001dc5b8b68002c80022df000dc86a968002c80022d1001dc7ba96800804142188018dc9f186500801542188009dc94186500",
+   "why": "aspect case blocks (S1-S5) in sec-1 tail"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b04428",
+   "expect": "ecb28860",
+   "new": "000f2160",
+   "why": "S1 jump entry id6 0x6088b2ec -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0442c",
+   "expect": "f1b28860",
+   "new": "0b0f2160",
+   "why": "S1 jump entry id7 0x6088b2f1 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b04454",
+   "expect": "bfb38860",
+   "new": "160f2160",
+   "why": "S2 jump entry id6 0x6088b3bf -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b04458",
+   "expect": "c4b38860",
+   "new": "210f2160",
+   "why": "S2 jump entry id7 0x6088b3c4 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0daf8",
+   "expect": "7b9a8960",
+   "new": "2c0f2160",
+   "why": "S3 jump entry id6 0x60899a7b -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0dafc",
+   "expect": "809a8960",
+   "new": "370f2160",
+   "why": "S3 jump entry id7 0x60899a80 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0e0ec",
+   "expect": "b1b88960",
+   "new": "420f2160",
+   "why": "S4 jump entry id6 0x6089b8b1 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0e0f0",
+   "expect": "b6b88960",
+   "new": "4d0f2160",
+   "why": "S4 jump entry id7 0x6089b8b6 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60af4a18",
+   "expect": "d3278660",
+   "new": "580f2160",
+   "why": "S5 ratio jump entry id6 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01548",
+   "expect": "659e8760",
+   "new": "709e8760",
+   "why": "S6 fit-group entry id6: height-limited -> width-limited group"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60af4a1c",
+   "expect": "db278660",
+   "new": "630f2160",
+   "why": "S5 ratio jump entry id7 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0154c",
+   "expect": "659e8760",
+   "new": "709e8760",
+   "why": "S6 fit-group entry id7: height-limited -> width-limited group"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210e90",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "fca8047b2562a001c8222c0e01dd6dad0b0000041c28faa001c5118001fcdcc60e2160dd78880a00f01cfcdc90701e60dcea1af8ffff0e01",
+   "why": "H3 boot clamp: setting 270 in {6,7} -> stock default (4:3) at power-on"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601929a4",
+   "expect": "fcdc90701e60",
+   "new": "dcece40700cb",
+   "why": "H3 boot clamp hook: boot tail mov 0x601e7090,a0 -> jmp boot clamp; nop"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053df0c",
+   "expect": "c01100008c009006e000300280036004400500000000c0080000f00a000000000000d00d0000c00f0000000000000000",
+   "new": "40140000a00080074001800200040005400600000000000a0000800c000000000000c00f000000120000000000000000",
+   "why": "capture size table W@0x6053de1c id6: (4544, 0, 140, 1680, 224, 560, 896, 1120, 1344, 0, 0, 2240, 0, 2800, 0, 0, 0, 3536, 0, 4032, 0, 0, 0, 0) -> (5184, 0, 160, 1920, 320, 640, 1024, 1280, 1600, 0, 0, 2560, 0, 3200, 0, 0, 0, 4032, 0, 4608, 0, 0, 0, 0)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053df3c",
+   "expect": "401200009000c0062001400290038004a0050000000000090000400b000000000000300e000030100000000000000000",
+   "new": "40140000a00080074001800200040005400600000000000a0000800c000000000000c00f000000120000000000000000",
+   "why": "capture size table W@0x6053de1c id7: (4672, 0, 144, 1728, 288, 576, 912, 1152, 1440, 0, 0, 2304, 0, 2880, 0, 0, 0, 3632, 0, 4144, 0, 0, 0, 0) -> (5184, 0, 160, 1920, 320, 640, 1024, 1280, 1600, 0, 0, 2560, 0, 3200, 0, 0, 0, 4032, 0, 4608, 0, 0, 0, 0)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053e0bc",
+   "expect": "300f00007800a005c000e0010003c003800400000000800700006009000000000000d00b0000800d0000000000000000",
+   "new": "800700004000c0027000f0008001e001500200000000b0030000a004000000000000d0050000a0060000000000000000",
+   "why": "capture size table H@0x6053dfcc id6: (3888, 0, 120, 1440, 192, 480, 768, 960, 1152, 0, 0, 1920, 0, 2400, 0, 0, 0, 3024, 0, 3456, 0, 0, 0, 0) -> (1920, 0, 64, 704, 112, 240, 384, 480, 592, 0, 0, 944, 0, 1184, 0, 0, 0, 1488, 0, 1696, 0, 0, 0, 0)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053e0ec",
+   "expect": "300f00007800a005f000e001f802c003b00400000000800700006009000000000000d00b0000800d0000000000000000",
+   "new": "b00800004000300390001001b0012002b00200000000500400006005000000000000c0060000b0070000000000000000",
+   "why": "capture size table H@0x6053dfcc id7: (3888, 0, 120, 1440, 240, 480, 760, 960, 1200, 0, 0, 1920, 0, 2400, 0, 0, 0, 3024, 0, 3456, 0, 0, 0, 0) -> (2224, 0, 64, 816, 144, 272, 432, 544, 688, 0, 0, 1104, 0, 1376, 0, 0, 0, 1728, 0, 1968, 0, 0, 0, 0)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053dd3c",
+   "expect": "d5be3e60",
+   "new": "acbe3e60",
+   "why": "ORF frame fit entry id6: height-limited -> width-limited case"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053dd40",
+   "expect": "d5be3e60",
+   "new": "acbe3e60",
+   "why": "ORF frame fit entry id7: height-limited -> width-limited case"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60236e20",
+   "expect": "07060605",
+   "new": "41181509",
+   "why": "LV/AF ratio pair (u8, .data -> RAM 0x61f9eb60) ids 6/7: 7:6, 6:5 -> 65:24, 21:9"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604e0702",
+   "expect": "0700060006000500",
+   "new": "4100180015000900",
+   "why": "ratio pair (u16) ids 6/7: 7:6, 6:5 -> 65:24, 21:9"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604d9d02",
+   "expect": "14002c010000f000100030010000f000",
+   "new": "000040013d00b300000040013300bd00",
+   "why": "320x240 per-aspect bounds ids 6/7 -> full width, centred band"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e1440",
+   "expect": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f6061626364656667",
+   "new": "2c8002422c2cf000dcd0176a002c8002422c2c1001dcc3176a002c800242282cf000dcbc1a6a002c800242282c1001dcaf1a6a002c800242302cf000dc981f6a002c800242302c1001dc8b1f6a002480022ff000dc5e986f002480022f1001dc53986f00",
+   "why": "v6 LV case blocks S7-S10 (640 x h) in dead EVF gamma table 0x601e143c"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01e60",
+   "expect": "ed2b8860",
+   "new": "40141e60",
+   "why": "S7 LV jump entry id6 0x60882bed -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01e64",
+   "expect": "f22b8860",
+   "new": "4d141e60",
+   "why": "S7 LV jump entry id7 0x60882bf2 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01e8c",
+   "expect": "f32e8860",
+   "new": "5a141e60",
+   "why": "S8 LV jump entry id6 0x60882ef3 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01e90",
+   "expect": "f82e8860",
+   "new": "67141e60",
+   "why": "S8 LV jump entry id7 0x60882ef8 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01eb8",
+   "expect": "e9338860",
+   "new": "74141e60",
+   "why": "S9 LV jump entry id6 0x608833e9 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01ebc",
+   "expect": "ee338860",
+   "new": "81141e60",
+   "why": "S9 LV jump entry id7 0x608833ee -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b1f364",
+   "expect": "d5ac8d60",
+   "new": "8e141e60",
+   "why": "S10 LV jump entry id6 0x608dacd5 -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b1f368",
+   "expect": "daac8d60",
+   "new": "99141e60",
+   "why": "S10 LV jump entry id7 0x608dacda -> block"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053e246",
+   "expect": "30024002",
+   "new": "80028002",
+   "why": "rec-view 640-class W ids 6/7 (560, 576) -> (640, 640)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6053e258",
+   "expect": "e001e001",
+   "new": "f0001001",
+   "why": "rec-view 640-class H ids 6/7 (480, 480) -> (240, 272)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e14b0",
+   "expect": "7475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacad",
+   "new": "01000300020004000900060007000000401440144014300f600b40144014300f680b800d300f300f8007b0080d00800c800c900c60092007800c800c60090807600860098009a00460050b00000a000af0098007a005000a000a8007a005a00680078007b00350040800400600063006c004600340064006b00460032004c00480045002b0020700000500051005c003d00200050005c003d0026003c003c003e0012002060000040004f003000340020004000400034002a002000300038001b0010500800280027002e001800180028002e0016801a001e0010002f00010010300800780078007a005500480078007a00538040005a005c005c00230031400e01fe01fe01fe017f011e01fe01fe817f0114015e017e817c00bb00d1500801680168016e010b00c80168016e010a80c000fe010e0105008a009",
+   "why": "v7 pixel-size readout table (ids (1, 3, 2, 4, 9, 6, 7), 10 x 30-B rows) in dead EVF step-12 tables"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac4b8",
+   "expect": "ec091f61",
+   "new": "c0141e60",
+   "why": "0x60eac4a9 readout table pointer (row0w) -> 0x601e14c0"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac4c0",
+   "expect": "f6091f61",
+   "new": "ce141e60",
+   "why": "0x60eac4a9 readout table pointer (row0h) -> 0x601e14ce"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac4f5",
+   "expect": "ea091f61",
+   "new": "be141e60",
+   "why": "0x60eac4a9 readout table pointer (rows) -> 0x601e14be"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac508",
+   "expect": "e0091f61",
+   "new": "b0141e60",
+   "why": "0x60eac4a9 readout table pointer (ids) -> 0x601e14b0"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac53d",
+   "expect": "ea091f61",
+   "new": "be141e60",
+   "why": "0x60eac4a9 readout table pointer (rows) -> 0x601e14be"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac51b",
+   "expect": "200c",
+   "new": "2010",
+   "why": "0x60eac4a9 h offset (a0) 12 -> 16"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac52a",
+   "expect": "a505",
+   "new": "a507",
+   "why": "0x60eac4a9 aspect id count 5 -> 7"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac530",
+   "expect": "2016",
+   "new": "201e",
+   "why": "0x60eac4a9 row stride (a0) 22 -> 30"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac536",
+   "expect": "f90216",
+   "new": "f9021e",
+   "why": "0x60eac4a9 row index * stride (debug print) 22 -> 30"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac54f",
+   "expect": "220c",
+   "new": "2210",
+   "why": "0x60eac4a9 h offset (a2, debug print) 12 -> 16"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e15f0",
+   "expect": "b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaeb",
+   "new": "01000000dd01000003000000dc01000002000000de01000009000000df0100000400000076090000060000003716000007000000fb120000",
+   "why": "info-display aspect icon list A (white): 7 entries, 6/7 -> XPAN/21:9 5687/4859"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e1628",
+   "expect": "ecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223",
+   "new": "01000000d801000003000000d701000002000000d901000009000000db01000004000000750900000600000035160000070000004f110000",
+   "why": "info-display aspect icon list B (green): 7 entries, 6/7 -> XPAN/21:9 5685/4431"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e1660",
+   "expect": "2425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9",
+   "new": "5800500041004e002000250064007800250064000000550057002000250064007800250064000000a500c811f1e455f151e0a1c410f1d155a1c412fccc763d1661f0f5fccc60161e60f0f5fccc76161e60f0f5f8bc1cf8bd1efcdd90acdf60dcc9fffffff8bc18f8bd1afcdd55aedf60dcb8fffffff8bc3cf8bd3efcdd5e1ad960dca7fffffff063f86702fcdd07c4d960dc97ffffff",
+   "why": "v8 size-text label stubs + \"XPAN %dx%d\" / \"UW %dx%d\" (dead EVF step-12)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60dfac8a",
+   "expect": "fccc763d1661",
+   "new": "dc296a3effcb",
+   "why": "v8 size label: mov 0x61163d76,d0 -> jmp stub 0x601e16b3; nop"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60dfae4f",
+   "expect": "fccc763d1661",
+   "new": "dc75683effcb",
+   "why": "v8 size label: mov 0x61163d76,d0 -> jmp stub 0x601e16c4; nop"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60d91a58",
+   "expect": "fcccfa960761",
+   "new": "dc7dfc44ffcb",
+   "why": "v8 size label: mov 0x610796fa,d0 -> jmp stub 0x601e16d5; nop"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60d9c401",
+   "expect": "fcccf8960861",
+   "new": "dce55244ffcb",
+   "why": "v8 size label: mov 0x610896f8,d0 -> jmp stub 0x601e16e6; nop"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6123dd08",
+   "expect": "c4db2361ecdb236105000000",
+   "new": "f0151e6028161e6007000000",
+   "why": "icon record 0x6123dd04: lists -> v7 lists, count 5 -> 7"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6123ddb8",
+   "expect": "c4db2361ecdb236105000000",
+   "new": "f0151e6028161e6007000000",
+   "why": "icon record 0x6123ddb4: lists -> v7 lists, count 5 -> 7"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6123f180",
+   "expect": "6ced236194ed236105000000",
+   "new": "f0151e6028161e6007000000",
+   "why": "icon record 0x6123f17c: lists -> v7 lists, count 5 -> 7"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6123f43c",
+   "expect": "6ced236194ed236105000000",
+   "new": "f0151e6028161e6007000000",
+   "why": "icon record 0x6123f438: lists -> v7 lists, count 5 -> 7"
+  },
+  {
+   "kind": "0x101",
+   "addr": "off:0x15115e0",
+   "expect": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+   "new": "2510030b0ff0000f10000f000ff00001f0000f000f10000ff0000f0001f0000ff000010003f0100f9110030002001050f0044f0047000500011201000200104ff004490000011101200000014ff004490010100101200000f1044f00490010101100020000f1044f9004000110110002001040006010106010046000011105040106430060201043201060004100060121040001101100020010410001010641201040005060104200060201502004031104600001210400011101000200104100060101400005010106400050201060201060004130106020040301500004601010420000011101200000014100050111050101500004501010600040000502110401016000106020040301600004601010420000011101200000014210106110104100501010601004020140000501010601014230106000046000012104000111010002001042000603015010045010106000410006010104600001010501210401016010104000060101420010101100020000210450301042005010106010040201400006000106500001010541101060000101056010104200000111012000000143201060200450000101064120104000010106401010500041101060101050006010104200101001012000003104020160200450101061000201064010105000401010601004010161001061101042000001110120000001420005030105410050601051101050004000060111040101600005010106010142001010110002000021046030106000410005050105400060101060000560000111040101064000010106012104000110110002001042000101060211045000010106512004600006010540101060004010106010104200000111012000000141000501010560000101054000050101604004070105400001010640000603014200101011000200001104601010400050101060000450000101064410106000521010600004010160000450301042000001110120000001411010601004020140000501010643005010105020040201401010600004500003210400011101000200104000050101501004601010510001010643000601015020046010104000010106413010420000011101200000014000060101054100501010600005010150300460101050004200060101050101601004602010420000011101200000014ff004490010100101200000f1044f00490010101100020000f1044f9004000110110002001050004ff004470005000110110003f0100f010a011101300020011ff1111921000f000ff00001f0000f000f10000ff0000f0001f0000ff00001000e0032002600080000000000bc0300000026e2a3000000002ff0030b0ff0000ff0000f000ff0000ff0000f000ff0000ff0000f000ff0000ff0000f000300121ff1111f0115011203200020010ff1100f7110200102100020f1100f010f91102011000100101110d00271010710277010277010070207710207710207102770102770100702077102077102071027701027701007d0121010110001001011100ff7700f0705171010110001001011100ff7700f070517101011000100101110fff66fff06f516101011000100101110fff66fff06f516101011000100101110f0066ef006e1766fe0066fe106f0166ef7166ef006e1066fe1066fe006f9166ef0166ef006010111011000100101116ed02210a005e23610e0062d0501d0526e03012de306a03510d0126ea00502316e010111010001001101116ea00502012de1065a0201d0026ed07210a005e34610e3065a0301d0126ea02510e306010111011000100101216d03116dd00202116dd08210a005d1065a04316da00504116da02510d306010111011000100101216dd02210a005d03610d1062d0201d13210d0126d9005040159d2065a0401a0056da02510d306010111011000100101316d02012dd006020159d1062d0201d1065a03116dd00204012dd2065a040190056da02510d306010111011000100101116d60066dd00201012d902510d00660066dd02210d10660062d02015a600602012d01012dd10660065a04012dd006a02510d00666d1060101110110001001013166902510d00201012d62062d020162062d020159600602015a022166a005050166902510630601011101100010010141660501596206d0221062062d020190055a020166020162065a05016690050231660101110100010011014166d002043166d022106206d02210a005590101d002660201596106a02510d0121091050231660101110100010011014166900503012d63062d020162361060062d0101d00266d01210d00261065a0201590101d0025902316601011011000100110101c53510d0325cd002020159c0052d0301c02510d0025cd00201012dc105590201902510902510c305010111011000100101415cd04210c305d08210d0025c020190055cd02210c105902510c02510900502315c010111010001001101415c0501c3052d08015c9005020159c005590201c1055902015c0201902510c315101001011000101110c40505012dc2052d0701c1055902212d020190055c902510c005d01210d02210c305010111011000100101315cd02210d00202215cd02210d20290255cd08210d002c0055a02015c900501012d02015dc205010111011000100101115cd0055c0201d00259020159c005d0052d02615c0901d0025c902510c10505015cd0155c01011011000100110101d3251090055d0201d0125dd02210d6050a015da02510d10505315d010111010001001101215dd00202115d03115dd00202615d02012d9205d02210d0055a0201d1052d04315d01011011000100110101d23510d1052d0201a0055dd02210d10550265d902510a005d2052d02115a0201d1055904315d01011011000100110101d00565a02510d002d1055902012dd005d02210d5052d0201d3055902012da00502115da04510d305010111011000100101115dd02210a005d00565d035105006d02210d00565d00550165dd02210d00550065d50065d0201d0025a020165d10504015d50165d0101101100010011010151361053062d0201a0052d0251650301543610a025105206d0321053161010010110001011105f065ff6655516101001011000101110510670f6655ff665700651161010110001001011105306675106701665701665700651066751066751067016657016657006510667510667510670166570166570065106675106675306010111011000100101316750166750067106657106657106501667501667500671066571066571065016675016675006710665710665710650166750366701011011000100110101d0f2677ff6677306d01210101100010020f1100ff11009012011000200120f010ff11007011202000300121ff1111f0115011203f0000f000ff0000ff0000f000ff0000ff0000f000ff0000ff00000000e0040003000080000000000ea050000d429e2a3000000002510030b0ff0000f10000f000ff00001f0000f000f10000ff0000f0001f0000ff000010003f0100f9110030002001050f0044f0047000500011201000200104ff004490000011101200000014ff004490010100101200000f1044f00490010101100020000f1044f900400011011000200104100505010450005030148000603010646000001110120000001417010420005050147000605010645000001110120000001410005002105030141601046000502015120105040040001101100020010460060201041000500016000050261040201501004602010440000011101200000014600050251040201462010501004500002410400011101000200104720104500021104501010500040201042000502014400101011000200006104502010450002110450101050004020105010045000024104000111010002001046201060004520104100050101500004020106410050201044001010010120000051045000020105452010460060201051301044000001110120000001452010606004020147801044001010010120000041046000027104028104030160201044001010010120000031045000020105472010410050101050600402015040040001110100020010432010600048201041000501015050046020104500000111012000000142201060900402014100050101054400602010505004000110110002001041000201064a20104700513010606004000110110002001041000851040271040401607004000111010002001041801045000261045020106000490010101100020000f1044f900400011011000200104f004f900400011101000200104ff0044900000111012000000150f0044f700450000001110130000f010fa110101100030020f1111f911102000ff0000f10000f000ff00001f0000f000f10000ff0000f00010000000e0032002600080000000000a6020000d82fe2a3000000002ff0030b0ff0000ff0000f000ff0000ff0000f000ff0000ff0000f000ff0000ff0000f000300121ff1111f0115011203200020010ff1100f7110200102100020f1100f010f91102011000100101110d00271010710277010277010070207710207710207102770102770100702077102077102071027701027701007d0121010110001001011100ff7700f0705171010110001001011100ff7700f070517101011000100101110fff66fff06f516101011000100101110fff66fff06f516101011000100101110f0066ef006e1766fe0066fe106f0166ef7166ef006e1066fe1066fe006f9166ef0166ef006010111011000100101316ed14210d002e7065a04b16ea00504015ae816101001011000101110e20609015ae3065a0601ea7610d0726e01011011000100110101d2065a02112d0401d28610d9062d0301d03210a0656d01011011000100110101d3062dd43610d002d1062d07816da00503216d03616d01011011000100110101d9065a03216d0001d0025ad03610d806d02210a0256dd00202015ad516101001011000101110d10660166d60266d6006d03610d10666d206603610d00666d606030166d00666d006a02510d0226d6006d1161010110001001011106a36106606032166a01510a005613610642610d002651610101100010010111069065a030166361062361061060341660351660101101100010011010169062d02012d660603216603116603016436106516101001011000101110690603015a6636106206a01510a015660301a02566a035106506010111011000100101815cd03210c70503815cd03210c20503012dc515101001011000101110c805030159c73510c9050a012dc515101001011000101110c70503012dc83510c90590951090555c01011011000100110101c6052d03915c0301cb052d020159d00202615c010111010001001101315cd005c0052d03415cd005c2055dc03510d005c10559010159c405d0155cd0055c0301c2055dc215101001011000101110c105d0155c903510c305d0155cd0355c0301c23510c2055dc105d0155c9025109005c3055dc115101001011000101110d30590351090b55d0301d23510d705590301d715101011000100101110d20559030190c55d03215d9005010159d60559030190755d010111010001001101215d040196055d50365d500603215d50265d5006d10559d14210900550265d50365d01011011000100110101d00565d0b510d60503915dd052109005d915101011000100101110d105650b01d20565d00565d005030165d00565d00550065d50065d5006d0052d03012d5006d10565d00565d00550065d50165d010110110001001101015ff6655336595d06010111011000100101f1655ff6655506010111011000100101116570f6655f065f066751161010010110001011105306701665701665700651066751066751067016657016657006510667510667510670166570166570065106675106675106703665010111010001001101316750067106657106657106501667501667500671066571066571065016675016675006710665710665710650166750166750067316101011000100101110d0f2677f067f3667d01210100101100020f1100f010f9110201100020020f1100ff11007012021000300121f011ff11115011203000ff0000ff0000f000ff0000ff0000f000ff0000ff0000f000f0000000e0040003000080000000000d60400009832e2a300000000",
+   "why": "aspect v8: 4 new aspect icons (XPAN/21:9 x white 50x38/green 64x48) appended after OSD resource 69 (runtime 0xa3e22600..0xa3e23788)"
+  },
+  {
+   "kind": "0x101",
+   "addr": "off:0x454",
+   "expect": "00168100",
+   "new": "00288100",
+   "why": "aspect v8: OSD resource 69 directory size 0x811600 -> 0x812800 (loader copies size bytes)"
+  },
+  {
+   "kind": "0x101",
+   "addr": "off:0x463e80",
+   "expect": "10529da3",
+   "new": "7037e2a3",
+   "why": "aspect v8: bitmap table id 4431 (placeholder) -> new 219 green icon 0xa3e23770"
+  },
+  {
+   "kind": "0x101",
+   "addr": "off:0x464530",
+   "expect": "4c9870a3",
+   "new": "8032e2a3",
+   "why": "aspect v8: bitmap table id 4859 (placeholder) -> new 219 white icon 0xa3e23280"
+  },
+  {
+   "kind": "0x101",
+   "addr": "off:0x465218",
+   "expect": "98fe1da3",
+   "new": "c02fe2a3",
+   "why": "aspect v8: bitmap table id 5685 (placeholder) -> new XPAN green icon 0xa3e22fc0"
+  },
+  {
+   "kind": "0x101",
+   "addr": "off:0x465220",
+   "expect": "c0fe1da3",
+   "new": "bc29e2a3",
+   "why": "aspect v8: bitmap table id 5687 (placeholder) -> new XPAN white icon 0xa3e229bc"
   }
  ],
  "sources": [
@@ -7288,6 +7301,10 @@
     "ep7_d1_f": "0x60e22bf6",
     "ep7_d1_s": "0x60e22df0"
    }
+  },
+  "aspect-v8": {
+   "patch": "patches/aspect/build.py (+osd_icons.py)",
+   "note": "XPAN/21:9 OSD icons (component 0x101) + XPAN/UW size labels; docs/ASPECT.md 1g"
   }
  },
  "bundle": "bundles/lachlan_v3.json",
@@ -7661,9 +7678,7 @@
     "off",
     "star_light",
     "pin_hole",
-    "blur",
-    "white_edge",
-    "frame"
+    "blur"
    ],
    "flags": {
     "1": [
@@ -7677,18 +7692,10 @@
     "3": [
      "0xfffffcff",
      "0x100"
-    ],
-    "4": [
-     "0xffffffff",
-     "0x2000"
-    ],
-    "5": [
-     "0xffffffff",
-     "0x8000"
     ]
    },
    "stub": "0x601e1d3c",
-   "stub_len": 76,
+   "stub_len": 60,
    "return_to": "0x6055e5f0"
   },
   "sd_v3": {
@@ -9369,6 +9376,165 @@
    "ed_poke": "0x61242a00",
    "ex_s_dirty": "0x601e3428",
    "fm_resume": "0x601e2e3b"
+  }
+ },
+ "mono_colour": {
+  "code_at": "0x61378c80",
+  "code_len": 764,
+  "labels": {
+   "__bss_start": "0x61378f7c",
+   "ch_keep": "0x61378ed3",
+   "chroma": "0x61378e1b",
+   "code_end": "0x61378f79",
+   "code_start": "0x61378cc8",
+   "___ctors": "0x61378f7c",
+   "___ctors_end": "0x61378f7c",
+   "___dtors": "0x61378f7c",
+   "___dtors_end": "0x61378f7c",
+   "_edata": "0x61378f7c",
+   "_end": "0x61378f7c",
+   "fg": "0x61378ee3",
+   "fg_mono": "0x61378f6b",
+   "hl_done": "0x61378df5",
+   "hue_lut": "0x61378c80",
+   "light_lut": "0x61378c9e",
+   "perm": "0x61378cbc",
+   "rec": "0x61378dc3",
+   "sel": "0x61378cc8",
+   "sel_mono": "0x61378e0b",
+   "_stack": "0x80000",
+   "_start": "0x61378c80"
+  },
+  "sites": {
+   "sel": "0x603b02bf",
+   "chroma": "0x603b134e",
+   "fg": "0x60353db9"
+  },
+  "requires": "bundles-v0.2",
+  "layout": {
+   "colour": 32,
+   "sat": 33,
+   "flags": 31,
+   "bundle_table": "0x60210900"
+  },
+  "sd_v3": {
+   "accessor": {
+    "tbl_idx": "0x6055e7b0",
+    "tbl_off": "0x6055e7b6"
+   },
+   "requires": "sd_bundles_v3 (accessor edit)"
+  }
+ },
+ "mono_colour_ui": {
+  "code_at": "0x601e1e3c",
+  "code_len": 2275,
+  "words": {
+   "0x60acb0e4": "a3321e60",
+   "0x60acb174": "33331e60",
+   "0x6025aa98": "60341e60",
+   "0x61185be8": "7d2c1e60",
+   "0x61185bec": "862c1e60",
+   "0x61185c20": "7d2c1e60",
+   "0x61185c24": "862c1e60",
+   "0x61185c58": "7d2c1e60",
+   "0x61185c5c": "862c1e60",
+   "0x61185c90": "7d2c1e60",
+   "0x61185c94": "862c1e60",
+   "0x607fa356": "04909eff",
+   "0x609330fa": "c2ff8aff"
+  },
+  "symbols": {
+   "__bss_start": "0x601e271f",
+   "___ctors": "0x601e271f",
+   "___ctors_end": "0x601e271f",
+   "d_miss": "0x601e2147",
+   "___dtors": "0x601e271f",
+   "___dtors_end": "0x601e271f",
+   "_edata": "0x601e271f",
+   "_end": "0x601e2720",
+   "f_miss": "0x601e22d7",
+   "gd_out": "0x601e271a",
+   "g_miss": "0x601e20ed",
+   "g_mode": "0x601e208c",
+   "g_put": "0x601e20da",
+   "g_sec": "0x601e209f",
+   "k_no": "0x601e2622",
+   "k_out": "0x601e2623",
+   "mc_clamp": "0x601e215d",
+   "mc_def": "0x601e2103",
+   "mc_div": "0x601e1f57",
+   "mc_down": "0x601e22f6",
+   "mc_end": "0x601e271f",
+   "mc_entry": "0x601e24df",
+   "mc_get": "0x601e2047",
+   "mc_guide": "0x601e262a",
+   "mc_mark": "0x601e1ef5",
+   "mc_open1": "0x601e1f9e",
+   "mc_pick": "0x601e2556",
+   "mc_poly": "0x601e221f",
+   "mc_pred": "0x601e1e3c",
+   "mc_prof": "0x601e229d",
+   "mc_sclr": "0x601e1f1d",
+   "mc_scr": "0x601e1fd8",
+   "mc_scr2": "0x601e200f",
+   "mc_set": "0x601e216d",
+   "mc_up": "0x601e22ed",
+   "mc_where": "0x601e1eb8",
+   "mc_wname": "0x601e250f",
+   "p_miss": "0x601e2287",
+   "pr_no": "0x601e1eb2",
+   "pr_yes": "0x601e1eae",
+   "s_bad": "0x601e2200",
+   "s_miss": "0x601e220b",
+   "_stack": "0x80000",
+   "_start": "0x601e1e3c",
+   "u_go": "0x601e22fd",
+   "u_miss": "0x601e24c1",
+   "u_mono": "0x601e2446",
+   "u_name": "0x601e2477",
+   "u_poke": "0x601e24b9",
+   "v_out": "0x601e1f97",
+   "mc_ra": "0x601e383c",
+   "mc_ckeys": "0x601e3870",
+   "mc_cmode": "0x601e3878",
+   "mc_ids": "0x601e387c",
+   "mc_pvals": "0x601e38bc",
+   "mc_pnames": "0x601e390c",
+   "mc_zero": "0x601e39ac",
+   "mc_t_film": "0x601e39bc",
+   "mc_t_nul": "0x601e39c4",
+   "mc_t_bw": "0x601e39c8",
+   "mc_t_custom": "0x601e39cc"
+  },
+  "chain": {
+   "ep7_get_next": "0x601e32a3",
+   "ep7_def_next": "0x601e3333",
+   "ep7_guide_next": "0x601e3460",
+   "ep7_set_next": "0x601e3359",
+   "ep7_poly_next": "0x601e30bb",
+   "ep7_up_next": "0x601e2c7d",
+   "ep7_down_next": "0x601e2c86",
+   "ed_poke": "0x61242a00"
+  },
+  "ra": [
+   "0x60e20e25",
+   "0x60e21095",
+   "0x60e21224",
+   "0x60e213d4",
+   "0x60e216b6",
+   "0x60e2186c",
+   "0x60e22594",
+   "0x60dec52f",
+   "0x60dec5ad",
+   "0x60dec6b6",
+   "0x60dec85c",
+   "0x60decad6",
+   "0x60decc18"
+  ],
+  "heap": {
+   "sess": 928,
+   "mpos": 932,
+   "cmark": 956
   }
  }
 }

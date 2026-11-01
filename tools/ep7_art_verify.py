@@ -3,9 +3,9 @@
 
   .venv/bin/python -I tools/ep7_art_verify.py SPEC.json --base OLD_SPEC.json
 
-  F  still converter 0x603eab39 (native, both images): COLOR (mode 11) profile 1..4, key 11, art 1..5 -> flags ==
+  F  still converter 0x603eab39 (native, both images): COLOR (mode 11) profile 1..4, key 11, art 1..3 -> flags ==
      OLD | the stock converter's own update for the matching stock Art Effect id (run on stock with capture+24785 = id);
-     art 0 / 6 / 255, erased table, MONO profile, mode 12, other keys, capture-record and params bytes -> == OLD.
+     art 0 / 4 / 5 (v0.15: White Edge / Frame removed) / 6 / 255, erased table, MONO profile, mode 12, other keys, capture-record and params bytes -> == OLD.
      Combined with bloom / clarity slots: the bloom flag as before.
   L  work-list builder 0x6035749f -> ret 0x60357c92 (native, full run): for each art flag, the entries/pending a
      key-11 COLOR job gets == OLD with the same flags, and the entries the flag adds on key 11 == the entries it
@@ -79,7 +79,7 @@ def main():
                             ok1, f1, p1, c1 = BV.conv_run(img, tb, key, mode, prof)
                             ok0, f0, p0, c0 = BV.conv_run(base, tb, key, mode, prof)
                             want = f0
-                            if 1 <= art <= 5 and not erased and mode == 11 and prof <= 4 and key == 11:
+                            if 1 <= art <= 3 and not erased and mode == 11 and prof <= 4 and key == 11:
                                 oks, fs, _, _ = BV.conv_run(stock, tb, key, mode, prof, art=STOCK_ID[art])
                                 oks0, fs0, _, _ = BV.conv_run(stock, tb, key, mode, prof, art=0)
                                 want = f0 | (fs & ~fs0)
@@ -93,8 +93,8 @@ def main():
     res['F'] = (n, fails)
     # L
     n, fails = 0, []
-    for art in range(1, 6):
-        bit = {1: 0x40, 2: 0x400, 3: 0x100, 4: 0x2000, 5: 0x8000}[art]
+    for art in range(1, 4):                   # v0.15: 4 White Edge / 5 Frame removed (F checks they set nothing)
+        bit = {1: 0x40, 2: 0x400, 3: 0x100}[art]
         for cls in (0, 5):
             for extra in (0, 0x80):
                 fl = 0x80000 | extra
@@ -112,7 +112,7 @@ def main():
     res['L'] = (n, fails)
     # V: LV job classes 5..8 (lv_art previews 2 Pin Hole / 3 Blur / 4 White Edge / 5 Frame; 1 Star Light not)
     n, fails = 0, []
-    for art, bit in ((1, 0x40), (2, 0x400), (3, 0x100), (4, 0x2000), (5, 0x8000)):
+    for art, bit in ((1, 0x40), (2, 0x400), (3, 0x100)):
         for cls in (5, 6, 7, 8):
             o1, e1, p1, _ = wl(img, 11, cls, 0x80000 | bit)
             o0, e0, p0, _ = wl(img, 11, cls, 0x80000)

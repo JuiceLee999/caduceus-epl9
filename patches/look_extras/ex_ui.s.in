@@ -10,7 +10,7 @@
  *                 2 Glow N | 2 Clarity/Glow 0 | 2 Clarity +N
  *                 3 WB Blue N | 3 WB Amber/Blue | 3 WB Amber N
  *                 4 WB Magenta N | 4 WB Green/Mag. | 4 WB Green N
- *                 5 Art Off|Star Light|Pin Hole|Blur|White Edge|Frame (v0.14)
+ *                 5 Art Off|Star Light|Pin Hole|Blur (v0.15; old 4/5 read Off via ex_get)
  *                 sectors 6-12: "Extras: 1-5 only" (v0.14: bloom colour hidden); ALL on (stock 2756): "Extras: no All"
  *               At most 16 characters.
  * Stores: the label in the view object, the stack. No absolute stores, no mul/div/setlb.
@@ -119,7 +119,7 @@ ex_guide:                         /* CALLS entry, a0 = view */
 6:
  cmp 4,d3
  bne 60f
- cmp 6,d1                         /* art effect 0..5 (v0.14) */
+ cmp 4,d1                         /* art effect 0..3 (v0.15) */
  bcc q_out
  asl2 d1
  mov ex_ta,a2
@@ -190,7 +190,7 @@ ex_ui_data:
 ex_tg:
  .long ex_g0, ex_g1, ex_g2, ex_g3
 ex_ta:
- .long ex_a0, ex_a1, ex_a2, ex_a3, ex_a4, ex_a5
+ .long ex_a0, ex_a1, ex_a2, ex_a3
 ex_tf:
  .long ex_c_n, ex_c_z, ex_c_p
  .long ex_a_n, ex_a_z, ex_a_p
@@ -211,10 +211,6 @@ ex_a2:
  .asciz "5 Art Pin Hole"
 ex_a3:
  .asciz "5 Art Blur"
-ex_a4:
- .asciz "5 Art White Edge"
-ex_a5:
- .asciz "5 Art Frame"
 ex_c_n:
  .asciz "2 Glow "
 ex_c_z:

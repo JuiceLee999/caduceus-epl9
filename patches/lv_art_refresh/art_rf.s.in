@@ -31,7 +31,7 @@
 91:
  .endm
 _start:
-ex_art:                           /* d1 = new art 0..5, a2 = P + 64*slot, d0 = id, a0/a1 = ex_set args */
+ex_art:                           /* d1 = new art 0..3, a2 = P + 64*slot, d0 = id, a0/a1 = ex_set args */
  movbu (78,a2),d2
  movbu d1,(78,a2)
  cmp d1,d2

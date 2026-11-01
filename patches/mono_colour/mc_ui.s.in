@@ -1,0 +1,891 @@
+/* E-P7 1.1 v0.15 MONO-colour UI `mc` (ep7-firmware, our own code). docs/MONO_COLOUR.md "v0.15".
+ * Section 1, dead EVF gamma step-9 G/B, step-8, step-7, step-6 R/G tables 0x601e1e3c..0x601e283c (only refs: the
+ * step-table words; build-checked).
+ *
+ * A MONO slot m (0..3) whose bundle entry P+32+64(4+m) has colour byte +32 == 1 opens the COLOR m wheel editor
+ * (same key, same children, same layers) instead of the MONO m colour-filter editor, and that editor then works on
+ * the MONO slot:
+ *   mc_open1 <- type-7 dispatcher word 0x61140398 (stock 0x60e2054e, a0 = &u16 key)    route b (Profile switch)
+ *   mc_scr   <- jmp at 0x60e4cea8 (screen lookup, d0 group, d1 key)                    route a (panel / SCP)
+ *   mc_scr2  <- jmp at 0x60e4cf21 (screen lookup, single caller 0x60e7e683)            route a
+ *     MONO filter key 0x13b6/0x13b7/0x13b8/0x140d (m) -> clear the mono-pick session byte; if pred(m) and the
+ *     slot is colour -> the COLOR m key (0x13b3/0x13b4/0x13b5/0x140c). Group != 0x12 / other keys: stock.
+ *   pred(m): card table P valid ('EP7B'), real picture mode (setting 111, stock getter) == MONO m (57/58/59/65),
+ *     and (slot colour byte == 1, or the session byte P+{sess} == 0x81+m with 'EP7C' at P+{cmark}: set by a mono
+ *     pick on the Film page, so the open editor keeps editing the MONO slot after it turned B&W).
+ *   mc_get   <- facade GetValue word 0x60acb0e4 (chain: look_extras ex_get -> ed_get -> stock)
+ *     id 111 asked from one of the COLOR editor / Color Profile view sites (return address table mc_ra), or from
+ *     the Profile view (0x60e26b33) on page 1, under pred(m) -> COLOR m's mode (54/55/56/64).
+ *     COLOR m sector id (927.. / 939.. / 951.. / 1655..) under pred(m) -> the MONO slot byte for the page:
+ *     Saturation / Film -> +33+s (sat), Light -> +12+s, Hue -> +s, Extras -> 0; clamped -5..5.
+ *   mc_def   <- facade GetDefault word 0x60acb174: those ids under pred -> 0.
+ *   mc_set   <- `call mc_set,[d2,d3,a2],16` at 0x607fa355 (chain: ex_set -> ed_set -> 0x60827440)
+ *     those ids under pred: value -5..5 -> the slot byte (Light/Hue also set flags bit1), dirty = 1, then the stock
+ *     settings manager with the id's unchanged value (its listeners redraw, as ed_set does). Extras: refused.
+ *   mc_poly  <- `call mc_poly,[],4` at 0x609330f9 (chain: ed_poly -> 0x602afa81): those ids under pred -> the
+ *     value of mc_get (Film / Extras: 0).
+ *   mc_prof  <- `call mc_prof,[],4` at 0x609330bf (stock 0x602afa81, setting 1648): under pred -> m + 1.
+ *   mc_up / mc_down <- COLOR1-4 records +12/+16 (chain: fm_up / fm_down): Film page (axis 3, 'EP7E', LOOKS.BIN
+ *     loaded) under pred(m) with the COLOR m key: step MONO slot m over [colour looks 1..n (MONO mask),
+ *     mono presets, B&W] and apply (look: place() for a MONO slot; preset: all-zero entry + the preset's 8 stock
+ *     MONO m settings through the facade SetValue; B&W: all-zero entry, no name), name, 'EP7N', dirty, then ed_poke.
+ *   mc_guide <- .data init word 0x6025aa98 (chain: ex_guide -> ed_guide -> stock part): Film page under pred ->
+ *     the label reads "Film: <MONO name>" ("Film: B&W" / "Film: Custom" without a name).
+ * Every miss restores every register, MDR and the stack and jumps to the chained routine.
+ * Stores: heap block P, the view label (heap), the stack. No absolute stores, no mul/div/setlb.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+ .macro PVAL miss
+ movhu ({state}),d3
+ add -1,d3
+ cmp {lim},d3
+ bcc \miss
+ btst 3,d3
+ bne \miss
+ mov d3,a2
+ add {pool},a2
+ mov (a2),d3
+ cmp {bmagic},d3
+ bne \miss
+ .endm
+
+/* d0 = id -> d3 = COLOR profile c (0..3), d2 = sector s (0..11), else \miss. Uses d2, d3. */
+ .macro SECT miss
+ mov d0,d2
+ exthu d2
+ add -927,d2
+ clr d3
+ cmp 12,d2
+ bcs 99f
+ add -12,d2
+ inc d3
+ cmp 12,d2
+ bcs 99f
+ add -12,d2
+ inc d3
+ cmp 12,d2
+ bcs 99f
+ add -704,d2
+ inc d3
+ cmp 12,d2
+ bcc \miss
+99:
+ .endm
+
+/* d0 = u16 key -> d3 = MONO filter profile m (0..3), else \miss. Uses d2, d3. */
+ .macro MKEY miss
+ mov d0,d2
+ exthu d2
+ clr d3
+ cmp 0x13b6,d2
+ beq 98f
+ inc d3
+ cmp 0x13b7,d2
+ beq 98f
+ inc d3
+ cmp 0x13b8,d2
+ beq 98f
+ inc d3
+ cmp 0x140d,d2
+ bne \miss
+98:
+ .endm
+
+ .macro SAVE5                      /* frame (0) dead: nested call return word, (4) d0, (8) d1, (12) a0, (16) a1, (20) mdr */
+ add -24,sp
+ mov d0,(4,sp)
+ mov d1,(8,sp)
+ mov a0,(12,sp)
+ mov a1,(16,sp)
+ mov mdr,d0
+ mov d0,(20,sp)
+ mov (4,sp),d0
+ .endm
+
+ .macro REST5
+ mov (20,sp),d0
+ mov d0,mdr
+ mov (4,sp),d0
+ mov (8,sp),d1
+ mov (12,sp),a0
+ mov (16,sp),a1
+ add 24,sp
+ .endm
+
+ .macro PUT
+91:
+ cmp 0,d3
+ beq 92f
+ movbu (a1),d0
+ cmp 0,d0
+ beq 92f
+ movhu d0,(a0)
+ inc a1
+ add 2,a0
+ add -1,d3
+ bra 91b
+92:
+ .endm
+
+ .macro FVAL miss
+ mov (1020,a2),d0
+ cmp {fmagic},d0
+ bne \miss
+ mov (1016,a2),a0
+ mov a0,d0
+ btst 3,d0
+ bne \miss
+ add {npool},d0
+ cmp {llim},d0
+ bcc \miss
+ mov (1408,a0),d0
+ cmp {lmagic},d0
+ bne \miss
+ mov (1412,a0),d0
+ mov a2,d1
+ cmp d1,d0
+ bne \miss
+ .endm
+
+/* ------------------------------------------------------------------ helpers */
+/* mc_pred: `call mc_pred,[d2,d3],12`. -> d0 = m (0..3) or -1, d1 = 1 colour slot / 0 session, a2 = P (when m >= 0).
+ * Clobbers d0, d1, a0, a1, a2, MDR. */
+mc_pred:
+ PVAL pr_no
+ add -4,sp
+ mov 111,d0
+ call ep7_sget,[],4               /* real picture mode (keeps d2/d3/a2/a3) */
+ add 4,sp
+ clr d2
+ cmp 57,d0
+ beq 1f
+ inc d2
+ cmp 58,d0
+ beq 1f
+ inc d2
+ cmp 59,d0
+ beq 1f
+ inc d2
+ cmp 65,d0
+ bne pr_no
+1:
+ mov d2,d0
+ asl 6,d0
+ add a2,d0
+ mov d0,a0                        /* a0 = P + 64m: MONO m entry at a0 + 288 */
+ movbu (320,a0),d1                /* colour byte (+32) */
+ cmp 1,d1
+ beq pr_yes
+ mov ({cmark},a2),d1
+ cmp {cmagic},d1
+ bne pr_no
+ movbu ({sess},a2),d1
+ mov d2,d0
+ add 0x81,d0
+ cmp d0,d1
+ bne pr_no
+ clr d1
+pr_yes:
+ mov d2,d0
+ ret [d2,d3],12
+pr_no:
+ mov -1,d0
+ clr d1
+ ret [d2,d3],12
+
+/* mc_where: `call mc_where,[],0`; a2 = P, d3 = m, d2 = s -> a0 = slot byte for the page, d1 = page (0..4).
+ * Clobbers d0, d1, a0, MDR. */
+mc_where:
+ clr d1
+ mov ({emark},a2),d0
+ cmp {emagic},d0
+ bne 1f
+ movbu ({axis},a2),d1
+ cmp 5,d1
+ bcs 1f
+ clr d1                           /* garbage page byte: Saturation */
+1:
+ mov 33,d0                        /* Saturation (0), Film (3) */
+ cmp 1,d1
+ bne 2f
+ mov 12,d0                        /* Light */
+2:
+ cmp 2,d1
+ bne 3f
+ clr d0                           /* Hue */
+3:
+ add d2,d0
+ add 288,d0
+ add a2,d0
+ mov d3,a0
+ add a0,a0
+ add a0,a0
+ add a0,a0
+ add a0,a0
+ add a0,a0
+ add a0,a0                        /* 64 m */
+ add d0,a0
+ retf [],0
+
+/* mc_mark: `call mc_mark,[],0`; a2 = P. First use since the load: zero P+928..955, then 'EP7C' at P+{cmark}.
+ * Clobbers d0, d1, a0, MDR. */
+mc_mark:
+ mov ({cmark},a2),d0
+ cmp {cmagic},d0
+ beq 2f
+ mov a2,a0
+ add 928,a0
+ mov 28,d1
+ clr d0
+1:
+ movbu d0,(a0)
+ inc a0
+ add -1,d1
+ bne 1b
+ mov {cmagic},d0
+ mov d0,({cmark},a2)
+2:
+ retf [],0
+
+/* mc_sclr: `call mc_sclr,[d3],4`: a valid P with 'EP7C' -> session byte 0. Clobbers d0, d1, a0, a2, MDR. */
+mc_sclr:
+ PVAL 1f
+ mov ({cmark},a2),d0
+ cmp {cmagic},d0
+ bne 1f
+ clr d0
+ movbu d0,({sess},a2)
+1:
+ ret [d3],4
+
+/* mc_div: d0 = u16 key -> d0 = the key to open (COLOR m when a colour MONO slot m is diverted, else d0),
+ * d1 = 2m when diverted, else -1.
+ * `call mc_div,[d2,d3,a2,a3],20`. Clobbers d1, a0, a1, MDR. */
+mc_div:
+ mov d0,a3                        /* a3 = key in */
+ MKEY v_out
+ call mc_sclr,[d3],4              /* any MONO colour-filter editor opening ends a mono-pick session */
+ call mc_pred,[d2,d3],12
+ cmp d3,d0
+ bne v_out
+ cmp 1,d1
+ bne v_out                        /* B&W slot (session only): the stock MONO editor */
+ mov d3,d1
+ add d1,d1                        /* d1 = 2m: diverted */
+ mov mc_ckeys,a0
+ add d1,a0
+ movhu (a0),d0
+ ret [d2,d3,a2,a3],20
+v_out:
+ mov a3,d0
+ mov -1,d1                        /* not diverted */
+ ret [d2,d3,a2,a3],20
+
+/* ------------------------------------------------------------------ routing */
+mc_open1:                         /* CALLS, a0 = &u16 key */
+ SAVE5
+ movhu (a0),d0
+ call mc_div,[d2,d3,a2,a3],20
+ cmp -1,d1
+ beq 1f
+ mov mc_ckeys,a0                  /* diverted: a0 -> our constant COLOR m key (read-only, lives as long as the image) */
+ add d1,a0
+ mov a0,(12,sp)
+1:
+ REST5
+ jmp ep7_open
+
+mc_scr:                           /* entry of 0x60e4cea8: d0 group, d1 key */
+ SAVE5
+ cmp 0x12,d0
+ bne 1f
+ mov d1,d0
+ call mc_div,[d2,d3,a2,a3],20
+ mov d0,(8,sp)
+1:
+ REST5
+ movhu d1,(32,sp)                 /* replayed: movhu d1,(32,sp); clr d1; mov d1,(28,sp) */
+ clr d1
+ mov d1,(28,sp)
+ jmp ep7_scr_resume
+
+mc_scr2:                          /* entry of 0x60e4cf21: d0 group, d1 key */
+ SAVE5
+ cmp 0x12,d0
+ bne 1f
+ mov d1,d0
+ call mc_div,[d2,d3,a2,a3],20
+ mov d0,(8,sp)
+1:
+ REST5
+ mov a0,(28,sp)                   /* replayed: mov a0,(28,sp); mov a1,d2; movhu d2,(34,sp) */
+ mov a1,d2
+ movhu d2,(34,sp)
+ jmp ep7_scr2_resume
+
+/* ------------------------------------------------------------------ facade */
+mc_get:                           /* CALLS: d0 id, a1 out, (sp) = return address */
+ movm [d2,d3,a2,a3],(sp)
+ SAVE5                            /* return address at (40,sp) */
+ cmp 0,a1
+ beq g_miss
+ mov d0,d2
+ exthu d2
+ cmp 111,d2
+ bne g_sec
+ mov (40,sp),d1
+ mov mc_ra,a0
+ mov {nra},d3
+1:
+ mov (a0),d2
+ cmp d2,d1
+ beq g_mode
+ add 4,a0
+ add -1,d3
+ bne 1b
+ mov {pv_ra},d2                   /* Profile view: page 1 only (a3 = view at entry) */
+ cmp d2,d1
+ bne g_miss
+ movbu (396,a3),d1
+ cmp 1,d1
+ bne g_miss
+g_mode:
+ call mc_pred,[d2,d3],12
+ cmp 0,d0
+ blt g_miss
+ mov mc_cmode,a0
+ movbu (d0,a0),d0
+ bra g_put
+g_sec:
+ SECT g_miss
+ call mc_pred,[d2,d3],12
+ cmp d3,d0
+ bne g_miss
+ call mc_where,[],0
+ clr d0
+ cmp {xaxis},d1
+ beq g_put
+ movbu (a0),d0
+ call mc_clamp,[],0
+g_put:
+ mov (16,sp),a1
+ mov d0,(a1)
+ mov (20,sp),d0
+ mov d0,mdr
+ mov (8,sp),d1
+ mov (12,sp),a0
+ add 24,sp
+ movm (sp),[d2,d3,a2,a3]
+ clr d0
+ rets
+g_miss:
+ REST5
+ movm (sp),[d2,d3,a2,a3]
+ jmp ep7_get_next
+
+mc_def:                           /* CALLS: d0 id, a1 out */
+ movm [d2,d3,a2,a3],(sp)
+ SAVE5
+ cmp 0,a1
+ beq d_miss
+ SECT d_miss
+ call mc_pred,[d2,d3],12
+ cmp d3,d0
+ bne d_miss
+ clr d0
+ bra g_put
+d_miss:
+ REST5
+ movm (sp),[d2,d3,a2,a3]
+ jmp ep7_def_next
+
+/* mc_clamp: `call mc_clamp,[],0`: d0 = byte -> s8 clamped to -5..5. Uses d0, MDR. */
+mc_clamp:
+ extb d0
+ cmp -5,d0
+ bge 1f
+ mov -5,d0
+1:
+ cmp 5,d0
+ ble 2f
+ mov 5,d0
+2:
+ retf [],0
+
+mc_set:                           /* call mc_set,[d2,d3,a2],16 at the GUI setter: d0 id, d1 value, a0, a1 */
+ SAVE5
+ SECT s_miss
+ call mc_pred,[d2,d3],12
+ cmp d3,d0
+ bne s_miss
+ call mc_where,[],0
+ cmp {xaxis},d1
+ beq s_bad                        /* Extras: inactive on a MONO slot */
+ mov (8,sp),d0
+ cmp -5,d0
+ blt s_bad
+ cmp 5,d0
+ bgt s_bad
+ movbu d0,(a0)                    /* the value first ... */
+ cmp 1,d1
+ beq 1f
+ cmp 2,d1
+ bne 2f
+1:
+ mov d3,d0                        /* Light / Hue: then the slot's H/L enable bit */
+ asl 6,d0
+ add a2,d0
+ mov d0,a0
+ movbu (319,a0),d1
+ or 2,d1
+ movbu d1,(319,a0)
+2:
+ mov 1,d1
+ movbu d1,({dirty},a2)            /* ... then dirty (saved on the next half-press) */
+ mov (4,sp),d0                    /* refresh: the stock settings manager with the id's unchanged value */
+ add -4,sp
+ call ep7_sget,[],4
+ add 4,sp
+ mov d0,d1
+ mov (20,sp),d0
+ mov d0,mdr
+ mov (4,sp),d0
+ mov (12,sp),a0
+ mov (16,sp),a1
+ add 24,sp
+ jmp ep7_manager
+s_bad:
+ mov (20,sp),d0
+ mov d0,mdr
+ add 24,sp
+ clr d0
+ ret [d2,d3,a2],16
+s_miss:
+ REST5
+ jmp ep7_set_next
+
+mc_poly:                          /* call mc_poly,[],4: d0 = setting id */
+ movm [d2,d3,a2,a3],(sp)
+ SAVE5
+ SECT p_miss
+ call mc_pred,[d2,d3],12
+ cmp d3,d0
+ bne p_miss
+ call mc_where,[],0
+ clr d0
+ cmp 3,d1
+ beq 1f                           /* Film: neutral circle (as ed_poly) */
+ cmp {xaxis},d1
+ beq 1f
+ movbu (a0),d0
+ call mc_clamp,[],0
+1:
+ mov d0,(4,sp)
+ REST5
+ movm (sp),[d2,d3,a2,a3]
+ ret [],4
+p_miss:
+ REST5
+ movm (sp),[d2,d3,a2,a3]
+ jmp ep7_poly_next
+
+mc_prof:                          /* call mc_prof,[],4 at 0x609330bf: d0 = 1648 */
+ movm [d2,d3,a2,a3],(sp)
+ SAVE5
+ exthu d0
+ cmp 1648,d0
+ bne f_miss
+ call mc_pred,[d2,d3],12
+ cmp 0,d0
+ blt f_miss
+ inc d0
+ mov d0,(4,sp)
+ REST5
+ movm (sp),[d2,d3,a2,a3]
+ ret [],4
+f_miss:
+ REST5
+ movm (sp),[d2,d3,a2,a3]
+ jmp ep7_aget
+
+/* ------------------------------------------------------------------ Film page */
+mc_up:
+ movm [d2,d3,a2,a3],(sp)
+ add -20,sp
+ mov 1,d2
+ bra u_go
+mc_down:
+ movm [d2,d3,a2,a3],(sp)
+ add -20,sp
+ mov -1,d2
+u_go:                             /* (0) dead (call return word), (4) d0 event, (8) d1, (12) a1, (16) mdr; d2 = direction */
+ mov d0,(4,sp)
+ mov d1,(8,sp)
+ mov a1,(12,sp)
+ mov mdr,d0
+ mov d0,(16,sp)
+ mov (4,sp),d0
+ mov a0,a3
+ cmp 0,a3
+ beq u_miss
+ PVAL u_miss
+ mov ({emark},a2),d0
+ cmp {emagic},d0
+ bne u_miss
+ movbu ({axis},a2),d0
+ cmp 3,d0
+ bne u_miss
+ movhu (100,a3),d0                /* editor key -> c */
+ mov mc_ckeys,a0
+ clr d3
+1:
+ movhu (a0),d1
+ cmp d1,d0
+ beq 2f
+ add 2,a0
+ inc d3
+ cmp 4,d3
+ bne 1b
+ bra u_miss
+2:
+ call mc_pred,[d2,d3],12           /* a2 = P */
+ cmp d3,d0
+ bne u_miss
+ FVAL u_miss                      /* a0 = L (film layer loaded) */
+ /* from here on no fallback: (8) n, (12) pos */
+ call mc_mark,[],0
+ mov (1016,a2),a0                 /* a0 = L again (validated above; mc_mark used a0) */
+ movbu (1416,a0),d0
+ mov d0,(8,sp)                    /* n colour looks */
+ mov d0,d1
+ add {np1},d1                     /* d1 = N = n + presets + 1 (B&W) */
+ mov a2,a1
+ add d3,a1
+ movbu ({mpos},a1),d0
+ cmp d1,d0
+ bls 3f
+ clr d0                           /* stale position */
+3:
+ add d2,d0
+ cmp 0,d0
+ bgt 4f
+ mov d1,d0
+4:
+ cmp d1,d0
+ bls 5f
+ mov 1,d0
+5:
+ mov (8,sp),a1
+ cmp a1,d0
+ bhi 6f                           /* preset / B&W */
+ mov d0,(12,sp)                    /* colour look pos-1 at L + 64 pos: colour class and MONO mask bit */
+ asl 6,d0
+ add a0,d0
+ mov d0,a1
+ movbu (45,a1),d0
+ cmp 0,d0
+ bne 51f
+ movbu (46,a1),d0
+ btst 2,d0
+ bne 52f
+51:
+ mov (12,sp),d0
+ bra 3b
+52:
+ mov (12,sp),d0
+6:
+ mov d0,(12,sp)                    /* pos */
+ mov a2,a1
+ add d3,a1
+ movbu d0,({mpos},a1)
+ mov d3,d0                        /* a1 = MONO m entry P + 288 + 64m */
+ asl 6,d0
+ add a2,d0
+ add 288,d0
+ mov d0,a1
+ clr d0
+ movbu d0,(31,a1)                 /* flags first */
+ mov (12,sp),d1
+ mov (8,sp),d0
+ cmp d0,d1
+ bhi u_mono
+ /* colour look: place() for a MONO slot */
+ mov d1,d0
+ asl 6,d0
+ add d0,a0                        /* a0 = record */
+ call mc_entry,[],0
+ mov -1,d2                        /* d2 = preset index (-1: none) */
+ mov a0,d0
+ add 48,d0                        /* name = record +48 */
+ bra u_name
+u_mono:                           /* preset or B&W: all-zero entry (stock mono rendering) */
+ clr d0
+ mov 64,d1
+ mov a1,a0
+9:
+ movbu d0,(a0)
+ inc a0
+ add -1,d1
+ bne 9b
+ mov d3,d0
+ add 0x81,d0
+ movbu d0,({sess},a2)             /* the open editor keeps working on this MONO slot */
+ mov (12,sp),d1
+ mov (8,sp),d0
+ sub d0,d1
+ add -1,d1                        /* preset index (np = B&W) */
+ mov d1,d2                        /* d2 = preset index */
+ mov mc_zero,d0
+ cmp {np},d1
+ bcc u_name                       /* B&W: empty name */
+ asl 4,d1
+ mov mc_pnames,d0
+ add d1,d0
+u_name:                           /* d0 = 16-byte name source */
+ call mc_wname,[],0
+ cmp {np},d2                     /* a preset: its 8 stock settings of MONO m (facade SetValue) */
+ bcc u_poke                       /* colour look (-1) or B&W (np) */
+ mov a2,(4,sp)                    /* (4) P, (8) preset index */
+ mov d2,(8,sp)
+ clr d2                           /* field f */
+13:
+ call ep7_facade,[],4             /* a0 = OlyApiSettingControllerController */
+ mov (a0),a2
+ mov (a2),a2                      /* SetValue(id, 0, value) */
+ mov d3,d0                        /* id = mc_ids[8m + f] */
+ asl 3,d0
+ add d2,d0
+ add d0,d0
+ mov mc_ids,a1
+ movhu (d0,a1),d0
+ mov (8,sp),d1                    /* value = mc_pvals[8i + f] */
+ asl 3,d1
+ add d2,d1
+ mov mc_pvals,a1
+ movbu (d1,a1),d1
+ extb d1
+ mov d1,a1
+ clr d1
+ calls (a2)
+ inc d2
+ cmp 8,d2
+ bne 13b
+ mov (4,sp),a2
+u_poke:
+ add 8,sp                         /* ed_poke's frame: [d2,d3,a2,a3] + 12 */
+ jmp ed_poke                      /* cursor re-write (screen + label refresh), return 1 */
+u_miss:
+ mov (16,sp),d0
+ mov d0,mdr
+ mov a3,a0
+ mov (8,sp),d1
+ mov (12,sp),a1
+ mov (4,sp),d0
+ add 20,sp
+ cmp 0,d2
+ movm (sp),[d2,d3,a2,a3]
+ blt 1f
+ jmp ep7_up_next
+1:
+ jmp ep7_down_next
+
+/* mc_entry: `call mc_entry,[],0`; a0 = LOOKS.BIN record, a1 = MONO m entry, a2 = P. place() for a MONO slot:
+ * flags cleared first, bytes 0..30 and sat 33..44 from the record, +32 = 1, +45 = record +47, +46..63 = 0, flags = 3
+ * (render colour + H/L) last; session byte 0. Clobbers d0, d1, MDR. */
+mc_entry:
+ clr d0
+ movbu d0,(31,a1)
+ clr d1
+7:
+ cmp 31,d1
+ beq 8f
+ movbu (d1,a0),d0
+ cmp 32,d1
+ bne 71f
+ mov 1,d0                         /* +32 colour = 1 */
+71:
+ cmp 45,d1
+ bcs 72f
+ clr d0                           /* +45..63: 0, then +45 = record +47 (bloom colour) */
+72:
+ movbu d0,(d1,a1)
+8:
+ inc d1
+ cmp 64,d1
+ bne 7b
+ movbu (47,a0),d0
+ movbu d0,(45,a1)
+ mov 3,d0
+ movbu d0,(31,a1)                 /* flags last: render colour + H/L */
+ clr d0
+ movbu d0,({sess},a2)             /* colour slot: no mono session */
+ retf [],0
+
+/* mc_wname: `call mc_wname,[],0`; d0 = 16-byte name source, a2 = P, d3 = m: the MONO m name (names section zeroed
+ * first when the table had none), 'EP7N', dirty = 1. Clobbers d0, d1, a0, a1, MDR. */
+mc_wname:
+ mov d0,a1
+ mov (672,a2),d0
+ cmp {nmagic},d0
+ beq 10f
+ mov a2,a0                        /* names section: zero it first when the table had none */
+ add 544,a0
+ clr d0
+ mov 128,d1
+11:
+ movbu d0,(a0)
+ inc a0
+ add -1,d1
+ bne 11b
+10:
+ mov d3,d0                        /* name P + 608 + 16m */
+ asl 4,d0
+ add a2,d0
+ add 608,d0
+ mov d0,a0
+ clr d1
+12:
+ movbu (d1,a1),d0
+ movbu d0,(d1,a0)
+ inc d1
+ cmp 16,d1
+ bne 12b
+ mov {nmagic},d0
+ mov d0,(672,a2)
+ mov 1,d0
+ movbu d0,({dirty},a2)
+ retf [],0
+
+/* mc_pick: CALLS, d0 = m (0..3), d1 = LOOKS.BIN record j. API for the mono picker (patches/mono_presets, see
+ * docs/MONO_COLOUR.md v0.15): a valid table, LOOKS.BIN loaded, j < n, a colour look with the MONO mask bit ->
+ * MONO m = place(look j, MONO m) + its name + dirty, my Film position = j + 1, d0 = 1. Else nothing, d0 = 0.
+ * The caller redraws its own screen. Keeps d2, d3, a2, a3, MDR. Stores: P only. */
+mc_pick:
+ movm [d2,d3,a2,a3],(sp)
+ add -8,sp                        /* (0) dead, (4) mdr */
+ mov d0,d2
+ mov d1,a3
+ mov mdr,d0
+ mov d0,(4,sp)
+ PVAL k_no
+ mov d2,d3
+ cmp 4,d3
+ bcc k_no
+ FVAL k_no
+ call mc_mark,[],0
+ mov (1016,a2),a0                 /* L (validated by FVAL) */
+ mov a3,d0
+ movbu (1416,a0),d1
+ cmp d1,d0
+ bcc k_no
+ inc d0
+ asl 6,d0
+ add d0,a0                        /* record j at L + 64(j + 1) */
+ movbu (45,a0),d0
+ cmp 0,d0
+ bne k_no
+ movbu (46,a0),d0
+ btst 2,d0
+ beq k_no
+ mov d3,d0
+ asl 6,d0
+ add a2,d0
+ add 288,d0
+ mov d0,a1                        /* MONO m entry */
+ call mc_entry,[],0
+ mov a2,a1
+ add d3,a1
+ mov a3,d0
+ inc d0
+ movbu d0,({mpos},a1)
+ mov a0,d0
+ add 48,d0
+ call mc_wname,[],0
+ mov 1,d0
+ bra k_out
+k_no:
+ clr d0
+k_out:
+ mov (4,sp),d1
+ mov d1,mdr
+ ret [d2,d3,a2,a3],24
+
+/* ------------------------------------------------------------------ label */
+mc_guide:                         /* CALLS, a0 = view */
+ movm [d2,d3,a2,a3],(sp)
+ add -8,sp                        /* (0) calls slot, (4) result */
+ mov a0,a3
+ calls ep7_guide_next
+ mov d0,(4,sp)
+ PVAL gd_out
+ mov ({emark},a2),d0
+ cmp {emagic},d0
+ bne gd_out
+ movbu ({axis},a2),d0
+ cmp 3,d0
+ bne gd_out
+ call mc_pred,[d2,d3],12
+ cmp 0,d0
+ blt gd_out
+ mov d0,d3                        /* m */
+ mov mc_t_bw,a1
+ cmp 0,d1
+ beq 1f
+ mov mc_t_custom,a1
+1:
+ mov (672,a2),d0
+ cmp {nmagic},d0
+ bne 2f
+ mov d3,d0
+ asl 4,d0
+ add a2,d0
+ add 608,d0
+ mov d0,a0
+ movbu (a0),d0
+ cmp 0,d0
+ beq 2f
+ mov a0,a1                        /* the slot name */
+2:
+ mov a1,d2                        /* d2 = name text; length -> prefix */
+ clr d1
+3:
+ movbu (a1),d0
+ cmp 0,d0
+ beq 4f
+ inc a1
+ inc d1
+ bra 3b
+4:
+ mov mc_t_film,a1
+ cmp 11,d1
+ bcs 5f
+ mov mc_t_nul,a1
+5:
+ mov 5,d0
+ movhu d0,(44,a3)                 /* kind 5: text inline at +52 */
+ mov a3,a0
+ add 52,a0
+ mov 33,d3
+ clr d0
+6:
+ movhu d0,(a0)
+ add 2,a0
+ add -1,d3
+ bne 6b
+ mov a3,a0
+ add 52,a0
+ mov 16,d3
+ PUT
+ mov d2,a1
+ PUT
+gd_out:
+ mov (4,sp),d0
+ ret [d2,d3,a2,a3],24
+
+/* data: mc_ra / mc_ckeys / mc_cmode / mc_ids / mc_pvals / mc_pnames / mc_zero / texts are a separate data edit in the
+ * dead EVF step-0 R table (build_v15.py mc_data; symbols passed to the linker). */
+mc_end:

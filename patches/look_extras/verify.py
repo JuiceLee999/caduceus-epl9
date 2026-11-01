@@ -89,8 +89,8 @@ def model_get(blk, slot, sec):
         return 0
     if sec in (2, 3):
         return clamp(s8(b[24 + sec]), -5, 5) if b[25] & 0x81 == 1 else 0
-    if sec == 4:                                  # v0.14 art effect +46 (0..5)
-        return b[46] if b[46] <= 5 else 0
+    if sec == 4:                                  # art effect +46 (v0.15: 0..3; old 4/5 and anything else read 0)
+        return b[46] if b[46] <= 3 else 0
     return 0                                      # v0.14: sector 5 (bloom colour) hidden
 
 
@@ -99,8 +99,8 @@ def model_set(blk, slot, sec, v, all_on):
     if all_on or sec >= 5:
         return e
     o = 32 + 64 * slot
-    if sec == 4:                                  # v0.14 art effect: pre-clamp -6..11, wrap modulo 6
-        e[o + 46] = clamp(v, -6, 11) % 6
+    if sec == 4:                                  # v0.15 art effect: pre-clamp -4..7, wrap modulo 4
+        e[o + 46] = clamp(v, -4, 7) % 4
         e[DIRTY] = 1
         return e
     v = clamp(v, -5, 5)
@@ -123,7 +123,7 @@ FIELDS2 = [(4, 3, 6, 1, 0x7f, 0x80), (0xff, 0, 0, 0xff, 0xff, 0xff), (0, 1, 5, 1
 
 
 TINTS = {id(FIELDS): (0, 3, 0, 9), id(FIELDS2): (4, 0xff, 1, 0)}   # bloom colour +45 per slot
-ARTS = {id(FIELDS): (1, 5, 0, 6), id(FIELDS2): (0xff, 3, 2, 4)}    # art effect +46 per slot (6 / 0xff: out of range)
+ARTS = {id(FIELDS): (1, 5, 0, 6), id(FIELDS2): (0xff, 3, 2, 4)}    # art effect +46 per slot (4 / 5 old -> Off; 6 / 0xff: out of range)
 
 
 def xblock(axis, fields=FIELDS, marker=True):
@@ -385,7 +385,7 @@ s_get:
 # editor's key-probe code (EV.probe_suffix, '' when the editor is built without the probe).
 TXT = {'o': 'Extras: 1-5 only', 'all': 'Extras: no All'}
 TINT_TXT = ['6 Bloom Neutral', '6 Bloom Red', '6 Bloom Amber', '6 Bloom Warm', '6 Bloom Cool']
-ART_TXT = ['5 Art Off', '5 Art Star Light', '5 Art Pin Hole', '5 Art Blur', '5 Art White Edge', '5 Art Frame']
+ART_TXT = ['5 Art Off', '5 Art Star Light', '5 Art Pin Hole', '5 Art Blur']
 GRAIN = ['1 Grain Off', '1 Grain Low', '1 Grain Medium', '1 Grain High']
 SIGNED = {1: ('2 Glow ', '2 Clarity/Glow 0', '2 Clarity +'), 2: ('3 WB Blue ', '3 WB Amber/Blue', '3 WB Amber '),
           3: ('4 WB Magenta ', '4 WB Green/Mag.', '4 WB Green ')}
