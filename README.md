@@ -10,10 +10,16 @@ XPan and 21:9 stills, and longer video recording.
 
 Current release: **v0.15** (`releases/v0.15`). **Install: [docs/INSTALL.md](docs/INSTALL.md)** (`python3 caduceus.py build --release v0.15`). The camera's firmware screen shows the Caduceus version.
 
-> **Status: pre-release testing.** Every patch is verified in an emulator of the camera's CPU before it goes
-> on a camera. The SD update and recovery path is proven on a real E-P7 (including recovery from a bootloop),
-> and the features marked **camera-tested** below run on a real camera. Flashing modified firmware can still
-> brick your camera. Read [Safety](#safety) first.
+> [!WARNING]
+> **Early development, use at your own risk.** Caduceus is unofficial, experimental firmware modification.
+> Bugs will turn up, and flashing modified firmware can crash, freeze or brick your camera, corrupt photos or
+> damage your SD card's data. **The author accepts no responsibility for any damage, data loss or other harm**
+> to your camera, cards, files or anything else. It is provided "as is", without warranty of any kind (see the
+> [GPL v3](LICENSE), sections 15–16). Using it may affect your warranty with OM Digital Solutions.
+>
+> Every patch is checked in an emulator of the camera's CPU before it goes on a camera, the SD update and
+> restore path is proven on a real E-P7 (including recovery from a bootloop), and features marked
+> **camera-tested** below have run on a real camera. Read [Safety](#safety) before flashing.
 
 ![XPan crop with a Classic Chrome-style look](docs/img/xpan_classic_chrome.jpg)
 
@@ -106,13 +112,24 @@ Mock-ups drawn with the camera's own fonts and icons, extracted from its firmwar
 
 ## Safety
 
+- **No responsibility is accepted for damage of any kind.** You flash this at your own risk. This is
+  early-development software: expect bugs.
 - Only the E-P7 on firmware **1.1** is supported.
 - The camera's SD updater (hold **OK** while switching on, file at `DCOLYMP/E1429999.BIN`) is confirmed working:
   LED steady while writing, then a ~2 Hz blink when done. It rejects corrupt files without writing, and stock
   firmware has been restored through it, including from a bootloop.
 - A full battery and an uninterrupted write are essential. A failed write can leave the camera unbootable.
-- Each release folder has a `restore-stock.pkg.bin`; keep it on hand. Follow the camera plan in the release's
-  `README.md`. Removing `EP7MOD` from the card returns every look feature to stock behaviour.
+- Keep the stock restore file the builder makes (`restore/E1429999.BIN`). Flashing it returns the camera
+  completely to stock 1.1.
+- **No `EP7MOD` folder on the card = almost stock.** All film looks, the look editor pages, per-profile
+  WB/grain/bloom/clarity/Art Effects and mono presets only run when `EP7MOD/BUNDLES.BIN` is on the card, and
+  nothing is read from the card until the first half-press. Without the folder (or with no card in) only these
+  small, always-on changes remain:
+  - log video when the **movie** picture mode is Muted;
+  - the extra Panorama / Wide aspect options (the camera always boots back to 4:3);
+  - the longer recording limit;
+  - "Caduceus vX.YY" on the Setup › Firmware screen.
+- If something misbehaves: remove the `EP7MOD` folder first. If that doesn't help, flash the restore file.
 
 ## Build
 

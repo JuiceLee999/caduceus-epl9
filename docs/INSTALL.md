@@ -1,5 +1,10 @@
 # Installing Caduceus
 
+> [!WARNING]
+> **Use at your own risk.** Caduceus is early-development, unofficial firmware modification: bugs will appear,
+> and flashing can brick your camera or lose data. The author accepts **no responsibility for any damage**.
+> Without the `EP7MOD` folder on the card the camera is almost stock; the restore file returns it fully to stock.
+
 Caduceus patches the Olympus PEN **E-P7 firmware 1.1**. This repository contains no OM firmware: you build
 the update file yourself from OM's official 1.1 download. Flashing modified firmware can brick your camera.
 You do this at your own risk.
