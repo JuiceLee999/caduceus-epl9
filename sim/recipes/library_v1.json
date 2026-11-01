@@ -1,0 +1,1064 @@
+{
+ "schema": "ep7-look-library/1",
+ "_comment": "Look library v1 (docs/LIBRARY_V1.md). Recipe file in the fuji_like.json schema, loaded by patches/bundles/build.py (RECIPE_FILES). Only camera-feasible controls: sat (user's per-profile stock setting, -5..5, advice only), hue/light -7..7 (bundle H/L), tone levels + contrast (user's stock settings, advice), wb_shift -7..7 (bundle WB override; omitted = the user's own WB fine-tune is kept), grain off/low/medium/high and effect bloom 1-5 (bundle; build.py takes these from the slot/look, see bundles/library_v1.json). mono_filter = stock Monochrome Profile colour filter (user setting). No halation, clarity or split toning.",
+ "sector_order": [
+  "yellow",
+  "orange",
+  "orange_red",
+  "red",
+  "magenta",
+  "violet",
+  "blue",
+  "blue_cyan",
+  "cyan",
+  "green_cyan",
+  "green",
+  "yellow_green"
+ ],
+ "recipes": {
+  "lib_provia": {
+   "name": "Provia",
+   "description": "Neutral, faithful colour reference: the E-P7 profile at zero.",
+   "base": "Color Profile",
+   "sat": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "light": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": 0,
+    "shadows": 0,
+    "midtones": 0
+   },
+   "contrast": 0,
+   "grain": "off"
+  },
+  "lib_velvia": {
+   "name": "Velvia",
+   "description": "Saturated landscape slide film: deep skies, dense greens, crushed shadows.",
+   "base": "Color Profile",
+   "sat": [
+    4,
+    4,
+    4,
+    5,
+    3,
+    4,
+    5,
+    5,
+    3,
+    3,
+    4,
+    4
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    1,
+    2,
+    2,
+    -2,
+    0,
+    0
+   ],
+   "light": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -2,
+    -2,
+    -1,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": 1,
+    "shadows": -4,
+    "midtones": 0
+   },
+   "contrast": 2,
+   "grain": "off"
+  },
+  "lib_astia": {
+   "name": "Astia",
+   "description": "Soft slide film: gentle contrast, clean skin, slightly richer skies.",
+   "base": "Color Profile",
+   "sat": [
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    1,
+    1,
+    1,
+    0,
+    -1,
+    -1,
+    0
+   ],
+   "hue": [
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    2,
+    1,
+    -1,
+    -1
+   ],
+   "light": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": -2,
+    "shadows": 1,
+    "midtones": 0
+   },
+   "contrast": -1,
+   "grain": "off"
+  },
+  "lib_cl_chrome": {
+   "name": "Cl. Chrome",
+   "description": "Documentary look: muted greens and yellows, cyan skies, hard shadows.",
+   "base": "Color Profile",
+   "sat": [
+    -2,
+    -1,
+    -1,
+    -1,
+    -1,
+    -3,
+    -3,
+    -3,
+    -1,
+    -3,
+    -4,
+    -4
+   ],
+   "hue": [
+    -2,
+    -1,
+    0,
+    0,
+    3,
+    1,
+    -2,
+    -4,
+    -2,
+    2,
+    0,
+    -2
+   ],
+   "light": [
+    -1,
+    -1,
+    0,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -2,
+    -1
+   ],
+   "tone": {
+    "highlights": 0,
+    "shadows": -3,
+    "midtones": 0
+   },
+   "contrast": 1,
+   "grain": "off"
+  },
+  "lib_cl_neg": {
+   "name": "Classic Neg",
+   "description": "Superia-style negative: teal-green cast, punchy mids, light skies.",
+   "base": "Color Profile",
+   "sat": [
+    -3,
+    -2,
+    -2,
+    0,
+    -1,
+    -5,
+    -2,
+    -2,
+    -1,
+    -4,
+    -4,
+    -4
+   ],
+   "hue": [
+    0,
+    -1,
+    0,
+    0,
+    7,
+    6,
+    -4,
+    -3,
+    6,
+    7,
+    5,
+    0
+   ],
+   "light": [
+    -2,
+    -3,
+    -3,
+    -2,
+    -1,
+    1,
+    1,
+    1,
+    -1,
+    -3,
+    -5,
+    -4
+   ],
+   "tone": {
+    "highlights": 4,
+    "shadows": -2,
+    "midtones": 1
+   },
+   "contrast": 2,
+   "grain": "low",
+   "wb_shift": {
+    "a_b": 1,
+    "g_m": 0
+   }
+  },
+  "lib_nostalgic": {
+   "name": "Nostalgic",
+   "description": "Amber 1970s print: warm highlights, soft tones, faded blues.",
+   "base": "Color Profile",
+   "sat": [
+    2,
+    2,
+    1,
+    0,
+    -1,
+    -1,
+    -2,
+    -2,
+    -2,
+    -1,
+    0,
+    2
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -2,
+    -3,
+    -2
+   ],
+   "light": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": -2,
+    "shadows": 1,
+    "midtones": 1
+   },
+   "contrast": -1,
+   "grain": "low",
+   "wb_shift": {
+    "a_b": 3,
+    "g_m": 0
+   }
+  },
+  "lib_reala": {
+   "name": "Reala Ace",
+   "description": "Accurate, crisp modern negative: true hues, restrained greens.",
+   "base": "Color Profile",
+   "sat": [
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    -1,
+    -2,
+    -3,
+    -3,
+    -2
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -2
+   ],
+   "light": [
+    0,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -3,
+    -3,
+    -3,
+    -1,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": 3,
+    "shadows": 1,
+    "midtones": 0
+   },
+   "contrast": 1,
+   "grain": "off"
+  },
+  "lib_eterna": {
+   "name": "Eterna",
+   "description": "Cinema negative: flat, open shadows, quiet teal-leaning colour.",
+   "base": "Color Profile",
+   "sat": [
+    -2,
+    -2,
+    -3,
+    -2,
+    -2,
+    -3,
+    -4,
+    -5,
+    -2,
+    -3,
+    -3,
+    -3
+   ],
+   "hue": [
+    0,
+    3,
+    2,
+    0,
+    0,
+    0,
+    -2,
+    -6,
+    -4,
+    0,
+    -1,
+    -2
+   ],
+   "light": [
+    -1,
+    -1,
+    -2,
+    -3,
+    -3,
+    -2,
+    -2,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "tone": {
+    "highlights": -2,
+    "shadows": 4,
+    "midtones": 0
+   },
+   "contrast": -2,
+   "grain": "off"
+  },
+  "lib_bleach": {
+   "name": "Bleach Byp.",
+   "description": "Silver-retained cinema look: near-monochrome, harsh contrast.",
+   "base": "Color Profile",
+   "sat": [
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5
+   ],
+   "hue": [
+    0,
+    0,
+    -2,
+    -3,
+    0,
+    0,
+    -3,
+    -7,
+    -5,
+    0,
+    0,
+    0
+   ],
+   "light": [
+    -2,
+    -3,
+    -4,
+    -5,
+    -4,
+    -3,
+    -1,
+    -1,
+    -1,
+    -2,
+    -3,
+    -2
+   ],
+   "tone": {
+    "highlights": 4,
+    "shadows": -3,
+    "midtones": 0
+   },
+   "contrast": 2,
+   "grain": "low"
+  },
+  "lib_kchrome": {
+   "name": "Kodachrome64",
+   "description": "Rich reds, deep cyan-blue skies, warm and dense.",
+   "base": "Color Profile",
+   "sat": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    -1,
+    1,
+    1,
+    0,
+    -1,
+    -1,
+    0
+   ],
+   "hue": [
+    -2,
+    -1,
+    0,
+    0,
+    3,
+    1,
+    -2,
+    -4,
+    -2,
+    2,
+    0,
+    -2
+   ],
+   "light": [
+    -3,
+    -3,
+    -2,
+    -3,
+    -1,
+    -1,
+    -2,
+    -1,
+    -1,
+    -1,
+    -3,
+    -2
+   ],
+   "tone": {
+    "highlights": -1,
+    "shadows": -2,
+    "midtones": 0
+   },
+   "contrast": 2,
+   "grain": "low",
+   "wb_shift": {
+    "a_b": 3,
+    "g_m": 0
+   }
+  },
+  "lib_portra": {
+   "name": "Portra 400",
+   "description": "Warm pastel portrait negative: glowing skin, soft contrast.",
+   "base": "Color Profile",
+   "sat": [
+    -1,
+    0,
+    0,
+    -1,
+    -1,
+    -2,
+    -2,
+    -2,
+    -2,
+    -3,
+    -3,
+    -2
+   ],
+   "hue": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    -2,
+    -2
+   ],
+   "light": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    -1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": -2,
+    "shadows": 2,
+    "midtones": 1
+   },
+   "contrast": -1,
+   "grain": "low",
+   "wb_shift": {
+    "a_b": 3,
+    "g_m": 1
+   },
+   "effect": {
+    "type": "bloom",
+    "strength": 1
+   }
+  },
+  "lib_ektar": {
+   "name": "Ektar 100",
+   "description": "Ultra-vivid fine-grain negative: saturated reds and blues.",
+   "base": "Color Profile",
+   "sat": [
+    1,
+    2,
+    3,
+    3,
+    2,
+    1,
+    4,
+    4,
+    2,
+    0,
+    1,
+    1
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "light": [
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    -2,
+    -2,
+    -1,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": 0,
+    "shadows": -1,
+    "midtones": 0
+   },
+   "contrast": 2,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": 1,
+    "g_m": 0
+   }
+  },
+  "lib_gold": {
+   "name": "Gold 200",
+   "description": "Golden consumer negative: sunny yellows, muted cyan skies.",
+   "base": "Color Profile",
+   "sat": [
+    4,
+    2,
+    0,
+    0,
+    -1,
+    -1,
+    -2,
+    -2,
+    -3,
+    -2,
+    0,
+    2
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -2,
+    -2
+   ],
+   "light": [
+    2,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": -1,
+    "shadows": 0,
+    "midtones": 1
+   },
+   "contrast": 0,
+   "grain": "low",
+   "wb_shift": {
+    "a_b": 4,
+    "g_m": -1
+   }
+  },
+  "lib_ektachrome": {
+   "name": "Ektachrome",
+   "description": "Clean, cool slide film: neutral skin, bright saturated blues.",
+   "base": "Color Profile",
+   "sat": [
+    0,
+    -1,
+    0,
+    0,
+    2,
+    3,
+    4,
+    4,
+    3,
+    1,
+    1,
+    0
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "light": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": 0,
+    "shadows": -2,
+    "midtones": 0
+   },
+   "contrast": 1,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": -2,
+    "g_m": 0
+   }
+  },
+  "lib_cinestill": {
+   "name": "CineStill800",
+   "description": "Tungsten cinema film: cool cast, glowing lights (bloom stands in for halation).",
+   "base": "Color Profile",
+   "sat": [
+    -1,
+    -1,
+    2,
+    3,
+    0,
+    0,
+    2,
+    2,
+    2,
+    -1,
+    -2,
+    -2
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -2,
+    -2,
+    0,
+    2,
+    0
+   ],
+   "light": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": 0,
+    "shadows": 2,
+    "midtones": 0
+   },
+   "contrast": 0,
+   "grain": "medium",
+   "wb_shift": {
+    "a_b": -7,
+    "g_m": 1
+   },
+   "effect": {
+    "type": "bloom",
+    "strength": 3
+   }
+  },
+  "lib_pro400h": {
+   "name": "Pro 400H",
+   "description": "Airy pastel negative: minty greens, light cyan skies.",
+   "base": "Color Profile",
+   "sat": [
+    -2,
+    -2,
+    -2,
+    -2,
+    -2,
+    -2,
+    0,
+    1,
+    1,
+    0,
+    -1,
+    -2
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    3,
+    3
+   ],
+   "light": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "tone": {
+    "highlights": -2,
+    "shadows": 3,
+    "midtones": 2
+   },
+   "contrast": -1,
+   "grain": "low",
+   "wb_shift": {
+    "a_b": -2,
+    "g_m": -1
+   },
+   "effect": {
+    "type": "bloom",
+    "strength": 1
+   }
+  },
+  "lib_acros": {
+   "name": "Acros",
+   "description": "Fine-grain mono: deep blacks, smooth tones, darker reds.",
+   "base": "Monochrome Profile",
+   "mono_filter": {
+    "colour": "green",
+    "strength": 1
+   },
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "light": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": -1,
+    "shadows": -2,
+    "midtones": 0
+   },
+   "contrast": 1,
+   "grain": "low"
+  },
+  "lib_trix": {
+   "name": "Tri-X 400",
+   "description": "Classic gritty reportage mono: punchy contrast, darker skies.",
+   "base": "Monochrome Profile",
+   "mono_filter": {
+    "colour": "yellow",
+    "strength": 2
+   },
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "light": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": -1,
+    "shadows": -3,
+    "midtones": 0
+   },
+   "contrast": 2,
+   "grain": "medium"
+  },
+  "lib_hp5": {
+   "name": "HP5 Plus",
+   "description": "Soft, grainy mono with wide latitude and open shadows.",
+   "base": "Monochrome Profile",
+   "mono_filter": {
+    "colour": "none",
+    "strength": 1
+   },
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "light": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": -2,
+    "shadows": 1,
+    "midtones": 0
+   },
+   "contrast": 0,
+   "grain": "high"
+  }
+ }
+}

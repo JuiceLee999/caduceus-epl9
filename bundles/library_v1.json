@@ -1,0 +1,133 @@
+{
+ "_comment": "Look library v1 (docs/LIBRARY_V1.md) for tools/ep7_library.py. Recipes: sim/recipes/library_v1.json. Grain and bloom are set here (build.py does not inherit a recipe's grain/effect). slots is an example assignment; any 4 colour looks + 4 mono-capable looks can be chosen.",
+ "looks": {
+  "provia": {
+   "name": "Provia",
+   "recipe": "lib_provia",
+   "notes": "Neutral, faithful colour reference: the E-P7 profile at zero."
+  },
+  "velvia": {
+   "name": "Velvia",
+   "recipe": "lib_velvia",
+   "notes": "Saturated landscape slide film: deep skies, dense greens, crushed shadows."
+  },
+  "astia": {
+   "name": "Astia",
+   "recipe": "lib_astia",
+   "notes": "Soft slide film: gentle contrast, clean skin, slightly richer skies."
+  },
+  "cl_chrome": {
+   "name": "Cl. Chrome",
+   "recipe": "lib_cl_chrome",
+   "notes": "Documentary look: muted greens and yellows, cyan skies, hard shadows."
+  },
+  "cl_neg": {
+   "name": "Classic Neg",
+   "recipe": "lib_cl_neg",
+   "grain": "low",
+   "notes": "Superia-style negative: teal-green cast, punchy mids, light skies."
+  },
+  "nostalgic": {
+   "name": "Nostalgic",
+   "recipe": "lib_nostalgic",
+   "grain": "low",
+   "notes": "Amber 1970s print: warm highlights, soft tones, faded blues."
+  },
+  "reala": {
+   "name": "Reala Ace",
+   "recipe": "lib_reala",
+   "notes": "Accurate, crisp modern negative: true hues, restrained greens."
+  },
+  "eterna": {
+   "name": "Eterna",
+   "recipe": "lib_eterna",
+   "notes": "Cinema negative: flat, open shadows, quiet teal-leaning colour."
+  },
+  "bleach": {
+   "name": "Bleach Byp.",
+   "recipe": "lib_bleach",
+   "grain": "low",
+   "notes": "Silver-retained cinema look: near-monochrome, harsh contrast."
+  },
+  "kchrome": {
+   "name": "Kodachrome64",
+   "recipe": "lib_kchrome",
+   "grain": "low",
+   "notes": "Rich reds, deep cyan-blue skies, warm and dense."
+  },
+  "portra": {
+   "name": "Portra 400",
+   "recipe": "lib_portra",
+   "grain": "low",
+   "effect": {
+    "type": "bloom",
+    "strength": 1
+   },
+   "notes": "Warm pastel portrait negative: glowing skin, soft contrast."
+  },
+  "ektar": {
+   "name": "Ektar 100",
+   "recipe": "lib_ektar",
+   "notes": "Ultra-vivid fine-grain negative: saturated reds and blues."
+  },
+  "gold": {
+   "name": "Gold 200",
+   "recipe": "lib_gold",
+   "grain": "low",
+   "notes": "Golden consumer negative: sunny yellows, muted cyan skies."
+  },
+  "ektachrome": {
+   "name": "Ektachrome",
+   "recipe": "lib_ektachrome",
+   "notes": "Clean, cool slide film: neutral skin, bright saturated blues."
+  },
+  "cinestill": {
+   "name": "CineStill800",
+   "recipe": "lib_cinestill",
+   "grain": "medium",
+   "effect": {
+    "type": "bloom",
+    "strength": 3
+   },
+   "notes": "Tungsten cinema film: cool cast, glowing lights (bloom stands in for halation)."
+  },
+  "pro400h": {
+   "name": "Pro 400H",
+   "recipe": "lib_pro400h",
+   "grain": "low",
+   "effect": {
+    "type": "bloom",
+    "strength": 1
+   },
+   "notes": "Airy pastel negative: minty greens, light cyan skies."
+  },
+  "acros": {
+   "name": "Acros",
+   "recipe": "lib_acros",
+   "grain": "low",
+   "notes": "Fine-grain mono: deep blacks, smooth tones, darker reds."
+  },
+  "trix": {
+   "name": "Tri-X 400",
+   "recipe": "lib_trix",
+   "grain": "medium",
+   "notes": "Classic gritty reportage mono: punchy contrast, darker skies."
+  },
+  "hp5": {
+   "name": "HP5 Plus",
+   "recipe": "lib_hp5",
+   "grain": "high",
+   "notes": "Soft, grainy mono with wide latitude and open shadows."
+  }
+ },
+ "slots": {
+  "COLOR1": "cl_neg",
+  "COLOR2": "kchrome",
+  "COLOR3": "portra",
+  "COLOR4": "velvia",
+  "MONO1": "acros",
+  "MONO2": "trix",
+  "MONO3": "hp5",
+  "MONO4": "cinestill"
+ }
+}

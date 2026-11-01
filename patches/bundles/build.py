@@ -35,7 +35,8 @@ TC = Path.home() / 'ep7fw-toolchains/mn10300/bin'
 MAIN = ROOT / 'analysis/ep7_1100/00_0100_406a0020.decoded.bin'
 MAIN_SHA = '5dd9af164b4590c7e82f6905c919b3cc450bb58f2d5742ab2a0e3a4eb2e26190'
 BASE = 0x60020020
-RECIPE_FILES = [ROOT / 'sim/recipes/fuji_like.json', ROOT / 'sim/recipes/film_look.json']
+RECIPE_FILES = [ROOT / 'sim/recipes/fuji_like.json', ROOT / 'sim/recipes/film_look.json',
+                ROOT / 'sim/recipes/library_v1.json']
 
 # --- verified sites (stock bytes checked below against the decoded main)
 ALLOC, ALLOC_STOCK, JOB_SIZE, EXT = 0x603537f0, bytes.fromhex('2c803c'), 15488, 24
@@ -59,7 +60,7 @@ L_LUT = [-300, -250, -200, -150, -100, -50, -25, 0, 25, 50, 100, 150, 200, 250, 
 PERM = [2 * (r % 6) + r // 6 for r in range(12)]
 SLOTS = ['COLOR1', 'COLOR2', 'COLOR3', 'COLOR4', 'MONO1', 'MONO2', 'MONO3', 'MONO4']
 GRAIN = {'off': 0, 'low': 1, 'medium': 2, 'med': 2, 'high': 3}
-EFFECT = {'none': 0, 'bloom': 1, 'halation': 2}
+EFFECT = {'none': 0, 'bloom': 1, 'halation': 2, 'clarity': 3}   # clarity: patches/bloom --clarity
 FLAG_RENDER_COLOUR, FLAG_HL = 1, 2
 COLOUR_OFF, SAT_OFF = 32, 33               # MONO colour rendering (patches/mono_colour): u8 == 1, s8 x12
 WB_OVERRIDE = 1                            # wb_flags bit0 (layout.json); bit7 must stay 0
@@ -142,7 +143,7 @@ def slot_entry(name, slot, recipes):
     eff = slot.get('effect')
     if eff is not None:
         if not isinstance(eff, dict) or set(eff) - {'type', 'strength'} or eff.get('type') not in EFFECT:
-            raise ValueError(f'{name}: effect must be {{"type": "bloom|halation|none", "strength": 1-5}}, got {eff!r}')
+            raise ValueError(f'{name}: effect must be {{"type": "bloom|clarity|halation|none", "strength": 1-5}}, got {eff!r}')
         e[28] = EFFECT[eff['type']]
         if e[28]:
             if 'strength' not in eff:
