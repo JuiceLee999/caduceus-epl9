@@ -77,7 +77,7 @@ level of the card (next to the `DCIM` folder). The launcher offers to do this fo
 
 1. Put the card in the camera. **Battery fully charged**, camera **off**.
 2. **Hold the OK button** and switch the camera **on**. Keep holding OK until the status light comes on.
-3. The light stays **steady** while the update is written (a few minutes). **Do not switch off, open the
+3. The light stays **steady** while the update is written (it can take as little as 10 seconds). **Do not switch off, open the
    battery door or remove the card.**
 4. When the light starts **blinking (about twice a second)**, it's finished. Switch the camera off.
 5. Switch it on normally. *Setup › Firmware* now shows **Caduceus** and the version.

@@ -113,7 +113,7 @@ properly before removing it (Windows "Eject", macOS eject button, Linux "Unmount
 
 1. Full battery. Camera off, card in.
 2. Hold **OK** and switch the camera on. Keep holding OK until the LED lights.
-3. The LED stays **steady** while it writes (a few minutes). **Do not switch off, open the battery door or
+3. The LED stays **steady** while it writes (it can take as little as 10 seconds). **Do not switch off, open the battery door or
    remove the card.**
 4. When the LED **blinks at about 2 Hz**, it is done. Switch off.
 5. Switch on normally. Setup > Firmware shows `Body` with `1.1 Caduceus v0.15`.
