@@ -1,0 +1,15 @@
+{
+ "components": [
+  "0x101"
+ ],
+ "patch": "probe_osd",
+ "edits": [
+  {
+   "kind": "0x101",
+   "addr": "off:0x5c3c0a",
+   "expect": "4600690072006d007700610072006500",
+   "new": "4600490052004d005700410052004500",
+   "why": "English string 134 Firmware -> FIRMWARE (update-path probe)"
+  }
+ ]
+}

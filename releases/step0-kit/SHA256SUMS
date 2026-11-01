@@ -1,2 +1,4 @@
 d36915074f8d3ae2427cbfaa49702bab5ad8bc557826cb153e54c91afec4f1f4  1-trigger-test-CORRUPT.pkg.bin
 245b9c8fcf247a0271121238b09769b5d90f682924e3086aacc4762211b82612  2-restore-stock.pkg.bin
+5e367c70d2febdb019cc6fba8df26d590c621b007b4bfe846fced2f29f84614f  3-probe-osd-FIRMWARE.pkg.bin
+54ec5ff9c3237d4bad6d91f42a6a682b79af2d2a4119e83d00bb292a09a3d352  4-restore-osd-stock.pkg.bin

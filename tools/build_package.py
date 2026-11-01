@@ -52,8 +52,8 @@ def build(spec, stock_bytes):
         raise ValueError('stock round trip failed')
     by_kind = {b.kind: b for b in blocks}
     kinds = [int(k, 16) for k in spec['components']]
-    if kinds[0] != 0x100 or len(set(kinds)) != len(kinds) or any(k not in by_kind for k in kinds):
-        raise ValueError('components must start with 0x100, be unique and exist')
+    if (0x100 in kinds and kinds[0] != 0x100) or len(set(kinds)) != len(kinds) or any(k not in by_kind for k in kinds):
+        raise ValueError('components must be unique and exist (0x100 first if present)')
     payloads = {k: bytearray(by_kind[k].payload) for k in kinds}
     spans, total = {}, 0
     for e in spec['edits']:
