@@ -1,45 +1,84 @@
-/* E-P7 1.1 "COLOR grain" patch (ep7-firmware, our own code).
+/* E-P7 1.1 "COLOR grain" patch v0.4 (ep7-firmware, our own code).
  *
  * Gives Color Profile (picture mode / job key 11) images the stock single-pass
  * grain stage that the MONO route already uses for its reduced job classes:
  *   request stage 0x0902  ->  combiner 32  ->  handler 0x603a065b
  *   (gain = table 0x604ec0d4[level-1] = 50/75/100, seed = RAM counter 0xa27393f8).
  *
- * Three pieces, one contiguous blob in the section-2 FF tail:
- *   wl_hook   work-list builder 0x60357415, replaces 7 bytes at 0x6035749f
- *             (cmp 12,d2 / bcc / jmp default). Key 11 gets the stock default
- *             development entry PLUS our request modifier, exactly like the
- *             stock MONO (key 12, job+11320!=0) route at 0x603577b6..0x603578a7.
- *   sel_hook  combiner selector 0x603b5200, replaces 7 bytes at 0x603b5249.
- *             Key 11 + kind-0 request + stage 0x0902 -> return 32 (stock key-12
- *             rule at 0x603b531a). Everything else: stock paths, untouched.
- *   grain_mod request modifier (stock analogue 0x60359e5e): kind-0 request ->
- *             stage 0x0902; level byte request+1828 per MODE below.
+ * v0.4 (review v0.3 H1/H2):
+ *   - H1: wl_hook replicates the stock key-12 job-type gate (0x6035778b..0x603577a7):
+ *     job type (job+20) with type&0xf0 in {0x10,0x20,0x40} or type&0xf00 == 0x100
+ *     -> plain default entry, no grain (stock MONO never grains those jobs).
+ *   - H2: grain is per profile and OFF by default. The level comes from the active
+ *     COLOR slot of the v0.2 bundle table (patches/bundles/layout.json):
+ *       job+15490 == 0xB2 (marker), job+15489 == 11 (picture mode),
+ *       job+15488 = profile 1..4 -> slot 0..3, slot+24 = grain 1..3.
+ *     Any other value (no marker, invalid index, grain 0 / >3, erased table) -> stock.
  *
- * MODE fixed (approach B): request+1828 = {level} unconditionally.
- * MODE mono  (approach A): request+1828 is left as packed from params+5551;
- *             level 0 (Off) => modifier does nothing (stage stays 0, no grain).
+ * Code lives in the section-1 FF tail (loads before section 2, which holds both hooks).
+ *   wl_hook   work-list builder 0x60357415, replaces 7 bytes at 0x6035749f
+ *   sel_hook  combiner selector 0x603b5200, replaces 7 bytes at 0x603b5249
+ *   grain_mod request modifier (stock analogue 0x60359e5e)
  */
  .am33_2
  .text
  .global _start
 _start:
 
+/* GLEVEL: \job = address register holding the job; on success d0 = level 1..3,
+ * otherwise branches to \fail. Clobbers d0 and \job. No calls (grain_mod exits with
+ * retf, which needs MDR intact). */
+ .macro GLEVEL job, fail
+ movbu ({ext_magic},\job),d0
+ cmp {magic},d0
+ bne \fail
+ movbu ({ext_mode},\job),d0
+ cmp 11,d0
+ bne \fail
+ movbu ({ext_profile},\job),d0
+ add -1,d0
+ cmp 4,d0
+ bcc \fail                        /* unsigned: profile 0 and 5..255 rejected */
+ asl 6,d0                         /* slot * 64 */
+ mov {table_grain},\job           /* bundle_table + 24 */
+ movbu (d0,\job),d0
+ add -1,d0
+ cmp 3,d0
+ bcc \fail                        /* grain 0 (off) and 4..255 (incl. erased 0xFF) rejected */
+ add 1,d0
+ .endm
+
 /* ---- work-list hook: entered by jmp from 0x6035749f; d2 = job key (job+11308),
- *      a3 = work list, frame of 0x60357415 untouched. */
+ *      a2 = job+4, a3 = work list, (4,sp) = job; frame of 0x60357415 untouched.
+ *      Free here (stock successors reload them): d0, d1, a0, a1. */
 wl_hook:
  cmp 12,d2
  bcc wl_to_hash                   /* key >= 12 (unsigned): stock hash dispatch */
  cmp 11,d2
  bne wl_to_default                /* other picture modes: stock default */
+ movhu (16,a2),d0                 /* H1: job type (job+20), as stock 0x6035778b */
+ mov 240,d1
+ and d0,d1
+ cmp 16,d1
+ beq wl_to_default
+ cmp 32,d1
+ beq wl_to_default
+ cmp 64,d1
+ beq wl_to_default
+ and 3840,d0
+ cmp 256,d0
+ beq wl_to_default
+ mov a2,a0                        /* H2: slot must enable grain */
+ add -4,a0
+ GLEVEL a0, wl_to_default
  mov a3,a0
  mov 0x60356d7b,a1                /* stock default development entry ... */
  mov 0x60356cc6,d1                /* ... and its completion callback */
  mov 1,d0
- call ep7_wl_add_final,[d2,d3,a2,a3],16   /* = 0x603578b8 */
+ call ep7_wl_add_final,[d2,d3,a2,a3],16   /* = 0x6035739e */
  mov a3,a0
  mov grain_mod,a1
- call ep7_wl_attach,[a2,a3],8     /* = 0x603578a2 (attach modifier to that entry) */
+ call ep7_wl_attach,[a2,a3],8     /* = 0x603573d3 (attach modifier to that entry) */
  jmp ep7_wl_after                 /* 0x603578bd: stock feature-bit chain */
 wl_to_hash:
  jmp ep7_wl_hash                  /* 0x603574a6 */
@@ -47,7 +86,8 @@ wl_to_default:
  jmp ep7_wl_default               /* 0x603578a9 */
 
 /* ---- selector hook: entered by jmp from 0x603b5249; d2 = key (context+52),
- *      a2 = context+4, frame = call ...,[d2,a2],12 */
+ *      a2 = context+4, frame = call ...,[d2,a2],12. Stage 0x0902 on a key-11
+ *      request is only ever set by grain_mod. */
 sel_hook:
  cmp 12,d2
  bcc sel_to_hash
@@ -68,12 +108,15 @@ sel_to_default:
  jmp ep7_sel_default              /* 0x603b539f */
 
 /* ---- request modifier: called via 'calls (a2)' from 0x60356d72 with
- *      a0 = job, a1 = request; leaf, returns with retf like 0x60359e5e. */
+ *      a0 = job, a1 = request; leaf, returns with retf like 0x60359e5e.
+ *      Re-derives the level from the job (attached only by wl_hook, which
+ *      already checked it). Clobbers d0 and a0 (the caller uses only d0). */
 grain_mod:
  movbu (16,a1),d0
  cmp 0,d0
  bne mod_done                     /* only kind-0 (development) requests */
-{level_code}
+ GLEVEL a0, mod_done
+ movbu d0,(1828,a1)               /* level from the profile's bundle slot */
  mov 2306,d0
  movhu d0,(12,a1)                 /* stage 0x0902 */
 mod_done:

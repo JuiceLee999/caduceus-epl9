@@ -96,12 +96,15 @@ and gives stock output.
 
 How the fields are filled:
 - WB is the slot's `wb`, otherwise the recipe's `wb_shift`.
-- Grain is the slot's value, otherwise the recipe's.
-- The effect comes from the slot only.
+- Grain comes from the slot only (`"grain": "low|medium|high"`); since v0.4 a recipe's grain is **not**
+  inherited (it is reported as `advice_grain`), so grain stays off unless the bundle asks for it.
+- The effect comes from the slot only: `"effect": {"type": "bloom|halation", "strength": 1-5}`
+  (strength is required and range-checked since v0.4; `"none"` takes no strength).
 - Vignette is the slot's value, otherwise the recipe's.
 
-**Only COLOR hue/light is consumed.** Grain, WB, effect, vignette and every MONO slot are stored for
-later stages.
+**Consumers (v0.4):** COLOR hue/light (this patch), WB fields (patches/wb), `grain` of COLOR1–4
+(patches/grain v0.4) and `effect_id`/`effect_strength` bloom of COLOR1–4 (patches/bloom v0.4). Vignette and
+halation are stored only.
 
 `build.py` rejects:
 - unknown slot names or keys, and unknown recipes;

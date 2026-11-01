@@ -9,7 +9,9 @@ Edits (all in main, component 0x100):
   T  every per-aspect size/geometry table found by scan_tables.py: rows for ids 6 and 7
      (u32 (id,w,h) lists, u16 (id,0,w,h) lists, u16 (w,h,ratio-code) tables, u16 (w,h) arrays,
      u16 (x,y,w,h,x0,y0,x1,y1) display rects). New dims: width = max(4:3 row, 16:9 row) width,
-     height rounded to the table's own alignment (2-power gcd of its stock dims, clamped 2..8).
+     height rounded to the nearest multiple of 16 (review v0.3 M1). 16 is the alignment of every
+     UI-reachable stock row in the 1024/1280/2560/320/1600/4032 classes and a multiple of every other
+     table's stock alignment (2/4/8), so each new height stays inside its table's stock size class.
   M  Image Aspect option list (setting 270): relocated to the sec-6 FF tail with 8 entries
      [4:3,16:9,3:2,1:1,3:4,"Panorama"(id 6),"Wide"(id 7),17:9]; descriptor count 6->8 + pointer.
   C  hard-coded consumers in sec 5: four 640-class size switches, the ratio switch and the
@@ -59,6 +61,7 @@ SW640 = [  # name, getter call site (mov 270,d0), table base (index=id), join, w
 S5 = dict(site=0x6086279a, base=0x60af4a04, join=0x608627fd, stock={6: 0x608627d3, 7: 0x608627db})  # index id-1
 S6 = dict(site=0x60879e42, base=0x60b01530, stock=0x60879e65, wide=0x60879e70)                     # index id
 GETTER = 0x602cbc0a
+HEIGHT_ALIGN = 16                 # review v0.3 M1
 
 
 def u16s(d, a, n):
@@ -82,7 +85,9 @@ def new_rows(d):
         st, fmt, iw, ih = LAY[lay]
         rows = [list(struct.unpack_from(fmt, d, a1 + k * st - B)) for k in range(9)]
         assert abs(rows[5][iw] / rows[5][ih] - 7 / 6) < 0.035 and abs(rows[6][iw] / rows[6][ih] - 6 / 5) < 0.035, hex(a1)
-        al = max(2, align_of(rows, iw, ih))          # never odd
+        al_stock = max(2, align_of(rows, iw, ih))    # stock class (2-power gcd, clamped 2..8): reported only
+        al = HEIGHT_ALIGN                             # M1: every new height is a multiple of 16
+        assert al % al_stock == 0
         W = max(rows[0][iw], rows[2][iw])             # widest of 4:3 / 16:9 = panel or sensor width
         for i, (name, rw, rh) in NEW.items():
             r = list(rows[i - 1])
@@ -109,7 +114,7 @@ def new_rows(d):
             old = struct.pack(fmt, *rows[i - 1])
             new = struct.pack(fmt, *r)
             if old != new:
-                out.append((addr, old, new, f'{lay}@{a1:#x} id{i} {tuple(rows[i-1])} -> {tuple(r)} ({name}, align {al})'))
+                out.append((addr, old, new, f'{lay}@{a1:#x} id{i} {tuple(rows[i-1])} -> {tuple(r)} ({name}, align {al}, stock class {al_stock})'))
     return out
 
 
@@ -302,6 +307,7 @@ def main():
     edits, where, h640 = build(d)
     p = apply(d, edits)
     res, ok = [], True
+    L_H = {i: round(5184 * rh / rw / HEIGHT_ALIGN) * HEIGHT_ALIGN for i, (_, rw, rh) in NEW.items()}
 
     def rep(name, good, stock, patched, want=None):
         nonlocal ok
@@ -313,12 +319,12 @@ def main():
     for aid in range(1, 11):
         s_ok, s = chk_table_lookup(d, aid)
         p_ok, q = chk_table_lookup(p, aid)
-        exp = {6: (5184, 1912, 0x1841), 7: (5184, 2224, 0x0915)}.get(aid, s)
+        exp = {6: (5184, L_H[6], 0x1841), 7: (5184, L_H[7], 0x0915)}.get(aid, s)
         rep(f'T 0x6034ee0b id{aid}', s_ok and p_ok and tuple(q) == tuple(exp), s, q)
     for aid in range(1, 10):
         s_ok, s = chk_scale(d, aid)
         p_ok, q = chk_scale(p, aid)
-        exp = {6: (5184, 1912), 7: (5184, 2224)}.get(aid, s)
+        exp = {6: (5184, L_H[6]), 7: (5184, L_H[7])}.get(aid, s)
         rep(f'X crop-scale 0x6035585e id{aid} from 5184x3888', s_ok and p_ok and q == exp, s, q)
     # size lookup across every size key for ids 6/7 (others unchanged)
     keys = [struct.unpack_from('<I', d, 0x60b8ce30 + 8 * k - B)[0] for k in range(19)]
@@ -329,8 +335,9 @@ def main():
             _, w1 = chk_size_lookup(p, key, 1)
             if aid in (1, 9) or s == (0, 0) or key == 1:     # unchanged rows (4:3-only sizes, HDMI list)
                 good = q == s
-            else:                                           # full 4:3 width, height within one 8-px step
-                good = q[0] == w1[0] and abs(q[1] - q[0] * NEW[aid][2] / NEW[aid][1]) <= 4
+            else:                                           # full 4:3 width, 16-aligned height, nearest 16-px step
+                good = (q[0] == w1[0] and q[1] % HEIGHT_ALIGN == 0 and
+                        abs(q[1] - q[0] * NEW[aid][2] / NEW[aid][1]) <= HEIGHT_ALIGN / 2)
             good = s_ok and p_ok and good
             rep(f'L size key {key:#x} id{aid}', good, s, q)
     for sw in SW640:
@@ -348,6 +355,14 @@ def main():
         rep(f'S6 fit-group id{aid} reaches width-limited case', (not chk_s6(d, aid)) and chk_s6(p, aid), 'height group', 'width group')
     for aid in (2, 3, 10):
         rep(f'S6 control id{aid}', chk_s6(d, aid) and chk_s6(p, aid), 'width group', 'width group')
+    hs = []
+    for a1, lay in TABLES:
+        st, fmt, iw, ih = LAY[lay]
+        for i in (6, 7):
+            hs.append(struct.unpack_from(fmt, p, a1 + (i - 1) * st - B)[ih])
+    hs += [h640[6], h640[7]]
+    rep('M1 every new id-6/7 height is a multiple of 16', all(h % HEIGHT_ALIGN == 0 for h in hs),
+        f'{len(hs)} heights', sorted(set(hs)))
     rep('M menu list', menu_list(p) == [(1, 292), (3, 291), (2, 293), (4, 1786), (9, 295), (6, 241), (7, 2661), (10, 3261)],
         menu_list(d), menu_list(p))
     out = ROOT / 'patches/aspect/edits.json'

@@ -75,6 +75,52 @@ Work list `0x6035797b`:
 
 ## 6. Bloom patch (built: `patches/bloom/`)
 
+### v0.4: per profile, off by default (implemented; supersedes the v0.3 fixed strength below)
+Fixes review v0.3 H2. Build: `python3 -I patches/bloom/build.py --out <dir>` (no strength argument;
+`--weights w1,..,w5` overrides the table). Needs the bundles patch; without it the table is erased → stock.
+A COLOR slot enables bloom with `"effect": {"type": "bloom", "strength": 1-5}` (bundle effect_id 1 at +28,
+effect_strength at +29). Halation (id 2) is stored but not consumed → stock.
+
+| Edit | Address | Stock | New |
+|---|---|---|---|
+| Flag hook | `0x603eabd7` (6 B) | `fa43f65da000` | `jmp bloom_flag; nop` |
+| Weight hook | `0x6039fee8` (6 B) | `f824342c5802` | `jmp bloom_w; nop` |
+| Code | `0x60210e10–0x60210eea` (218 B, sec-1 tail; claim 0x60210e10–0x60210ef0) | FF | stubs + w table |
+
+- **bloom_flag cannot reach the job bytes, by construction [V static].** 0x603eab39 is called from
+  0x603e611e, which runs *before* the job constructor (0x603e6d34 → 0x603e611e, then 0x603e6d3e → 0x603537eb,
+  then 0x603e6d50 → converter 0x603e62d1 where conv1 writes job+15488..15490). It writes a stack params
+  block (sp+16 at 0x603e6d14) that the constructor then copies. **Closest safe alternative used:** read the
+  very bytes the transport copies, from the capture record it already has in a3: capture+24083 (profile)
+  and capture+24053 (picture mode). conv1/conv2 take the same two bytes from the same record, so the
+  flag decision and the later job bytes agree. Conditions: params key 11, mode 11, profile 1..4, slot
+  effect_id 1, strength 1..5 → flags |= 0x80. Uses only d0/a0 (caller-saved, not read by the stock tail).
+- **bloom_w reads the job [V emulator T4].** The combiner context gives only ctx+4 = request. The kind-3
+  blend request is the job-embedded one (0x60355439 returns job+11364; 0x60354cb9 sets request+0 =
+  0x60355fd4 for every kind). bloom_w applies the bundles `hl` guard unchanged (callback, request+4 equal
+  to one of the 16 records at request+3212 by arithmetic compare, record+0 == request−11364), then the
+  marker/mode/profile/slot checks, and returns w = table[strength−1] = 942/881/819/748/666.
+  Any failed check → 600 (the stock key-11 value). No mul/div, so the `retf` return (MDR) is intact.
+- **Mismatch case [I].** If on the camera the combiner sees a *copy* of the request (not job+11364), the
+  guard fails while the flag is set: the blend then runs at the stock Soft Focus weight 600 (41 % blur
+  share), i.e. stronger than strength 5. It is a stock-valid configuration, not a fault. First camera
+  test: strength 1 should look clearly weaker than strength 5.
+
+### v0.4 verification (`tools/ep7_bloom_verify.py`, `generated/v04/bloom/verify.json`)
+
+| Test | Result |
+|---|---|
+| T1 converter, keys × profile 0..4/5/255 × mode 11/12 × art effects, plus strength 0/6, effect 0, erased table | **PASS.** Patched == stock \| 0x80 exactly for key 11 + mode 11 + bloom slot; halation slot, off slot, MONO-slot profiles and bad values == stock |
+| T2 work list (with/without job extension) | **PASS.** Soft Focus entries as stock; with grain merged, `grain_mod` only when the job's slot enables grain |
+| T3 selector | **PASS** |
+| T4 combiner, strength 1..5 × records 0/3/15, 14 guard-failure cases, 7 other keys | **PASS.** w = W[s] with every other bank byte equal to stock key 11; every failure byte-identical to stock (w 600); other keys identical |
+| T5 spans | **PASS** (225 B, 3 spans) |
+| T7 real table (merged) | see `releases/v0.4-candidate/README.md` |
+
+Negative control: the v0.3 bloom build fails T1 and T4.
+
+### v0.3 fixed-strength patch (superseded)
+
 | Edit | Address | Stock | New |
 |---|---|---|---|
 | Flag hook | `0x603eabd7` (6 B), inside `0x603eab39` | `fa43f65d a000` (`movbu (24054,a3),d0; cmp 0,d0`) | `jmp bloom_flag; nop` |
@@ -137,7 +183,7 @@ Limits:
    - Lerp is the Pro-Mist energy model: it lowers highlights and lifts shadows.
    - The glow radius is fixed by 160×120.
    - Grain is softened by the blur share.
-5. **[V] Fixed strength.** Strength is fixed at build time. There is no menu, and it applies to all COLOR profiles until the bundle transport exists.
+5. **[V] Strength per profile (v0.4).** Strength comes from the bundle slot (build time). There is no menu; bloom is off for every profile whose slot does not ask for it.
 6. Inherited from v0.1 and grain: the update/restore path is untested on a camera, and a valid container does not prove the package boots.
 
 Files:

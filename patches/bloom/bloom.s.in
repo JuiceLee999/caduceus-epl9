@@ -1,21 +1,30 @@
-/* E-P7 1.1 "COLOR bloom" patch (ep7-firmware, our own code).
+/* E-P7 1.1 "COLOR bloom" patch v0.4 (ep7-firmware, our own code).
  *
  * Gives Color Profile (job key 11) stills the stock Soft Focus pipeline that the
  * Soft Focus art filter (key 0x01010065) and the Soft Focus Art Effect already use.
  * The pipeline is selected by job flag 0x80 (stock: art effect 1 -> 0x603eab57,
  * or key 0x01010065 -> 0x60353a23) and is key-independent from there on:
- *   work list 0x6035797b: classes 0-3 -> pass 0x6035c9c1 (reduce 0x1000->0x1060, effect
- *   0x0400; upscale 0x1060->0x1061, effect 0x0401) + entry 0x6035ca31 (kind-3 blend of
- *   0x1000 and 0x1061, effect 0x0402 -> combiner 11); classes 4-8 -> entry 0x6035cc1b
- *   (effect 0x0403 -> combiner 12).
- *   Combiner 11/12 (0x603a049e / 0x603a04f3) program a linear mix with weight
- *   w = 0x6039fee8(ctx) on one input and 1024-w on the other.
+ *   work list 0x6035797b: classes 0-3 -> pass 0x6035c9c1 + entry 0x6035ca31 (kind-3 blend
+ *   -> combiner 11); classes 4-8 -> entry 0x6035cc1b (-> combiner 12).
+ *   Combiner 11/12 program a linear mix with weight w = 0x6039fee8(ctx) on one input
+ *   and 1024-w on the other.
  *
- * Two pieces in the section-2 FF tail:
+ * v0.4 (review v0.3 H2): bloom is per profile and OFF by default. A COLOR slot of the
+ * v0.2 bundle table (patches/bundles/layout.json) enables it with effect_id (+28) == 1
+ * and effect_strength (+29) = 1..5; the strength selects w from w_lut.
+ *
  *   bloom_flag  converter 0x603eab39 (art effect -> job flags), replaces 6 bytes at
- *               0x603eabd7. Params key (params+8..11) == 11 -> flags |= 0x80.
- *   bloom_w     weight getter 0x6039fee8, replaces 6 bytes at its entry.
- *               ctx key == 11 -> w = {weight}; everything else -> stock code.
+ *               0x603eabd7. This runs BEFORE the job exists (0x603e611e is called before
+ *               the constructor 0x603537eb at 0x603e6d3e) and writes a stack params block,
+ *               so the job extension cannot be read here. It reads the same source bytes
+ *               the bundles transport copies into the job: capture+24083 (profile) and
+ *               capture+24053 (picture mode). Key 11 + mode 11 + profile 1..4 + slot
+ *               effect_id 1 + strength 1..5 -> flags |= 0x80. Anything else: stock.
+ *   bloom_w     weight getter 0x6039fee8, replaces 6 bytes at its entry. Key 11: prove
+ *               the request is the one embedded in a job (same callback / record / parent
+ *               guard as the bundles H/L routine), check marker/mode/profile, slot
+ *               effect_id 1 and strength 1..5 -> w = w_lut[strength-1]. Any failed check
+ *               -> 600, the stock value for key 11. Other keys: stock code.
  */
  .am33_2
  .text
@@ -24,7 +33,8 @@ _start:
 
 /* ---- entered by jmp from 0x603eabd7 inside 0x603eab39:
  *      a2 = params+12 (job flags word), a3 = capture; frame [a2,a3],20 untouched.
- *      params+8..11 = key bytes {b0, b1, hw} written by 0x603eaa04 just before. */
+ *      params+8..11 = key bytes {b0, b1, hw} written by 0x603eaa04 just before.
+ *      Free here (caller-saved, not read by the stock tail): d1, a0, a1. */
 bloom_flag:
  movhu (-2,a2),d0                 /* key halfword (params+10) */
  cmp 11,d0
@@ -32,6 +42,23 @@ bloom_flag:
  movhu (-4,a2),d0                 /* key bytes b0,b1 must be 0 */
  cmp 0,d0
  bne bf_resume
+ movbu ({cap_mode},a3),d0         /* picture mode COLOR */
+ cmp 11,d0
+ bne bf_resume
+ movbu ({cap_profile},a3),d0      /* profile 1..4 -> slot 0..3 */
+ add -1,d0
+ cmp 4,d0
+ bcc bf_resume
+ asl 6,d0
+ mov {table},a0
+ add d0,a0
+ movbu ({f_effect},a0),d0
+ cmp 1,d0                         /* effect_id 1 = bloom */
+ bne bf_resume
+ movbu ({f_strength},a0),d0
+ add -1,d0
+ cmp 5,d0                         /* strength 1..5 */
+ bcc bf_resume
  mov (a2),d0
  or 128,d0                        /* job flag 0x80: Soft Focus pipeline */
  mov d0,(a2)
@@ -40,13 +67,64 @@ bf_resume:
  cmp 0,d0                         /* replaced: stock 0x603eabdb */
  jmp ep7_bf_back                  /* 0x603eabdd: bne 0x603eabe7 */
 
-/* ---- entered by jmp from 0x6039fee8 (called with call ...,[],0; a0 = combiner ctx). */
+/* ---- entered by jmp from 0x6039fee8 (called with call ...,[],0; a0 = combiner ctx,
+ *      ctx+4 = request, ctx+52 = key). Exit like stock 0x6039ff29 (retf [],0; no
+ *      mul/div, so MDR is intact). Stock clobbers d0/d1/a0/a1; so do we. */
 bloom_w:
  mov (52,a0),a1                   /* replaced: key */
  cmp 11,a1
  bne bw_stock
- mov {weight},d0                  /* mix weight (Q10) on the first input */
- retf [],0                        /* same exit as stock 0x6039ff29 */
+ mov (4,a0),a1                    /* request */
+ mov (a1),d0
+ cmp {callback},d0
+ bne bw_default
+ mov (4,a1),d0                    /* request+4 -> selected record */
+ mov a1,a0
+ add {rec_off},a0
+ mov {n_rec},d1
+bw_scan:
+ cmp a0,d0                        /* arithmetic match before any dereference */
+ beq bw_hit
+ add {stride},a0
+ add -1,d1
+ bne bw_scan
+ bra bw_default
+bw_hit:
+ mov (a0),d1                      /* record+0 = parent job */
+ mov a1,a0
+ add -{req_in_job},a0             /* a0 = job */
+ cmp a0,d1
+ bne bw_default
+ movbu ({ext_magic},a0),d0
+ cmp {magic},d0
+ bne bw_default
+ movbu ({ext_mode},a0),d0
+ cmp 11,d0
+ bne bw_default
+ movbu ({ext_profile},a0),d0
+ add -1,d0
+ cmp 4,d0
+ bcc bw_default
+ asl 6,d0
+ mov {table},a0
+ add d0,a0
+ movbu ({f_effect},a0),d0
+ cmp 1,d0
+ bne bw_default
+ movbu ({f_strength},a0),d0
+ add -1,d0
+ cmp 5,d0
+ bcc bw_default
+ add d0,d0
+ mov w_lut,a0
+ movhu (d0,a0),d0                 /* mix weight (Q10) on the first input */
+ retf [],0
+bw_default:
+ mov 600,d0                       /* stock result for key 11 (0x6039feeb, exthu) */
+ retf [],0
 bw_stock:
  mov 600,d0                       /* replaced */
  jmp ep7_bw_back                  /* 0x6039feee: cmp 0x01010065,a1 */
+ .balign 2
+w_lut:                            /* strength 1..5 -> w */
+ .hword {w_lut}

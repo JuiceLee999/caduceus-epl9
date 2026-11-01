@@ -43,6 +43,43 @@ Nothing here proves that the ISP leaves chroma alone.
 
 ## 3. Patch design
 
+### v0.4: per-profile, off by default, stock job-type gate (implemented; supersedes the v0.3 placement below)
+Fixes review v0.3 H1 and H2 (docs/REVIEW_v03.md). Build: `python3 -I patches/grain/build.py --out <dir>`
+(no level argument any more). Needs the bundles patch in the same package; without it the table bytes are
+erased (0xFF), every check fails and the output is stock.
+
+| Edit | Address | Stock | New |
+|---|---|---|---|
+| Work-list hook | `0x6035749f` (7 B) | `aa0cc605cc0604` | `jmp wl_hook; nop; nop` |
+| Selector hook | `0x603b5249` (7 B) | `aa0cc605cc5201` | `jmp sel_hook; nop; nop` |
+| Code | `0x60210ce0–0x60210dde` (254 B, sec-1 FF tail; claim 0x60210ce0–0x60210e00) | FF | `wl_hook`, `sel_hook`, `grain_mod` |
+
+The code moved from the section-2 tail (128 B, too small) to section 1. Section 1 loads first, so the
+sec-2/sec-5 hooks can never run before it exists. The old 0x6055e680–0x6055e700 range is left FF.
+
+- **H1, job-type gate [V emulator T6].** Before attaching anything, `wl_hook` runs the same test as
+  stock key 12 at 0x6035778b: `movhu (16,a2)` = job+20; if `type&0xf0 ∈ {0x10,0x20,0x40}` or
+  `type&0xf00 == 0x100`, it goes to the plain default entry 0x603578a9 (no grain). So the special
+  capture jobs from capture-request kinds 0x2001/0x2006 (types 0x110/0x120 from mapper 0x603ea909) are
+  never grained, exactly as stock MONO.
+- **H2, per profile [V emulator T2/T3/T4].** Both `wl_hook` (a2 = job+4) and `grain_mod` (a0 = job) can
+  reach the job, so both read the v0.2 transport bytes directly:
+  job+15490 == 0xB2, job+15489 == 11, job+15488 = profile 1..4 → slot 0..3, then slot+24 (`grain`) must
+  be 1..3. The level written to request+1828 is that byte (gain 50/75/100). Any failure (no marker,
+  invalid index, mode ≠ 11, grain 0 or > 3, erased table) → stock work list / untouched request.
+  `grain_mod` re-checks everything, because it uses `retf` (no calls, MDR intact); it clobbers d0 and a0
+  only, and its caller (0x60356d72) uses only d0 afterwards.
+- **Where the job comes from [static].** The builder 0x60357415 is reached only from 0x60356297 ←
+  0x60354756 (job dispatcher), and every job is made by the constructor 0x603537eb (the only `mov 15488`).
+  With the bundles patch, every job is 15512 B and its extension is zeroed, so jobs that never pass
+  conv1/conv2 have no marker → stock.
+- **Remaining difference from stock MONO [I, risk 1 below].** For job classes 0–3 (job+11320 == 0) stock
+  MONO uses the two-pass mask route; COLOR still uses the single-pass 0x0902 combiner. T6 checks that
+  grain is present for exactly the same job types in both, and for classes 4–9 that the work list is
+  identical to stock MONO's (with `grain_mod` in place of 0x60359e5e).
+
+### v0.3 Approach B: fixed level (superseded by v0.4)
+
 ### Approach B: fixed level (implemented: `patches/grain/`)
 The patch adds the stock single-pass MONO configuration to COLOR jobs.
 
@@ -83,6 +120,21 @@ It needs the mask job, a 0302 intermediate plus an output pass, and a key-11 →
 the mask wrapper forces a mono word and the buffers are about 96 MiB. It is much larger.
 
 ## 4. Verification (emulator; `tools/ep7_grain_verify.py`, fishcu's libsim runner)
+
+**v0.4 (current verifier, `generated/v04/grain/verify.json`).** A synthetic bundle table is injected at
+0x60210900; on a merged spec the real table is also used (T7).
+
+| Test | v0.4 result |
+|---|---|
+| T1 selector matrix | **PASS**, as v0.3 |
+| T2 work list, 13 per-profile cases | **PASS.** Grain only for marker+mode 11+profile 1..4+slot grain 1..3; no marker, wrong marker, mode 12, profile 0/5/255, grain 0/4/0xFF → byte-identical to stock. Keys 0/5/10/12/0x01010068 identical to stock |
+| **T6 job-type gate vs stock MONO (H1)** | **PASS (77 rows).** Capture kinds 0x2001/0x2006 ((206) = 1/2, 0x603ed45a = 0/1), 0x1008/0x1006/0x1001/0x3001/0 run through the stock mapper 0x603ea909 (types 0x110, 0x120, 0x1000, 0x0), plus 22 direct types, each at job class 0 and 4. Patched COLOR grains a job **iff** the full stock key-12 handler grains it (two-pass mask route at class 0, single-pass 0x0902 at class 4); class-4 lists equal stock MONO's except the modifier address; gated jobs equal stock COLOR exactly. Negative control: the v0.3 grain build FAILS T2/T3/T4/T6 |
+| T3 modifier, 13 cases × kind 0/3 × 2 input levels | **PASS.** Valid slot → stage 0x0902 + level; else untouched; job untouched |
+| T4 combiner config, slot grain 0..3 | **PASS.** 1..3 → handler 32, gain 50/75/100, bank identical to stock MONO 0x0902; 0 → stock |
+| T5 spans | **PASS** (264 B in 3 spans) |
+| T7 real table (merged) | **PASS** on `releases/v0.4-candidate/edits.json` (see its README) |
+
+v0.3 results (fixed level) for reference:
 These runs check CPU-side configuration only; they say nothing about pixels. Each one builds the real
 package in memory with `tools/build_package.build` and runs patched vs stock code.
 
@@ -98,6 +150,7 @@ package in memory with `tools/build_package.build` and runs patched vs stock cod
 Example output: `generated/grain-color-L2/{edits.json,verify.json}`.
 
 ## 5. Risks (highest first)
+0. **v0.4 load (H2).** Grain now runs only on COLOR profiles whose bundle slot sets `"grain"`. A bundle with no grain gives stock COLOR jobs.
 1. **[I] Combiner 32 runs on full-size stills.** Stock uses it only for job classes 4–9 (job+11320 ≠ 0). Full-res MONO uses the mask route. The internal-mask path may have width or line-buffer limits, and could fail or corrupt output on full-size COLOR images. This is the main unknown.
 2. **[I] Chroma preservation and the look are unproven.** The weighting uses no 0x605003aa mask, and gains 50/75/100 are lower than 110/300/600, so grain will probably be finer and weaker than MONO Low/Med/High.
 3. **[V] Modifier slot.** Our modifier takes the development entry's single modifier slot (0x603573d3). Later feature modifiers on COLOR jobs then use the stock fallback, a separate entry. Stock MONO 0902 behaves the same way, but this means an extra pass and more memory for COLOR + features. Not traced for the COLOR shading path.

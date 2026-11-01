@@ -74,13 +74,17 @@ within 3.5 % in u16 (w,h), u16 rects, u16 (id,0,w,h), u16 (w,h,code) and u32 (id
 - **Ratio code** [V encoding]: `code = (H<<8) | W` (0x304 = 4:3, 0x910 = 16:9, 0x911 = 17:9, 0x403 = 3:4).
   So **65:24 = 0x1841** (the guess was correct) and **21:9 = 0x0915**.
 - **Dimensions**: width = max(width of the table's 4:3 row, width of its 16:9 row), which is the sensor or panel width.
-  Height = nearest multiple of the table's own alignment (the 2-power gcd of its stock dims, clamped 2..8).
-  Stock precedent: L heights are multiples of 8 but not of 16 (16:9 2920, 7:5 3704), widths are multiples of 16.
-  - L: **5184×1912** (1914.1 → 1912) and **5184×2224** (2221.7 → 2224). Both are 8-aligned like stock 2920/3704.
-  - Other examples: 4032×1488/1728, 3200×1184/1368, 2560×944/1096, 1600×592/688, 1280×472/552, 1024×376/440,
-    640×240/272, 320×120/136, 8160×3016/3496, 5760×2128/2472, 160×60/68 (EXIF-thumb class, align 2).
-  - Display: 720×264/308 (panel table, align 4), 1008×372/432, 1024×378/438. The 640 rect is (0,122,640,236) /
-    (0,103,640,274), plus the clipped second rect, following the stock rule (window origin, band 34..445 / 17..222).
+  Height = **nearest multiple of 16** in every table (v0.4, review v0.3 M1; v0.3 used the table's own
+  2-power alignment clamped 2..8, which produced heights such as 1280×472 that the shipped firmware never makes).
+  16 is the alignment of every UI-reachable stock row in the 1024/1280/1600/2560/320/4032 classes, and it is a
+  multiple of every other table's stock alignment (2, 4 or 8), so every new height stays in its table's
+  stock size class. `build.py` asserts this per table and re-checks all 88 new heights (check "M1").
+  - L: **5184×1920** (1914.1 → 1920) and **5184×2224** (2221.7 → 2224).
+  - Other examples: 4032×1488/1728, 3200×1184/1376, 2560×944/1104, 1600×592/688, 1280×480/544, 1024×384/432,
+    640×240/272, 320×112/144, 8160×3008/3504, 5760×2128/2464, 160×64/64 (EXIF-thumb class: 60.9 and 68.6 both
+    round to 64, so XPan and 21:9 share that tiny thumbnail size).
+  - Display: 720×272/304 (panel table), 1008×368/432, 1024×384/432. The 640 rect is (0,120,640,240) /
+    (0,104,640,272), plus the clipped second rect, following the stock rule (window origin, band 34..445 / 17..222).
   - 1920×1080 "all ids" list (key 0x1) unchanged; 4:3-only classes unchanged.
 - **Menu** [V]: the new 8-entry list goes at **0x61242f00** (sec-6 FF tail, same section as the descriptor):
   `4:3, 16:9, 3:2, 1:1, 3:4, Panorama(6), Wide(7), 17:9`, and the descriptor becomes `{270, 8, 0x61242f00}`.
@@ -94,19 +98,20 @@ within 3.5 % in u16 (w,h), u16 rects, u16 (id,0,w,h), u16 (w,h,code) and u32 (id
 
 ### What the user would see [I]
 - Menu: "Panorama" and "Wide" after 3:4.
-- JPEG: 5184×1912 / 5184×2224 (and the smaller sizes), if no unpatched consumer is left.
+- JPEG: 5184×1920 / 5184×2224 (and the smaller sizes), if no unpatched consumer is left.
 - ORF: full sensor data with AspectFrame = the new centred crop. ExifTool would print AspectRatio "7:6"/"6:5" (it decodes
   the id, not the dims). Adobe/other converters that honour the frame crop get the new crop.
 - LV and info screen: S1–S6 and the rect tables give the new frame. The aspect icon for ids 6/7 has **no entry**.
   What happens on a miss is unknown (blank is likely).
 
-## 4. Emulator checks (`python3 patches/aspect/build.py`, all PASS)
+## 4. Emulator checks (`python3 patches/aspect/build.py`, 137/137 PASS in v0.4)
 
 | Check | Stock → patched (id 6 / id 7) |
 |---|---|
-| T 0x6034ee0b ids 1..10 | (4544,3888,0x607)/(4672,3888,0x506) → (5184,1912,0x1841)/(5184,2224,0x0915); others identical |
-| X crop scale 0x6035585e from 5184×3888, ids 1..9 | 4544×3888 / 4672×3888 → **5184×1912 / 5184×2224**; others identical |
-| L size loop 0x60a38c85, 19 size keys × ids 1,6,7,9 | new rows have full width, height within 4 px of the exact ratio; 4:3-only and HDMI rows unchanged |
+| T 0x6034ee0b ids 1..10 | (4544,3888,0x607)/(4672,3888,0x506) → (5184,1920,0x1841)/(5184,2224,0x0915); others identical |
+| X crop scale 0x6035585e from 5184×3888, ids 1..9 | 4544×3888 / 4672×3888 → **5184×1920 / 5184×2224**; others identical |
+| L size loop 0x60a38c85, 19 size keys × ids 1,6,7,9 | new rows have full width, a 16-aligned height within 8 px of the exact ratio; 4:3-only and HDMI rows unchanged |
+| M1 | all 88 new id-6/7 heights (every table + the 640-class case blocks) are multiples of 16 |
 | S1–S4 (getter stubbed), ids 1,3,5,6,7,8,9 | 560×480 / 576×480 → 640×240 / 640×272; others identical; sp balanced |
 | S5 ratio, ids 1,2,3,6,7,8,10 | (7,6)/(6,5) → (65,24)/(21,9) |
 | S6 fit group | ids 6/7 now reach the width-limited case 0x60879e70; ids 2/3/10 unchanged |
@@ -115,8 +120,8 @@ within 3.5 % in u16 (w,h), u16 rects, u16 (id,0,w,h), u16 (w,h,code) and u32 (id
 **Not emulated**: the JPEG encoder, thumbnail/EXIF writer, ORF writer, LV pipeline (rect users) and menu rendering.
 
 ## 5. Residual risks
-1. **JPEG encoder alignment** [I]: 1912 ≡ 8 (mod 16), which is the same class as stock 2920/3704. So 4:2:2 MCUs (16×8) are fine.
-   If any path uses 4:2:0 (16×16 MCU), it already copes with 2920. Small classes (e.g. 640×240) are 8-aligned.
+1. **JPEG encoder alignment** [I]: since v0.4 every new height is a multiple of 16 (1920, 2224, …), so both 4:2:2
+   (16×8) and 4:2:0 (16×16) MCUs tile exactly. Every M/S size now has a height class that stock UI-reachable rows already use.
 2. **Thumbnails / preview** [I]: 160-class and the 1024/1280/640 preview arrays are patched. If another, unlisted embedded-preview
    size table exists (a layout the scanner does not cover), it keeps 7:6/6:5 geometry → a wrong-shaped preview.
 3. **Playback with unknown dims** [I]: playback reads tag 0x1112 (id 6/7) and probably sizes the display from the patched tables,

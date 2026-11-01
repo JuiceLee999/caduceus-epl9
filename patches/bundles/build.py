@@ -12,7 +12,11 @@ expectations. Also writes routine.s / routine.lst / routine.bin / symbols.json.
 v0.2 consumes hue/light of COLOR1-4. The WB fields (wb_flags bit0, wb_ab, wb_gm) of all 8 slots are
 read by the per-profile WB patch (patches/wb, merged separately). A slot's "wb": {"a_b": n, "g_m": n}
 sets the override (else the recipe's wb_shift; "wb": null disables an inherited one).
-grain, effect, vignette are stored in the table but nothing reads them yet. Saturation is NOT part of the patch: the
+A MONO slot with "render_colour": true also gets colour = 1 (+32), sat[12] (+33; slot "sat" or the
+recipe's, stock range -5..5) and flags bit1 (H/L); patches/mono_colour reads them.
+grain (+24, slot "grain": low|medium|high; recipe grain is NOT inherited) is read by patches/grain v0.4 and
+effect_id/effect_strength (+28/+29, slot "effect": {"type": "bloom", "strength": 1-5}) by patches/bloom v0.4;
+both are off unless the slot sets them. Vignette and halation are stored only. Saturation is NOT part of the patch: the
 user's per-profile saturation setting still applies (the recipe value is reported as advice).
 
 Edits (all in main, component 0x100):
@@ -57,12 +61,15 @@ SLOTS = ['COLOR1', 'COLOR2', 'COLOR3', 'COLOR4', 'MONO1', 'MONO2', 'MONO3', 'MON
 GRAIN = {'off': 0, 'low': 1, 'medium': 2, 'med': 2, 'high': 3}
 EFFECT = {'none': 0, 'bloom': 1, 'halation': 2}
 FLAG_RENDER_COLOUR, FLAG_HL = 1, 2
+COLOUR_OFF, SAT_OFF = 32, 33               # MONO colour rendering (patches/mono_colour): u8 == 1, s8 x12
 WB_OVERRIDE = 1                            # wb_flags bit0 (layout.json); bit7 must stay 0
 ENTRY = 64
 # Grain (0x6055e680..0x6055e6fa, hooks 0x6035749f+7, 0x603b5249+7) and rec_limit
 # (0x60319157+2, 0x6031915c+2) reservations: never overlap them.
 RESERVED = [(0x6055e680, 0x6055e6fa), (0x6035749f, 0x603574a6), (0x603b5249, 0x603b5250),
-            (0x60319157, 0x60319159), (0x6031915c, 0x6031915e)]
+            (0x60319157, 0x60319159), (0x6031915c, 0x6031915e),
+            (0x60210ce0, 0x60210e00), (0x60210e10, 0x60210ef0),   # v0.4 grain / bloom code (sec 1)
+            (0x603eabd7, 0x603eabdd), (0x6039fee8, 0x6039feee)]   # v0.4 bloom hooks
 # Per-profile WB (patches/wb): stub reservation + the rel32 of each redirected getter call.
 WB_STUB = (0x6055e700, 0x6055e7a6)
 
@@ -98,7 +105,7 @@ def slot_entry(name, slot, recipes):
     e = bytearray(ENTRY)
     if slot is None:
         return bytes(e), dict(slot=name, enabled=False)
-    unknown = set(slot) - {'recipe', 'wb', 'grain', 'effect', 'vignette', 'render_colour'}
+    unknown = set(slot) - {'recipe', 'wb', 'grain', 'effect', 'vignette', 'render_colour', 'sat'}
     if unknown:
         raise ValueError(f'{name}: unknown keys {sorted(unknown)}')
     rname = slot.get('recipe')
@@ -112,9 +119,12 @@ def slot_entry(name, slot, recipes):
     light = [ival(v, -7, 7, f'{name} light') for v in light]
     e[0:12] = struct.pack('<12b', *hue)
     e[12:24] = struct.pack('<12b', *light)
-    grain = slot.get('grain', rc.get('grain') or 'off')
-    if grain not in GRAIN:
-        raise ValueError(f'{name}: grain {grain!r}')
+    # Grain (consumed by patches/grain v0.4): per slot and OFF by default. Only the slot's own
+    # "grain": "low|medium|high" enables it; a recipe's grain is NOT inherited (reported as advice),
+    # so no profile gets the extra grain pass unless the bundle asks for it (review v0.3 H2).
+    grain = slot.get('grain', 'off')
+    if not isinstance(grain, str) or grain not in GRAIN:
+        raise ValueError(f'{name}: grain {grain!r} (use one of {sorted(GRAIN)})')
     e[24] = GRAIN[grain]
     # WB fine-tune override (consumed by patches/wb): slot "wb" wins over the recipe's wb_shift;
     # "wb": null explicitly disables an inherited recipe wb_shift. Present -> wb_flags bit0 + values.
@@ -128,24 +138,44 @@ def slot_entry(name, slot, recipes):
                                ival(wb.get('g_m', 0), -7, 7, f'{name} wb g_m'))
     else:
         wb_src = None
+    # Effect (bloom consumed by patches/bloom v0.4; halation stored only): {"type": "bloom", "strength": 1-5}.
     eff = slot.get('effect')
     if eff is not None:
-        if eff.get('type') not in EFFECT:
-            raise ValueError(f'{name}: effect type {eff.get("type")!r}')
+        if not isinstance(eff, dict) or set(eff) - {'type', 'strength'} or eff.get('type') not in EFFECT:
+            raise ValueError(f'{name}: effect must be {{"type": "bloom|halation|none", "strength": 1-5}}, got {eff!r}')
         e[28] = EFFECT[eff['type']]
-        e[29] = ival(eff.get('strength', 0), 0, 255, f'{name} effect strength')
+        if e[28]:
+            if 'strength' not in eff:
+                raise ValueError(f'{name}: effect {eff["type"]} needs "strength": 1-5')
+            e[29] = ival(eff['strength'], 1, 5, f'{name} effect strength')
+        elif eff.get('strength', 0) != 0:
+            raise ValueError(f'{name}: effect none takes no strength')
     e[30] = struct.pack('<b', ival(slot.get('vignette', rc.get('vignette') or 0), -5, 5, f'{name} vignette'))[0]
-    flags = FLAG_HL if name.startswith('COLOR') else 0      # v0.2: only COLOR H/L is consumed
+    flags = FLAG_HL if name.startswith('COLOR') else 0      # v0.2 consumes COLOR H/L
+    sat = None
+    if 'render_colour' in slot and not isinstance(slot['render_colour'], bool):
+        raise ValueError(f'{name}: render_colour must be true/false')
+    if 'sat' in slot and not slot.get('render_colour'):
+        raise ValueError(f'{name}: "sat" is only used by a MONO slot with render_colour')
     if slot.get('render_colour'):
         if not name.startswith('MONO'):
             raise ValueError(f'{name}: render_colour is a MONO-slot flag')
-        flags |= FLAG_RENDER_COLOUR
+        # patches/mono_colour: colour byte (+32) == 1, sat[12] (+33, request+1816 order, -5..5) and the
+        # slot's H/L (flags bit1) replace MONO's grey rendering. Saturation comes from the slot ("sat")
+        # or the recipe; a value outside the stock -5..5 is an error (no silent clamping).
+        sat = slot.get('sat', rc.get('sat', [0] * 12))
+        if not isinstance(sat, list) or len(sat) != 12:
+            raise ValueError(f'{name}: sat needs 12 values')
+        sat = [ival(v, -5, 5, f'{name} sat (stock range; give an explicit "sat")') for v in sat]
+        flags |= FLAG_RENDER_COLOUR | FLAG_HL
+        e[COLOUR_OFF] = 1
+        e[SAT_OFF:SAT_OFF + 12] = struct.pack('<12b', *sat)
     e[31] = flags
     return bytes(e), dict(slot=name, enabled=bool(flags & FLAG_HL), recipe=rname, recipe_file=rc['_file'],
                           hue_ui=hue, light_ui=light, grain=e[24], wb_override=bool(e[25]), wb_source=wb_src,
                           wb=list(struct.unpack('<2b', e[26:28])), effect=[e[28], e[29]],
                           vignette=struct.unpack('<b', e[30:31])[0], flags=flags,
-                          advice_sat_ui=rc.get('sat'),
+                          advice_sat_ui=rc.get('sat'), advice_grain=rc.get('grain'), colour=e[COLOUR_OFF], sat_ui=sat,
                           native_rows=native_rows(hue, light))
 
 
@@ -246,8 +276,9 @@ def make_spec(bundle_path):
     if code[labels['bundle_table'] - CODE_AT:labels['bundle_table_end'] - CODE_AT] != table:
         raise ValueError('table bytes not found at bundle_table')
     lay = json.loads((Path(__file__).parent / 'layout.json').read_text())
-    if [lay['fields'][k][0] for k in ('wb_flags', 'wb_ab', 'wb_gm')] != [25, 26, 27]:
-        raise ValueError('layout.json wb field offsets disagree with slot_entry()')
+    if [lay['fields'][k][0] for k in ('wb_flags', 'wb_ab', 'wb_gm', 'colour', 'sat')] != \
+            [25, 26, 27, COLOUR_OFF, SAT_OFF]:
+        raise ValueError('layout.json wb/colour/sat field offsets disagree with slot_entry()')
     if (int(lay['bundle_table'], 16), lay['slot_bytes'], lay['slots'], lay['job_extension']['job_size'],
             lay['job_extension']['marker'], int(lay['job_extension']['marker_value'], 16)) != \
             (BUNDLE_TABLE, ENTRY, SLOTS, JOB_SIZE + EXT, EXT_MAGIC, MAGIC):
