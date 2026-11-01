@@ -55,9 +55,6 @@ Names are at most 12 characters, because the LIBRARY.BIN name field caps them th
 
 All looks on each test image. The first tile is the E-P7 neutral sim.
 
-Portrait (testdata/camera_t5/PB010074):
-![portrait](img/library/sheet_portrait.jpg)
-
 Red roof and sky (camera_t5/PB010073):
 ![roof](img/library/sheet_roof.jpg)
 
@@ -67,7 +64,7 @@ Sunset (PA211064):
 Flower (camera_t5/PB010024):
 ![flower](img/library/sheet_flower.jpg)
 
-Overview, one row per look: portrait, roof, sunset, valley (PA211089), flower:
+Overview, one row per look: roof, sunset, valley (PA211089), flower:
 ![overview](img/library/overview.jpg)
 
 ## Caveats
