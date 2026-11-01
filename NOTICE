@@ -1,0 +1,16 @@
+Caduceus — firmware patches for the Olympus PEN E-P7
+Copyright 2026 cakelesscoder
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This repository contains no Olympus / OM Digital Solutions firmware. The builder downloads the
+official firmware from OM's own server on the user's machine.
+
+Third-party:
+- external/oly_fw_analysis (git submodule, fishcu): PEN-F firmware research and MN103 emulator harness,
+  used by the developer verification tools only. It is not part of Caduceus and keeps its own licence
+  (GPL-3.0 for its code); it is not needed to build or install Caduceus.
+- Community film recipes are credited to their authors in docs/LIBRARY_V1.md.
+
+"Olympus", "PEN", "OM SYSTEM" and film names are trademarks of their respective owners. Not affiliated
+with OM Digital Solutions, Fujifilm or Kodak.

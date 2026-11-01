@@ -17,7 +17,7 @@ recording.
 > Bugs will turn up, and flashing modified firmware can crash, freeze or brick your camera, corrupt photos or
 > damage your SD card's data. **The author accepts no responsibility for any damage, data loss or other harm**
 > to your camera, cards, files or anything else. It is provided "as is", without warranty of any kind (see the
-> [GPL v3](LICENSE), sections 15–16). Using it may affect your warranty with OM Digital Solutions.
+> [Apache License 2.0](LICENSE), sections 7–8). Using it may affect your warranty with OM Digital Solutions.
 >
 > Every patch is checked in an emulator of the camera's CPU before it goes on a camera, the SD update and
 > restore path is proven on a real E-P7 (including recovery from a bootloop), and features marked
@@ -219,8 +219,9 @@ welcome: please open an issue.
 
 ## License
 
-Caduceus patch code, tools and docs are released under the [GNU GPL v3](LICENSE). The OM firmware itself is
-not included or redistributed: the builder downloads it from OM's own server on your machine.
+Caduceus patch code, tools and docs are released under the [Apache License 2.0](LICENSE). The OM firmware itself is
+not included or redistributed: the builder downloads it from OM's own server on your machine. The
+`external/oly_fw_analysis` submodule (developer tools only) keeps its own licence. See [NOTICE](NOTICE).
 
 Not affiliated with OM Digital Solutions or Fujifilm. "Olympus", "PEN" and film names are trademarks of their
 owners.
