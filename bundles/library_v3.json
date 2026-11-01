@@ -98,10 +98,10 @@
    "notes": "Airy pastel negative: minty greens, light cyan skies."
   },
   "aerochrome": {
-   "name": "Aerochrome",
-   "recipe": "lib3_aerochrome",
+   "name": "Faux IR",
+   "recipe": "lib2_aerochrome",
    "grain": "low",
-   "notes": "False-colour infrared (Kodak Aerochrome-style, v0.17 extended hue): crimson foliage, orange reds, pale skin, near-black blues, deep skies. Needs v0.17+. Sat advice: strong (+3..+5)."
+   "notes": "Infrared-inspired false colour (golden/orange foliage, deep blue skies). Not true Aerochrome: the hue range can't turn green red. Sat advice: strong (+3..+5)."
   },
   "kchrome25": {
    "name": "Kodachrome25",
