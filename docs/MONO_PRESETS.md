@@ -193,3 +193,17 @@ only with `EP7M` at P+1008, and it is cleared by `mp_resume` and by every editor
 **Colour Film page as host?** No. The Color Profile editor opens only in COLOR modes (Up re-reads setting 111
 ∈ {54, 55, 56, 64}), and its children are the COLOR saturation ids, so a MONO slot cannot reach it. The mono
 picker therefore stays in the MONO editors. Note for the 8-slot agent: this needs no change in film_menu_v2.
+
+### v0.15b: camera result and rework
+
+- **Camera (441ffd6):** INFO toggled the Film-page label, so the +44 hook and the redraw both work. On the Film
+  page, though, the dials and arrows never stepped a preset. On the Profile-switch route those events do not
+  reach record +12..+28; the real path is untraced.
+- **Rework:** **INFO steps to the next preset** (wrapping), as in v0.14. That route is camera-proven to apply the
+  preset. The guide label is the new part: `Film: <name>`, with `*` once a setting is hand-edited, or
+  `Film[INFO]` when the slot has no preset.
+- **Removed:** the Film page, its arrow, rear-dial and init hooks, and P+1012. Only the 8 INFO words and the
+  2 label sites remain. MENU, PLAYBACK, the dials and the arrows are all stock.
+- **Size:** part A is 600 B and part B 780 B, with the same claims as before.
+- **Verified:** S 155 (incl. all un-hooked words stock), H 48, L 232.
+- **Open:** dial or arrow stepping, which needs a trace of the Profile-switch editor's key path.

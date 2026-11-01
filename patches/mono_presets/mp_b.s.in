@@ -65,15 +65,7 @@ mp_lblw:                          /* frame: (0) calls, (4) d1, (8) operand, (12)
 1:
  PVAL l_out                       /* a2 = P */
  mov a2,(20,sp)
- clr d3                           /* d3 bit 0: Film page, bit 1: '*' */
- mov ({mmark},a2),d0
- cmp {mmagic},d0
- bne 2f
- movbu ({mpage},a2),d0
- cmp 1,d0
- bne 2f
- mov 1,d3
-2:
+ mov 1,d3                         /* d3 bit 0: Film text (always since v0.15b), bit 1: '*' */
  mov (672,a2),d0                  /* a2 = the preset named like slot m, or 0 */
  cmp {nmagic},d0
  bne 6f
@@ -105,7 +97,8 @@ mp_lblw:                          /* frame: (0) calls, (4) d1, (8) operand, (12)
  cmp {n},d0
  bne 3b
 6:
- mov 0,a2                         /* no preset */
+ mov 0,a2                         /* no preset: "Film[INFO]" */
+ clr d3
  bra l_text
 7:
  mov a2,(24,sp)                   /* '*': the {nf} settings of MONO m against the preset */
@@ -173,7 +166,7 @@ l_text:                           /* a2 = preset or 0, d3 = flags */
  call l_put,[],0
  cmp 0,a2
  bne 3f
- mov mp_t_cust,a1
+ mov mp_t_fm,a1
  call l_put,[],0
  bra l_out
 3:

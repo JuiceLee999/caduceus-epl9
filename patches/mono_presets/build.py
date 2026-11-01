@@ -39,14 +39,8 @@ KEYS_F = [0x13b6, 0x13b7, 0x13b8, 0x140d]    # MONO1-4 colour filter editors (ch
 KEYS_S = [0x13b9, 0x13ba, 0x13bb, 0x140e]    # MONO1-4 shading editors (995 ...)
 INIT = 0x60e20a54                        # record +4 (every editor parent)
 # hooked record words: offset -> (name, stock filter word, stock shading word, our symbol f, our symbol s)
-HOOKS = {4: ('init', INIT, INIT, 'mp_init', 'mp_init'),
-         12: ('up', 0x60e22b0c, 0x60e22d90, 'mp_up_f', 'mp_up_s'),
-         16: ('down', 0x60e22b55, 0x60e22dbc, 'mp_dn_f', 'mp_dn_s'),
-         20: ('left', 0x60e22b9e, 0x60e22de8, 'mp_lt_f', 'mp_lt_s'),
-         24: ('right', 0x60e22bca, 0x60e22dec, 'mp_rt_f', 'mp_rt_s'),
-         44: ('INFO', INFO_F, INFO_S, 'mp_info_f', 'mp_info_s'),
-         28: ('rear dial', 0x60e22bf6, 0x60e22df0, 'mp_d1_f', None)}   # filter records only; shading +28 stays stock
-OPS = [44, 12, 16, 20, 24]           # op = 2 act + kind, act in this record-offset order (mp.s.in mp_tramp)
+HOOKS = {44: ('INFO', INFO_F, INFO_S, 'mp_info_f', 'mp_info_s')}   # v0.15b: INFO steps presets (camera-proven route)
+OPS = [44]           # op = 2 act + kind, act in this record-offset order (mp.s.in mp_tramp)
 DESC = 0x61186ba4                        # editor descriptor table (47 x {u16 key, u16 n, u32 children})
 # per MONO m: filter, filter strength, toning, grain, shading, highlights, shadows, midtones. From the picture
 # parameter builder 0x602b7b71 MONO branches (public modes 57/58/59/65) and the validator lists 0x604cc98c [V];
@@ -193,9 +187,9 @@ def audit(code, at, data_at, what):
 
 
 def label_texts(ps):
-    out = ['Film[INFO]', 'Film: Custom']
+    out = ['Film[INFO]']
     for p in ps:
-        out += [f'Film: {p["name"]}*', f'{p["name"]}*[INFO]']
+        out += [f'Film: {p["name"]}*']
     return out
 
 

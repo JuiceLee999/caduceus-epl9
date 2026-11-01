@@ -2,25 +2,14 @@
  * Part A (code): section 1, dead EVF gamma step-6 B + step-5 R/G/B tables 0x601e283c.. (only refs: step-table
  * words 0x601e3ce8, 0x601e3cd0/d4/d8). Part B (mp_b: label, keys, ids, presets): dead EVF step-11 tables.
  *
- * v0.15 picker. Hooked words of the 8 MONO editor records (filter keys 0x13b6/0x13b7/0x13b8/0x140d, shading keys
- * 0x13b9/0x13ba/0x13bb/0x140e), all CALLS entries (d0 event, d1 arg, a0 parent):
- *   +4  init  -> mp_init : Film page off (P+{mpage} = 0) when a card table is loaded, then jmp stock init.
- *   +44 INFO  -> op 0    : toggle the Film page (12d camera: INFO reaches the editors; MENU/PLAYBACK do not).
- *   +12 Up / +20 Left -> op 1 / 3: on the Film page, next preset.  +16 Down / +24 Right -> op 2 / 4: previous
- *                          (the stock handlers send 0x9004 to the child for Up and Left). Every dial notch and
- *                          touch drag reaches these words through parent+48..+60.
- *   +28 filter rear dial -> mp_d1_f: on the Film page jmp the shading editor's dial routine 0x60e22df0 (same
- *                          delta, Up/Down helpers, no setting-130 gate), else the stock 0x60e22bf6.
- * Take-over needs: card table (valid P), parent != 0, key -> MONO m of the record's kind, 1..2 children, no held
- * gesture, and for the arrows the Film page (P+{mmark} 'EP7M' and P+{mpage} == 1). A preset step writes the {nf}
- * stock settings of MONO m through the facade SetValue (the stock edit path), the slot name P+608+16m ('EP7N';
- * names zeroed first when the table had none) and dirty (the editor's half-press save writes BUNDLES.BIN).
- * After a step or a page toggle: stock child refresh 0x60de3670 on every child, then the editor's own first
- * setting (filter / shading) is re-written with its current value (GetValue, SetValue) so the listeners rebuild
- * the screen and the guide label (mp_lbl). Return 1.
- * Everything else: jmp to the record's stock word with d0/d1/a0/a1/d2/d3/a2/a3, sp and mdr as at entry.
- * First take-over since the load: 'EP7E' block initialised as the colour editor does; positions from the saved
- * names; page 0; then 'EP7M' at P+{mmark}.
+ * v0.15b (camera: the Film page's dial/arrow hooks were never reached on the Profile-switch route; INFO is):
+ * INFO (0x9014) in the 8 MONO editors (records +44, filter keys 0x13b6/0x13b7/0x13b8/0x140d, shading keys
+ * 0x13b9/0x13ba/0x13bb/0x140e; stock `mov 3,d0; retf` = close) steps MONO m to the next preset (wrapping) when a
+ * card table is loaded and the guards pass (parent, key -> m, 1..2 children, no held gesture): the {nf} stock
+ * settings through the facade SetValue, the slot name P+608+16m ('EP7N'), dirty; then the stock child refresh and
+ * the editor's first setting re-written with its current value (redraw: label "Film: <name>[*]" from mp_b).
+ * First use since the load: 'EP7E' block as the colour editor sets it, positions from the saved names, 'EP7M'.
+ * Everything else: jmp to the stock word with every register, sp and mdr as at entry.
  * Stores: P (heap) and the stack only. No absolute stores, no mul/div, no setlb/Lcc.
  */
  .am33_2
@@ -52,22 +41,6 @@ mp_info_f:
  ENT 0
 mp_info_s:
  ENT 1
-mp_up_f:
- ENT 2
-mp_up_s:
- ENT 3
-mp_dn_f:
- ENT 4
-mp_dn_s:
- ENT 5
-mp_lt_f:
- ENT 6
-mp_lt_s:
- ENT 7
-mp_rt_f:
- ENT 8
-mp_rt_s:
- ENT 9
 
 mp_go:                            /* frame: (0) calls, (4) d0, (8) d1, (12) a1, (16) op, (20) value, (24) r, (28) P */
  add -32,sp
@@ -78,13 +51,8 @@ mp_go:                            /* frame: (0) calls, (4) d0, (8) d1, (12) a1, 
  mov a0,a3
  cmp 0,a3
  beq m_miss
- mov d2,d3                        /* event gate by act */
- lsr 1,d3
- cmp 0,d3
- bne 1f
  cmp 0x9014,d0                    /* INFO word: INFO only */
  bne m_miss
-1:
  movhu (100,a3),d0                /* editor key -> m (d2) */
  and 1,d2
  asl 3,d2                         /* kind 0: keys 0..3, kind 1: keys 4..7 */
@@ -113,17 +81,6 @@ mp_go:                            /* frame: (0) calls, (4) d0, (8) d1, (12) a1, 
  bne m_miss
  PVAL m_miss                      /* a2 = P */
  mov a2,(28,sp)
- mov (16,sp),d0                   /* arrows: only on the Film page (checked before any heap write) */
- lsr 1,d0
- add -1,d0
- cmp 4,d0
- bcc 5f
- mov ({mmark},a2),d0
- cmp {mmagic},d0
- bne m_miss
- movbu ({mpage},a2),d0
- cmp 1,d0
- bne m_miss
 5:                                /* take-over from here (no miss below) */
  mov ({emark},a2),d0              /* first use since the load: 'EP7E' block as the colour editor sets it */
  cmp {emagic},d0
@@ -140,24 +97,7 @@ mp_go:                            /* frame: (0) calls, (4) d0, (8) d1, (12) a1, 
  beq 7f
  call mp_resume,[d2,d3,a3],12     /* positions from the saved names, page 0, then 'EP7M' */
 7:
- mov (16,sp),d0
- lsr 1,d0                         /* act */
- cmp 0,d0
- bne 8f
- movbu ({mpage},a2),d1            /* INFO: toggle the Film page */
- xor 1,d1
- and 1,d1
- movbu d1,({mpage},a2)
- bra m_redraw
-8:
- mov 1,d1                         /* direction as the stock child step: Up / Left +1 (0x9004), Down / Right -1 */
- cmp 2,d0
- beq 81f
- cmp 4,d0
- bne 82f
-81:
- mov -1,d1
-82:
+ mov 1,d1                         /* INFO: next preset */
  mov a2,a0
  add d2,a0
  movbu ({mpos},a0),d0
@@ -214,7 +154,6 @@ mp_go:                            /* frame: (0) calls, (4) d0, (8) d1, (12) a1, 
  mov d0,(672,a2)
  mov 1,d0
  movbu d0,({dirty},a2)            /* the editor's save writes BUNDLES.BIN on the next half-press */
-m_redraw:
  mov d2,(4,sp)                    /* m (the entry d0 slot: no miss after this point) */
  movhu (120,a3),d2                /* children: refresh from the settings (stock routine) */
  mov 124,d3
@@ -257,45 +196,7 @@ m_miss:                           /* a3 = entry a0 here */
 mp_tramp:
  TR ep7_info_f
  TR ep7_info_s
- TR ep7_up_f
- TR ep7_up_s
- TR ep7_dn_f
- TR ep7_dn_s
- TR ep7_lt_f
- TR ep7_lt_s
- TR ep7_rt_f
- TR ep7_rt_s
 mp_tramp_end:
-
-/* mp_d1_f <- filter records' +28 (stock 0x60e22bf6: steps strength via Up/Down only when setting 130 != 0).
- * Film page (valid P, 'EP7M', page 1, a0 != 0): jmp 0x60e22df0 (the shading editor's dial routine: delta from
- * 0x60ea3b35, then Up/Down helpers -> parent+48/+52 = mp_up_f / mp_dn_f with their full guards). Registers intact. */
-mp_d1_f:
- movm [d3,a2],(sp)
- cmp 0,a0
- beq 1f
- PVAL 1f
- mov ({mmark},a2),d3
- cmp {mmagic},d3
- bne 1f
- movbu ({mpage},a2),d3
- cmp 1,d3
- bne 1f
- movm (sp),[d3,a2]
- jmp ep7_d1_s
-1:
- movm (sp),[d3,a2]
- jmp ep7_d1_f
-
-/* mp_init <- the 8 records' +4 (stock 0x60e20a54, CALLS: a0 parent, d0 key): Film page off, then stock. */
-mp_init:
- movm [d3,a2],(sp)
- PVAL 1f
- clr d3
- movbu d3,({mpage},a2)
-1:
- movm (sp),[d3,a2]
- jmp ep7_init
 
 /* mp_set: d2 = m, d3 = field. `call mp_set,[],0` (no frame: the caller's frame below, r at (24,sp), P at (28,sp)).
  * SetValue(id of field d3 for MONO m, 0, preset value) through the facade (vtable +0, the stock edit path); the
@@ -352,7 +253,7 @@ mp_id:
  rets
 
 /* mp_resume: a2 = P. For m 0..3: pos = j+1 when name P+608+16m equals preset j's 16-byte name, else 0 (no names
- * section: 0). Then the Film page off and P+{mmark} = 'EP7M'. `call mp_resume,[d2,d3,a3],12`; clobbers d0, d1, a0, a1. */
+ * section: 0). Then P+{mmark} = 'EP7M'. `call mp_resume,[d2,d3,a3],12`; clobbers d0, d1, a0, a1. */
 mp_resume:
  clr d2                           /* m */
 1:
@@ -390,8 +291,6 @@ mp_resume:
  inc d2
  cmp 4,d2
  bne 1b
- clr d0
- movbu d0,({mpage},a2)
  mov {mmagic},d0
  mov d0,({mmark},a2)
  ret [d2,d3,a3],12

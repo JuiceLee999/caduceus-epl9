@@ -38,7 +38,7 @@ Region, run, asm, img, mem = EV.Region, EV.run, EV.asm, EV.img, EV.mem
 DRV, OUT, PAR, LOG, H_OK, NMAGIC = EV.DRV, EV.OUT, EV.PAR, EV.LOG, EV.H_OK, EV.NMAGIC
 LE = EV.LE
 CUR = 7                                   # the stand-in GetValue's value (fac_regions curval)
-ACT = {44: 0, 12: 1, 16: 2, 20: 3, 24: 4}
+ACT = {44: 0}
 DIR = {0: 1, 1: 1, 2: -1, 3: 1, 4: -1}
 
 
@@ -94,7 +94,6 @@ def first_use(b, n, tab):
                         pos = j + 1
                         break
             b[MB.MPOS + mm] = pos
-        b[MB.MPAGE] = 0
         struct.pack_into('<I', b, MB.MMARK, MB.MMAGIC)
 
 
@@ -281,11 +280,11 @@ def main():
                         err = 'facade called'
                 check('S', f'{k:#x} +{off} {lab}', err)
     for k, rec in recs.items():                   # +36 (MENU / PLAYBACK) and shading +28 stay stock
-        for off in (36,) + (() if k in MB.KEYS_F else (28,)):
+        for off in (4, 12, 16, 20, 24, 28, 36):
             check('S', f'{k:#x} +{off} stock word', None if patched[rec + off - EV.BASE:rec + off + 4 - EV.BASE] ==
                   stock[rec + off - EV.BASE:rec + off + 4 - EV.BASE] else 'patched')
     for k, rec in list(recs.items())[::3]:        # null parent (a0 = 0)
-        for off in (44, 12):
+        for off in (44,):
             tgt = MB.HOOKS[off][1 if k in MB.KEYS_F else 2]
             ev = {44: 0x9014}.get(off, 0x9004)
             s, p, _ = case(stock, patched, rec + off, ev, H_OK, blk_with(page=1, mmark=True), parent(k, 2), tgt, a0=0)
@@ -293,7 +292,7 @@ def main():
             check('S', f'{k:#x} +{off} null parent', err or EV.same_state(s, p))
 
     # ---------------------------------------------------------------- I
-    for k, rec in recs.items():
+    for k, rec in ([] if True else recs.items()):
         for lab, h, b, want_page in (('table', H_OK, blk_with(page=1, mmark=True), 0),
                                      ('table, stale page', H_OK, blk_with(page=0xa5), 0),
                                      ('no table', 0, blk_with(page=1, mmark=True), None)):
@@ -343,8 +342,8 @@ def main():
                 ('EP7M, stale pos 200', blk_with(mpos=[200] * 4, mmark=True, page=0)),
                 ('EP7M, Film page, pos 1', blk_with(mpos=[1, 2, 3, 4], mmark=True, page=1))]
         for lab, b in info:
-            take('K', k, rec, 44, 0x9014, b, 'INFO ' + lab, model_key(b, m, kind, n, tab))
-        for off in (12, 16, 20, 24):
+            take('H', k, rec, 44, 0x9014, b, 'INFO ' + lab, model_step(b, m, kind, 1, n, tab)[:2])
+        for off in ():
             d = DIR[ACT[off]]
             arrows = [('pos 1', blk_with(mpos=[1] * 4, mmark=True, page=1)),
                       ('pos n', blk_with(mpos=[n] * 4, mmark=True, page=1)),
@@ -378,24 +377,19 @@ def main():
                 pre = ps[j]
                 nm = pre['name']
                 named = blk_with(mono_names={m: nm})
-                L = [('stock page, preset', named, vals_for(m, pre), f'{nm}[INFO]'),
-                     ('stock page, preset (byte values)', named, vals_for(m, pre, mode='u8'), f'{nm}[INFO]'),
-                     ('stock page, no preset', blk_with(mono_names={m: 'Something'}), {}, 'Film[INFO]'),
-                     ('stock page, no names', blk_with(names=False), {}, 'Film[INFO]'),
-                     ('page 1 without EP7M', blk_with(mono_names={m: nm}, page=1), vals_for(m, pre), f'{nm}[INFO]'),
-                     ('Film page, preset', blk_with(mono_names={m: nm}, page=1, mmark=True), vals_for(m, pre), f'Film: {nm}'),
-                     ('Film page, no preset', blk_with(mono_names={m: 'Something'}, page=1, mmark=True), {}, 'Film: Custom'),
-                     ('Film page, no names', blk_with(names=False, page=1, mmark=True), {}, 'Film: Custom')]
+                L = [('preset', named, vals_for(m, pre), f'Film: {nm}'),
+                     ('preset (byte values)', named, vals_for(m, pre, mode='u8'), f'Film: {nm}'),
+                     ('stale page byte 1 + EP7M', blk_with(mono_names={m: nm}, page=1, mmark=True), vals_for(m, pre), f'Film: {nm}'),
+                     ('no preset', blk_with(mono_names={m: 'Something'}), {}, 'Film[INFO]'),
+                     ('no names', blk_with(names=False), {}, 'Film[INFO]')]
                 for f in range(8):
-                    L.append((f'stock page, field {f} changed', named, vals_for(m, pre, f), f'{nm}*[INFO]'))
-                    L.append((f'Film page, field {f} changed', blk_with(mono_names={m: nm}, page=1, mmark=True),
-                              vals_for(m, pre, f), f'Film: {nm}*'))
+                    L.append((f'field {f} changed', named, vals_for(m, pre, f), f'Film: {nm}*'))
                 for lab, b, vals, want in L:
                     r, v0 = label_run(patched, syms, site, pm_of[m], slot404, b, H_OK, vals)
                     check('L', f'm{m} site {site} slot {slot} {lab}', l_err(r, v0, slot, want))
                 # getter failure: no '*'
                 r, v0 = label_run(patched, syms, site, pm_of[m], slot404, named, H_OK, vals_for(m, pre, 0), getret=1)
-                check('L', f'm{m} site {site} slot {slot} getter fails', l_err(r, v0, slot, f'{nm}[INFO]'))
+                check('L', f'm{m} site {site} slot {slot} getter fails', l_err(r, v0, slot, f'Film: {nm}'))
     for lab, pm, h in (('no table', 57, 0), ('COLOR mode 54', 54, H_OK), ('mode 0', 0, H_OK), ('mode 66', 66, H_OK)):
         for site in (1, 2):
             r, v0 = label_run(patched, syms, site, pm, 1, blk_with(mono_names={0: ps[0]['name']}), h, {})
@@ -403,7 +397,7 @@ def main():
 
     # ---------------------------------------------------------------- D: filter rear dial (+28)
     D1F, D1S = MB.STOCK['ep7_d1_f'], MB.STOCK['ep7_d1_s']
-    for k in MB.KEYS_F:
+    for k in []:
         rec = recs[k]
         for lab, h, b, a0, take_over in (('page 1', H_OK, blk_with(page=1, mmark=True), PAR, True),
                                          ('page 0', H_OK, blk_with(page=0, mmark=True), PAR, False),
@@ -421,7 +415,7 @@ def main():
             check('D', f'{k:#x} {lab}', err)
     # end to end: +28 -> 0x60e22df0 (real) -> helpers (real) -> parent+48/+52 = mp_up_f / mp_dn_f -> preset step
     sy = {kk: int(v, 16) for kk, v in syms.items()}
-    for k in MB.KEYS_F:
+    for k in []:
         m = MB.KEYS_F.index(k)
         for delta, d in ((0xffff, 1), (2, -2)):
             b = blk_with(page=1, mmark=True, mpos=[3] * 4)

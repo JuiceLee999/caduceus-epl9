@@ -2054,58 +2054,26 @@
   },
   {
    "kind": "0x100",
+   "addr": "0x601e3758",
+   "expect": "1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaeb",
+   "new": "f84a4ef8564ea6c83ff8fee842044608430c4710f2e042145804dd15c10c0000048129ffa0fbc104814458045c0c5d10ddb83c6400e0105814f2f2580459085c0c5d10f8fe18dc8afcfffff1e0f8402ef8515000f8501fdc8cf6ffff8cf8c006f158f1e0f8404efa26f803fa452807a1c85b2e7706af03c8102e9f038ca000c8082a0c28ffcaf8f8fef04a04dd7e5861000004f8200443085804dd95c00c0000048129ffa0fbc1048144420c58045c089500dd363c6400e0105804590c5c089500dd273c6400e010f8fe10dcddf10501",
+   "why": "v0.14 LV art refresh: ex_art / fm_pre / fm_post (real S change + undo via the settings manager after an art-byte change), tail of the look_extras EVF claim",
+   "source": "patches/lv_art_refresh"
+  },
+  {
+   "kind": "0x100",
    "addr": "0x601e283c",
-   "expect": "00010203040506060708090a0b0c0d0e0f10101112131415161718191a1b1b1c1d1e1f20212223242526272728292a2b2c2d2e2f30313233343435363738393a3b3c3d3e3f3f404142434445464748494a4b4b4c4d4e4f50515253545556575758595a5b5c5d5e5f60616262636465666768696a6b6c6d6e6e6f707172737475767778797a7a7b7c7d7e7f80818283848586868788898a8b8c8d8e8f90919292939495969798999a9b9c9d9e9e9fa0a1a2a3a4a5a6a7a8a9aaaaabacadaeafb0b1b2b3b4b5b6b6b7b8b9babbbcbdbebfc0c1c1c2c3c4c5c6c7c8c9cacbcccccdcecfd0d1d2d3d4d5d6d7d7d8d9dadbdcdddedfe0e1e2e3e3e4e5e6e7e8e9eaeb000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff00010203040506060708090a0b0c0d0e0f10111213141515161718191a1b1c1d1e1f20212223242526262728292a2b2c2d2e2f30313233343536363738393a3b3c3d3e3f40414243444545464748494a4b4c4d4e4f50515252535455565758595a5b5c5d5e5e5f606162636465666768696a6a6b6c6d6e6f70717273747576767778797a7b7c7d7e7f80818282838485868788898a8b8c8d8e8e8f909192939495969798999a9b9c9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaaaabacadaeafb0b1b2b3b4b5b6b7b8b9bababbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacacbcccdcecfd0d1d2d3d4d5d6d7d8d9d9dadbdcdddedfe0e1e2e3e4e5e6e7e7e8e9eaebecedee0001020203040506060708090a0b0b0c0d0e0f1010111213141515161718191a1a1b1c1d1e1e1f2021222323242526272828292a2b2c2d2d2e2f3031323233343536363738393a3b3b3c3d3e3f404041424344444546474849494a4b4c4d4d4e4f5051525253545556565758595a5b5b5c5d5e5f606061626364646566676869696a6b6c6d6d6e6f7071727273747576777778797a7b7c7c7d7e7f808081828384858586",
-   "new": "cff08a00ca38cff08a01ca32cff08a02ca2ccff08a03ca26cff08a04ca20cff08a05ca1acff08a06ca14cff08a07ca0ecff08a08ca08cff08a09ca02f8fee04a1042044608470c93bf00c905ccae018bf8c701af00c90dfcc814900000c805cc9b01f86364f8e201f8c203fcdd1c191e60f16908f065a4c80c210248aa04c9f6cc7a01f8637828ffa002c405cc6e01f80310a000c805cc6401f8032ca000c805cc5a01fcafc2bc2c622bfffccb41a90000c405cc4701f8ef03c805cc3f01f1eefcd200d8f8a17efccb45503742c805cc2b014b1c5810f8c40128ffa004c61cfa02f003fcc84550374dc805cc0f01fa42f403a001c805cc0401fa02a802fcc845503745c81900fa52ac02fa52ad02fa52ae02fccc45503745fa12a802fa02f003fcc84550374dc807cd2302d00c5810f8c401a000c914fa46f403fae90100f8e101fa56f403cc86008501a002c806a004c90485ff98f168fa40ec03e4a000c104800aa00ac7048001fa50ec0328fff8c00381e0e4fcc06c191e6042180ccd690100004caf08c9f8fa02a002fcc84550374ec81298fad02002002d8000f0504129ffc9fb88f8c004f158fac06002f1e05d1804f405f44444a510c9f9fccc4550374efa12a0028001fa52ad024a04f86b788f7c9cf16cf000b000c809dd590cc000f03c2b042affc9ec5a045b10f8e30157cd220100008001dff0305a10f8c203fcdc502a1e60f168580459085d0cf8fe20f0f400009ccef0dc3803c4009ccef0dc5305c4009ccef0dca900c4009ccef0dc2503c4009ccef0dce200c4009ccef0dc4103c4009ccef0dc1b01c4009ccef0dc5d03c4009ccef0dc3701c4009ccef0dc5103c400cf60b000c843fcafc2bc2c622bfffccb41a90000c633f8ef03c92ef1eefcd200d8f8a17efccb45503742c91dfa0ef003fccb4550374dc911fa4ef403af01c909ce60dc0e03c400ce60dc0d01c400cf60fcafc2bc2c622bfffccb41a90000c61df8ef03c918f1eefcd200d8f8a17efccb45503742c9070cfa5ef403ce60dc37dfc300f2e042085c18f16cf84010104214dd326561000004f008f00acd3a000000045d14f0f25e1c5808f2f2de0000f2e04208dd106561000004f008f82a08cd170000003d2114f0f2a000c8c65e1c5808f2f2de000088f8c003ece0fcdd2c191e60f161f061f0fc080cfa02a002fcc84550374ec92dfcdd6c191e604c88f8c004f158fac06002f1e004f304f3b5f19cc90a2904a510c9f4ca092118af0ac9de0c98f168fa5cec0348aa04c9be00fa52f403fccc4550374dfa12f003dfd00c0000",
+   "expect": "00010203040506060708090a0b0c0d0e0f10101112131415161718191a1b1b1c1d1e1f20212223242526272728292a2b2c2d2e2f30313233343435363738393a3b3c3d3e3f3f404142434445464748494a4b4b4c4d4e4f50515253545556575758595a5b5c5d5e5f60616262636465666768696a6b6c6d6e6e6f707172737475767778797a7a7b7c7d7e7f80818283848586868788898a8b8c8d8e8f90919292939495969798999a9b9c9d9e9e9fa0a1a2a3a4a5a6a7a8a9aaaaabacadaeafb0b1b2b3b4b5b6b6b7b8b9babbbcbdbebfc0c1c1c2c3c4c5c6c7c8c9cacbcccccdcecfd0d1d2d3d4d5d6d7d7d8d9dadbdcdddedfe0e1e2e3e3e4e5e6e7e8e9eaeb000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff00010203040506060708090a0b0c0d0e0f10111213141515161718191a1b1c1d1e1f20212223242526262728292a2b2c2d2e2f30313233343536363738393a3b3c3d3e3f40414243444545464748494a4b4c4d4e4f505152",
+   "new": "cff08a00ca08cff08a01ca02f8fee04a1042044608470c93bf00c905cc5c01fcc814900000c805cc5101f86364f8e201f8c203fcdd08191e60f16908f065a4c80c210248aa04c9f6cc3001f8637828ffa002c405cc2401f80310a000c805cc1a01f8032ca000c805cc1001fcafc2bc2c622bfffccb41a90000c405ccfd00f8ef03c805ccf500f1eefcd200d8f8a17efccb45503742c805cce1004b1cfa02a802fcc845503745c81900fa52ac02fa52ad02fa52ae02fccc45503745fa12a802fa02f003fcc84550374dc807cd3a01d00c850198f168fa40ec03e4a000c104800aa00ac7048001fa50ec0328fff8c00381e0e4fcc058191e6042180ccda50000004caf08c9f8fa02a002fcc84550374ec81298fad02002002d8000f0504129ffc9fb88f8c004f158fac06002f1e05d1804f405f44444a510c9f9fccc4550374efa12a0028001fa52ad024a04f86b788f7c9cf16cf000b000c809dddb0cc000f03c2b042affc9ec5a045b10f8e30157cd5e0000008001dff0305a10f8c203fcdccc291e60f168580459085d0cf8fe20f0f49ccef0dcbc03c4009ccef0dcd705c400f2e042085c18f16cf84010104214dd786661000004f008f00acd3a000000045d14f0f25e1c5808f2f2de0000f2e04208dd566661000004f008f82a08cd170000003d2114f0f2a000c8c65e1c5808f2f2de000088f8c003ece0fcdd18191e60f161f061f0fc080cfa02a002fcc84550374ec92dfcdd58191e604c88f8c004f158fac06002f1e004f304f3b5f19cc90a2904a510c9f4ca092118af0ac9de0c98f168fa5cec0348aa04c9befccc4550374dfa12f003dfd00c00",
    "why": "mono presets part A: picker hooks (sec 1, dead EVF step-6 B / step-5 tables)",
    "source": "patches/mono_presets"
   },
   {
    "kind": "0x100",
    "addr": "0x601e173c",
-   "expect": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff0001020203040506060708090a0b0b0c0d0e0f1010111213141515161718191a",
-   "new": "5d08f1ecca0599f1e8cff0f8fee04708460493fa03900108a039c81448a03ac80f48a03bc80a48a041c805cc6d01fcafc2bc2c622bfffccb41a90000c405cc5a01f8ef03c805cc5201f1eefcd200d8f8a17efccb45503742c805cc3e014b140cfa02f003fcc84550374dc90cfa42f403a001c9048f01fa02a002fcc84550374ec93488f8c004f158fac06002f1e0fcdd6c191e6000421004f304f3a5f198c90b2904a510c9f496ca1121185810404210a00ac9e59a00ca4e4b18004210591088f8c003e4e0fcdd2c191e60f161f061421cdd557861000004f008f82a083d210c581cf0f2a000c9135c1820105910f404f8b90ca4c805f8e7025810404210a008c9bd5e18fa0794012c0401a501c9052cba00f15cf1e08505f0748502f87406200891008521f071210229ffc9faf8ef01c836fcddf8181e60cd74000000ba00c90ffcddff181e60cd65000000ca4c99cd5d000000f8ef02c841fcdd06191e60cd4d000000ca34ba00c90ffcdd0f191e60cd3c000000ca2399cd34000000f8ef02c80dfcdd06191e60cd24000000fcdd08191e60cd190000005830f2f25c085904f8fe20cef091f80154de0000f041a000c809f070452002caf5de000046696c6d3a2000437573746f6d002a005b494e464f5d0046696c6d5b494e464f5d000000b613b713b8130d14b913ba13bb130e14db03df03d803d503e303e603e803e703dc03e003d903d603e403e903eb03ea03dd03e103da03d703e503ec03ee03ed03900691068f068e0687068b068d068c0650616e20462035300000000000000000010100000001fd014163726f7300000000000000000000000401000100fffe00542d4d617820313030000000000000000001000000ff00015346582032303000000000000000000003030002ff02fe005472692d5820343030000000000000000102000200fffd0048503520506c757300000000000000000001000300fe010044656c7461203332303000000000000000010003fefe02015365706961205072696e74000000000000010101feff010053656c656e69756d000000000000000000010301ff00fe004379616e6f7479706500000000000000010102000000ff00",
+   "expect": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102020304050606070809",
+   "new": "5d08f1ecca0599f1e8cff0f8fee04708460493fa03900108a039c81448a03ac80f48a03bc80a48a041c805cc5901fcafc2bc2c622bfffccb41a90000c405cc4601f8ef03c805cc3e01f1eefcd200d8f8a17efccb45503742c805cc2a014b148f01fa02a002fcc84550374ec93488f8c004f158fac06002f1e0fcdd58191e6000421004f304f3a5f198c90b2904a510c9f496ca1221185810404210a00ac9e59a000cca4e4b18004210591088f8c003e4e0fcdd18191e60f161f061421cdd697861000004f008f82a083d210c581cf0f2a000c9135c1820105910f404f8b90ca4c805f8e7025810404210a008c9bd5e18fa0794012c0401a501c9052cba00f15cf1e08505f0748502f87406200891008521f071210229ffc9faf8ef01c836fcdde4181e60cd74000000ba00c90ffcddfb181e60cd65000000ca4c99cd5d000000f8ef02c841fcddf2181e60cd4d000000ca34ba00c90ffcddfb181e60cd3c000000ca2399cd34000000f8ef02c80dfcddf2181e60cd24000000fcddf4181e60cd190000005830f2f25c085904f8fe20cef091f80154de0000f041a000c809f070452002caf5de000046696c6d3a2000437573746f6d002a005b494e464f5d0046696c6d5b494e464f5d000000b613b713b8130d14b913ba13bb130e14db03df03d803d503e303e603e803e703dc03e003d903d603e403e903eb03ea03dd03e103da03d703e503ec03ee03ed03900691068f068e0687068b068d068c0650616e20462035300000000000000000010100000001fd014163726f7300000000000000000000000401000100fffe00542d4d617820313030000000000000000001000000ff00015346582032303000000000000000000003030002ff02fe005472692d5820343030000000000000000102000200fffd0048503520506c757300000000000000000001000300fe010044656c7461203332303000000000000000010003fefe02015365706961205072696e74000000000000010101feff010053656c656e69756d000000000000000000010301ff00fe004379616e6f7479706500000000000000010102000000ff00",
    "why": "mono presets part B: guide label + 10 presets (sec 1, dead EVF step-11 tables)",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185e80",
-   "expect": "540ae260",
-   "new": "ee2a1e60",
-   "why": "MONO editor 0x13b6 init (+4) -> mp_init",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185e88",
-   "expect": "0c2be260",
-   "new": "48281e60",
-   "why": "MONO editor 0x13b6 up (+12) -> mp_up_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185e8c",
-   "expect": "552be260",
-   "new": "54281e60",
-   "why": "MONO editor 0x13b6 down (+16) -> mp_dn_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185e90",
-   "expect": "9e2be260",
-   "new": "60281e60",
-   "why": "MONO editor 0x13b6 left (+20) -> mp_lt_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185e94",
-   "expect": "ca2be260",
-   "new": "6c281e60",
-   "why": "MONO editor 0x13b6 right (+24) -> mp_rt_f",
    "source": "patches/mono_presets"
   },
   {
@@ -2118,106 +2086,10 @@
   },
   {
    "kind": "0x100",
-   "addr": "0x61185e98",
-   "expect": "f62be260",
-   "new": "a02a1e60",
-   "why": "MONO editor 0x13b6 rear dial (+28) -> mp_d1_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185eb8",
-   "expect": "540ae260",
-   "new": "ee2a1e60",
-   "why": "MONO editor 0x13b7 init (+4) -> mp_init",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185ec0",
-   "expect": "0c2be260",
-   "new": "48281e60",
-   "why": "MONO editor 0x13b7 up (+12) -> mp_up_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185ec4",
-   "expect": "552be260",
-   "new": "54281e60",
-   "why": "MONO editor 0x13b7 down (+16) -> mp_dn_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185ec8",
-   "expect": "9e2be260",
-   "new": "60281e60",
-   "why": "MONO editor 0x13b7 left (+20) -> mp_lt_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185ecc",
-   "expect": "ca2be260",
-   "new": "6c281e60",
-   "why": "MONO editor 0x13b7 right (+24) -> mp_rt_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
    "addr": "0x61185ee0",
    "expect": "8b2de260",
    "new": "3c281e60",
    "why": "MONO editor 0x13b7 INFO (+44) -> mp_info_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185ed0",
-   "expect": "f62be260",
-   "new": "a02a1e60",
-   "why": "MONO editor 0x13b7 rear dial (+28) -> mp_d1_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185ef0",
-   "expect": "540ae260",
-   "new": "ee2a1e60",
-   "why": "MONO editor 0x13b8 init (+4) -> mp_init",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185ef8",
-   "expect": "0c2be260",
-   "new": "48281e60",
-   "why": "MONO editor 0x13b8 up (+12) -> mp_up_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185efc",
-   "expect": "552be260",
-   "new": "54281e60",
-   "why": "MONO editor 0x13b8 down (+16) -> mp_dn_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f00",
-   "expect": "9e2be260",
-   "new": "60281e60",
-   "why": "MONO editor 0x13b8 left (+20) -> mp_lt_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f04",
-   "expect": "ca2be260",
-   "new": "6c281e60",
-   "why": "MONO editor 0x13b8 right (+24) -> mp_rt_f",
    "source": "patches/mono_presets"
   },
   {
@@ -2230,106 +2102,10 @@
   },
   {
    "kind": "0x100",
-   "addr": "0x61185f08",
-   "expect": "f62be260",
-   "new": "a02a1e60",
-   "why": "MONO editor 0x13b8 rear dial (+28) -> mp_d1_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f28",
-   "expect": "540ae260",
-   "new": "ee2a1e60",
-   "why": "MONO editor 0x140d init (+4) -> mp_init",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f30",
-   "expect": "0c2be260",
-   "new": "48281e60",
-   "why": "MONO editor 0x140d up (+12) -> mp_up_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f34",
-   "expect": "552be260",
-   "new": "54281e60",
-   "why": "MONO editor 0x140d down (+16) -> mp_dn_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f38",
-   "expect": "9e2be260",
-   "new": "60281e60",
-   "why": "MONO editor 0x140d left (+20) -> mp_lt_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f3c",
-   "expect": "ca2be260",
-   "new": "6c281e60",
-   "why": "MONO editor 0x140d right (+24) -> mp_rt_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
    "addr": "0x61185f50",
    "expect": "8b2de260",
    "new": "3c281e60",
    "why": "MONO editor 0x140d INFO (+44) -> mp_info_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f40",
-   "expect": "f62be260",
-   "new": "a02a1e60",
-   "why": "MONO editor 0x140d rear dial (+28) -> mp_d1_f",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f60",
-   "expect": "540ae260",
-   "new": "ee2a1e60",
-   "why": "MONO editor 0x13b9 init (+4) -> mp_init",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f68",
-   "expect": "902de260",
-   "new": "4e281e60",
-   "why": "MONO editor 0x13b9 up (+12) -> mp_up_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f6c",
-   "expect": "bc2de260",
-   "new": "5a281e60",
-   "why": "MONO editor 0x13b9 down (+16) -> mp_dn_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f70",
-   "expect": "e82de260",
-   "new": "66281e60",
-   "why": "MONO editor 0x13b9 left (+20) -> mp_lt_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185f74",
-   "expect": "ec2de260",
-   "new": "72281e60",
-   "why": "MONO editor 0x13b9 right (+24) -> mp_rt_s",
    "source": "patches/mono_presets"
   },
   {
@@ -2342,46 +2118,6 @@
   },
   {
    "kind": "0x100",
-   "addr": "0x61185f98",
-   "expect": "540ae260",
-   "new": "ee2a1e60",
-   "why": "MONO editor 0x13ba init (+4) -> mp_init",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185fa0",
-   "expect": "902de260",
-   "new": "4e281e60",
-   "why": "MONO editor 0x13ba up (+12) -> mp_up_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185fa4",
-   "expect": "bc2de260",
-   "new": "5a281e60",
-   "why": "MONO editor 0x13ba down (+16) -> mp_dn_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185fa8",
-   "expect": "e82de260",
-   "new": "66281e60",
-   "why": "MONO editor 0x13ba left (+20) -> mp_lt_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185fac",
-   "expect": "ec2de260",
-   "new": "72281e60",
-   "why": "MONO editor 0x13ba right (+24) -> mp_rt_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
    "addr": "0x61185fc0",
    "expect": "ae2fe260",
    "new": "42281e60",
@@ -2390,90 +2126,10 @@
   },
   {
    "kind": "0x100",
-   "addr": "0x61185fd0",
-   "expect": "540ae260",
-   "new": "ee2a1e60",
-   "why": "MONO editor 0x13bb init (+4) -> mp_init",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185fd8",
-   "expect": "902de260",
-   "new": "4e281e60",
-   "why": "MONO editor 0x13bb up (+12) -> mp_up_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185fdc",
-   "expect": "bc2de260",
-   "new": "5a281e60",
-   "why": "MONO editor 0x13bb down (+16) -> mp_dn_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185fe0",
-   "expect": "e82de260",
-   "new": "66281e60",
-   "why": "MONO editor 0x13bb left (+20) -> mp_lt_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61185fe4",
-   "expect": "ec2de260",
-   "new": "72281e60",
-   "why": "MONO editor 0x13bb right (+24) -> mp_rt_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
    "addr": "0x61185ff8",
    "expect": "ae2fe260",
    "new": "42281e60",
    "why": "MONO editor 0x13bb INFO (+44) -> mp_info_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61186008",
-   "expect": "540ae260",
-   "new": "ee2a1e60",
-   "why": "MONO editor 0x140e init (+4) -> mp_init",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61186010",
-   "expect": "902de260",
-   "new": "4e281e60",
-   "why": "MONO editor 0x140e up (+12) -> mp_up_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61186014",
-   "expect": "bc2de260",
-   "new": "5a281e60",
-   "why": "MONO editor 0x140e down (+16) -> mp_dn_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x61186018",
-   "expect": "e82de260",
-   "new": "66281e60",
-   "why": "MONO editor 0x140e left (+20) -> mp_lt_s",
-   "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x6118601c",
-   "expect": "ec2de260",
-   "new": "72281e60",
-   "why": "MONO editor 0x140e right (+24) -> mp_rt_s",
    "source": "patches/mono_presets"
   },
   {
@@ -2499,14 +2155,6 @@
    "new": "dd81a13bff0000",
    "why": "Profile view MONO page guide label -> mp_lbl2 (call 0x601e1742,[],0)",
    "source": "patches/mono_presets"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e3758",
-   "expect": "1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaeb",
-   "new": "f84a4ef8564ea6c83ff8fee842044608430c4710f2e042145804dd15c10c0000048129ffa0fbc104814458045c0c5d10ddb83c6400e0105814f2f2580459085c0c5d10f8fe18dc8afcfffff1e0f8402ef8515000f8501fdc8cf6ffff8cf8c006f158f1e0f8404efa26f803fa452807a1c85b2e7706af03c8102e9f038ca000c8082a0c28ffcaf8f8fef04a04dd7e5861000004f8200443085804dd95c00c0000048129ffa0fbc1048144420c58045c089500dd363c6400e0105804590c5c089500dd273c6400e010f8fe10dcddf10501",
-   "why": "v0.14 LV art refresh: ex_art / fm_pre / fm_post (real S change + undo via the settings manager after an art-byte change), tail of the look_extras EVF claim",
-   "source": "patches/lv_art_refresh"
   }
  ],
  "sources": [
@@ -7305,52 +6953,41 @@
   "mono_presets": {
    "code": [
     "0x601e283c",
-    932
+    600
    ],
    "code_b": [
     "0x601e173c",
-    800
+    780
    ],
    "symbols": {
-    "l_out": "0x601e18d4",
-    "l_put": "0x601e18e8",
-    "l_text": "0x601e1840",
-    "mp_data": "0x601e191c",
-    "mp_end": "0x601e1a5c",
-    "mp_ids": "0x601e192c",
-    "mp_keys": "0x601e191c",
+    "l_out": "0x601e18c0",
+    "l_put": "0x601e18d4",
+    "l_text": "0x601e182c",
+    "mp_data": "0x601e1908",
+    "mp_end": "0x601e1a48",
+    "mp_ids": "0x601e1918",
+    "mp_keys": "0x601e1908",
     "mp_lbl1": "0x601e173c",
     "mp_lbl2": "0x601e1742",
     "mp_lblw": "0x601e1745",
-    "mp_tab": "0x601e196c",
-    "mp_t_cust": "0x601e18ff",
-    "mp_t_film": "0x601e18f8",
-    "mp_t_fm": "0x601e190f",
-    "mp_t_menu": "0x601e1908",
-    "mp_t_star": "0x601e1906",
-    "m_miss": "0x601e2a36",
-    "mp_d1_f": "0x601e2aa0",
-    "mp_dn_f": "0x601e2854",
-    "mp_dn_s": "0x601e285a",
-    "mp_end_a": "0x601e2bde",
-    "mp_go": "0x601e2878",
-    "mp_id": "0x601e2b75",
+    "mp_tab": "0x601e1958",
+    "mp_t_cust": "0x601e18eb",
+    "mp_t_film": "0x601e18e4",
+    "mp_t_fm": "0x601e18fb",
+    "mp_t_menu": "0x601e18f4",
+    "mp_t_star": "0x601e18f2",
+    "m_miss": "0x601e29b4",
+    "mp_end_a": "0x601e2a93",
+    "mp_go": "0x601e2848",
+    "mp_id": "0x601e2a2f",
     "mp_info_f": "0x601e283c",
     "mp_info_s": "0x601e2842",
-    "mp_init": "0x601e2aee",
-    "mp_lt_f": "0x601e2860",
-    "mp_lt_s": "0x601e2866",
-    "mp_poke": "0x601e2b4e",
-    "mp_put": "0x601e2b30",
-    "mp_resume": "0x601e2b87",
-    "mp_rt_f": "0x601e286c",
-    "mp_rt_s": "0x601e2872",
-    "mp_set": "0x601e2b22",
-    "mp_tramp": "0x601e2a50",
-    "mp_tramp_end": "0x601e2aa0",
-    "mp_up_f": "0x601e2848",
-    "mp_up_s": "0x601e284e",
-    "m_redraw": "0x601e2a07"
+    "mp_poke": "0x601e2a08",
+    "mp_put": "0x601e29ea",
+    "mp_resume": "0x601e2a41",
+    "mp_set": "0x601e29dc",
+    "mp_tramp": "0x601e29cc",
+    "mp_tramp_end": "0x601e29dc"
    },
    "presets": [
     {
@@ -7622,13 +7259,7 @@
     "mpage": 1012
    },
    "hooks": {
-    "4": "init",
-    "12": "up",
-    "16": "down",
-    "20": "left",
-    "24": "right",
-    "44": "INFO",
-    "28": "rear dial"
+    "44": "INFO"
    },
    "records": {
     "0x13b6": "0x61185e7c",
@@ -9372,52 +9003,41 @@
  "mono_presets": {
   "code": [
    "0x601e283c",
-   932
+   600
   ],
   "code_b": [
    "0x601e173c",
-   800
+   780
   ],
   "symbols": {
-   "l_out": "0x601e18d4",
-   "l_put": "0x601e18e8",
-   "l_text": "0x601e1840",
-   "mp_data": "0x601e191c",
-   "mp_end": "0x601e1a5c",
-   "mp_ids": "0x601e192c",
-   "mp_keys": "0x601e191c",
+   "l_out": "0x601e18c0",
+   "l_put": "0x601e18d4",
+   "l_text": "0x601e182c",
+   "mp_data": "0x601e1908",
+   "mp_end": "0x601e1a48",
+   "mp_ids": "0x601e1918",
+   "mp_keys": "0x601e1908",
    "mp_lbl1": "0x601e173c",
    "mp_lbl2": "0x601e1742",
    "mp_lblw": "0x601e1745",
-   "mp_tab": "0x601e196c",
-   "mp_t_cust": "0x601e18ff",
-   "mp_t_film": "0x601e18f8",
-   "mp_t_fm": "0x601e190f",
-   "mp_t_menu": "0x601e1908",
-   "mp_t_star": "0x601e1906",
-   "m_miss": "0x601e2a36",
-   "mp_d1_f": "0x601e2aa0",
-   "mp_dn_f": "0x601e2854",
-   "mp_dn_s": "0x601e285a",
-   "mp_end_a": "0x601e2bde",
-   "mp_go": "0x601e2878",
-   "mp_id": "0x601e2b75",
+   "mp_tab": "0x601e1958",
+   "mp_t_cust": "0x601e18eb",
+   "mp_t_film": "0x601e18e4",
+   "mp_t_fm": "0x601e18fb",
+   "mp_t_menu": "0x601e18f4",
+   "mp_t_star": "0x601e18f2",
+   "m_miss": "0x601e29b4",
+   "mp_end_a": "0x601e2a93",
+   "mp_go": "0x601e2848",
+   "mp_id": "0x601e2a2f",
    "mp_info_f": "0x601e283c",
    "mp_info_s": "0x601e2842",
-   "mp_init": "0x601e2aee",
-   "mp_lt_f": "0x601e2860",
-   "mp_lt_s": "0x601e2866",
-   "mp_poke": "0x601e2b4e",
-   "mp_put": "0x601e2b30",
-   "mp_resume": "0x601e2b87",
-   "mp_rt_f": "0x601e286c",
-   "mp_rt_s": "0x601e2872",
-   "mp_set": "0x601e2b22",
-   "mp_tramp": "0x601e2a50",
-   "mp_tramp_end": "0x601e2aa0",
-   "mp_up_f": "0x601e2848",
-   "mp_up_s": "0x601e284e",
-   "m_redraw": "0x601e2a07"
+   "mp_poke": "0x601e2a08",
+   "mp_put": "0x601e29ea",
+   "mp_resume": "0x601e2a41",
+   "mp_set": "0x601e29dc",
+   "mp_tramp": "0x601e29cc",
+   "mp_tramp_end": "0x601e29dc"
   },
   "presets": [
    {
@@ -9689,13 +9309,7 @@
    "mpage": 1012
   },
   "hooks": {
-   "4": "init",
-   "12": "up",
-   "16": "down",
-   "20": "left",
-   "24": "right",
-   "44": "INFO",
-   "28": "rear dial"
+   "44": "INFO"
   },
   "records": {
    "0x13b6": "0x61185e7c",
