@@ -1,0 +1,35 @@
+{
+  "name": "look_editor",
+  "canvas": [720, 480],
+  "background": {"type": "image", "path": "generated/film/PA221247/classic_neg.jpg"},
+  "notes": [
+    "MOCK - proposed look editor (docs/LOOK_EDITOR.md). Phase 1 = stock Color Profile wheel + Delete cycles S -> L -> H; only the axis",
+    "tab row and the slot name are new. Phase 2 adds the Extras page (INFO): grain / effect / WB A-B / WB G-M. Layout and colours are guesses."
+  ],
+  "elements": [
+    {"type": "rect", "box": [0, 0, 720, 64], "fill": "#99000000"},
+    {"type": "bitmap", "id": 4344, "x": 14, "y": 8},
+    {"type": "text", "text": "Classic Neg", "x": 92, "y": 12},
+    {"type": "rect", "box": [430, 12, 90, 40], "fill": 12, "outline": 6},
+    {"type": "rect", "box": [520, 12, 90, 40], "fill": 12, "outline": 6},
+    {"type": "rect", "box": [610, 12, 96, 40], "fill": "#ff1f4a8c", "outline": 1, "width": 3},
+    {"type": "text", "text": "Sat", "x": 475, "y": 32, "anchor": "cc", "scale": 0.8},
+    {"type": "text", "text": "Light", "x": 565, "y": 32, "anchor": "cc", "scale": 0.8},
+    {"type": "text", "text": "Hue", "x": 658, "y": 32, "anchor": "cc", "scale": 0.8, "fg": 1},
+    {"type": "color_wheel", "cx": 300, "cy": 270, "r_outer": 160, "r_inner": 136,
+     "values": [0, 0, 1, 3, 4, 2, 0, -1, -3, -1, 0, 0], "selected": 4, "range": 7},
+    {"type": "text", "text": "H +4", "x": 500, "y": 120, "fg": 1},
+    {"type": "text", "text": "S 0", "x": 500, "y": 166, "scale": 0.8},
+    {"type": "text", "text": "L -1", "x": 500, "y": 202, "scale": 0.8},
+    {"type": "rect", "box": [488, 250, 220, 160], "fill": "#99000000", "outline": 6},
+    {"type": "text", "text": "Extras (INFO)", "x": 498, "y": 256, "scale": 0.7, "fg": 1},
+    {"type": "text", "text": "Grain   Low", "x": 498, "y": 292, "scale": 0.7},
+    {"type": "text", "text": "Effect  Bloom 2", "x": 498, "y": 322, "scale": 0.7},
+    {"type": "text", "text": "WB A-B  +2", "x": 498, "y": 352, "scale": 0.7},
+    {"type": "text", "text": "WB G-M   0", "x": 498, "y": 382, "scale": 0.7},
+    {"type": "rect", "box": [0, 430, 720, 50], "fill": "#99000000"},
+    {"type": "text", "text": "@A032@ S/L/H   OK Save", "x": 14, "y": 436, "scale": 0.8},
+    {"type": "bitmap", "id": 7567, "x": 706, "y": 476, "anchor": "br"},
+    {"type": "watermark", "text": "MOCK", "x": 360, "y": 66, "fg": 13}
+  ]
+}
