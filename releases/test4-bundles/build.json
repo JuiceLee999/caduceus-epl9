@@ -1,0 +1,15 @@
+{
+  "components": [
+    "0x100"
+  ],
+  "edits": 10,
+  "changed_payload_bytes": 938,
+  "spec": "/tmp/claude-1000/-mnt-Storage-Projects---software-Firmware-Olympus-E-P7/ca7a5b2b-a0cb-49f7-8a33-fbf59936fbd5/scratchpad/t4b.json",
+  "spec_sha256": "15f61e3ec51b6c318baeb1dd7b6434d4cb64da5ebe837ba368518a5ef33146e6",
+  "stock_sha256": "9d1610124ad98f6edae4540182205f06c9c703d9033ef0c4f19847193f95eaeb",
+  "patched_sha256": "10390c91ea299eb40640601d1ff728679a69b988994fc5c4eacc6dfff8e44207",
+  "restore_sha256": "245b9c8fcf247a0271121238b09769b5d90f682924e3086aacc4762211b82612",
+  "bytes": 26214400,
+  "camera_contacted": false,
+  "note": "Not SD-loadable by name. Container validity != bootability."
+}

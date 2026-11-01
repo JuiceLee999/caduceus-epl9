@@ -1,0 +1,710 @@
+{
+ "components": [
+  "0x100"
+ ],
+ "edits": [
+  {
+   "kind": "0x100",
+   "addr": "0x60319157",
+   "expect": "cc06",
+   "new": "907e",
+   "why": "record limit 1740s -> 32400s",
+   "source": "patches/rec_limit/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6031915c",
+   "expect": "201c",
+   "new": "907e",
+   "why": "record limit 7200s -> 32400s",
+   "source": "patches/rec_limit/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030df3d",
+   "expect": "266001f172",
+   "new": "dc532df0ff",
+   "why": "movie-picture-mode derivation entry: mov 352,a2; add a0,a2 -> jmp vlog_hook",
+   "source": "patches/video_log/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210c90",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "fa406001a000c91afa004c01a001c912f84110a003c804ca098002dcbcd20f00266001f172dc8dd20f00",
+   "why": "vlog_hook (42 B, section-1 FF tail): movie && pm==3 -> +925=2 (id 2001)",
+   "source": "patches/video_log/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603537f0",
+   "expect": "2c803c",
+   "new": "2c983c",
+   "why": "job allocation 15488 -> 15512 (+24-byte bundle extension at job+15488)",
+   "source": "generated/bundles-lachlan/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6035390c",
+   "expect": "8510",
+   "new": "8528",
+   "why": "tail memset job+15472: 16 -> 40 bytes (zeroes the extension)",
+   "source": "generated/bundles-lachlan/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603b02d9",
+   "expect": "cd8ffdf060",
+   "new": "dcc008e6ff",
+   "why": "COLOR builder call -> jmp v0.2 bundle H/L routine (replaces v0.1)",
+   "source": "generated/bundles-lachlan/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603e66ab",
+   "expect": "f043a00cc926",
+   "new": "dc9da4e2ffcb",
+   "why": "converter 0x603e62d1: copy capture profile/mode into job extension",
+   "source": "generated/bundles-lachlan/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603e91f0",
+   "expect": "5c24f040a00c",
+   "new": "dc8179e2ffcb",
+   "why": "converter 0x603e8af1: copy capture profile/mode into job extension",
+   "source": "generated/bundles-lachlan/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210900",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ff00000706fefd06070502fcfcfdfeff020203fffdfbfb0000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000010000000202010101000000ff00000000000000000001020002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000581b70178813a00fb80bd007e803000018fc30f848f460f078ec90e8a8e4d4fe06ff38ff6aff9cffceffe7ff00001900320064009600c800fa002c0100020406080a01030507090b5c14fa40135ef1ecfa505c3cf043fa505d3c2cb200fa505e3cf043a00cc907dc4a5b1d00dc695b1d005c18fa40135e5c14fa505c3c5c24f0405c14fa505d3c2cb200fa505e3c5c24f040a00cdc62861d00ddcff41900f060f8fee4420046044a084e0c431047144f18f8260471fcc8d45f3560c805cc9c00f8010494fad08c0c8a10f190c80b20382affc9f8cc85007494fad09cd3f191c97afa40823cfac8b200c970fa40813ca00bc968fa40803c28ffa004c65ef8c006fcdc00092160f160f8401ff8ec02c84b08f408102807a00fc64148aa18c9f4f82e0cfad3c20208fcdd3c0b2160f419f404102807e0fcdd000b2160f4b1f07f290cf404102807e0fcdd1e0b2160f4b1f87f04231848aa0cc9d0580059045a085b0c5c105d145f18f8fe1cdc74f6190000",
+   "why": "v0.2 code + LUTs + 8x64 bundle table (880 B) in section-1 FF tail",
+   "source": "generated/bundles-lachlan/edits.json"
+  }
+ ],
+ "sources": [
+  "patches/rec_limit/edits.json",
+  "patches/video_log/edits.json",
+  "generated/bundles-lachlan/edits.json"
+ ],
+ "meta": {
+  "patches/rec_limit/edits.json": {},
+  "video_log_A": {
+   "patch": "video_log_A",
+   "trig_log": 3,
+   "trig_flat": null,
+   "code_at": "0x60210c90",
+   "code_len": 42
+  },
+  "bundles-v0.2": {
+   "patch": "bundles-v0.2",
+   "bundle": "bundles/lachlan_v1.json",
+   "labels": {
+    "__bss_start": "0x60210c70",
+    "bundle_table": "0x60210900",
+    "bundle_table_end": "0x60210b00",
+    "code_end": "0x60210c6f",
+    "code_start": "0x60210b48",
+    "conv1": "0x60210b48",
+    "conv2": "0x60210b71",
+    "___ctors": "0x60210c70",
+    "___ctors_end": "0x60210c70",
+    "___dtors": "0x60210c70",
+    "___dtors_end": "0x60210c70",
+    "_edata": "0x60210c70",
+    "_end": "0x60210c70",
+    "hit": "0x60210bd7",
+    "hl": "0x60210b99",
+    "hue_lut": "0x60210b00",
+    ".L0\u0001_0": "0x60210bc0",
+    ".L1\u00021": "0x60210b6c",
+    "light_lut": "0x60210b1e",
+    "out": "0x60210c59",
+    "perm": "0x60210b3c",
+    "rec": "0x60210c27",
+    "scan": "0x60210bca",
+    "_stack": "0x80000",
+    "_start": "0x60210900",
+    "val": "0x60210c11"
+   },
+   "layout": {
+    "job_size": 15512,
+    "ext_profile": 15488,
+    "ext_mode": 15489,
+    "ext_magic": 15490,
+    "magic": 178,
+    "entry_bytes": 64,
+    "slots": [
+     "COLOR1",
+     "COLOR2",
+     "COLOR3",
+     "COLOR4",
+     "MONO1",
+     "MONO2",
+     "MONO3",
+     "MONO4"
+    ]
+   },
+   "slots": [
+    {
+     "slot": "COLOR1",
+     "enabled": false
+    },
+    {
+     "slot": "COLOR2",
+     "enabled": true,
+     "recipe": "classic_neg",
+     "recipe_file": "fuji_like.json",
+     "hue_ui": [
+      0,
+      -1,
+      0,
+      0,
+      7,
+      6,
+      -2,
+      -3,
+      6,
+      7,
+      5,
+      2
+     ],
+     "light_ui": [
+      -4,
+      -4,
+      -3,
+      -2,
+      -1,
+      2,
+      2,
+      3,
+      -1,
+      -3,
+      -5,
+      -5
+     ],
+     "grain": 0,
+     "wb_override": false,
+     "wb_source": null,
+     "wb": [
+      0,
+      0
+     ],
+     "effect": [
+      0,
+      0
+     ],
+     "vignette": 0,
+     "flags": 2,
+     "advice_sat_ui": [
+      -3,
+      -2,
+      -2,
+      0,
+      -1,
+      -5,
+      -5,
+      -3,
+      -1,
+      -4,
+      -4,
+      -4
+     ],
+     "advice_grain": "off",
+     "colour": 0,
+     "sat_ui": null,
+     "native_rows": [
+      [
+       0,
+       -150
+      ],
+      [
+       0,
+       -100
+      ],
+      [
+       -7000,
+       -25
+      ],
+      [
+       2000,
+       50
+      ],
+      [
+       -6000,
+       -25
+      ],
+      [
+       -5000,
+       -200
+      ],
+      [
+       1000,
+       -150
+      ],
+      [
+       0,
+       -50
+      ],
+      [
+       -6000,
+       50
+      ],
+      [
+       3000,
+       100
+      ],
+      [
+       -7000,
+       -100
+      ],
+      [
+       -2000,
+       -200
+      ]
+     ]
+    },
+    {
+     "slot": "COLOR3",
+     "enabled": false
+    },
+    {
+     "slot": "COLOR4",
+     "enabled": true,
+     "recipe": "portra_400_bloom",
+     "recipe_file": "film_look.json",
+     "hue_ui": [
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      2,
+      2
+     ],
+     "light_ui": [
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      -1,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "grain": 0,
+     "wb_override": false,
+     "wb_source": null,
+     "wb": [
+      0,
+      0
+     ],
+     "effect": [
+      1,
+      2
+     ],
+     "vignette": 0,
+     "flags": 2,
+     "advice_sat_ui": [
+      -1,
+      0,
+      0,
+      -1,
+      -1,
+      -2,
+      -2,
+      -2,
+      -2,
+      -3,
+      -3,
+      -3
+     ],
+     "advice_grain": null,
+     "colour": 0,
+     "sat_ui": null,
+     "native_rows": [
+      [
+       -1000,
+       25
+      ],
+      [
+       0,
+       25
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       -1000,
+       -25
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       -2000,
+       0
+      ],
+      [
+       -1000,
+       25
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       -2000,
+       0
+      ]
+     ]
+    },
+    {
+     "slot": "MONO1",
+     "enabled": false
+    },
+    {
+     "slot": "MONO2",
+     "enabled": false
+    },
+    {
+     "slot": "MONO3",
+     "enabled": false
+    },
+    {
+     "slot": "MONO4",
+     "enabled": false
+    }
+   ],
+   "table_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ff00000706fefd06070502fcfcfdfeff020203fffdfbfb0000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000010000000202010101000000ff00000000000000000001020002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+  }
+ },
+ "code_at": "0x60210c90",
+ "bundle": "bundles/lachlan_v1.json",
+ "labels": {
+  "__bss_start": "0x60210c70",
+  "bundle_table": "0x60210900",
+  "bundle_table_end": "0x60210b00",
+  "code_end": "0x60210c6f",
+  "code_start": "0x60210b48",
+  "conv1": "0x60210b48",
+  "conv2": "0x60210b71",
+  "___ctors": "0x60210c70",
+  "___ctors_end": "0x60210c70",
+  "___dtors": "0x60210c70",
+  "___dtors_end": "0x60210c70",
+  "_edata": "0x60210c70",
+  "_end": "0x60210c70",
+  "hit": "0x60210bd7",
+  "hl": "0x60210b99",
+  "hue_lut": "0x60210b00",
+  ".L0\u0001_0": "0x60210bc0",
+  ".L1\u00021": "0x60210b6c",
+  "light_lut": "0x60210b1e",
+  "out": "0x60210c59",
+  "perm": "0x60210b3c",
+  "rec": "0x60210c27",
+  "scan": "0x60210bca",
+  "_stack": "0x80000",
+  "_start": "0x60210900",
+  "val": "0x60210c11"
+ },
+ "table_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ff00000706fefd06070502fcfcfdfeff020203fffdfbfb0000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000010000000202010101000000ff00000000000000000001020002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+ "slots": [
+  {
+   "slot": "COLOR1",
+   "enabled": false
+  },
+  {
+   "slot": "COLOR2",
+   "enabled": true,
+   "recipe": "classic_neg",
+   "recipe_file": "fuji_like.json",
+   "hue_ui": [
+    0,
+    -1,
+    0,
+    0,
+    7,
+    6,
+    -2,
+    -3,
+    6,
+    7,
+    5,
+    2
+   ],
+   "light_ui": [
+    -4,
+    -4,
+    -3,
+    -2,
+    -1,
+    2,
+    2,
+    3,
+    -1,
+    -3,
+    -5,
+    -5
+   ],
+   "grain": 0,
+   "wb_override": false,
+   "wb_source": null,
+   "wb": [
+    0,
+    0
+   ],
+   "effect": [
+    0,
+    0
+   ],
+   "vignette": 0,
+   "flags": 2,
+   "advice_sat_ui": [
+    -3,
+    -2,
+    -2,
+    0,
+    -1,
+    -5,
+    -5,
+    -3,
+    -1,
+    -4,
+    -4,
+    -4
+   ],
+   "advice_grain": "off",
+   "colour": 0,
+   "sat_ui": null,
+   "native_rows": [
+    [
+     0,
+     -150
+    ],
+    [
+     0,
+     -100
+    ],
+    [
+     -7000,
+     -25
+    ],
+    [
+     2000,
+     50
+    ],
+    [
+     -6000,
+     -25
+    ],
+    [
+     -5000,
+     -200
+    ],
+    [
+     1000,
+     -150
+    ],
+    [
+     0,
+     -50
+    ],
+    [
+     -6000,
+     50
+    ],
+    [
+     3000,
+     100
+    ],
+    [
+     -7000,
+     -100
+    ],
+    [
+     -2000,
+     -200
+    ]
+   ]
+  },
+  {
+   "slot": "COLOR3",
+   "enabled": false
+  },
+  {
+   "slot": "COLOR4",
+   "enabled": true,
+   "recipe": "portra_400_bloom",
+   "recipe_file": "film_look.json",
+   "hue_ui": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    2,
+    2
+   ],
+   "light_ui": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    -1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "grain": 0,
+   "wb_override": false,
+   "wb_source": null,
+   "wb": [
+    0,
+    0
+   ],
+   "effect": [
+    1,
+    2
+   ],
+   "vignette": 0,
+   "flags": 2,
+   "advice_sat_ui": [
+    -1,
+    0,
+    0,
+    -1,
+    -1,
+    -2,
+    -2,
+    -2,
+    -2,
+    -3,
+    -3,
+    -3
+   ],
+   "advice_grain": null,
+   "colour": 0,
+   "sat_ui": null,
+   "native_rows": [
+    [
+     -1000,
+     25
+    ],
+    [
+     0,
+     25
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     -1000,
+     -25
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     -2000,
+     0
+    ],
+    [
+     -1000,
+     25
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     -2000,
+     0
+    ]
+   ]
+  },
+  {
+   "slot": "MONO1",
+   "enabled": false
+  },
+  {
+   "slot": "MONO2",
+   "enabled": false
+  },
+  {
+   "slot": "MONO3",
+   "enabled": false
+  },
+  {
+   "slot": "MONO4",
+   "enabled": false
+  }
+ ],
+ "layout": {
+  "job_size": 15512,
+  "ext_profile": 15488,
+  "ext_mode": 15489,
+  "ext_magic": 15490,
+  "magic": 178,
+  "entry_bytes": 64,
+  "slots": [
+   "COLOR1",
+   "COLOR2",
+   "COLOR3",
+   "COLOR4",
+   "MONO1",
+   "MONO2",
+   "MONO3",
+   "MONO4"
+  ]
+ }
+}
