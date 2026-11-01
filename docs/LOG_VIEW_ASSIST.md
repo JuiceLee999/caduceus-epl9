@@ -13,9 +13,13 @@ below. They all pass (`python3 -I tools/ep7_view_assist_probe.py [--json r.json]
 
 ## Verdict
 
-**Feasible, using the display engine and not the ISP. Nothing is built yet. The trigger site is now
-chosen (T-D below) and the playback signal is traced (`0xa272c418` bit 0, through image on the TFT).
-The playback meaning is still inference, so the next steps are the build and probe P-VA0.**
+**Feasible, using the display engine and not the ISP. Built and emulator-verified, not yet tried on a
+camera:**
+- `releases/probe-VA0`: flash this first; it confirms the playback signal;
+- `releases/test10-viewassist`: the feature.
+
+Both are on the test7b base, and both use trigger T-D and the through-image signal `0xa272c418` bit 0.
+See "Build".
 
 The live-view gamma cannot be split from the recorded gamma inside the ISP. There is one development
 per frame and one gamma for it. The display controller ("VSC") has its own hardware LUT, though:
@@ -115,7 +119,7 @@ pass [V code, I meaning].
   [V tests, I meaning].
 - There is no "View Assist", "OM-Log" or "Log" string in main or the other components [V].
 
-## Q3: minimal patch design (not built)
+## Q3: minimal patch design (built, see "Build")
 
 Condition: **VSC TFT gamma = VA LUT exactly while record +925 == 2 (log active), otherwise bypass.**
 Keying on +925 covers both `patches/video_log` and the stock MovPicMode = 255 route.
@@ -226,7 +230,7 @@ Display command ids are the 1-based name index (`0x601d78e2` + 12·k); the dispa
 | T-B send from `vlog_hook` | Once per capture request (message handler `0x6054d116` → `0x60303ef6` → `0x603263c7` → `0x6030df3d`) | **Rejected (unsafe).** `0x602c9cf1` → `0x60054b33` is a synchronous RPC: reply queue, post, then `0x600513e6` with d1 = −1 (no timeout) [V]. The capture-control task would block until the display task has drained its queue. No evidence was found that this task sends display commands in stock (not exhaustively checked), so a deadlock cannot be ruled out (same failure class as SD_V2_CRASH cause (b)). It also needs RAM state for edge detection and never runs on entry to playback |
 | **T-D (chosen): reconcile at the display task's common reply tail `0x601751f4`** | After **every** display command. 37 handler branches converge on `0x601750ef`, which falls through to `0x601751f4` [V] | **Safe by construction**: runs in the task that owns the VSC and the locks (same context as QUALITY), never blocks, no stores outside the stack, the hardware mode register `0x9c000204` is the only state, so the LUT loads once and survives reopen. Hook = 5 bytes at an instruction boundary: `f8 bc 2c 08 81` (`movhu (44,sp),d0; clr d2; mov d0,d1`) → `jmp stub`; the stub replays them and returns to `0x601751f9` |
 
-T-D stub (designed, not built):
+T-D stub (built, see "Build"):
 1. Skip unless TFT is running: `(0xa272c40c) & 1` (the same running-device mask the UPD_IMG/UPD_SCRN
    handlers test before touching a device). This keeps register reads and writes away from a closed VSC.
 2. `want = record[(0xa273104c)].+925 == 2` **and not playback**.
@@ -266,7 +270,7 @@ Caveat: the app-side setters change the flag without sending a display command, 
 next display command. Entering playback redraws the screen and OSD (display commands), so the expected
 lag is one command. That is [I].
 
-**Camera confirmation (designed, not built).** P-VA0 is the T-D stub with the +925 test removed:
+**Camera confirmation (built as `releases/probe-VA0`).** P-VA0 is the T-D stub with the +925 test removed:
 `want = (0xa272c40c & 1) && (0xa272c418 & 1)`.
 - It writes no RAM, only the VSC LUT and mode registers through the stock programmer.
 - Expected result: the LCD looks contrasty or "graded" in every live view (stills and movie). Playback,
@@ -275,10 +279,71 @@ lag is one command. That is [I].
   separate probe.
 - Recovery: the stock restore package. The worst case is cosmetic (wrong tone on the LCD).
 
+## Build (2026-11-01, offline)
+
+`patches/view_assist/` holds `view_assist.s.in` and `build_and_verify.py`. They write
+`generated/view_assist/{probe,full}.json`, `.lst` and `.verify.json`.
+
+| Edit | Site | Bytes |
+|---|---|---|
+| Hook | `0x601751f4` `f8bc2c0881` → `dc 48 e7 06 00` (jmp `0x601e393c`) | 5 |
+| VA LUT | `0x601e383c` (dead EVF step-0 R) | 256 |
+| `va_hook` | `0x601e393c` (dead EVF step-0 G): 74 B probe / 105 B full | ≤ 256 |
+| Step-17 pointers | `0x601e3c40` → 3 × `0x601e383c` | 12 |
+
+The hook and the code are in section 1, the same section as the display task. The step ids passed to the
+programmer are the stock step bytes in the table:
+- step 17 at `0x601e3c3c`;
+- step 16 (bypass) at `0x601e3c2c`.
+
+The ring index is bounded to < 5: the next static after the ring is at `0xa27323bc` = `0xa2731098 + 5·980`.
+
+Notes on the MN103 `call` convention [V], as the emulator shows:
+- A call stores its return address at the caller's `(0,sp)`. That slot is never read by the dispatcher
+  (`0x601744f0–0x601752c6`).
+- Callee-saved d2/d3/a2/a3 are preserved by the call masks.
+- a0/a1 are dead at `0x601751f9`.
+- Stack depth is shallower than in the stock QUALITY path, which reaches the programmer through
+  `0x60186432`.
+
+Emulator results (all PASS, for both variants):
+- **S**: 58-case matrix through the patched hook, with a spy at the programmer:
+  - run × through × (+925, index including out-of-ring values) × mode (0 / 0x111 / 0x222);
+  - every image region and all state inputs are read-only, and the IO window is unmapped while the TFT is
+    not running;
+  - checks: call/no-call and step id; replayed d0/d1/d2; d3/a2/a3/sp preserved; dispatcher frame
+    untouched.
+- **P**: the real stock programmer, mode writer and LUT writer, run in sequence. Log on writes VSC TFT
+  bank 1 (`0x9c002000/2400/2800`) with exactly the VA LUT words and sets mode 0x111. Then:
+  - a repeat changes nothing (loads once);
+  - playback (through flag off) gives mode 0;
+  - back in live view the LUT reloads;
+  - log off gives mode 0 (full) or no change (probe);
+  - TFT not running changes nothing.
+- **M**: every mutant fails S or P (10 mutants for the probe, 15 for full), covering the gates, bits, step
+  swap, device mask, replay, ring bound, stride, +925 offset and value, and load-every-time.
+- **K**: S and P re-run on the main payload decoded from each built `patched.pkg.bin`. The four spans
+  are byte-identical to the verified image.
+
+Releases (local only, names not SD-loadable; restore identical to test 7b's):
+
+| Release | Edits | Changed bytes |
+|---|---|---|
+| `releases/probe-VA0` | 38 | 2,732 |
+| `releases/test10-viewassist` | 38 | 2,763 |
+
+Residual risks:
+- The playback meaning of the through flag is [I]; probe-VA0 confirms it.
+- The reaction can lag by one display command, because app-side setters change the flag directly.
+- Whether OSD is re-toned (gamma before or after mixing) is unknown; it shows on the camera.
+- The EVF step-0 R/G tables now hold the LUT and the code. They would only be read by COLORTEMP for the
+  EVF, which runs only when the current device is the EVF (`0x60174d19`); the E-P7 has no EVF.
+
 ## Open items before building
 
 1. Done: see "Trigger measurement". T-D chosen; the send (T-B) is synchronous with no timeout.
    Playback signal: `0xa272c418` bit 0 (traced; playback meaning [I], confirm with P-VA0).
+   Built: probe-VA0 and test10 (see "Build").
 2. Whether the VSC gamma applies before or after OSD mixing. On the camera this shows directly.
 3. The first camera test of `patches/video_log` must confirm that live view is in fact log (Q1
    inference).

@@ -1,0 +1,43 @@
+ .am33_2
+ .text
+ .global _start
+/* E-P7 1.1 Log View Assist (docs/LOG_VIEW_ASSIST.md, trigger T-D).
+   Hook: display task common reply tail 0x601751f4 (reached after EVERY display command):
+     stock  f8 bc 2c / 08 / 81 = movhu (44,sp),d0; clr d2; mov d0,d1   -> jmp va_hook
+   Live-in: d3,a2,a3 (preserved: the only call that can touch them saves them via its call mask);
+   d0,d1,d2 are redefined by the replayed instructions; a0,a1 are dead at 0x601751f9.
+   Reconcile (no RAM state; the VSC TFT mode register is the state, stock TFT value is 0 = bypass):
+     run  = (0xa272c40c) & 1            TFT running (same test the UPD_IMG/QUALITY handlers use)
+     want = (0xa272c418) & 1            TFT through image on (not playback) {want_extra}
+     cur  = 0x60189198(1) != 0          mode register 0x9c000204
+     if run && want != cur: 0x60187439(1, want ? &step17 : &step16)   (stock programmer)
+   No stores. Registers touched before the replay: d0, d1, a0, a1 (+ callee scratch). */
+_start:
+va_hook:
+ mov (0xa272c40c),d0
+ btst 1,d0
+ beq out                           /* TFT not running: never touch the VSC */
+ mov 1,d0
+ call ep7_mode_get,[],4            /* d0 = TFT mode register (0 / 0x111 / 0x222) */
+ mov d0,a1                         /* a1 = cur */
+ mov (0xa272c418),d0
+ btst 1,d0
+ beq want_off                      /* through image off (playback, closed, EVF) */
+{want_code}
+want_on:
+ cmp 0,a1
+ bne out                           /* already loaded: load once */
+ mov ep7_step17,a0
+ bra load
+want_off:
+ cmp 0,a1
+ beq out                           /* already bypass (stock) */
+ mov ep7_step16,a0
+load:
+ mov 1,d0                          /* device mask 1 = TFT */
+ call ep7_prog,[d2,d3,a2,a3],92    /* same form as stock caller 0x6018643e */
+out:
+ movhu (44,sp),d0                  /* displaced stock instructions */
+ clr d2
+ mov d0,d1
+ jmp ep7_ret                       /* 0x601751f9 */
