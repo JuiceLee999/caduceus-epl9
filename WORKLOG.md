@@ -173,3 +173,10 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - MONO→colour (agent, docs/MONO_COLOUR.md): 3 hooks (0x603b02bf, 0x603b134e, 0x60353db9) + 764 B @0x61378c80 (sec 7). Slot +32 colour, +33 sat[12]. 213/213 tests, 20/20 mutations on v0.3+mono. Needs re-verify on v0.4 merge.
 - Full merge (agent): v0.4 + WB + MONO-colour + SD loader = releases/v0.4-candidate/edits_full.json, 138 edits / 3,504 B. All 9 verifiers PASS (SD: 173 cases + 7 sequences + 17/17 mutations). Open: section-6/1 RAM writability for loader state + table.
 - **REVIEW_v04:** no code defects; B1 blocker = no proven install/recovery path. H1-new SD loader hook dead (confirmed by me at 0x60863e4f/0x60863e62) → excluded. Saved releases/v0.4 (no SD loader), tag v0.4.
+- **Buttons (agent, docs/BUTTONS.md, patches/buttons):** buttons = settings whose value is a function code; menu/stepping read the
+  static validator lists (0x604cc98c, no availability filter for button sids); dispatcher 0x60cc872f maps key->sid->code->action
+  (55-entry table 0x60f38af8) with no per-key check. Arrow right/down = sids 51/53 (8 codes), up/left 50/52 fixed (no list).
+  **Built** data-only, 10 edits/100 B in place (sec 2): sids 47/48/49 -> 23 codes (+Multi Function, ISO/WB, HDR, BKT, Level, ...),
+  arrows 51/53 -> 16 codes (+ISO/WB, WB/ISO, Peaking, Magnify, Level, tele-con, Multi Function, RAW). tools/ep7_buttons_verify.py
+  S/V/N/A/M PASS. Merge releases/v0.5-candidate/edits.json (v0.4 + buttons, 146 edits/3,005 B): bundles, grain, bloom, WB,
+  MONO-colour, buttons verifiers all PASS. Queued: profile-slot select (no function code exists), ISO/WB-only, up/left, movie arrows.

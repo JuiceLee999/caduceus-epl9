@@ -19,6 +19,9 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | 0x61242a00–0x61242d00 | 6 | SD-card bundle loader sd_hook/sd_load/sd_check/sd_crc + path, header, range tables, `sd_state` byte (patches/sd_bundles; 564 B used, 0x61242a00–0x61242c34, sd_state at 0x61242c33 is written at run time). Guards 0x612429b0–0x61242a00 and 0x61242d00–0x61242f00 stay FF; stock data ends 0x612429af | built + emulator-verified (docs/SD_BUNDLES.md) |
 | 0x61242f00–0x61242f60 | 6 | aspect: relocated Image Aspect option list, 8 × 12 B data (patches/aspect) | built + list parse verified |
 | 0x61378c80–0x61378f7c | 7 | MONO-colour LUTs + sel/chroma/fg stubs (patches/mono_colour; 764 B). Guards 0x61378c68–0x61378c80 and 0x61378f7c–0x61378f8c stay FF; 0x61378f8c–0x61379000 (116 B) free. Sec-7 end 0x61379000 re-verified via loader 0x60027068 entry 6 + end getter 0x60045786 → 0x600457c4 | built + emulator-verified (docs/MONO_COLOUR.md) |
+| 0x60210f80–0x60210ff2 | 1 | aperture ring `.lens` (disp_hook + parse_hook, 114 B; patches/aperture_ring, docs/APERTURE_RING.md). 0x60210ff2–0x60210ffe stays FF | built + emulator-verified |
+| 0x60210ffe–0x60211000 | 1 | aperture ring published ring halfword (initial 0x8000, written at run time via 0xa0210ffe) | built + emulator-verified |
+| 0x61378f9c–0x61379000 | 7 | aperture ring `.ae` ae_hook (100 B, to section end; 0x61378f8c–0x61378f9c guard) — takes the sec-7 free tail | built + emulator-verified |
 
 ## Hook sites (stock bytes replaced)
 | Site | Bytes | Owner |
@@ -36,10 +39,14 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | 0x603b134e (5) | 5 | MONO-colour: chroma-stage tone lookup call → jmp chroma |
 | 0x60353db9 (8) | 8 | MONO-colour: packer mono-filter merge `mov (11308,a0),d0; cmp 12,d0; bne` → jmp fg |
 | 0x60210900 table +32 / +33..+44 | data | bundle slot `colour` / `sat[12]` (patches/bundles/layout.json), read by MONO-colour |
+| 0x601f9df7 | 5 | aperture ring: dispatcher `bne; jmp null` → jmp disp_hook |
+| 0x601f5ed7 | 8 | aperture ring: status parser DIS_FCENC store → call parse_hook,[],0; nop |
+| 0x60427ae7 | 5 | aperture ring: AE snapshot `call 0x60429548,[],4` (aperture point 0x80ca) → jmp ae_hook |
 | 0x603537f0 (3), 0x6035390c (2) | 5 | v0.2 job size 15488→15512, tail memset 16→40 |
 | 0x603e66ab (6), 0x603e91f0 (6) | 12 | v0.2 converter transport (replaces the 0x603e669f/0x603e91e4 candidates) |
 | 0x60863e91 | 4 | SD bundle loader: rel32 of the mount-OK `call 0x6077d590,[d2],20` at 0x60863e90 → sd_hook (tail-jumps to 0x6077d590) |
 | 0x60210900–0x60210b00 | data (run time) | SD bundle loader rewrites the v0.2 bundle table in RAM from a valid C:\EP7MOD\BUNDLES.BIN (no flash edit) |
 | 0x6117af14 | 8 | aspect: setting-270 option descriptor (count 6→8, list ptr → 0x61242f00) |
 | 0x60b04428/2c, 0x60b04454/58, 0x60b0daf8/fc, 0x60b0e0ec/f0, 0x60af4a18/1c, 0x60b01548/4c | 4 each | aspect: jump-table entries ids 6/7 (S1–S6, sec 5) |
+| 0x604cae3c (46 B of 72), 0x604cb00e (32 B) + records 0x604cda08/1c/30, 0x604cdad0/e4 (+4 ptr, +12 bytes) | data (sec 2) | buttons: in-place validator lists for sids 47/48/49 and arrow 51/53 (patches/buttons, docs/BUTTONS.md). Stock lists at 0x604cae54/6c and 0x604cb01e are absorbed; 0x604cae6a–0x604cae84 left stock, unreferenced |
 | ~90 table rows for aspect ids 6/7 (patches/aspect/edits.json, `why` = table@addr) | 4–16 each | aspect: size/geometry tables |
