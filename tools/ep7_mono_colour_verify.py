@@ -63,6 +63,7 @@ DATA_LO, DATA_HI = 0x604e0000, 0x60540000
 T1_LO, T1_HI = 0x602108ec, 0x60211000
 T7_LO, T7_HI = MC.TAIL_LO, MC.TAIL_HI
 T2_LO, T2_HI = 0x6055e5b0, 0x6055e800          # section-2 tail: SD loader v3 accessor
+EVF_LO, EVF_HI = 0x601e0000, 0x601e4000          # dead EVF gamma tables: lv_bundles `lv` (0x603b02de resume), editor layers
 CALLER, STACK = 0x18000000, 0x18010000
 OUTPUT, CONTEXT, JOB = 0x19000000, 0x1a000000, 0x1b000000
 NEW_SIZE = BB.JOB_SIZE + BB.EXT
@@ -100,7 +101,8 @@ def common_regions(img):
             Region('data', DATA_LO, sl(img, DATA_LO, DATA_HI), 'r'),
             Region('tail1', T1_LO, sl(img, T1_LO, T1_HI), 'rx'),
             Region('tail7', T7_LO, sl(img, T7_LO, T7_HI), 'rx'),
-            Region('tail2', T2_LO, sl(img, T2_LO, T2_HI), 'rx')]   # SD loader v3 accessor (--sd-v3 readers)
+            Region('tail2', T2_LO, sl(img, T2_LO, T2_HI), 'rx'),   # SD loader v3 accessor (--sd-v3 readers)
+            Region('evf', EVF_LO, sl(img, EVF_LO, EVF_HI), 'rx')]  # v0.15: lv at the selector resume point
 
 
 def make_job(*, mode=12, profile=1, ext_mode=None, magic=BB.MAGIC, sat=None, b1800=0, tone=0, filt=0,

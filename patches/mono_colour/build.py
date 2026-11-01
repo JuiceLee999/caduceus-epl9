@@ -161,10 +161,13 @@ def jmp_d32(at, target, length):
     return b + b'\xcb' * (length - len(b))
 
 
+BASE_SPEC = ROOT / 'releases/v0.3/edits.json'
+
+
 def reserved():
-    """Every edit span of releases/v0.3 and the per-profile WB patch: never overlap them."""
+    """Every edit span of the base spec (--base; default releases/v0.3) and the per-profile WB patch: never overlap them."""
     out = []
-    v03 = json.loads((ROOT / 'releases/v0.3/edits.json').read_text())
+    v03 = json.loads(BASE_SPEC.read_text())
     for e in v03['edits']:
         a = int(e['addr'], 16)
         out.append((a, a + len(bytes.fromhex(e['new'])), e.get('source', 'v0.3')))
@@ -228,7 +231,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--sd-v3', action='store_true', help='read the table through the SD loader v3 accessor')
+    ap.add_argument('--base', type=Path, help='spec whose edit spans must not be overlapped (default releases/v0.3)')
     a = ap.parse_args()
+    if a.base:
+        global BASE_SPEC
+        BASE_SPEC = a.base
     try:
         spec, src, lst, code = make_spec(a.sd_v3)
     except ValueError as e:

@@ -1,0 +1,134 @@
+/* E-P7 1.1 mono film presets, part B: guide label + tables (ep7-firmware, our own code). docs/MONO_PRESETS.md.
+ * Section 1, dead EVF gamma step-11 R/G/B tables 0x601e173c.. (only refs: step-table words 0x601e3d30/34/38).
+ *
+ * v0.15 picker label. The MONO filter and shading pages of the Profile view (vtable 0x61189ba8, update 0x60e26ab0)
+ * leave their guide slot empty; it is view+186 ((404,view) == 1) else view+260, a 74-byte label
+ * {u16 kind, -, u16 id, u16 style, text[33]}.
+ *   mp_lbl1 <- `call` at 0x60e27209 (page 1 MONO filter; was `mov (8,sp),a0; mov a0,a1; call 0x60e26789,[],0`), view = d3
+ *   mp_lbl2 <- `call` at 0x60e275c1 (page 2 shading; was `mov a2,a0; mov a2,a1; call 0x60e26789,[],0`), view = d2
+ * 0x60e26789 is `mov (84,a1),d0; retf`, replayed at the end. With a card table and a MONO picture mode (view+400
+ * 57/58/59/65 -> m) the slot becomes kind-5 text:
+ *   Film page (P+{mmark} 'EP7M' and P+{mpage} == 1):  "Film: <name>[*]"  or "Film: Custom" (no preset name)
+ *   stock page:                                         "<name>[*][MENU]" or "Film[MENU]"
+ * <name> = the preset whose 16-byte name equals the MONO slot name P+608+16m (needs 'EP7N'). '*' = one of the
+ * preset's {nf} settings now reads (facade GetValue, low byte) different from the preset value.
+ * Anything else: the slot stays as the page left it. Keeps d1/d2/d3/a2/a3/sp; mdr is reloaded from the stock
+ * call's return word before the retf. Stores: the view's label (heap) and our own stack only.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+ .macro PVAL miss
+ movhu ({state}),d3
+ add -1,d3
+ cmp {lim},d3
+ bcc \miss
+ btst 3,d3
+ bne \miss
+ mov d3,a2
+ add {pool},a2
+ mov (a2),d3
+ cmp {bmagic},d3
+ bne \miss
+ .endm
+
+mp_lbl1:
+ mov (8,sp),a1                    /* replay operand: a1 = (8,sp) */
+ mov d3,a0
+ bra mp_lblw
+mp_lbl2:
+ mov a2,a1                        /* replay operand: a1 = a2 */
+ mov d2,a0
+mp_lblw:                          /* frame: (0) calls, (4) d1, (8) operand, (12) GetValue out, (16) field, (20) P;
+                                     (40) = the stock call's return word */
+ movm [d2,d3,a2,a3],(sp)
+ add -24,sp
+ mov a1,(8,sp)
+ mov d1,(4,sp)
+ mov a0,a3
+ mov (400,a3),d0                  /* picture mode (setting 111, stored by the view update) -> m */
+ clr d2
+ cmp 57,d0
+ beq 1f
+ inc d2
+ cmp 58,d0
+ beq 1f
+ inc d2
+ cmp 59,d0
+ beq 1f
+ inc d2
+ cmp 65,d0
+ bne l_out
+1:
+ PVAL l_out                       /* a2 = P */
+ mov a2,(20,sp)
+ clr d3                           /* d3 bit 0: Film page, bit 1: '*' */
+ mov ({mmark},a2),d0
+ cmp {mmagic},d0
+ bne 2f
+ movbu ({mpage},a2),d0
+ cmp 1,d0
+ bne 2f
+ mov 1,d3
+2:
+ mov (672,a2),d0                  /* a2 = the preset named like slot m, or 0 */
+ cmp {nmagic},d0
+ bne 6f
+ mov d2,d0
+ asl 4,d0
+ add a2,d0
+ add 608,d0
+ mov d0,a0                        /* slot name P+608+16m */
+ mov mp_tab,a1
+ clr d1
+3:
+ clr d0                           /* 16-byte compare as 4 words (P+608+16m and the table are 4-aligned) */
+ mov d0,(16,sp)
+4:
+ mov (16,sp),d0
+ mov (d0,a0),a2
+ mov (d0,a1),d0
+ cmp a2,d0
+ bne 5f
+ mov (16,sp),d0
+ add 4,d0
+ mov d0,(16,sp)
+ cmp 16,d0
+ bne 4b
+ mov a1,a2                        /* match */
+ bra 7f
+5:
+ add 24,a1
+ inc d1
+ cmp {n},d1
+ bne 3b
+6:
+ sub a2,a2                        /* no preset */
+ bra 9f
+7:
+ clr d0                           /* '*': compare the {nf} settings of MONO m with the preset */
+ mov d0,(16,sp)
+8:
+ call ep7_facade,[],4             /* a0 = OlyApiSettingControllerController */
+ mov (a0),a1
+ mov (8,a1),a1                    /* GetValue(id, &out) */
+ mov (16,sp),d1
+ mov d2,d0
+ asl 3,d0
+ add d1,d0
+ add d0,d0
+ mov mp_ids,a0
+ add d0,a0
+ movhu (a0),d0                    /* id of field f for MONO m */
+ mov a1,a0
+ mov sp,a1
+ add 12,a1
+ calls (a0)
+ cmp 0,d0
+ bne 81f                          /* no value: no '*' from this field */
+ mov (16,sp),d1
+ movbu (16,d1,a2),d0              /* hmm: (d1,a2) form below */
+81:
+ nop
