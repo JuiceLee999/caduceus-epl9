@@ -148,6 +148,7 @@ Muted. Left: the standard curve. Right: the hidden log curve, rendered with the 
 - More film looks, and a cross-platform web app to build and share `LOOKS.BIN` files.
 - Art Effect live-view preview that updates immediately.
 - Tinted halation (red glow around white lights), probably via a mask built from the exposure meter grid.
+- Maybe: use the ART position on the mode dial as a quick "silent shutter" switch.
 - Parked: colour looks on Monochrome slots or extra profile slots; a list-style menu instead of the wheel;
   4:3 "open gate" video.
 
