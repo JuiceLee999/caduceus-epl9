@@ -1,0 +1,8 @@
+{"_comment": "bundles/example.json plus MONO slots for patches/mono_colour: MONO1 renders colour (classic_chrome hue/light/sat), MONO2 renders colour with its own saturation, MONO3 stays stock mono (acros only stores grain).",
+ "COLOR1": {"recipe": "classic_neg", "wb": {"a_b": 2, "g_m": 1}},
+ "COLOR2": {"recipe": "kodachrome_64"},
+ "COLOR3": {"recipe": "classic_chrome", "grain": "low"},
+ "COLOR4": {"recipe": "nostalgic_neg", "effect": {"type": "halation", "strength": 3}},
+ "MONO1": {"recipe": "classic_chrome", "render_colour": true},
+ "MONO2": {"recipe": "cinestill_800t", "render_colour": true, "sat": [-2, -1, 0, 1, 2, 3, 4, 5, -5, -4, -3, 0]},
+ "MONO3": {"recipe": "acros"}}

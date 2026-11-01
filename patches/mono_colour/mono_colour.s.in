@@ -1,0 +1,262 @@
+/* E-P7 1.1 "MONO slot renders colour" patch (our own code; ep7-firmware).
+ *
+ * Placed in the section-7 FF tail (section 7 loads right after section 1 and
+ * before section 2, which holds all three hook sites). Requires the v0.2
+ * profile-bundle patch (job extension + bundle table at {bundle_table}).
+ *
+ * A MONO profile (picture mode 12, MONO1..4) renders like a COLOR profile when
+ *   job marker == 0xB2, job ext mode == 12, ext profile 1..4,
+ *   bundle[4 + profile - 1].colour == 1, its sat[12] are all -5..5 and, when
+ *   its flags bit1 (H/L) is set, its hue/light[24] are all -7..7.
+ * Any other case runs the stock code path unchanged.
+ *
+ *   sel     jmp from 0x603b02bf (selector 0x603b0252: or d2,d1; cmp 11,d1; bne)
+ *           mode 11 -> stock COLOR path 0x603b02c5 (untouched)
+ *           mode 12 + colour slot -> the stock COLOR builder call with the
+ *           slot's saturation, then the slot's hue/L (as v0.2 does for COLOR),
+ *           then the stock COLOR tail 0x603b02de
+ *           anything else -> 0x603b02f9 (stock general builder), regs restored
+ *   chroma  jmp from 0x603b134e (chroma stage 0x603b132a, call 0x603b11fb)
+ *           colour slot -> a0 = 0: no constant (1, Cb, Cr) chroma (no grey, no toning),
+ *           exactly what mode 11 gets
+ *   fg      jmp from 0x60353db9 (packer: mov (11308,a0),d0; cmp 12,d0; bne)
+ *           colour slot -> params+5528 (filter) = params+5529 (tone) = 0 and the
+ *           mono-filter merge is skipped, as for mode 11
+ *
+ * No call except the two re-issued stock calls; no mul/div/ext/setlb (MDR is
+ * re-set to the stock return address after the re-issued chroma call; LIR/LAR
+ * untouched). Every frame is released before a stock call, so peak stack depth
+ * is unchanged.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+ .balign 4
+hue_lut:     /* native hue for UI -7..7 (= patches/bundles HUE_LUT) */
+{hue_lut}
+light_lut:   /* native lightness for UI -7..7 (= patches/bundles L_LUT) */
+{light_lut}
+perm:        /* physical record r -> UI index */
+{perm}
+code_start:
+
+/* a0 = job -> a0 = MONO bundle slot entry, else branch to \fail.
+ * Clobbers d0, d2, a0. */
+ .macro JOB_SLOT fail
+ movbu ({ext_magic},a0),d0
+ cmp {magic},d0
+ bne \fail
+ movbu ({ext_mode},a0),d0
+ cmp 12,d0
+ bne \fail
+ movbu ({ext_profile},a0),d0        /* MONO profile number 1..4 */
+ add -1,d0
+ cmp 4,d0
+ bcc \fail                          /* unsigned: 0 and 5..255 rejected */
+ add 4,d0                           /* MONO1..4 = slots 4..7 */
+ asl 6,d0
+ mov {bundle_table},a0
+ add d0,a0
+ movbu ({colour_off},a0),d0
+ cmp 1,d0                           /* exactly 1 (0 / 0xFF erased = stock) */
+ bne \fail
+ mov {sat_off},d2
+.Ls\@:
+ movbu (d2,a0),d0
+ extb d0
+ add 5,d0
+ cmp 11,d0
+ bcc \fail                          /* sat outside -5..5 -> stock */
+ inc d2
+ cmp {sat_end},d2
+ bne .Ls\@
+ movbu ({flags_off},a0),d0
+ btst {flag_hl},d0
+ beq .Lk\@
+ clr d2
+.Lh\@:
+ movbu (d2,a0),d0
+ extb d0
+ add 7,d0
+ cmp 15,d0
+ bcc \fail                          /* hue/light outside -7..7 -> stock */
+ inc d2
+ cmp 24,d2
+ bne .Lh\@
+.Lk\@:
+ .endm
+
+/* \req = request -> a0 = its job, proved by callback / record / parent (as v0.2 hl),
+ * else branch to \fail. Clobbers d0, d1, d2, a0. */
+ .macro REQ_JOB req, fail
+ mov (\req),d0
+ cmp {callback},d0
+ bne \fail
+ mov (4,\req),d0                    /* request+4 -> selected record */
+ mov \req,a0
+ add {rec_off},a0
+ mov {n_rec},d2
+.Lr\@:
+ cmp a0,d0
+ beq .Lf\@
+ add {stride},a0
+ add -1,d2
+ bne .Lr\@
+ bra \fail
+.Lf\@:
+ mov (a0),d1                        /* record+0 = parent job */
+ mov \req,a0
+ add -{req_in_job},a0
+ cmp a0,d1
+ bne \fail
+ .endm
+
+/* ---------------------------------------------------------------- sel
+ * At 0x603b02bf: a2 = context, a3 = request, d1|d2 = mode word,
+ * d3 = request+12, a0 = request+8, a1 = request+1524. */
+sel:
+ or d2,d1                           /* displaced instructions */
+ cmp 11,d1
+ bne 1f
+ jmp ep7_sel_color                  /* mode 11: stock COLOR path */
+1:
+ cmp 12,d1
+ beq 2f
+ jmp ep7_sel_other                  /* not MONO: stock (flags unused there) */
+2:
+ add -16,sp
+ mov d0,(0,sp)
+ mov d1,(4,sp)
+ mov d2,(8,sp)
+ mov a0,(12,sp)
+ REQ_JOB a3, sel_mono
+ JOB_SLOT sel_mono
+ /* colour slot, a0 = entry: the stock COLOR call (0x603b02c5..0x603b02d9)
+  * with a1 = a3 = the slot's saturation instead of request+1816 */
+ mov (8,sp),d2
+ add 16,sp
+ mov (12,a2),d1
+ mov a0,a3
+ add {sat_off},a3
+ mov a3,a1
+ movhu ({ctrl_word}),d0
+ mov {color_table},a0
+ call ep7_builder,[d2,d3,a2,a3],96
+ add -28,sp                         /* frame only after the builder returned */
+ mov d0,(0,sp)
+ mov d1,(4,sp)
+ mov d2,(8,sp)
+ mov d3,(12,sp)
+ mov a0,(16,sp)
+ mov a1,(20,sp)
+ mov a3,(24,sp)
+ mov a3,a0                          /* a3 survived the call: entry + sat_off */
+ add -{sat_off},a0
+ movbu ({flags_off},a0),d0
+ btst {flag_hl},d0
+ beq hl_done
+ mov (12,a2),a3                     /* context+12 -> colour output */
+ add {hue_off},a3                   /* record 0 hue */
+ clr d2
+rec:
+ mov perm,a1
+ movbu (d2,a1),d1                   /* UI index w */
+ movbu (d1,a0),d0                   /* hue_ui[w] (validated) */
+ extb d0
+ add 7,d0
+ add d0,d0
+ mov hue_lut,a1
+ movhu (d0,a1),d3
+ movhu d3,(a3)
+ add 12,d1
+ movbu (d1,a0),d0                   /* light_ui[w] */
+ extb d0
+ add 7,d0
+ add d0,d0
+ mov light_lut,a1
+ movhu (d0,a1),d3
+ movhu d3,(4,a3)                    /* L at hue+4 */
+ add 24,a3
+ inc d2
+ cmp 12,d2
+ bne rec
+hl_done:
+ mov (0,sp),d0
+ mov (4,sp),d1
+ mov (8,sp),d2
+ mov (12,sp),d3
+ mov (16,sp),a0
+ mov (20,sp),a1
+ mov (24,sp),a3
+ add 28,sp
+ jmp ep7_sel_resume                 /* 0x603b02de: stock COLOR tail */
+sel_mono:
+ mov (0,sp),d0
+ mov (4,sp),d1
+ mov (8,sp),d2
+ mov (12,sp),a0
+ add 16,sp
+ jmp ep7_sel_other                  /* stock MONO path, registers as stock */
+
+/* ---------------------------------------------------------------- chroma
+ * At 0x603b134e: a3 = context, a2 = request, (4,sp) = tone index argument. */
+chroma:
+ call ep7_tone_lookup,[d2,d3,a2],16 /* displaced instruction */
+ add -16,sp
+ mov d0,(0,sp)
+ mov d1,(4,sp)
+ mov d2,(8,sp)
+ mov a0,(12,sp)
+ mov ep7_chroma_resume,d0
+ mov d0,mdr                         /* MDR as the stock call leaves it */
+ cmp 0,a0
+ beq ch_keep                        /* no constant chroma anyway */
+ mov (52,a3),d0                     /* mode word */
+ cmp 12,d0
+ bne ch_keep
+ REQ_JOB a2, ch_keep
+ JOB_SLOT ch_keep
+ mov (0,sp),d0
+ mov (4,sp),d1
+ mov (8,sp),d2
+ add 16,sp
+ mov 0,a0                           /* colour slot: no grey / toning vector */
+ jmp ep7_chroma_resume
+ch_keep:
+ mov (0,sp),d0
+ mov (4,sp),d1
+ mov (8,sp),d2
+ mov (12,sp),a0
+ add 16,sp
+ jmp ep7_chroma_resume              /* 0x603b1353: cmp 0,a0 */
+
+/* ---------------------------------------------------------------- fg
+ * At 0x60353db9: a0 = job, a2 = params (job+36). */
+fg:
+ mov ({job_mode},a0),d0             /* displaced instructions */
+ cmp 12,d0
+ beq 1f
+ jmp ep7_fg_skip                    /* 0x60353de9 */
+1:
+ add -8,sp
+ mov d2,(0,sp)
+ mov a0,(4,sp)
+ JOB_SLOT fg_mono
+ mov (4,sp),a0
+ clr d0
+ movbu d0,({filter_in_job},a0)      /* params+5528 mono filter = 0 */
+ movbu d0,({tone_in_job},a0)        /* params+5529 picture tone = 0 */
+ mov (0,sp),d2
+ add 8,sp
+ mov 12,d0
+ jmp ep7_fg_skip                    /* skip the mono-filter merge, as mode 11 */
+fg_mono:
+ mov (0,sp),d2
+ mov (4,sp),a0
+ add 8,sp
+ mov 12,d0
+ jmp ep7_fg_mono                    /* 0x60353dc1: stock mode-12 merge */
+
+code_end:
