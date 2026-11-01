@@ -204,8 +204,20 @@ def fmt_bytes(b):
     return '\n'.join(' .byte ' + ','.join(f'0x{x:02x}' for x in b[i:i + 16]) for i in range(0, len(b), 16))
 
 
-def source(table):
-    sub = dict(cap_profile=CAP_PROFILE, ext_profile_p=EXT_PROFILE - 36, ext_mode_p=EXT_MODE - 36,
+TBL_HL_FLASH = """ asl 6,d0                            /* slot * 64 */
+ mov bundle_table,a0
+ add d0,a0                           /* a0 = slot entry */"""
+# --sd-v3 (docs/SD_BUNDLES_V3.md): same 11 bytes, so every label / branch / verifier pattern is unchanged.
+# The call writes its return address to (0,sp) = the saved d0: d0 is dead at the resume point
+# (0x603b02de mov (60,a2),d0, checked in make_spec). MDR is kept because the stock path from the resume
+# point to the selector's ret may make no call (0x603b02ed).
+TBL_HL_SDV3 = """ mov mdr,d1                          /* sd v3: keep MDR (d1 is reloaded below / restored at out) */
+ call ep7_tbl_idx,[d2,d3],8          /* a0 = slot d0 of the active table (SD-loaded or flashed) */
+ mov d1,mdr"""
+
+
+def source(table, sd_v3=False):
+    sub = dict(tbl_hl=TBL_HL_SDV3 if sd_v3 else TBL_HL_FLASH, cap_profile=CAP_PROFILE, ext_profile_p=EXT_PROFILE - 36, ext_mode_p=EXT_MODE - 36,
                ext_magic_p=EXT_MAGIC - 36, ext_profile=EXT_PROFILE, ext_mode=EXT_MODE, ext_magic=EXT_MAGIC,
                magic=hex(MAGIC), callback=hex(CALLBACK), rec_off=RECORDS_IN_JOB - REQ_IN_JOB, n_rec=N_REC,
                stride=REC_STRIDE, req_in_job=REQ_IN_JOB, hue_off=OUT_RECORDS + 18,
@@ -219,9 +231,9 @@ def source(table):
     return src
 
 
-def assemble(src):
+def assemble(src, extra=None):
     syms = dict(ep7_builder=BUILDER, ep7_resume=RESUME, ep7_conv1_mono=CONV1_MONO,
-                ep7_conv1_next=CONV1_NEXT, ep7_conv2_resume=CONV2_RESUME)
+                ep7_conv1_next=CONV1_NEXT, ep7_conv2_resume=CONV2_RESUME, **(extra or {}))
     with tempfile.TemporaryDirectory() as t:
         t = Path(t)
         (t / 'p.s').write_text(src)
@@ -261,15 +273,30 @@ def check_section1(d, code_len):
     return d[CODE_AT - BASE:CODE_AT - BASE + code_len]
 
 
-def make_spec(bundle_path):
+def sdv3_accessor():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('ep7_sd_bundles_v3_build', ROOT / 'patches/sd_bundles_v3/build.py')
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m.accessor_symbols()
+
+
+def make_spec(bundle_path, sd_v3=False):
     import hashlib
     d = MAIN.read_bytes()
     if hashlib.sha256(d).hexdigest() != MAIN_SHA:
         raise ValueError('decoded main hash mismatch')
     bundle = json.loads(Path(bundle_path).read_text())
     table, meta = build_table(bundle, load_recipes())
-    src = source(table)
-    code, lst, labels = assemble(src)
+    src = source(table, sd_v3)
+    acc = sdv3_accessor() if sd_v3 else {}
+    code, lst, labels = assemble(src, {'ep7_tbl_idx': acc['tbl_idx']} if sd_v3 else None)
+    if sd_v3:
+        c0, _, l0 = assemble(source(table))
+        if len(c0) != len(code) or l0 != labels:
+            raise ValueError('--sd-v3 must not change the routine size or any label')
+        if d[RESUME - BASE:RESUME - BASE + 3] != bytes.fromhex('f8023c'):
+            raise ValueError('resume point no longer reloads d0 (the --sd-v3 call clobbers the saved d0)')
     if labels['bundle_table'] != BUNDLE_TABLE or labels['bundle_table_end'] - labels['bundle_table'] != len(table) \
             or labels['bundle_table'] % 4:
         raise ValueError('table placement/alignment wrong')
@@ -313,12 +340,14 @@ def make_spec(bundle_path):
             if a < hi and lo < a + n:
                 raise ValueError(f'edit {e["addr"]} overlaps reserved {lo:#x}..{hi:#x}')
     bp = Path(bundle_path).resolve()
-    spec = dict(components=['0x100'], patch='bundles-v0.2',
+    spec = dict(components=['0x100'], patch='bundles-v0.2-sdv3' if sd_v3 else 'bundles-v0.2',
                 bundle=str(bp.relative_to(ROOT)) if bp.is_relative_to(ROOT) else str(bp),
                 labels={k: hex(v) for k, v in labels.items()},
                 layout=dict(job_size=new_size, ext_profile=EXT_PROFILE, ext_mode=EXT_MODE, ext_magic=EXT_MAGIC,
                             magic=MAGIC, entry_bytes=ENTRY, slots=SLOTS),
                 slots=meta, table_hex=table.hex(), edits=edits)
+    if sd_v3:
+        spec['sd_v3'] = dict(accessor={k: hex(v) for k, v in acc.items()}, requires='sd_bundles_v3 (accessor edit)')
     return spec, src, lst, code
 
 
@@ -326,9 +355,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('bundle', type=Path)
     ap.add_argument('--out', type=Path, required=True)
+    ap.add_argument('--sd-v3', action='store_true', help='read the table through the SD loader v3 accessor')
     a = ap.parse_args()
     try:
-        spec, src, lst, code = make_spec(a.bundle)
+        spec, src, lst, code = make_spec(a.bundle, a.sd_v3)
     except ValueError as e:
         sys.exit(f'error: {e}')
     a.out.mkdir(parents=True, exist_ok=False)

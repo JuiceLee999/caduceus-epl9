@@ -121,9 +121,7 @@ hit:
  add -1,d0
  cmp 4,d0
  bcc out                             /* unsigned: 0 and 5..255 rejected */
- asl 6,d0                            /* slot * 64 */
- mov bundle_table,a0
- add d0,a0                           /* a0 = slot entry */
+{tbl_hl}
  movbu (31,a0),d0                    /* flags: bit1 = H/L enabled */
  btst 2,d0
  beq out

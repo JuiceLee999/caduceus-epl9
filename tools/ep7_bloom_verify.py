@@ -33,6 +33,8 @@ import build_package as BP  # noqa: E402
 import oly_container as oc  # noqa: E402
 import ep7_color_probe as PR  # noqa: E402
 from penf_emulator import Region, execute  # noqa: E402
+import ep7_sdv3_env as SDV3  # noqa: E402  (SD loader v3: state RAM the --sd-v3 readers read)
+execute = SDV3.wrap(execute)
 
 BASE = 0x60020020
 SEGS = [('code', 0x60340000, 0x603c0000, 'rx'), ('conv', 0x603ea000, 0x603ec000, 'rx'),

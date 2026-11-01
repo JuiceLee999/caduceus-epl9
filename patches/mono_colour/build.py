@@ -54,7 +54,34 @@ def fmt_words(vals):
     return '\n'.join(' .hword ' + ','.join(str(v) for v in vals[i:i + 8]) for i in range(0, len(vals), 8))
 
 
-def source():
+TBL_MONO_FLASH = """ asl 6,d0
+ mov {bundle_table},a0
+ add d0,a0"""
+CH_COLOUR_FLASH = """ mov (0,sp),d0
+ mov (4,sp),d1
+ mov (8,sp),d2
+ add 16,sp
+ mov 0,a0                           /* colour slot: no grey / toning vector */
+ jmp ep7_chroma_resume"""
+# --sd-v3 (docs/SD_BUNDLES_V3.md): slot from the SD loader v3 accessor. MDR is kept in d2 (free here; the
+# call itself preserves d2, and JOB_SLOT reloads it right after). chroma / fg hold a saved register at (0,sp),
+# so the call is made 4 bytes lower (wrap=1). In sel (wrap=0) (0,sp) is the saved d0, which is dead on both
+# exits (0x603b02f9 and the builder path reload d0; checked in make_spec). The chroma colour exit is folded
+# into ch_keep (a0 = 0 goes through the saved slot) to pay for the two wraps: same total size.
+TBL_MONO_SDV3 = """ mov mdr,d2                         /* sd v3: keep MDR */
+ .if \\wrap
+ add -4,sp                          /* keep (0,sp): a saved register lives there */
+ .endif
+ call ep7_tbl_idx,[d2,d3],8         /* a0 = slot d0 of the active table (SD-loaded or flashed) */
+ .if \\wrap
+ add 4,sp
+ .endif
+ mov d2,mdr"""
+CH_COLOUR_SDV3 = """ mov 0,a0                           /* colour slot: no grey / toning vector ... */
+ mov a0,(12,sp)                     /* ... restored as a0 by ch_keep */"""
+
+
+def source(sd_v3=False):
     lay = json.loads((ROOT / 'patches/bundles/layout.json').read_text())
     f = lay['fields']
     if (int(lay['bundle_table'], 16), lay['slot_bytes'], f['colour'][0], f['sat'][0], f['sat'][1], f['flags'][0],
@@ -74,6 +101,8 @@ def source():
                tone_in_job=TONE_IN_JOB, hue_lut=fmt_words(BB.HUE_LUT), light_lut=fmt_words(BB.L_LUT),
                perm=BB.fmt_bytes(bytes(BB.PERM)))
     src = (Path(__file__).parent / 'mono_colour.s.in').read_text()
+    src = src.replace('{tbl_mono}', TBL_MONO_SDV3 if sd_v3 else TBL_MONO_FLASH)
+    src = src.replace('{ch_colour}', CH_COLOUR_SDV3 if sd_v3 else CH_COLOUR_FLASH)
     for k, v in sub.items():
         src = src.replace('{' + k + '}', str(v))
     if '{' in src or '}' in src:
@@ -81,10 +110,10 @@ def source():
     return src
 
 
-def assemble(src):
+def assemble(src, extra=None):
     syms = dict(ep7_builder=BUILDER, ep7_sel_color=SEL_COLOR, ep7_sel_other=SEL_OTHER, ep7_sel_resume=SEL_RESUME,
                 ep7_tone_lookup=TONE_LOOKUP, ep7_chroma_resume=CHROMA_RESUME, ep7_fg_skip=FG_SKIP,
-                ep7_fg_mono=FG_MONO)
+                ep7_fg_mono=FG_MONO, **(extra or {}))
     with tempfile.TemporaryDirectory() as t:
         t = Path(t)
         (t / 'p.s').write_text(src)
@@ -143,7 +172,15 @@ def reserved():
     return out
 
 
-def make_spec():
+def sdv3_accessor():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('ep7_sd_bundles_v3_build', ROOT / 'patches/sd_bundles_v3/build.py')
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m.accessor_symbols()
+
+
+def make_spec(sd_v3=False):
     d = MAIN.read_bytes()
     if hashlib.sha256(d).hexdigest() != MAIN_SHA:
         raise ValueError('decoded main hash mismatch')
@@ -151,8 +188,16 @@ def make_spec():
                       *FG_STOCK_CTX.items()]:
         if d[at - BASE:at - BASE + len(stock)] != stock:
             raise ValueError(f'stock bytes differ at {at:#x}')
-    src = source()
-    code, lst, labels = assemble(src)
+    src = source(sd_v3)
+    acc = sdv3_accessor() if sd_v3 else {}
+    code, lst, labels = assemble(src, {'ep7_tbl_idx': acc['tbl_idx']} if sd_v3 else None)
+    if sd_v3:
+        c0, _, _ = assemble(source())
+        if len(code) > len(c0):
+            raise ValueError(f'--sd-v3 grew the routine ({len(code)} > {len(c0)} B)')
+        for at in (SEL_OTHER, SEL_RESUME):     # sel's saved d0 is clobbered by the accessor call: dead here
+            if d[at - BASE:at - BASE + 3] != bytes.fromhex('f8023c'):
+                raise ValueError(f'{at:#x} no longer reloads d0')
     tail = check_section7(d, len(code))
     edits = [
         dict(kind='0x100', addr=hex(SEL), expect=SEL_STOCK.hex(), new=jmp_d32(SEL, labels['sel'], 6).hex(),
@@ -173,16 +218,19 @@ def make_spec():
     meta = dict(code_at=hex(CODE_AT), code_len=len(code), labels={k: hex(v) for k, v in labels.items()},
                 sites=dict(sel=hex(SEL), chroma=hex(CHROMA), fg=hex(FG)), requires='bundles-v0.2',
                 layout=dict(colour=COLOUR_OFF, sat=SAT_OFF, flags=FLAGS_OFF, bundle_table=hex(BB.BUNDLE_TABLE)))
-    spec = dict(components=['0x100'], patch='mono_colour', mono_colour=meta, edits=edits)
+    if sd_v3:
+        meta['sd_v3'] = dict(accessor={k: hex(v) for k, v in acc.items()}, requires='sd_bundles_v3 (accessor edit)')
+    spec = dict(components=['0x100'], patch='mono_colour_sdv3' if sd_v3 else 'mono_colour', mono_colour=meta, edits=edits)
     return spec, src, lst, code
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--out', type=Path, required=True)
+    ap.add_argument('--sd-v3', action='store_true', help='read the table through the SD loader v3 accessor')
     a = ap.parse_args()
     try:
-        spec, src, lst, code = make_spec()
+        spec, src, lst, code = make_spec(a.sd_v3)
     except ValueError as e:
         sys.exit(f'error: {e}')
     a.out.mkdir(parents=True, exist_ok=False)

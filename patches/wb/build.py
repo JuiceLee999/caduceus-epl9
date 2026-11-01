@@ -85,7 +85,34 @@ def s16(k):
     return k - 0x10000 if k & 0x8000 else k
 
 
-def source(lay):
+TBL_WB_FLASH = """ mov {bundle_table},a0
+ add d0,a0"""
+# --sd-v3 (docs/SD_BUNDLES_V3.md): the slot comes from the SD loader v3 accessor (section-2 neighbour,
+# call16). MDR is saved/restored around it so the override path still returns with the MDR the last real
+# getter call left (verified by tools/ep7_verify_wb.py U). d1 is free here (set again before every exit).
+# The call is spelled as bytes so it is always the 5-byte call16 form (the linker range-checks the
+# PC-relative 16-bit field). wb_pass is moved up behind the key test (sdv3_layout) so every branch to it
+# stays an 8-bit branch; the stub is then 1 byte longer than the flashed-table version.
+TBL_WB_SDV3 = """ mov mdr,d1                       /* sd v3: keep the getter's MDR */
+9:
+ .byte 0xcd                       /* call ep7_tbl_off,[d2,d3],8 (call16): a0 = active table + d0 */
+ .hword ep7_tbl_off - 9b
+ .byte 0xc0, 8
+ mov d1,mdr"""
+
+
+def sdv3_layout(src):
+    """Move the wb_pass block directly behind the key test (key mismatch falls into it)."""
+    a, b = src.index('wb_pass:\n'), src.index('/* wb_prop:')
+    block = src[a:b]
+    src = src[:a] + src[b:]
+    old = ' cmp {key_g},d2\n bne wb_pass\n'
+    if src.count(old) != 1:
+        raise ValueError('wb key test not found')
+    return src.replace(old, ' cmp {key_g},d2\n beq wb_key\n' + block)
+
+
+def source(lay, sd_v3=False):
     for k in (KEY_WBCAT, KEY_PMODE, KEY_PMODE6, KEY_COLOR, KEY_MONO):
         if k & 0xf != 1:      # wb_prop relies on type 1 = unsigned byte (no sign extension)
             raise ValueError(f'key {k} is not type 1 (u8)')
@@ -97,6 +124,9 @@ def source(lay):
                bundle_table=hex(lay['bundle_table']), f_flags=lay['f_flags'], f_ab=lay['f_ab'], f_gm=lay['f_gm'],
                sel_bit=hex(sel), sel_a=hex(KEY_A & 0xff), sel_g=hex(KEY_G & 0xff))
     src = (Path(__file__).parent / 'wb_get.s.in').read_text()
+    src = src.replace('{tbl_wb}', TBL_WB_SDV3 if sd_v3 else TBL_WB_FLASH)
+    if sd_v3:
+        src = sdv3_layout(src)
     for k, v in sub.items():
         src = src.replace('{' + k + '}', str(v))
     if '{' in src or '}' in src:
@@ -104,12 +134,13 @@ def source(lay):
     return src
 
 
-def assemble(src):
+def assemble(src, extra=None):
     with tempfile.TemporaryDirectory() as t:
         t = Path(t)
         (t / 'p.s').write_text(src)
         subprocess.run([TC / 'mn10300-elf-as', '-a=' + str(t / 'p.lst'), '-o', t / 'p.o', t / 'p.s'], check=True)
         subprocess.run([TC / 'mn10300-elf-ld', '-Ttext', hex(CODE_AT), '-e', '_start', f'--defsym=ep7_getter={GETTER:#x}',
+                        *[f'--defsym={k}={v:#x}' for k, v in (extra or {}).items()],
                         '-o', t / 'p.elf', t / 'p.o'], check=True)
         subprocess.run([TC / 'mn10300-elf-objcopy', '-O', 'binary', '-j', '.text', t / 'p.elf', t / 'p.bin'], check=True)
         nm = subprocess.run([TC / 'mn10300-elf-nm', t / 'p.elf'], check=True, capture_output=True, text=True).stdout
@@ -128,13 +159,22 @@ def check_sites(d):
                 raise ValueError(f'site {site:#x}: no mov 0,a0 at {a0_at:#x}')
 
 
-def make_spec():
+def sdv3_accessor():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('ep7_sd_bundles_v3_build', ROOT / 'patches/sd_bundles_v3/build.py')
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m.accessor_symbols()
+
+
+def make_spec(sd_v3=False):
     d = MAIN.read_bytes()
     if hashlib.sha256(d).hexdigest() != MAIN_SHA:
         raise ValueError('decoded main hash mismatch')
     lay = layout()
-    src = source(lay)
-    code, lst, syms = assemble(src)
+    src = source(lay, sd_v3)
+    acc = sdv3_accessor() if sd_v3 else {}
+    code, lst, syms = assemble(src, {'ep7_tbl_off': acc['tbl_off']} if sd_v3 else None)
     if syms['wb_get'] != CODE_AT:
         raise ValueError('wb_get must be the first instruction')
     if CODE_AT + len(code) > CODE_END:
@@ -166,16 +206,19 @@ def make_spec():
                             wb_flags=lay['f_flags'], wb_ab=lay['f_ab'], wb_gm=lay['f_gm']),
                 symbols={k: hex(v) for k, v in syms.items()},
                 requires='bundles-v0.2 table at bundle_table (merge with patches/bundles/build.py output)')
-    spec = dict(components=['0x100'], patch='wb_profile', wb=meta, edits=edits)
+    if sd_v3:
+        meta['sd_v3'] = dict(accessor={k: hex(v) for k, v in acc.items()}, requires='sd_bundles_v3 (accessor edit)')
+    spec = dict(components=['0x100'], patch='wb_profile_sdv3' if sd_v3 else 'wb_profile', wb=meta, edits=edits)
     return spec, src, lst, code, syms
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--out', type=Path, required=True)
+    ap.add_argument('--sd-v3', action='store_true', help='read the table through the SD loader v3 accessor')
     a = ap.parse_args()
     try:
-        spec, src, lst, code, syms = make_spec()
+        spec, src, lst, code, syms = make_spec(a.sd_v3)
     except ValueError as e:
         sys.exit(f'error: {e}')
     a.out.mkdir(parents=True, exist_ok=False)

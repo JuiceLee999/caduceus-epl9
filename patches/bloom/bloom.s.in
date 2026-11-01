@@ -49,9 +49,7 @@ bloom_flag:
  add -1,d0
  cmp 4,d0
  bcc bf_resume
- asl 6,d0
- mov {table},a0
- add d0,a0
+{tbl_flag}
  movbu ({f_effect},a0),d0
  cmp 1,d0                         /* effect_id 1 = bloom */
  bne bf_resume
@@ -105,9 +103,7 @@ bw_hit:
  add -1,d0
  cmp 4,d0
  bcc bw_default
- asl 6,d0
- mov {table},a0
- add d0,a0
+{tbl_w}
  movbu ({f_effect},a0),d0
  cmp 1,d0
  bne bw_default

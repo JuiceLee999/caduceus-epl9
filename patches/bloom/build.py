@@ -47,9 +47,22 @@ def layout():
     return v
 
 
-def assemble(weights):
+TBL_FLASH = """ asl 6,d0
+ mov {table},a0
+ add d0,a0"""
+# --sd-v3 (docs/SD_BUNDLES_V3.md): slot from the SD loader v3 accessor. d1 is free at both sites; MDR is
+# kept in it. bloom_w returns with retf and was entered by call ...,[],0, so the accessor call also
+# overwrote the return word at (sp) (== MDR at entry): it is put back.
+TBL_FLAG_SDV3 = """ mov mdr,d1                       /* sd v3: keep MDR */
+ call ep7_tbl_idx,[d2,d3],8       /* a0 = slot d0 of the active table (SD-loaded or flashed) */
+ mov d1,mdr"""
+TBL_W_SDV3 = TBL_FLAG_SDV3 + """
+ mov d1,(0,sp)                    /* restore the caller's return word (== MDR at entry) */"""
+
+
+def assemble(weights, sd_v3=False, extra=None):
     lay = layout()
-    sub = dict(cap_mode=CAP_MODE, cap_profile=CAP_PROFILE, table=hex(lay['table']), f_effect=lay['f_effect'],
+    sub = dict(tbl_flag=TBL_FLAG_SDV3 if sd_v3 else TBL_FLASH, tbl_w=TBL_W_SDV3 if sd_v3 else TBL_FLASH, cap_mode=CAP_MODE, cap_profile=CAP_PROFILE, table=hex(lay['table']), f_effect=lay['f_effect'],
                f_strength=lay['f_strength'], callback=hex(CALLBACK), rec_off=RECORDS_IN_JOB - REQ_IN_JOB,
                n_rec=N_REC, stride=REC_STRIDE, req_in_job=REQ_IN_JOB, ext_magic=lay['ext_magic'],
                ext_mode=lay['ext_mode'], ext_profile=lay['ext_profile'], magic=hex(lay['magic']),
@@ -65,7 +78,7 @@ def assemble(weights):
         (t / 'p.s').write_text(src)
         subprocess.run([TC / 'mn10300-elf-as', '-a=' + str(t / 'p.lst'), '-o', t / 'p.o', t / 'p.s'], check=True)
         subprocess.run([TC / 'mn10300-elf-ld', '-Ttext', hex(CODE_AT), '-e', '_start',
-                        *[f'--defsym={k}={v:#x}' for k, v in SYMS.items()], '-o', t / 'p.elf', t / 'p.o'], check=True)
+                        *[f'--defsym={k}={v:#x}' for k, v in dict(SYMS, **(extra or {})).items()], '-o', t / 'p.elf', t / 'p.o'], check=True)
         subprocess.run([TC / 'mn10300-elf-objcopy', '-O', 'binary', '-j', '.text', t / 'p.elf', t / 'p.bin'], check=True)
         nm = subprocess.run([TC / 'mn10300-elf-nm', t / 'p.elf'], check=True, capture_output=True, text=True).stdout
         syms = {n: int(a, 16) for a, _, n in (l.split() for l in nm.splitlines() if len(l.split()) == 3)}
@@ -73,11 +86,20 @@ def assemble(weights):
         return (t / 'p.bin').read_bytes(), src, (t / 'p.lst').read_text() + '\n' + dis, syms, lay
 
 
-def build_spec(weights=STRENGTH_W):
+def sdv3_accessor():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('ep7_sd_bundles_v3_build', ROOT / 'patches/sd_bundles_v3/build.py')
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m.accessor_symbols()
+
+
+def build_spec(weights=STRENGTH_W, sd_v3=False):
     weights = [int(w) for w in weights]
     if len(weights) != 5 or not all(0 <= w <= 1024 for w in weights):
         raise SystemExit('need 5 weights in 0..1024')
-    code, src, lst, syms, lay = assemble(weights)
+    acc = sdv3_accessor() if sd_v3 else {}
+    code, src, lst, syms, lay = assemble(weights, sd_v3, {'ep7_tbl_idx': acc['tbl_idx']} if sd_v3 else None)
     d = MAIN.read_bytes()
     for at, stock in ((FLAG_HOOK, FLAG_STOCK), (W_HOOK, W_STOCK)):
         if d[at - BASE:at - BASE + len(stock)] != stock:
@@ -104,7 +126,10 @@ def build_spec(weights=STRENGTH_W):
                 cap=dict(profile=CAP_PROFILE, mode=CAP_MODE),
                 guard=dict(callback=hex(CALLBACK), req_in_job=REQ_IN_JOB, records=RECORDS_IN_JOB, stride=REC_STRIDE, n=N_REC),
                 symbols={k: hex(v) for k, v in syms.items() if k in ('bloom_flag', 'bloom_w', 'w_lut')})
-    spec = dict(components=['0x100'], patch='color_bloom', requires=['bundles-v0.2'], bloom=meta, edits=edits)
+    if sd_v3:
+        meta['sd_v3'] = dict(accessor={k: hex(v) for k, v in acc.items()}, requires='sd_bundles_v3 (accessor edit)')
+    spec = dict(components=['0x100'], patch='color_bloom_sdv3' if sd_v3 else 'color_bloom', requires=['bundles-v0.2'],
+                bloom=meta, edits=edits)
     return spec, code, src, lst, syms
 
 
@@ -112,9 +137,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--weights', help='5 comma-separated Q10 weights for strength 1..5')
     ap.add_argument('--out', type=Path, required=True)
+    ap.add_argument('--sd-v3', action='store_true', help='read the table through the SD loader v3 accessor')
     a = ap.parse_args()
     weights = [int(x) for x in a.weights.split(',')] if a.weights else STRENGTH_W
-    spec, code, src, lst, syms = build_spec(weights)
+    spec, code, src, lst, syms = build_spec(weights, a.sd_v3)
     a.out.mkdir(parents=True, exist_ok=False)
     (a.out / 'edits.json').write_text(json.dumps(spec, indent=1) + '\n')
     (a.out / 'routine.s').write_text(src)

@@ -28,7 +28,7 @@ _start:
 /* GLEVEL: \job = address register holding the job; on success d0 = level 1..3,
  * otherwise branches to \fail. Clobbers d0 and \job. No calls (grain_mod exits with
  * retf, which needs MDR intact). */
- .macro GLEVEL job, fail
+ .macro GLEVEL job, fail, sp0=0
  movbu ({ext_magic},\job),d0
  cmp {magic},d0
  bne \fail
@@ -39,9 +39,7 @@ _start:
  add -1,d0
  cmp 4,d0
  bcc \fail                        /* unsigned: profile 0 and 5..255 rejected */
- asl 6,d0                         /* slot * 64 */
- mov {table_grain},\job           /* bundle_table + 24 */
- movbu (d0,\job),d0
+{tbl_grain}
  add -1,d0
  cmp 3,d0
  bcc \fail                        /* grain 0 (off) and 4..255 (incl. erased 0xFF) rejected */
@@ -115,7 +113,7 @@ grain_mod:
  movbu (16,a1),d0
  cmp 0,d0
  bne mod_done                     /* only kind-0 (development) requests */
- GLEVEL a0, mod_done
+ GLEVEL a0, mod_done, 1
  movbu d0,(1828,a1)               /* level from the profile's bundle slot */
  mov 2306,d0
  movhu d0,(12,a1)                 /* stage 0x0902 */

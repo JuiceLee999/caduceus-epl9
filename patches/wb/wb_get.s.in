@@ -68,8 +68,7 @@ wb_slot:
  asl2 d0
  asl2 d0
  asl2 d0                          /* * 64 (slot_bytes) */
- mov {bundle_table},a0
- add d0,a0
+{tbl_wb}
  movbu ({f_flags},a0),d0
  and 0x81,d0
  cmp 1,d0                         /* wb_flags: bit0 = override, bit7 must be 0 (0xFF = erased) */

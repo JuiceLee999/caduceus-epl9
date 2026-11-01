@@ -44,6 +44,8 @@ import build_package as BP  # noqa: E402
 import oly_container as oc  # noqa: E402
 import build as BB  # noqa: E402  (patches/bundles/build.py)
 from penf_emulator import Region, execute  # noqa: E402
+import ep7_sdv3_env as SDV3  # noqa: E402  (SD loader v3: state RAM the --sd-v3 readers read)
+execute = SDV3.wrap(execute)
 
 BASE = 0x60020020
 GETTER = 0x6005e971

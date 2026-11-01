@@ -44,6 +44,8 @@ import oly_container as oc  # noqa: E402
 import ep7_color_probe as PR  # noqa: E402
 import ep7_verify_bundles as VB  # noqa: E402
 from penf_emulator import Region, execute  # noqa: E402
+import ep7_sdv3_env as SDV3  # noqa: E402  (SD loader v3: state RAM the --sd-v3 readers read)
+execute = SDV3.wrap(execute)
 
 
 def _load(name, path):
@@ -60,6 +62,7 @@ CODE_LO, CODE_HI = 0x603a0000, 0x603c0000
 DATA_LO, DATA_HI = 0x604e0000, 0x60540000
 T1_LO, T1_HI = 0x602108ec, 0x60211000
 T7_LO, T7_HI = MC.TAIL_LO, MC.TAIL_HI
+T2_LO, T2_HI = 0x6055e5b0, 0x6055e800          # section-2 tail: SD loader v3 accessor
 CALLER, STACK = 0x18000000, 0x18010000
 OUTPUT, CONTEXT, JOB = 0x19000000, 0x1a000000, 0x1b000000
 NEW_SIZE = BB.JOB_SIZE + BB.EXT
@@ -96,7 +99,8 @@ def common_regions(img):
     return [Region('code', CODE_LO, sl(img, CODE_LO, CODE_HI), 'rx'),
             Region('data', DATA_LO, sl(img, DATA_LO, DATA_HI), 'r'),
             Region('tail1', T1_LO, sl(img, T1_LO, T1_HI), 'rx'),
-            Region('tail7', T7_LO, sl(img, T7_LO, T7_HI), 'rx')]
+            Region('tail7', T7_LO, sl(img, T7_LO, T7_HI), 'rx'),
+            Region('tail2', T2_LO, sl(img, T2_LO, T2_HI), 'rx')]   # SD loader v3 accessor (--sd-v3 readers)
 
 
 def make_job(*, mode=12, profile=1, ext_mode=None, magic=BB.MAGIC, sat=None, b1800=0, tone=0, filt=0,
@@ -335,7 +339,7 @@ def packer_run(img, *, mode=12, profile=1, ext_mode=None, magic=BB.MAGIC, filt=2
     sp = STACK + 0x1800
     struct.pack_into('<I', stack, sp - STACK + 40, JOB)
     regions = [Region('code', PK_LO, sl(img, PK_LO, PK_HI), 'rx'), Region('tail1', T1_LO, sl(img, T1_LO, T1_HI), 'rx'),
-               Region('tail7', T7_LO, sl(img, T7_LO, T7_HI), 'rx'),
+               Region('tail7', T7_LO, sl(img, T7_LO, T7_HI), 'rx'), Region('tail2', T2_LO, sl(img, T2_LO, T2_HI), 'rx'),
                Region('stack', STACK, bytes(stack), 'rw', True), Region('job', JOB, bytes(job), 'rw', True)]
     regs = {'pc': PK_START, 'sp': sp, 'a2': JOB + 36, 'd0': 0x1234, 'd1': 0x5678, 'd2': 0x2222, 'd3': 0x3333,
             'a0': 0xa0a0, 'a1': 0xa1a1, 'a3': 0xa3a3}

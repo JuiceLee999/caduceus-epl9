@@ -43,6 +43,8 @@ import oly_container as oc  # noqa: E402
 import ep7_color_probe as PR  # noqa: E402
 import build as BB  # noqa: E402  (patches/bundles/build.py)
 from penf_emulator import Region, execute  # noqa: E402
+import ep7_sdv3_env as SDV3  # noqa: E402  (SD loader v3: state RAM the --sd-v3 readers read)
+execute = SDV3.wrap(execute)
 
 BASE = 0x60020020
 TAIL1_LO, TAIL1_HI = 0x602108ec, 0x60211000
@@ -68,6 +70,13 @@ def tail7(main):
     return Region('tail7', TAIL7_LO, sl(main, TAIL7_LO, TAIL7_HI), 'rx')
 
 
+TAIL2_LO, TAIL2_HI = 0x6055e5b0, 0x6055e800      # section-2 tail: SD loader v3 accessor (--sd-v3 readers call it)
+
+
+def tail2(main):
+    return Region('tail2', TAIL2_LO, sl(main, TAIL2_LO, TAIL2_HI), 'rx')
+
+
 def regs_of(r):
     return {k: r['registers'][k] for k in REGS_ALL}
 
@@ -91,7 +100,8 @@ def selector_run(main, sat, *, profile=1, mode=11, magic=BB.MAGIC, callback=PR.C
                Region('table', PR.TABLE, sl(main, PR.TABLE, PR.TABLE + PR.TABLE_SIZE)),
                Region('job', JOB, bytes(job), 'rw', True), Region('ctx', CONTEXT, bytes(ctx), 'rw', True),
                Region('out', OUTPUT, bytes(5212), 'rw', True),
-               Region('code', PR.BUILDER, sl(main, PR.BUILDER, PR.SELECTOR_END), 'rx'), tail1(main), tail7(main)]
+               Region('code', PR.BUILDER, sl(main, PR.BUILDER, PR.SELECTOR_END), 'rx'), tail1(main), tail7(main),
+               tail2(main)]
     regions += PR.gain_regions(main)
     regs = {'pc': CALLER, 'sp': STACK + 0x1800, 'a0': CONTEXT, 'd0': 0xd0d0, 'd1': 0xd1d1, 'a1': 0xa1a1,
             'd2': 0x2222, 'd3': 0x3333, 'a2': 0xa2a2, 'a3': 0xa3a3}

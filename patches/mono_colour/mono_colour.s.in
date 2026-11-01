@@ -44,7 +44,7 @@ code_start:
 
 /* a0 = job -> a0 = MONO bundle slot entry, else branch to \fail.
  * Clobbers d0, d2, a0. */
- .macro JOB_SLOT fail
+ .macro JOB_SLOT fail, wrap=0
  movbu ({ext_magic},a0),d0
  cmp {magic},d0
  bne \fail
@@ -56,9 +56,7 @@ code_start:
  cmp 4,d0
  bcc \fail                          /* unsigned: 0 and 5..255 rejected */
  add 4,d0                           /* MONO1..4 = slots 4..7 */
- asl 6,d0
- mov {bundle_table},a0
- add d0,a0
+{tbl_mono}
  movbu ({colour_off},a0),d0
  cmp 1,d0                           /* exactly 1 (0 / 0xFF erased = stock) */
  bne \fail
@@ -217,13 +215,8 @@ chroma:
  cmp 12,d0
  bne ch_keep
  REQ_JOB a2, ch_keep
- JOB_SLOT ch_keep
- mov (0,sp),d0
- mov (4,sp),d1
- mov (8,sp),d2
- add 16,sp
- mov 0,a0                           /* colour slot: no grey / toning vector */
- jmp ep7_chroma_resume
+ JOB_SLOT ch_keep, 1
+{ch_colour}
 ch_keep:
  mov (0,sp),d0
  mov (4,sp),d1
@@ -243,7 +236,7 @@ fg:
  add -8,sp
  mov d2,(0,sp)
  mov a0,(4,sp)
- JOB_SLOT fg_mono
+ JOB_SLOT fg_mono, 1
  mov (4,sp),a0
  clr d0
  movbu d0,({filter_in_job},a0)      /* params+5528 mono filter = 0 */
