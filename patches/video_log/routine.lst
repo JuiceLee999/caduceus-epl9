@@ -1,0 +1,28 @@
+
+/tmp/tmp0j2slmu6/p.elf:     file format elf32-mn10300
+
+
+Disassembly of section .text:
+
+60210c90 <_start>:
+60210c90:	fa 40 60 01 	movbu	(352,a0),d0
+60210c94:	a0 00       	cmp	0,d0
+60210c96:	c9 1a       	bne	60210cb0 <stock>
+60210c98:	fa 00 4c 01 	mov	(332,a0),d0
+60210c9c:	a0 01       	cmp	1,d0
+60210c9e:	c9 12       	bne	60210cb0 <stock>
+60210ca0:	f8 41 10    	movbu	(16,a1),d0
+60210ca3:	a0 03       	cmp	3,d0
+60210ca5:	c8 04       	beq	60210ca9 <is_log>
+60210ca7:	ca 09       	bra	60210cb0 <stock>
+
+60210ca9 <is_log>:
+60210ca9:	80 02       	mov	2,d0
+60210cab:	dc bc d2 0f 	jmp	6030df67 <ep7_store_ret>
+60210caf:	00 
+
+60210cb0 <stock>:
+60210cb0:	26 60 01    	mov	352,a2
+60210cb3:	f1 72       	add	a0,a2
+60210cb5:	dc 8d d2 0f 	jmp	6030df42 <ep7_stock_body>
+60210cb9:	00 

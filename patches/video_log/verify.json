@@ -1,0 +1,183 @@
+[
+ {
+  "check": "H 0x6030df3d (+925 source) stock vs patched",
+  "passed": true,
+  "cases": [
+   {
+    "case": "movie + trigger pm -> log",
+    "pm": 3,
+    "stock": 0,
+    "patched": 2,
+    "expected": [
+     0,
+     2
+    ],
+    "passed": true
+   },
+   {
+    "case": "stills (A+332=0) + trigger pm",
+    "pm": 3,
+    "stock": 0,
+    "patched": 0,
+    "expected": [
+     0,
+     0
+    ],
+    "passed": true
+   },
+   {
+    "case": "movie + Natural(2)",
+    "pm": 2,
+    "stock": 0,
+    "patched": 0,
+    "expected": [
+     0,
+     0
+    ],
+    "passed": true
+   },
+   {
+    "case": "movie + COLOR(11)",
+    "pm": 11,
+    "stock": 0,
+    "patched": 0,
+    "expected": [
+     0,
+     0
+    ],
+    "passed": true
+   },
+   {
+    "case": "movie + MONO(12)",
+    "pm": 12,
+    "stock": 0,
+    "patched": 0,
+    "expected": [
+     0,
+     0
+    ],
+    "passed": true
+   },
+   {
+    "case": "movie + art filter pm 0x65",
+    "pm": 101,
+    "stock": 0,
+    "patched": 0,
+    "expected": [
+     0,
+     0
+    ],
+    "passed": true
+   },
+   {
+    "case": "A+332=2 (not 1) + trigger",
+    "pm": 3,
+    "stock": 0,
+    "patched": 0,
+    "expected": [
+     0,
+     0
+    ],
+    "passed": true
+   },
+   {
+    "case": "stock type1/254 + trigger (stock wins)",
+    "pm": 3,
+    "stock": 1,
+    "patched": 1,
+    "expected": [
+     1,
+     1
+    ],
+    "passed": true
+   },
+   {
+    "case": "stock type1/255,A8=0",
+    "pm": 2,
+    "stock": 2,
+    "patched": 2,
+    "expected": [
+     2,
+     2
+    ],
+    "passed": true
+   },
+   {
+    "case": "stock type1/255,A8=1 + trigger",
+    "pm": 3,
+    "stock": 0,
+    "patched": 0,
+    "expected": [
+     0,
+     0
+    ],
+    "passed": true
+   },
+   {
+    "case": "stock type1/7 (invalid)",
+    "pm": 3,
+    "stock": 0,
+    "patched": 0,
+    "expected": [
+     0,
+     0
+    ],
+    "passed": true
+   }
+  ]
+ },
+ {
+  "check": "M/G/L +925 -> 0x60316bc7/0x60324d6b/0x60349297 -> gamma/luma selectors",
+  "passed": true,
+  "cases": [
+   {
+    "rec925": 0,
+    "effect_id": 2,
+    "gamma": "0x604ede78",
+    "luma": "0x604fb482",
+    "passed": true
+   },
+   {
+    "rec925": 1,
+    "effect_id": 2000,
+    "gamma": "0x604f4278",
+    "luma": "0x604fa082",
+    "passed": true
+   },
+   {
+    "rec925": 2,
+    "effect_id": 2001,
+    "gamma": "0x604f4478",
+    "luma": "0x604fa082",
+    "passed": true
+   }
+  ]
+ },
+ {
+  "check": "M/G/L +925 -> 0x60316bc7/0x60324d6b/0x60349297 -> gamma/luma selectors",
+  "passed": true,
+  "cases": [
+   {
+    "rec925": 0,
+    "effect_id": 2,
+    "gamma": "0x604ede78",
+    "luma": "0x604fb482",
+    "passed": true
+   },
+   {
+    "rec925": 1,
+    "effect_id": 2000,
+    "gamma": "0x604f4278",
+    "luma": "0x604fa082",
+    "passed": true
+   },
+   {
+    "rec925": 2,
+    "effect_id": 2001,
+    "gamma": "0x604f4478",
+    "luma": "0x604fa082",
+    "passed": true
+   }
+  ]
+ }
+]

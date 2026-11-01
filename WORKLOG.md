@@ -141,3 +141,13 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - Bloom (agent, docs/BLOOM_HALATION.md): Soft Focus = job flag 0x80 (shrink 160×120 → upscale → combiner 11 linear mix).
   Patch: 2 hooks + 51 B @0x6055e7b0. **Re-run (me):** ep7_bloom_verify T1–T5 PASS on merged build (10 edits/304 B).
   Halation: design only (per-channel controls; true red tint not possible). Risk: blend input order → test strength 1.
+- Aspect (docs/ASPECT.md, patches/aspect): setting 270 ↔ key 0x3081; menu = option list {270,6,0x6117a834} (4:3,16:9,3:2,1:1,3:4,17:9);
+  ratio code (H<<8)|W. Repurposed id6 → XPan 5184×1912 (0x1841), id7 → 21:9 5184×2224 (0x0915) across 44 tables + 6 sec-5 switches;
+  list relocated to 0x61242f00 ("Panorama"/"Wide" labels), case blocks 0x60210f00. build.py: 136 checks PASS, 101 edits/950 B.
+  Open: 17:9 menu filter, icon-miss path (ids 6/7 have no icon), LV grid selector, art/bracket paths.
+- Log video (agent): no hidden menu; option A code patch: hook 0x6030df3d → 42-B stub @0x60210c90; movie + Muted →
+  +925=2 (log id 2001). Emulator PASS (stills unaffected). Muted = picture-mode id 3 inferred.
+- Aspect (agent, docs/ASPECT.md): setting 270, menu list 0x6117a834 → new 8-entry list; id 6→XPan 5184×1912,
+  id 7→21:9 5184×2224 (labels reuse "Panorama"/"Wide"). 101 edits; 136/136 checks PASS. Risks: icon miss, 17:9 filter.
+- merge_specs: namespaced per-patch metadata. **v0.3 candidate (me):** all 6 merged = 117 edits / 1,674 B;
+  bundles 75/75, grain 5/5, bloom 5/5, video_log, aspect PASS. Saved releases/v0.3-candidate (pkgs local only).

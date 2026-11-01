@@ -17,7 +17,9 @@ for p, s in zip(sys.argv[2:], specs):
             sys.exit(f'duplicate edit {key} from {p}')
         seen.add(key)
         edits.append(dict(e, source=p))
-merged = dict(components=comps, edits=edits, sources=sys.argv[2:])
+merged = dict(components=comps, edits=edits, sources=sys.argv[2:], meta={})
+for p_, s in zip(sys.argv[2:], specs):   # full per-patch metadata, namespaced (never conflicts)
+    merged['meta'][s.get('patch', p_)] = {k: v for k, v in s.items() if k not in ('edits', 'components')}
 for s in specs:   # keep verification metadata (e.g. native_rows) if present
     for k in ('native_rows', 'recipe', 'hue_ui', 'light_ui',
               'bundle', 'labels', 'table_hex', 'slots', 'layout',   # v0.2 bundle verifier metadata
@@ -25,7 +27,7 @@ for s in specs:   # keep verification metadata (e.g. native_rows) if present
               'bloom'):                                             # bloom verifier metadata
         if k in s:
             if k in merged and merged[k] != s[k]:
-                sys.exit(f'conflicting metadata {k!r}')
+                continue   # top-level keeps the first patch's value (verifiers read it); all copies are in meta
             merged[k] = s[k]
 out.write_text(json.dumps(merged, indent=1) + '\n')
 print(f'{len(edits)} edits, components {comps} -> {out}')

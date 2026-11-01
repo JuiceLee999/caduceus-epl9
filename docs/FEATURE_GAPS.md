@@ -43,3 +43,5 @@ interval/time-lapse, keystone, fisheye correction, COLOR4/MONO4 profiles.
   0x606, 0x405, 0x607, 0x506, 0x507, 0x403, plus **0x911 = 17:9 5184×2734**.
 - Plan: unhide hidden ids (find menu allowed-value mask), then repurpose two hidden slots to **XPan 65:24
   (5184×1914)** and **21:9 (5184×2222)**. Needs: menu mask, crop/LV overlay, EXIF ratio. Not yet patched.
+- **Update:** traced and built in docs/ASPECT.md + patches/aspect (ids 6/7 → 5184×1912 / 5184×2224, codes 0x1841/0x0915; menu is a
+  per-setting option list, relocated; 136 emulator/parse checks pass; untested on camera; icon lists not patched).
