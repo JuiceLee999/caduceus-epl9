@@ -307,3 +307,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   stay colour (mono-in-COLOR not cheap). Card: MONO1 Portra 400 / MONO2 Kodachrome64 colour, MONO3/4 B&W. Capture
   A213/L210/B30/V12/N32, UI R634/G1237/S204/P48/U190/L12/T9/K48, mp verify PASS; decode == stock+edits, restore == stock.
   LV/movie of a colour MONO slot stay B&W. Not camera-tested.
+- Project renamed **Caduceus** (was EP7 Unlocked; briefly Zeus). Firmware version screen to show "Caduceus vX.YY" from v0.15.

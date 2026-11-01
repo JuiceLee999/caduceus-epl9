@@ -1,8 +1,12 @@
-# EP7 Unlocked
+# Caduceus
 
-Open-source firmware patches for the **Olympus PEN E-P7** (firmware 1.1). Film simulations you can pick
-and edit in the camera, per-profile HSL, grain, bloom and clarity, true log video, XPan and 21:9 stills, and
-longer video recording.
+**Caduceus** is a set of open-source firmware patches for the **Olympus PEN E-P7** (firmware 1.1). Film simulations you can pick
+and edit in the camera, per-profile HSL, grain, bloom, clarity and Art Effects, B&W film presets, true log video,
+XPan and 21:9 stills, and longer video recording.
+
+*Named after the caduceus, the staff of Hermes: messenger between gods and mortals and guide of travellers.*
+
+Current release: **v0.15** (`releases/v0.15`). The camera's firmware screen shows the Caduceus version.
 
 > **Status: pre-release testing.** Every patch is verified in an emulator of the camera's CPU before it goes
 > on a camera. The SD update and recovery path is proven on a real E-P7 (including recovery from a bootloop),
@@ -15,18 +19,18 @@ longer video recording.
 
 | Feature | What you get | Status |
 |---|---|---|
-| **Film simulations** | 16 colour film looks (library v2) in `EP7MOD/LOOKS.BIN`. Pick one per Colour Profile slot on the camera; its name shows in Picture Mode. | Camera-tested |
+| **Film simulations** | 17+ colour film looks (library v2, incl. an Aerochrome-style false-colour IR look) in `EP7MOD/LOOKS.BIN`. Pick one per Colour Profile slot on the camera; its name shows in Picture Mode. | Camera-tested |
 | **On-camera look editor** | The stock Colour Profile wheel gains pages: Saturation, Hue, Light, Film and Extras (INFO cycles). The wheel follows the page. Modified looks are marked `*`. | Camera-tested |
 | **Profile bundles** | Each Colour Profile slot (COLOR1–4) carries its own full look: per-colour hue and lightness on top of the stock saturation and tone. | Camera-tested |
 | **Looks on the SD card** | Looks load from `EP7MOD/BUNDLES.BIN` on the first half-press. Edits made in the camera save back to the card (with a `.BAK` of the previous file). | Camera-tested |
 | **Per-profile WB shift** | Each slot carries its own A/B and G/M fine-tune. | Camera-tested |
 | **Colour film grain** | The E-P7's grain hardware, previously Monochrome-only, on colour profiles. | Camera-tested |
 | **Bloom and clarity** | The Soft Focus engine as a subtle Pro-Mist glow, or inverted as clarity (one Extras slider, glow ← 0 → clarity). | Camera-tested |
-| **Art Effects on colour profiles** | Star Light, Pin Hole, Blur, White Edge or Frame per slot (Extras sector 5), using the camera's own Art Effect stages. | Camera-tested (live-view preview in progress) |
-| **Mono film presets** | Acros, Tri-X 400, HP5 Plus, Red Contrast, Sepia Print, Cyanotype for Monochrome Profile slots (INFO in the mono editor), built from OM's own mono settings. | Camera-tested |
+| **Art Effects on colour profiles** | Star Light, Pin Hole or Blur per slot (Extras sector 5), using the camera's own Art Effect stages. | Camera-tested (live-view preview partial) |
+| **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profile slots (INFO in the mono filter/shading editor), built from OM's own mono settings. Label `Film: <name>`, `*` when modified. | Camera-tested |
 | **Live-view preview** | Hue/light and bloom shown in live view, not only in the saved photo. | Camera-tested |
 | **True log video** | A hidden OM-Log-style curve already present in the firmware (~12.4% output per stop), unlocked by setting the **movie** picture mode to Muted. Live view shows the flat log image. | Camera-tested |
-| **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel, with matching live view and playback framing. Boots back to 4:3 each power-on for safety. | Camera-tested |
+| **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel, with matching live view and playback framing and `XPAN`/`UW` size labels. Boots back to 4:3 each power-on for safety. | Camera-tested |
 | **Recording limit** | 29-minute and 2-hour caps raised to 9 hours (file, chapter and heat limits still apply). | Camera-tested |
 
 ## Using it
@@ -43,7 +47,7 @@ EP7MOD/LOOKS.BIN     the film library the Film page picks from
 - Open a Colour Profile's colour wheel. **INFO** steps: Saturation → Saturation · All → Hue → Light →
   Film → Extras. Turn the dial to change the value; on Film it steps through the library.
 - Extras (sectors 1–5): grain, glow/clarity, WB amber/blue, WB green/magenta, Art Effect.
-- Monochrome Profile editor: **INFO** steps through the mono film presets (name shown in the guide line).
+- Monochrome Profile editor (filter or shading): **INFO** steps through the mono film presets (`Film: <name>`).
 - Leave the editor and half-press: changes are saved to `BUNDLES.BIN`. The previous file is kept as `.BAK`.
 - Picking a film look replaces that slot's hue, light and extras (saturation stays yours). Tweak on top
   after picking; the label shows `*` once the slot differs from the look.
@@ -69,7 +73,7 @@ Left: the camera's standard curve. Right: the hidden log curve, rendered with th
 
 Mock-ups drawn with the camera's own fonts and icons, extracted from its firmware.
 
-| Stock Colour Profile editor | Proposed HSL editor |
+| Stock Colour Profile editor | HSL editor (early mock-up) |
 |---|---|
 | ![](docs/img/ui_colour_profile_stock.jpg) | ![](docs/img/ui_hsl_editor_mock.jpg) |
 | **Image Aspect menu with XPan / 21:9** | **XPan framing** |
@@ -77,10 +81,10 @@ Mock-ups drawn with the camera's own fonts and icons, extracted from its firmwar
 
 ## Roadmap
 
-- Colour or mono looks in **all 8 profile slots** (COLOR1–4 and MONO1–4), chosen per slot.
-- A friendlier film-sim picker for mono slots (and a list-style menu instead of the wheel).
+- More film looks, and a cross-platform web app to build and share `LOOKS.BIN` files.
+- Art Effect live-view preview that updates immediately.
+- Parked: colour looks on MONO slots / extra profile slots; a list-style menu instead of the wheel.
 - Tinted halation (red glow around white lights), probably via a mask built from the exposure meter grid.
-- A cross-platform web app to build and share `LOOKS.BIN` files.
 
 ## How it works
 
