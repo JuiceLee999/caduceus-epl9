@@ -86,10 +86,10 @@ v0.2 does **not** use 0x6055e5c0–0x6055e67f. A v0.2 package must not also cont
 
 `+0 hue[12] s8`, `+12 light[12] s8` (UI −7..7, UI sector order), `+24 grain`, `+25 wb_flags (bit0)`,
 `+26 wb_ab`, `+27 wb_gm`, `+28 effect_id`, `+29 effect_strength`, `+30 vignette`, `+31 flags`,
-`+32..63 = 0`.
+`+32 colour` (u8, ==1 = MONO slot renders colour), `+33 sat[12]` (s8 −5..5), `+45..63 = 0` (docs/MONO_COLOUR.md).
 
 **flags:** bit1 = H/L enabled (set for every COLOR slot present in the JSON), bit0 = MONO render
-colour (stored only).
+colour (mirror of +32; MONO colour slots also get bit1).
 
 Slots: COLOR1–4 = 0–3, MONO1–4 = 4–7. A slot missing from the JSON is all zero, so it is disabled
 and gives stock output.
