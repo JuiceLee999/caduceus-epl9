@@ -68,6 +68,12 @@ PROBE_END, PROBE_REF = 0x601e283c, 0x601e3ce4
 PS_HOOK, PS_STOCK, PS_BACK = 0x6035caad, bytes.fromhex('f8670cf86b0e'), 0x6035cab3
 PROBE_COLOUR = 0x00C060D0                                              # Y 0xD0, Cb 0x60, Cr 0xC0 (orange-red; order [I])
 MASK_ID, BUF_TAB = 0x1060, 6592
+# --blur-probe (docs/HALATION_RED.md section 10d): read-only probe of the reduce buffer 0x1060 for red-tint jobs, record
+# R = L + 1920 (film-page heap block L = P+1016), shown by LOGDBG.TXT. Code in the dead EVF step-9 tables.
+BP_AT, BP_END = 0x601e1d3c, 0x601e203c                               # dead EVF step-9 R/G/B tables
+BP_REFS = (0x601e3d10, 0x601e3d14, 0x601e3d18)                        # their only refs: step-9 table words
+BC_HOOK, BC_STOCK, BC_BACK = 0x6035cbaa, bytes.fromhex('cfb0f8fef8'), 0x6035cbaf
+BP_R_OFF = 1920
 SF_W = [600, 653, 707, 760, 680, 520, 440, 360, 280, 200, 1024]       # stock Soft Focus table 0x604ec02e, A-effect, A-only
 
 
@@ -108,6 +114,14 @@ def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=Fa
                w_lut=','.join(str(int(w)) for w in weights))
     if clarity is not None:
         sub.update(c11_ret=hex(C11_RET), c11_lut=','.join(str(int(w)) for w in clarity), c12_lut=','.join(['1024'] * 5))
+    try:
+        b3 = _sdv3()
+        sub.update(state=hex(b3.STATE), lim=hex(b3.LIM), pool=hex(b3.POOL), bmagic=hex(b3.MAGIC),
+                   fmagic=hex(struct.unpack('<I', b'EP7F')[0]), qmagic=hex(struct.unpack('<I', b'EP7Q')[0]),
+                   l_max=hex(b3.POOL_END - 2048), r_off=BP_R_OFF,
+                   vmagic=hex(struct.unpack('<I', b'VLGP')[0]))
+    except Exception:
+        pass
     sub.update(probe=int(bool(probe)), colour=hex(PROBE_COLOUR), mask_id=hex(MASK_ID), buf_tab=BUF_TAB - REQ_IN_JOB)
     sub.update(halo=int(bool(halo)), f_tint=F_TINT, t_w=','.join(str(w) for r in tint_rows(weights) for w in r),
                t_k=','.join(str(k) for p in TINT_K for k in p))
@@ -144,6 +158,14 @@ def check_step6(d, end=None, refs=(HALO_REF,)):
                 raise SystemExit(f'abs32 reference into the step-6 R table at {a:#x}')
 
 
+def _sdv3():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('ep7_sd_bundles_v3_build2', ROOT / 'patches/sd_bundles_v3/build.py')
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
 def sdv3_accessor():
     import importlib.util
     spec = importlib.util.spec_from_file_location('ep7_sd_bundles_v3_build', ROOT / 'patches/sd_bundles_v3/build.py')
@@ -152,7 +174,7 @@ def sdv3_accessor():
     return m.accessor_symbols()
 
 
-def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=False):
+def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=False, blur_probe=False):
     weights = [int(w) for w in weights]
     if len(weights) != 5 or not all(0 <= w <= 1024 for w in weights):
         raise SystemExit('need 5 weights in 0..1024')
@@ -243,6 +265,35 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=
                               new=jmp(PS_HOOK, hsyms['probe_set']).hex(),
                               why='Soft Focus blend setup 0x6035ca31: -> probe_set (red tint: buffer 0x1060 descriptor -> request+148)'))
         lst += '\n' + hlst
+    if blur_probe:
+        if probe or not (halo and sd_v3):
+            raise SystemExit('--blur-probe needs --sd-v3 --clarity --halation and no --red-probe')
+        st9 = 0x601e3b3c + 320 + 16 * 9
+        if struct.unpack_from('<B3xIII', d, st9 - BASE) != (9, 0x601e1d3c, 0x601e1e3c, 0x601e1f3c):
+            raise SystemExit('EVF step-9 slot differs')
+        import numpy as np
+        for off in range(4):
+            w = np.frombuffer(d[off:off + (len(d) - off) // 4 * 4], dtype='<u4')
+            for k in np.nonzero((w >= BP_AT) & (w < BP_END))[0]:
+                if BASE + off + 4 * int(k) not in BP_REFS:
+                    raise SystemExit(f'abs32 reference into the step-9 tables at {BASE + off + 4 * int(k):#x}')
+        bcode, bsrc, blst, bsyms, _ = assemble(weights, extra=dict(ep7_tbl_idx=acc['tbl_idx'], ep7_bs_back=PS_BACK,
+                                                                     ep7_bc_back=BC_BACK), template='blurprobe.s.in', at=BP_AT)
+        if BP_AT + len(bcode) > BP_END or d[BP_AT - BASE:BP_AT - BASE + len(bcode)] == bcode:
+            raise SystemExit(f'blur probe ({len(bcode)} B) does not fit {BP_AT:#x}..{BP_END:#x}')
+        if d[PS_HOOK - BASE:PS_HOOK - BASE + 6] != PS_STOCK or d[BC_HOOK - BASE:BC_HOOK - BASE + 5] != BC_STOCK:
+            raise SystemExit('blur probe hook bytes differ')
+        bins = [l.split('\t')[2].split()[0] for l in blst.splitlines() if l.count('\t') >= 2 and l.split('\t')[0].strip().endswith(':')]
+        if {'div', 'divu', 'setlb'} & set(bins):
+            raise SystemExit('forbidden instruction in the blur probe')
+        edits += [dict(kind='0x100', addr=hex(PS_HOOK), expect=PS_STOCK.hex(), new=jmp(PS_HOOK, bsyms['bp_set']).hex(),
+                       why='Soft Focus blend setup 0x6035ca31 -> bp_set (read-only blur-buffer probe, red-tint jobs; record L+1920)'),
+                  dict(kind='0x100', addr=hex(BC_HOOK), expect=BC_STOCK.hex(),
+                       new=(b'\xdc' + struct.pack('<i', bsyms['bp_cb'] - BC_HOOK)).hex(),
+                       why='Soft Focus blend callback 0x6035cbaa -> bp_cb (blur-buffer probe: samples again after the blend)'),
+                  dict(kind='0x100', addr=hex(BP_AT), expect=d[BP_AT - BASE:BP_AT - BASE + len(bcode)].hex(), new=bcode.hex(),
+                       why=f'blur-buffer probe bp_set/bp_cb ({len(bcode)} B) in the dead EVF step-9 R/G/B tables')]
+        lst += '\n' + blst
     meta = dict(mode='bundle', strength_w=weights, effect_id=EFFECT_BLOOM, code_at=hex(code_at),
                 table=hex(lay['table']), f_effect=lay['f_effect'], f_strength=lay['f_strength'],
                 ext=dict(profile=lay['ext_profile'], mode=lay['ext_mode'], marker=lay['ext_magic'], magic=lay['magic']),
@@ -260,6 +311,11 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=
         if probe:
             meta['halation']['red_probe'] = dict(hook=hex(PS_HOOK), colour=hex(PROBE_COLOUR), mask_buffer=hex(MASK_ID),
                                                  port='request+148', mode=0x1002, beta='2b', claim=[hex(HALO_AT), hex(PROBE_END)])
+    if blur_probe:
+        meta['blur_probe'] = dict(record='L+1920 (L = P+1016, P+1020 EP7F)', layout='+0 EP7Q, +4 u8 setup n, +5 u8 callback n, '
+                                  '+6 u8 LOGDBG pending, +8 job, +12 flags bit0 0x1060 found, +16..31 desc words +0/+8/+12/+16, +32..71 setup samples '
+                                  '5x8 B at (2,2),(1,1),(3,1),(1,3),(3,3) quarters, +72..111 callback samples', len=112,
+                                  hooks=[hex(PS_HOOK), hex(BC_HOOK)], symbols={k: hex(v) for k, v in bsyms.items() if k in ('bp_set', 'bp_cb', 'bp_rec', 'bp_pts', 'bq_gate', 'bq_dump')})
     if sd_v3:
         meta['sd_v3'] = dict(accessor={k: hex(v) for k, v in acc.items()}, requires='sd_bundles_v3 (accessor edit)')
     spec = dict(components=['0x100'], patch=('color_bloom_clarity_sdv3' if clarity is not None else 'color_bloom_sdv3') if sd_v3 else 'color_bloom', requires=['bundles-v0.2'],
@@ -274,12 +330,13 @@ def main():
     ap.add_argument('--sd-v3', action='store_true', help='read the table through the SD loader v3 accessor')
     ap.add_argument('--clarity', action='store_true', help='add effect_id 3 = clarity (needs --sd-v3; section-2 placement)')
     ap.add_argument('--halation', action='store_true', help='effect_id 2 = red bloom (needs --clarity; docs/HALATION_RED.md)')
+    ap.add_argument('--blur-probe', action='store_true', help='read-only blur-buffer probe (docs/HALATION_RED.md section 10d)')
     ap.add_argument('--red-probe', action='store_true', help='red tint -> mask route probe (docs/HALATION_RED.md section 10)')
     ap.add_argument('--clarity-weights', help='5 comma-separated Q10 weights > 1024 for clarity strength 1..5')
     a = ap.parse_args()
     weights = [int(x) for x in a.weights.split(',')] if a.weights else STRENGTH_W
     clarity = ([int(x) for x in a.clarity_weights.split(',')] if a.clarity_weights else CLARITY_W) if a.clarity else None
-    spec, code, src, lst, syms = build_spec(weights, a.sd_v3, clarity, a.halation, a.red_probe)
+    spec, code, src, lst, syms = build_spec(weights, a.sd_v3, clarity, a.halation, a.red_probe, a.blur_probe)
     a.out.mkdir(parents=True, exist_ok=False)
     (a.out / 'edits.json').write_text(json.dumps(spec, indent=1) + '\n')
     (a.out / 'routine.s').write_text(src)

@@ -1,0 +1,150 @@
+ .am33_2
+ .text
+ .global _start
+/* E-P7 1.1 video log probe dump: writes C:\EP7MOD\LOGDBG.TXT on a half-press after a movie-mode hook call.
+   Entry: the loader v3 sd_back `jmp` (0x605b7420) now jumps here instead of ed_trig; same frame as ed_trig
+   (HLS_EVENT TRIG, event at (16,sp), the camera-proven file context of the look-editor save). Leaves with every
+   register and sp as on entry and jumps to ed_trig, so the editor save and film load run as before.
+   Only when: event == half-press, P valid, P+960 == 'VLGP', P+967 (pending) != 0. Clears pending first (one
+   attempt), malloc(1024), formats, fopen "w" / fwrite / fclose, free. Any failure just skips (no card = fopen 0).
+   File: line 1 = the label text, then 8 lines "*k: b0 .. b11" (ring records, hex; '*' = newest), then (v0.14
+   bloom blur probe, docs/HALATION_RED.md 10d) 10 lines "Qk: b0 .. b11" = record R+0..119 when R is valid.
+   Also runs when only the bloom record is pending (the label / ring lines then show whatever P holds). */
+_start:
+vlog_dump:
+ add -16,sp
+ mov d0,(0,sp)
+ mov d1,(4,sp)
+ mov a0,(8,sp)
+ mov a1,(12,sp)
+ mov (32,sp),d0
+ cmp {ev_press},d0
+ bne d_out
+ movm [d2,d3,a2,a3],(sp)
+ add -8,sp                        /* (0,sp) receives call return words; (4,sp) file handle */
+ movhu ({state}),d0
+ add -1,d0
+ cmp {lim},d0
+ bcc d_back
+ btst 3,d0
+ bne d_back
+ mov d0,a2
+ add {pool},a2
+ mov (a2),d0
+ cmp {bmagic},d0
+ bne d_back
+ call ep7_bq_gate,[],4            /* video-log batch (P+960 'VLGP', P+967) or bloom blur probe (patches/bloom
+                                     --blur-probe, R+6) pending? Clears both flags: one attempt per batch */
+ cmp 0,d0
+ beq d_back
+ mov 1024,d0
+ call ep7_malloc,[],4
+ cmp 0,a0
+ beq d_back
+ mov a0,a3                        /* a3 = buffer, a0 = write pointer */
+ mov a2,a1                        /* label text (<= 16 chars) */
+ add 980,a1
+ mov 16,d3
+1:
+ movbu (a1),d0
+ cmp 0,d0
+ beq 2f
+ movbu d0,(a0)
+ inc a0
+ inc a1
+ add -1,d3
+ bne 1b
+2:
+ call d_crlf,[],0
+ clr d2                           /* record k */
+3:
+ mov 0x20,d0
+ movbu (966,a2),d1
+ cmp d1,d2
+ bne 4f
+ mov 0x2a,d0                      /* '*' newest */
+4:
+ movbu d0,(a0)
+ mov d2,d0
+ add 0x30,d0
+ movbu d0,(1,a0)
+ mov 0x3a,d0
+ movbu d0,(2,a0)
+ add 3,a0
+ mov d2,d0                        /* a1 = P+704+12k */
+ mov d0,d1
+ asl2 d1
+ asl 3,d0
+ add d1,d0
+ add 704,d0
+ mov d0,a1
+ add a2,a1
+ mov 12,d3
+5:
+ mov 0x20,d0
+ movbu d0,(a0)
+ movbu (a1),d0
+ lsr 4,d0
+ call d_hex,[],0
+ movbu d0,(1,a0)
+ movbu (a1),d0
+ and 15,d0
+ call d_hex,[],0
+ movbu d0,(2,a0)
+ add 3,a0
+ inc a1
+ add -1,d3
+ bne 5b
+ call d_crlf,[],0
+ inc d2
+ cmp 8,d2
+ bne 3b
+ call ep7_bq_dump,[d2,a2],12      /* bloom blur probe: 10 lines "Qk: .." when its record is valid */
+ mov a0,d2
+ sub a3,d2                        /* d2 = length (<= 346 + 10 * 41 = 756 < 1024) */
+ mov d_path,a0
+ mov d_mode,a1
+ call ep7_fopen,[],4
+ cmp 0,a0
+ beq 6f                           /* no card / no folder: skip */
+ mov a0,(4,sp)
+ mov a0,a1                        /* fwrite(buf, 1, n, h) */
+ mov d2,d1
+ mov 1,d0
+ mov a3,a0
+ call ep7_fwrite,[d2,d3,a2,a3],24
+ mov (4,sp),a0
+ call ep7_fclose,[d2,a2,a3],16
+6:
+ mov a3,a0
+ call ep7_free,[],4
+d_back:
+ add 8,sp
+ movm (sp),[d2,d3,a2,a3]
+d_out:
+ mov (0,sp),d0
+ mov (4,sp),d1
+ mov (8,sp),a0
+ mov (12,sp),a1
+ add 16,sp
+ jmp ep7_ed_trig
+
+d_hex:                            /* d0 nibble -> ascii */
+ add 0x30,d0
+ cmp 0x3a,d0
+ bcs 1f
+ add 7,d0
+1:
+ ret [],0
+d_crlf:                           /* "\r\n" at a0, a0 += 2; uses d0 */
+ mov 13,d0
+ movbu d0,(a0)
+ mov 10,d0
+ movbu d0,(1,a0)
+ add 2,a0
+ ret [],0
+d_path:
+ .asciz "C:\\EP7MOD\\LOGDBG.TXT"
+d_mode:
+ .asciz "w"
+code_end:

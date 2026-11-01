@@ -284,3 +284,56 @@ What this tells us:
 The release is back to the §8 chroma-spread bank for red slots: 273 edits, bloom edits identical to the pre-probe build,
 the log probe kept, and the card unchanged (COLOR1 = bloom 4 red). `--red-probe` stays in patches/bloom/build.py for a
 future retry, off by default.
+
+### 10c. Retry with the vignette mask's own format: mask side mapped, source side not (nothing built)
+**Vignette mask, mapped [V code]:**
+- Built by the cache 0x6036b635: 4 objects of 100 B at 0xa27364e8, key 12 B, refcount at +96.
+- Generator 0x6036cec0 fills the 64-B descriptor at object+12:
+  - +8 format = **0x080C**, +10 stride = 128 px, +12/+14 = 128 × 128, +16/+18 = 128, +20/+22 = 0, +24/+26 = 64/64 (centre);
+  - beyond the copied 64 B: +72 = 0x8000, +76 = 0x00011106.
+- Memory comes from the memory manager (0x603509e3, message 19). +0 = the address.
+- 0x603390a4 → 0x60338d49 then writes the mask **on the CPU**: **u16 per pixel**, row stride 2 × 128 B, a radial profile
+  from table 0x604ebf1c (1024 at the centre, falling to 0) plus 7.
+  - So the mask is Q10, and 1024 = image unchanged [I strong: the vignette leaves the centre untouched].
+  - No cache flush follows the writes, so this memory is coherent for CPU writes [I].
+- The shading request copies that descriptor to kind-3 request+148, with +680 = the level gain (1024 neutral).
+- This explains 10b: we handed the port a 0x0305 buffer (4 B/px, 160 × 120). Read as a u16 0x080C-style mask, those bytes
+  are mostly saturated or out of range, so most tiles go to full colour.
+
+**What a correct mask would need:** a 64 × 64 or 128 × 128 u16 buffer, m = 1024 − k·max(0, Y − T), built on the CPU from
+the blurred highlights at blend-setup time. 64 × 64 could be written in place over 0x1060's memory without overwriting
+rows not yet read.
+
+**Why it is not built:** the source side is not mapped with reasonable confidence.
+1. The component layout of 0x0305 is unknown: which byte or half-word is Y, and whether it is 8 or 16 bit with a pad.
+   - Size = stride × h × 4 is confirmed, nothing else.
+   - A layout-agnostic proxy (max byte) fails if the pad byte is 0xFF, and is noise if the components are 16-bit.
+2. It is not shown that the reduce pass has *finished* when the blend setup 0x6035ca31 runs. Work-list execution order
+   is [I].
+3. CPU reads of a DMA-written buffer may be cached. A stale mask is harmless, but it makes the probe ambiguous.
+
+**Safe next step (proposed, not built):** a read-only probe. At blend setup, copy 16 bytes from a bright and a dark
+pixel of 0x1060, plus its descriptor words, into the log probe's heap record, and show them on the Extras page as the
+video-log probe does. One shot of a lamp then maps the 0x0305 layout and timing with no change to the image pipeline.
+After that, the mask route above is a small, well-defined build.
+
+### 10d. Read-only blur-buffer probe (v0.14, in place; not camera-tested)
+- `patches/bloom/build.py --blur-probe` (with --sd-v3 --clarity --halation). The code is `blurprobe.s.in`, 632 B in the dead
+  EVF step-9 R/G/B tables 0x601e1d3c.
+- Hooks:
+  - **0x6035caad (blend setup) → bp_set.** Red-tint jobs only. It records 0x1060's descriptor words (+0 addr, +8 fmt/stride,
+    +12 w/h, +16) and 5 samples × 8 B (2 px), at the quarter points (2,2) (1,1) (3,1) (1,3) (3,3).
+  - **0x6035cbaa (blend callback) → bp_cb.** For the same job, it takes the same samples again *after* the blend.
+    Equal = the reduce had finished at setup.
+- Record **R = L+1920**: +0 'EP7Q', +4 setup n, +5 callback n, +6 LOGDBG pending, +8 job, +12 flags (bit0 0x1060 found),
+  +16..31 descriptor words, +32..71 setup samples, +72..111 callback samples.
+  - L = the film-page block, P+1016, which needs LOOKS.BIN on the card.
+- Output: `vlog_dump` (patches/video_log) now runs when the video-log batch *or* the bloom record is pending, through
+  `bq_gate`. It appends 10 lines `Qk: b0 .. b11` (R+0..119) via `bq_dump`. malloc is now 1024.
+- Both hooks replay their stock instructions. Only the heap record and the stack are written. The image pipeline and
+  the combiner banks are unchanged.
+- Checks:
+  - `tools/ep7_blur_probe_verify.py`: S 270 / C 5.
+  - halation F 24 / W 84 / D 112 against the 04:36 spec.
+  - video_log build_probe: all PASS. Q-dump: 4/4.
+  - Anti-brick: decode == stock + edits, restore == stock.
