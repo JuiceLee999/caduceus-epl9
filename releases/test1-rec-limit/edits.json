@@ -1,0 +1,23 @@
+{
+ "components": [
+  "0x100",
+  "0x101"
+ ],
+ "edits": [
+  {
+   "kind": "0x100",
+   "addr": "0x60319157",
+   "expect": "cc06",
+   "new": "907e",
+   "why": "record limit 1740s -> 32400s"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6031915c",
+   "expect": "201c",
+   "new": "907e",
+   "why": "record limit 7200s -> 32400s"
+  }
+ ],
+ "patch": "rec_limit+stock_osd"
+}
