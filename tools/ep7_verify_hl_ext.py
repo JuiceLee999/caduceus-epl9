@@ -78,6 +78,9 @@ def eq(a, b, ext=False):
     return all(LVV.same(a, b, ext).values())
 
 
+stock_img = [None]
+
+
 def guide_cases(old, new):
     VLE = _load('ep7_verify_look_editor', ROOT / 'tools/ep7_verify_look_editor.py')
     VLE.PROBE = False
@@ -89,12 +92,12 @@ def guide_cases(old, new):
     spans = [(0x601e2c3c, 0x601e383c), (0x605b7190, 0x605b7800), (0x60b9dd00, 0x60b9e000), (0x6143a400, 0x6143a800),
              (0x612429c0, 0x61243000)]
 
-    def go(im, kind, gid, blk, pm):
+    def go(im, kind, gid, blk, pm, h=None):
         vo = bytearray([0xa5]) * 0x200 + struct.pack('<3I', kind, gid, 0x600d) + bytes(0x1f4)
         regions = [Region('drv', VLE.DRV, code, 'rx'), VLE.img(im, LE.PARTS_IMG, LE.PARTS_IMG + 24, 'parts', 'r'),
                    Region('guide', LE.STOCK['ep7_guide'], gcode, 'rx'), Region('vobj', VLE.VOBJ, bytes(vo), 'rw', True)]
         regions += [VLE.img(im, lo, hi, f'i{lo:x}') for lo, hi in spans]
-        regions += VLE.fac_regions(0, pm) + VLE.state_regions(VLE.H_OK, blk, 'r')
+        regions += VLE.fac_regions(0, pm) + VLE.state_regions(VLE.H_OK if h is None else h, blk, 'r')
         r = VLE.run(regions, {'pc': VLE.DRV}, sy['done'])
         ok = not r['fault'] and r['registers']['pc'] == sy['done']
         return ok, VLE.mem(r, 'vobj') if ok else None, {k: r['registers'][k] for k in ('d0', 'd2', 'd3', 'a2', 'a3', 'sp')}, r
@@ -120,6 +123,17 @@ def guide_cases(old, new):
                 struct.unpack_from('<H', b[1], 44)[0] == 5 and a[2] == b[2]
             out.append((f'G stock-blanked guide (kind {kind}, id 0) on {want[ax]}: v0.16 blank, v0.17 {text(b[1]) if b[0] else "fault"!r}'
                         + ('' if good else f' regs {a[2]} vs {b[2]}'), good))
+    blk = VLE.card_block(axis=4)
+    ref = go(new, 4, 2755, blk, 54)
+    for kind in (4, 5):
+        b = go(new, kind, 0, blk, 54)
+        out.append((f'G stock-blanked guide (kind {kind}, id 0) on Extras: v0.17 {text(b[1]) if b[0] else "fault"!r} == the 2755 label',
+                    b[0] and ref[0] and text(b[1]) == text(ref[1]) != '' and struct.unpack_from('<H', b[1], 44)[0] == 5))
+    for ax in (0, 2, 4):
+        for kind, gid in ((4, 0), (5, 0), (4, 2755)):
+            blk = VLE.card_block(axis=ax)
+            a, b = go(stock_img[0], kind, gid, blk, 54, h=0), go(new, kind, gid, blk, 54, h=0)
+            out.append((f'G no card table (axis {ax}, kind {kind}, id {gid}): v0.17 == stock', a[0] and b[0] and a[1] == b[1] and a[2] == b[2]))
     blk = VLE.card_block(axis=3)
     a, b = go(old, 4, 0, blk, 54), go(new, 4, 0, blk, 54)
     out.append(('G stock-blanked guide on Film: film label, registers == v0.16 path', b[0] and text(b[1]).startswith(('Film', 'Velvia')) or b[0]))
@@ -226,6 +240,7 @@ def main():
     #   ex_guide -> ed_guide -> stand-in for the stock part, tools/ep7_verify_look_editor GUIDE_STUB): every page
     #   S / S-All / Hue / Light / Film / Extras gives the same view bytes and registers as v0.16; the stock-blanked
     #   case (id 0, kind 4 or 5) now carries the page label where v0.16 left it blank.
+    stock_img[0] = stock
     for t in guide_cases(old, new):
         rec(*t)
     # B anti-brick

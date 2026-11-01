@@ -115,7 +115,8 @@ def make(base):
     #    rebuilt with the fix; only its entry ed_guide (0x60b9dd10) is referenced from outside (checked).
     ve = edit_at(spec, LE.VIEW[0])
     sy = spec['look_editor']['symbols']
-    extra = dict(LE.STOCK, ed_poke=int(sy['ed_poke'], 16), ed_cfg_fm=int(sy['ed_cfg_fm'], 16))
+    extra = dict(LE.STOCK, ed_poke=int(sy['ed_poke'], 16), ed_cfg_fm=int(sy['ed_cfg_fm'], 16),
+                 ed_cfg_x=int(sy['ed_cfg_x'], 16))
     v_old = LE.B3.assemble(LE.B3.subst(VIEW_V016.read_text(), LE.sub(False)), LE.VIEW[0], extra)[0]
     if v_old.hex() != ve['new']:
         raise ValueError('base ed_view != the v0.16 source rebuild')

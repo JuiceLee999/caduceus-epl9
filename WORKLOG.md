@@ -323,3 +323,6 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - v0.17 fix (camera: Hue page guide label blank): stock guide 0x60decbfc blanks the ALL-off label when the page's (±5-clamped)
   values hit both −5 and +5 (Aerochrome hue); ed_guide now labels id 0 too (ed_view 516 B). Guide S/S·All/Hue/Light/Film/Extras
   == v0.16 byte for byte in the emulator; hl_ext verify 73/73; v0.17 rebuilt in place, caduceus reproduces it.
+- v0.17 Extras guide label: same stock blank (values touching −5 and +5); ed_guide puts the blanked ALL-off id back to 2755 on
+  the Extras page so ex_guide labels it (ed_view 556 B). hl_ext verify 84/84 (labels == v0.16, blanked S/H/L/Extras labelled,
+  no card table == stock). Vignette (Extras 6) not built: needs the shading work-list + mask on key 11; plan in docs/VIGNETTE.md.

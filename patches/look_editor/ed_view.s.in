@@ -104,7 +104,7 @@ ed_guide:                         /* CALLS entry, a0 = view */
  bne 2f                           /* no page step yet since the load: Saturation */
  movbu ({axis},a2),d1
  cmp 4,d1
- bcc g_out                        /* Extras (or garbage): stock label */
+ bcc g_x                          /* Extras (or garbage): stock label */
 2:
  mov d1,d0
  asl 4,d0
@@ -214,6 +214,23 @@ g_write:                          /* a1 = first text, d2 = second text, (4,sp) =
 g_out:
  mov (8,sp),d0
  ret [d2,d3,a2,a3],32
+g_x:                              /* v0.17: on the Extras page (d1 == ed_cfg_x) a stock-blanked ALL-off guide */
+ movhu (48,a3),d0                 /* (id 0) is put back to the stock kind-4 id 2755 as written by 0x60decfdc, */
+ cmp 0,d0                         /* so the extras layer (ex_guide, which needs 2755/2756) labels the page */
+ bne g_out
+ mov ed_cfg_x,a0
+ movbu (a0),d0
+ cmp 0,d0
+ beq g_out
+ cmp d0,d1
+ bne g_out
+ mov 4,d0
+ movhu d0,(44,a3)
+ mov 2755,d0
+ movhu d0,(48,a3)
+ mov 2,d0
+ movhu d0,(50,a3)
+ bra g_out
 
 /* ed_probe: `call ed_probe,[d2,a2],8`. a0 = next text unit of the label, d3 = characters left. PROBE 1 and a
  * valid P: appends " RRRR" (last router code) or " oOOOO" (last outer code, when it differs), cut at d3.

@@ -305,4 +305,4 @@ ids 2755/2756, so the blank stayed. It was not caused by the 0x601e123c LUTs or 
 is treated as ALL off, and the page label is written. `tools/ep7_verify_hl_ext.py` G: real chain from the guide word
 (ex_guide → ed_guide → stock stand-in). S, S·All, Hue, Hue·All, Light, Light·All, Film, Extras and Extras·All are
 byte-identical to v0.16, other stock labels are unchanged, and the blanked case now shows the page name (73/73).
-Extras keeps the stock rule: ex_guide still needs 2755/2756.
+Extras: on the Extras page (axis == ed_cfg_x) ed_guide restores the blanked id to the stock kind-4 2755 (+50 = 2), so ex_guide labels it as usual.
