@@ -3,6 +3,8 @@
 
   .venv/bin/python -I patches/mono_presets/build.py --base generated/test13r/fm/merged.json --out generated/test13r/mp
 
+v0.15 picker: INFO toggles a Film page in the MONO filter/shading editors (dial, arrows step presets,
+label "Film: <name>[*]"); MENU/PLAYBACK stay stock. Part A code 0x601e283c, part B (label, tables) 0x601e173c.
 INFO in the stock MONO1-4 colour-filter and shading editors (records +44, stock `mov 3,d0; retf` = close) steps
 the profile through the presets below: each sets 8 stock mono settings through the facade SetValue (the stock edit
 path) and the MONO slot name in the card table (saved by the editor's half-press save). Code in the dead EVF gamma
@@ -26,20 +28,30 @@ LE = _load('ep7_look_editor_build_mp', ROOT / 'patches/look_editor/build.py')
 B3 = LE.B3
 BASE, MAIN, MAIN_SHA = B3.BASE, B3.MAIN, B3.MAIN_SHA
 
-CODE = (0x601e283c, 0x601e2c3c)          # sec 1: dead EVF gamma step-6 B + step-5 R/G/B tables (test13b: +256 B)
+CODE = (0x601e283c, 0x601e2c3c)          # part A (code): dead EVF gamma step-6 B + step-5 R/G/B tables
 CODE_REFS = {0x601e283c: 0x601e3ce8, 0x601e293c: 0x601e3cd0, 0x601e2a3c: 0x601e3cd4, 0x601e2b3c: 0x601e3cd8}
+CODE_B = (0x601e173c, 0x601e1b3c)        # part B (label + tables, v0.15): dead EVF gamma step-11 R/G/B + step-10 R
+CODE_B_REFS = {0x601e173c: 0x601e3d30, 0x601e183c: 0x601e3d34, 0x601e193c: 0x601e3d38, 0x601e1a3c: 0x601e3d20}
 FALSE_POS = 0x60d37d59                   # 08 2c 1e 60 inside two instructions (dis-checked)
 INFO_F, INFO_S = 0x60e22d8b, 0x60e22fae  # stock +44 words: both `mov 3,d0; retf [],0`
 REC_TABLE, REC_N = 0x6118474c, 167
 KEYS_F = [0x13b6, 0x13b7, 0x13b8, 0x140d]    # MONO1-4 colour filter editors (children 987/991 ...)
 KEYS_S = [0x13b9, 0x13ba, 0x13bb, 0x140e]    # MONO1-4 shading editors (995 ...)
+INIT = 0x60e20a54                        # record +4 (every editor parent)
+# hooked record words: offset -> (name, stock filter word, stock shading word, our symbol f, our symbol s)
+HOOKS = {4: ('init', INIT, INIT, 'mp_init', 'mp_init'),
+         12: ('up', 0x60e22b0c, 0x60e22d90, 'mp_up_f', 'mp_up_s'),
+         16: ('down', 0x60e22b55, 0x60e22dbc, 'mp_dn_f', 'mp_dn_s'),
+         20: ('left', 0x60e22b9e, 0x60e22de8, 'mp_lt_f', 'mp_lt_s'),
+         24: ('right', 0x60e22bca, 0x60e22dec, 'mp_rt_f', 'mp_rt_s'),
+         44: ('INFO', INFO_F, INFO_S, 'mp_info_f', 'mp_info_s'),
+         28: ('rear dial', 0x60e22bf6, 0x60e22df0, 'mp_d1_f', None)}   # filter records only; shading +28 stays stock
+OPS = [44, 12, 16, 20, 24]           # op = 2 act + kind, act in this record-offset order (mp.s.in mp_tramp)
 DESC = 0x61186ba4                        # editor descriptor table (47 x {u16 key, u16 n, u32 children})
 # per MONO m: filter, filter strength, toning, grain, shading, highlights, shadows, midtones. From the picture
 # parameter builder 0x602b7b71 MONO branches (public modes 57/58/59/65) and the validator lists 0x604cc98c [V];
-# Highlights / shadows / midtones: camera test 13b (PB021374/75, MONO1 'Red Contrast' HL +1 SH -2 MID 0 written to
-# 998/999/1000) recorded makernote ToneLevel Highlights +1, Shadows 0, Midtones -2, so 999 = midtones and
-# 1000 = shadows [V camera]; MONO4 assumed the same order (1676 = midtones, 1677 = shadows) [I]. Filter red /
-# strength 2, grain low, shading -1 and toning none landed as written [V camera].
+# Highlights / shadows / midtones: camera test 13b (PB021374/75) -> 999 = midtones, 1000 = shadows [V camera];
+# MONO4 assumed the same order (1676 = midtones, 1677 = shadows) [I].
 FIELDS = ['filter', 'strength', 'toning', 'grain', 'shading', 'highlights', 'shadows', 'midtones']
 IDS = [[987, 991, 984, 981, 995, 998, 1000, 999],
        [988, 992, 985, 982, 996, 1001, 1003, 1002],
@@ -49,22 +61,33 @@ IDS = [[987, 991, 984, 981, 995, 998, 1000, 999],
 FILTER = dict(none=0, yellow=1, orange=2, red=3, green=4, yellow_green=5, magenta=6, blue=7, cyan=8)
 TONING = dict(none=0, sepia=1, blue=2, purple=3, green=4)      # Olympus picture-tone order [I]
 GRAIN = dict(off=0, low=1, medium=2, high=3)
-# extra OM-style presets (the library v2 mono looks come first)
-EXTRA = [
-    dict(name='Red Contrast', filter='red', strength=2, toning='none', grain='low', shading=-1,
-         highlights=1, shadows=-2, midtones=0),
-    dict(name='Sepia Print', filter='none', strength=1, toning='sepia', grain='low', shading=-2,
-         highlights=-1, shadows=1, midtones=0),
-    dict(name='Cyanotype', filter='yellow', strength=1, toning='blue', grain='off', shading=0,
-         highlights=0, shadows=-1, midtones=0),
+# v0.15 picker order (slowest film first, then the toned prints). 'lib' = take the values from library v2.
+P = lambda name, f, s, t, g, sh, hl, sd, md: dict(name=name, filter=f, strength=s, toning=t, grain=g, shading=sh,
+                                                  highlights=hl, shadows=sd, midtones=md)
+ORDER = [
+    P('Pan F 50', 'yellow', 1, 'none', 'off', 0, 1, -3, 1),         # fine, contrasty
+    'Acros',
+    P('T-Max 100', 'none', 1, 'none', 'off', 0, -1, 0, 1),          # fine, smooth, open mids
+    P('SFX 200', 'red', 3, 'none', 'medium', -1, 2, -2, 0),          # Ilford SFX-ish deep red
+    'Tri-X 400',
+    'HP5 Plus',
+    P('Delta 3200', 'none', 1, 'none', 'high', -2, -2, 2, 1),        # grainy, flat, dark corners
+    P('Sepia Print', 'none', 1, 'sepia', 'low', -2, -1, 1, 0),
+    P('Selenium', 'none', 1, 'purple', 'low', -1, 0, -2, 0),         # cool split tone, deep blacks
+    P('Cyanotype', 'yellow', 1, 'blue', 'off', 0, 0, -1, 0),
 ]
+LABEL_MAX = 20                           # guide characters (13c camera: "Preset: Red Contrast" = 20 shown)
 EMARK, AXIS, DIRTY, STATUS = LE.EMARK, LE.AXIS, LE.DIRTY, LE.STATUS
-MPOS, MMARK = 1004, 1008                 # heap P: pos[4] (past the probe's +1000..1003, below the film +1016..)
+MPOS, MMARK, MPAGE = 1004, 1008, 1012    # heap P: pos[4], 'EP7M', Film page byte (below the film +1016..)
 MMAGIC = struct.unpack('<I', b'EP7M')[0]
-# test13c preset label: Profile view (0x60e26ab0) MONO filter page / shading page `call 0x60e26789,[],0` sites
+# preset label: Profile view (0x60e26ab0) MONO filter page / shading page `call 0x60e26789,[],0` sites
 LBL_SITES = {0x60e27209: ('mp_lbl1', '5c0891cd7df50000'), 0x60e275c1: ('mp_lbl2', '9899cdc6f10000')}
 LBL_GET = (0x60e26789, 'f80154de0000')     # `mov (84,a1),d0; retf` (replayed in mp_lbl1/2)
-STOCK = dict(ep7_info_f=INFO_F, ep7_info_s=INFO_S, ep7_facade=0x607f9062, ep7_refresh=0x60de3670)
+STOCK = dict(ep7_facade=0x607f9062, ep7_refresh=0x60de3670, ep7_init=INIT,
+             ep7_info_f=INFO_F, ep7_info_s=INFO_S, ep7_up_f=0x60e22b0c, ep7_up_s=0x60e22d90,
+             ep7_dn_f=0x60e22b55, ep7_dn_s=0x60e22dbc, ep7_lt_f=0x60e22b9e, ep7_lt_s=0x60e22de8,
+             ep7_rt_f=0x60e22bca, ep7_rt_s=0x60e22dec,
+             ep7_d1_f=0x60e22bf6, ep7_d1_s=0x60e22df0)
 
 
 def library_presets():
@@ -84,7 +107,8 @@ def library_presets():
 
 
 def presets():
-    return library_presets() + EXTRA
+    lib = {p['name']: p for p in library_presets()}
+    return [lib[p] if isinstance(p, str) else p for p in ORDER]
 
 
 def values(p):
@@ -114,16 +138,19 @@ def validator(d, sid):
 def check_stock(d):
     import numpy as np
     if struct.unpack_from('<B3xIII', d, 0x601e3b3c + 320 + 16 * 5 - BASE) != (5, 0x601e293c, 0x601e2a3c, 0x601e2b3c) or \
-            struct.unpack_from('<B3xIII', d, 0x601e3b3c + 320 + 16 * 6 - BASE) != (6, 0x601e263c, 0x601e273c, 0x601e283c):
-        raise ValueError('EVF step-5/6 slot differs')
+            struct.unpack_from('<B3xIII', d, 0x601e3b3c + 320 + 16 * 6 - BASE) != (6, 0x601e263c, 0x601e273c, 0x601e283c) or \
+            struct.unpack_from('<B3xIII', d, 0x601e3b3c + 320 + 16 * 11 - BASE) != (11, 0x601e173c, 0x601e183c, 0x601e193c) or \
+            struct.unpack_from('<B3xIII', d, 0x601e3b3c + 320 + 16 * 10 - BASE)[:2] != (10, 0x601e1a3c):
+        raise ValueError('EVF step-5/6/10/11 slot differs')
     for off in range(4):
         w = np.frombuffer(d[off:off + (len(d) - off) // 4 * 4], dtype='<u4')
-        for k in np.nonzero((w >= CODE[0]) & (w < CODE[1]))[0]:
-            at = BASE + off + 4 * int(k)
-            if at == FALSE_POS and d[at - 1 - BASE:at + 4 - BASE].hex() == '5c082c1e60':
-                continue                 # mid-instruction: `mov (8,sp),a0; mov 24606,d0` at 0x60d37d58 (not a ref)
-            if CODE_REFS.get(int(w[k])) != at:
-                raise ValueError(f'abs32 reference into the step-5 tables at {at:#x}')
+        for lo, hi, refs in ((CODE[0], CODE[1], CODE_REFS), (CODE_B[0], CODE_B[1], CODE_B_REFS)):
+            for k in np.nonzero((w >= lo) & (w < hi))[0]:
+                at = BASE + off + 4 * int(k)
+                if at == FALSE_POS and d[at - 1 - BASE:at + 4 - BASE].hex() == '5c082c1e60':
+                    continue             # mid-instruction: `mov (8,sp),a0; mov 24606,d0` at 0x60d37d58 (not a ref)
+                if refs.get(int(w[k])) != at:
+                    raise ValueError(f'abs32 reference into a claimed EVF table at {at:#x}')
     for t in (INFO_F, INFO_S):
         if d[t - BASE:t - BASE + 5].hex() != '8003de0000':
             raise ValueError(f'{t:#x} is not `mov 3,d0; retf`')
@@ -136,8 +163,9 @@ def check_stock(d):
         if keys.count(k) != 1:
             raise ValueError(f'record {k:#x} not unique')
         a = REC_TABLE + 56 * keys.index(k)
-        if u32(d, a + 44) != (INFO_F if k in KEYS_F else INFO_S) or u32(d, a + 4) != 0x60e20a54:
-            raise ValueError(f'record {k:#x} words differ')
+        for off, (nm, wf, ws, _, _) in HOOKS.items():
+            if u32(d, a + off) != (wf if k in KEYS_F else ws):
+                raise ValueError(f'record {k:#x} +{off} ({nm}) differs')
         recs[k] = a
     hits = [m.start() + BASE for m in re.finditer(re.escape(struct.pack('<I', INFO_F)), d)]
     if sorted(hits) != sorted(recs[k] + 44 for k in KEYS_F):
@@ -153,6 +181,22 @@ def check_stock(d):
                     if got != want:
                         raise ValueError(f'editor {k:#x} children {got} != {want}')
     return recs
+
+
+def audit(code, at, data_at, what):
+    ins = B3.disasm(code, at, data_at)
+    if any(op in {'mul', 'mulu', 'div', 'divu', 'setlb', 'llt', 'lne', 'leq', 'lra', 'lcc', 'lcs', 'trap'} for _, op, _ in ins):
+        raise ValueError(f'{what}: forbidden instruction')
+    for a, t, kind, tgt in B3.store_audit(ins):
+        if kind == 'abs':
+            raise ValueError(f'{what}: absolute store at {a:#x}: {t}')
+
+
+def label_texts(ps):
+    out = ['Film[INFO]', 'Film: Custom']
+    for p in ps:
+        out += [f'Film: {p["name"]}*', f'{p["name"]}*[INFO]']
+    return out
 
 
 def build(base_spec, out):
@@ -175,61 +219,81 @@ def build(base_spec, out):
                 if x not in validator(d, sid):
                     raise ValueError(f'{p["name"]}: {FIELDS[f]} = {x} not in setting {sid} list {validator(d, sid)}')
         tab += nm.ljust(16, b'\0') + struct.pack('<8b', *v)
-    if len(set(p['name'] for p in ps)) != len(ps):
-        raise ValueError('duplicate preset names')
+    if len(set(p['name'] for p in ps)) != len(ps) or len(set(tuple(values(p)) for p in ps)) != len(ps):
+        raise ValueError('duplicate preset names or values')
+    if max(len(t) for t in label_texts(ps)) > LABEL_MAX:
+        raise ValueError('label too long')
     lines = lambda b, w: '\n'.join(' .byte ' + ','.join(str(x) for x in b[i:i + w]) for i in range(0, len(b), w))
     sub = dict(state=hex(B3.STATE), lim=hex(B3.LIM), pool=hex(B3.POOL), bmagic=hex(B3.MAGIC), nmagic=hex(B3.NMAGIC),
                emark=EMARK, emagic=hex(LE.EMAGIC), axis=AXIS, dirty=DIRTY, status=STATUS, mpos=MPOS, mmark=MMARK,
-               mmagic=hex(MMAGIC), n=len(ps), nf=len(FIELDS),
+               mpage=MPAGE, mmagic=hex(MMAGIC), n=len(ps), nf=len(FIELDS),
                ids='\n'.join(' .hword ' + ','.join(str(x) for x in row) for row in IDS), tab=lines(tab, 24))
-    src = B3.subst((HERE / 'mp.s.in').read_text(), sub)
-    code, lst, syms, _ = B3.assemble(src, CODE[0], STOCK)
+    # part B first (self-contained), then part A against B's tables
+    code_b, lst_b, syms_b, _ = B3.assemble(B3.subst((HERE / 'mp_b.s.in').read_text(), sub), CODE_B[0], STOCK)
+    if syms_b['mp_lbl1'] != CODE_B[0] or CODE_B[0] + len(code_b) > CODE_B[1]:
+        raise ValueError(f'mp_b: {len(code_b)} B does not fit {CODE_B[1] - CODE_B[0]}')
+    if syms_b['mp_tab'] % 4 or code_b[syms_b['mp_tab'] - CODE_B[0]:syms_b['mp_tab'] - CODE_B[0] + len(tab)] != tab:
+        raise ValueError('preset table bytes / alignment')
+    audit(code_b, CODE_B[0], syms_b['mp_t_film'], 'mp_b')
+    ext = dict(STOCK, mp_keys=syms_b['mp_keys'], mp_ids=syms_b['mp_ids'], mp_tab=syms_b['mp_tab'])
+    code, lst, syms, _ = B3.assemble(B3.subst((HERE / 'mp.s.in').read_text(), sub), CODE[0], ext)
     if syms['mp_info_f'] != CODE[0] or CODE[0] + len(code) > CODE[1]:
         raise ValueError(f'mp: {len(code)} B does not fit {CODE[1] - CODE[0]}')
-    ins = B3.disasm(code, CODE[0], syms['mp_data'])
-    if any(op in {'mul', 'mulu', 'div', 'divu', 'setlb', 'llt', 'lne', 'leq', 'lra', 'lcc', 'lcs', 'trap'} for _, op, _ in ins):
-        raise ValueError('forbidden instruction')
-    for a, t, kind, tgt in B3.store_audit(ins):
-        if kind == 'abs':
-            raise ValueError(f'absolute store at {a:#x}: {t}')
-    if code[syms['mp_tab'] - CODE[0]:syms['mp_tab'] - CODE[0] + len(tab)] != tab:
-        raise ValueError('preset table bytes')
+    if syms['mp_tramp_end'] - syms['mp_tramp'] != 8 * 2 * len(OPS):
+        raise ValueError('trampolines are not 8 bytes each')
+    tr = code[syms['mp_tramp'] - CODE[0]:syms['mp_tramp_end'] - CODE[0]]
+    for op in range(2 * len(OPS)):
+        off, kind = OPS[op // 2], op % 2
+        t = tr[8 * op:8 * op + 8]
+        tgt = (syms['mp_tramp'] + 8 * op + 3 + struct.unpack_from('<i', t, 4)[0]) & 0xffffffff
+        if t[:4] != bytes.fromhex('9cce f0dc'.replace(' ', '')) or tgt != HOOKS[off][1 + kind]:
+            raise ValueError(f'trampoline {op} {t.hex()} -> {tgt:#x}')
+    audit(code, CODE[0], syms['mp_end_a'], 'mp')
     for e in spec['edits']:
         a, n = int(e['addr'], 16), len(e['new']) // 2
-        if a < CODE[1] and CODE[0] < a + n:
-            raise ValueError(f'edit {a:#x} overlaps the step-5 claim')
+        for lo, hi in (CODE, CODE_B):
+            if a < hi and lo < a + n:
+                raise ValueError(f'edit {a:#x} overlaps a mono claim')
         for r in recs.values():
-            if a < r + 48 and r + 44 < a + n:
-                raise ValueError(f'edit {a:#x} overlaps a MONO record +44')
-    new = [dict(kind='0x100', addr=hex(CODE[0]), expect=d[CODE[0] - BASE:CODE[0] - BASE + len(code)].hex(),
-                new=code.hex(), why=f'mono presets: mp_info_f/_s + {len(ps)} presets (sec 1, dead EVF step-5 tables)')]
-    for k, a in recs.items():
-        new.append(dict(kind='0x100', addr=hex(a + 44), expect=struct.pack('<I', INFO_F if k in KEYS_F else INFO_S).hex(),
-                        new=struct.pack('<I', syms['mp_info_f' if k in KEYS_F else 'mp_info_s']).hex(),
-                        why=f'MONO editor {k:#x} INFO (+44) -> mono preset step'))
-    for a, (sym, exp) in LBL_SITES.items():
-        rel = (syms[sym] - a) & 0xffffffff
-        nb = b'\xdd' + struct.pack('<I', rel) + b'\0\0' + b'\xcb' * (len(exp) // 2 - 7)
-        new.append(dict(kind='0x100', addr=hex(a), expect=exp, new=nb.hex(),
-                        why=f'Profile view MONO page guide label -> {sym} (call {syms[sym]:#x},[],0)'))
-    for e in spec['edits']:
-        a, n = int(e['addr'], 16), len(e['new']) // 2
+            for off in HOOKS:
+                if a < r + off + 4 and r + off < a + n:
+                    raise ValueError(f'edit {a:#x} overlaps a MONO record word')
         for s0, (_, exp) in LBL_SITES.items():
             if a < s0 + len(exp) // 2 and s0 < a + n:
                 raise ValueError(f'edit {a:#x} overlaps label site {s0:#x}')
+    new = [dict(kind='0x100', addr=hex(CODE[0]), expect=d[CODE[0] - BASE:CODE[0] - BASE + len(code)].hex(),
+                new=code.hex(), why=f'mono presets part A: picker hooks (sec 1, dead EVF step-6 B / step-5 tables)'),
+           dict(kind='0x100', addr=hex(CODE_B[0]), expect=d[CODE_B[0] - BASE:CODE_B[0] - BASE + len(code_b)].hex(),
+                new=code_b.hex(), why=f'mono presets part B: guide label + {len(ps)} presets (sec 1, dead EVF step-11 tables)')]
+    for k, a in recs.items():
+        kf = k in KEYS_F
+        for off, (nm, wf, ws, sf, ss) in HOOKS.items():
+            if (sf if kf else ss) is None:
+                continue
+            new.append(dict(kind='0x100', addr=hex(a + off), expect=struct.pack('<I', wf if kf else ws).hex(),
+                            new=struct.pack('<I', syms[sf if kf else ss]).hex(),
+                            why=f'MONO editor {k:#x} {nm} (+{off}) -> {sf if kf else ss}'))
+    for a, (sym, exp) in LBL_SITES.items():
+        rel = (syms_b[sym] - a) & 0xffffffff
+        nb = b'\xdd' + struct.pack('<I', rel) + b'\0\0' + b'\xcb' * (len(exp) // 2 - 7)
+        new.append(dict(kind='0x100', addr=hex(a), expect=exp, new=nb.hex(),
+                        why=f'Profile view MONO page guide label -> {sym} (call {syms_b[sym]:#x},[],0)'))
     for e in new:
         e['source'] = 'patches/mono_presets'
-    meta = dict(code=[hex(CODE[0]), len(code)], symbols={k: hex(v) for k, v in syms.items() if not k.startswith(('_', '.'))},
-                presets=[dict(p, values=values(p)) for p in ps], fields=FIELDS, ids=IDS, heap=dict(mpos=MPOS, mmark=MMARK),
+    allsyms = {**syms_b, **syms}
+    meta = dict(code=[hex(CODE[0]), len(code)], code_b=[hex(CODE_B[0]), len(code_b)],
+                symbols={k: hex(v) for k, v in allsyms.items() if not k.startswith(('_', '.'))},
+                presets=[dict(p, values=values(p)) for p in ps], fields=FIELDS, ids=IDS,
+                heap=dict(mpos=MPOS, mmark=MMARK, mpage=MPAGE), hooks={str(k): v[0] for k, v in HOOKS.items()},
                 records={hex(k): hex(a) for k, a in recs.items()}, stock={k: hex(v) for k, v in STOCK.items()})
     merged = dict(spec, edits=spec['edits'] + new, mono_presets=meta)
     merged.setdefault('meta', {})['mono_presets'] = meta
     out.mkdir(parents=True, exist_ok=True)
     (out / 'merged.json').write_text(json.dumps(merged, indent=1) + '\n')
     (out / 'edits.json').write_text(json.dumps(dict(components=['0x100'], patch='mono_presets', edits=new, mono_presets=meta), indent=1) + '\n')
-    (out / 'mono_presets.lst').write_text(lst)
-    print(f'mono presets {len(code)} B @ {CODE[0]:#x}, {len(ps)} presets: {", ".join(p["name"] for p in ps)}; '
-          f'{len(merged["edits"])} edits')
+    (out / 'mono_presets.lst').write_text(lst + '\n\n' + lst_b)
+    print(f'mono presets A {len(code)} B @ {CODE[0]:#x}, B {len(code_b)} B @ {CODE_B[0]:#x}, {len(ps)} presets: '
+          f'{", ".join(p["name"] for p in ps)}; {len(new)} new, {len(merged["edits"])} edits')
 
 
 def main():

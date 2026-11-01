@@ -102,6 +102,12 @@
    },
    "notes": "Airy pastel negative: minty greens, light cyan skies."
   },
+  "aerochrome": {
+   "name": "Aerochrome",
+   "recipe": "lib2_aerochrome",
+   "grain": "low",
+   "notes": "False-colour infrared (Kodak Aerochrome-style): golden/orange foliage, deep blue skies. Sat advice: strong (+3..+5)."
+  },
   "acros": {
    "name": "Acros",
    "recipe": "lib2_acros",

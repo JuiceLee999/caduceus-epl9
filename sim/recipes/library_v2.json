@@ -1051,6 +1051,60 @@
    },
    "contrast": 0,
    "grain": "high"
+  },
+  "lib2_aerochrome": {
+   "name": "Aerochrome",
+   "description": "Kodak Aerochrome-style colour-infrared false colour. Per sector (centre deg -> target; one hue step = 5.5 deg, +-7 reaches 38.5 deg): yellow 149 -> orange-red (hue -7, light +1); orange/skin 119 -> pale peach-yellow (hue +3, light +2, sat -1); orange-red 105 and red 89 -> orange/yellow, lighter (hue +5/+7, light +2); magenta 49 -> red (hue +7); violet 349 -> magenta-red (hue +7); blue 333 -> near black (light -7); blue-cyan 317 and cyan 281 -> deep saturated blue (hue +3/+7, light -3/-2, sat +5); green-cyan 243 -> green (hue -7); green 192 and yellow-green 180 -> yellow/orange, bright (hue -7, light +2/+1, sat +5). Green cannot reach red within the range: foliage lands gold-orange to salmon.",
+   "base": "Color Profile",
+   "sat": [
+    4,
+    -1,
+    2,
+    3,
+    3,
+    3,
+    2,
+    5,
+    5,
+    3,
+    5,
+    5
+   ],
+   "hue": [
+    -7,
+    3,
+    5,
+    7,
+    7,
+    7,
+    0,
+    3,
+    7,
+    -7,
+    -7,
+    -7
+   ],
+   "light": [
+    1,
+    2,
+    2,
+    2,
+    0,
+    0,
+    -7,
+    -3,
+    -2,
+    0,
+    2,
+    1
+   ],
+   "tone": {
+    "highlights": 1,
+    "shadows": -2,
+    "midtones": 0
+   },
+   "contrast": 2,
+   "grain": "low"
   }
  }
 }
