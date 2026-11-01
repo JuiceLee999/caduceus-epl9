@@ -1,0 +1,56 @@
+/* E-P7 1.1 v0.15: Extras "5 Art" wheel-number resync after a wrap (ep7-firmware, our own code).
+ *
+ * Bug (v0.15 camera): Art is 0..3 but the stock property child steps its own index over the stock -5..+5 list, so
+ * Up at Blur commits 4 (ex_set wraps the slot to 0 = Off) while the child keeps index "4" and shows it; the next
+ * step continues from there (5, then stuck at the list end).
+ * Fix: after ex_art's write, when this set came from a property child's commit (SetValue called from 0x60de5d67),
+ * point that child's current index (+90) at the list entry equal to the wrapped value, so the number and the next
+ * step follow the slot (Up at Blur -> Off, Down at Off -> Blur).
+ *
+ *   ex_rs <- ex_art's tail (`jmp ex_s_dirty` -> `jmp ex_rs`). sp = ex_set's entry sp: (16,sp) = return into the GUI
+ *            setter 0x607fa129 (frame 44 + movm 16), so (76,sp) = the setter's own return address and (96,sp) =
+ *            (20,sp) of the child event handler 0x60de5ab6 = the child.
+ *   Guards: (76,sp) == 0x60de5d69 (the commit's `calls`), child vtable 0x61155a7c, child +84 == id, value in the list.
+ *   d1 = new art 0..3, d0 = id, a0/a1 = ex_set args (kept). Uses d2, d3, a2 (s_dirty reloads a2; d2/d3 are dead).
+ * Stores: child +90 (u16) only, the same field the child's own step/refresh write. No absolute stores, no mul/div.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+ex_rs:
+ mov (76,sp),d2
+ cmp 0x60de5d69,d2                /* set from the property child's commit? */
+ bne 9f
+ mov (96,sp),a2                   /* the child */
+ mov (a2),d2
+ cmp 0x61155a7c,d2                /* property child vtable */
+ bne 9f
+ movhu (84,a2),d2
+ mov d0,d3
+ exthu d3
+ cmp d2,d3                        /* the child edits this id */
+ bne 9f
+ movhu (88,a2),d3                 /* count */
+ cmp 32,d3
+ bhi 9f
+ mov (100,a2),a2                  /* value list (u32) */
+ cmp 0,a2
+ beq 9f
+1:
+ cmp 0,d3
+ beq 9f
+ mov (a2),d2
+ cmp d1,d2
+ beq 2f
+ inc4 a2
+ add -1,d3
+ bra 1b
+2:
+ mov (96,sp),a2
+ movhu (88,a2),d2
+ sub d3,d2                        /* index = count - remaining */
+ movhu d2,(90,a2)
+9:
+ jmp ex_s_dirty
+code_end:

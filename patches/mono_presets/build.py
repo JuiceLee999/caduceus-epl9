@@ -77,11 +77,15 @@ MMAGIC = struct.unpack('<I', b'EP7M')[0]
 # preset label: Profile view (0x60e26ab0) MONO filter page / shading page `call 0x60e26789,[],0` sites
 LBL_SITES = {0x60e27209: ('mp_lbl1', '5c0891cd7df50000'), 0x60e275c1: ('mp_lbl2', '9899cdc6f10000')}
 LBL_GET = (0x60e26789, 'f80154de0000')     # `mov (84,a1),d0; retf` (replayed in mp_lbl1/2)
+# v0.15c SCP route: the SCP colour-filter view (factory id 0x78, vtable 0x6117f4e8) draws through a .data parts list
+# (0x61fc3570, init image 0x6025b830 = .data - 0x1d67d40); part 0 0x60e11afd writes the filter name into view+20.
+SCP_PART_WORD, SCP_PART = 0x6025b830, 0x60e11afd
+SCP_PARTS = (0x60e11afd, 0x60e11b3c, 0x60e11b8d, 0x60e11d18, 0)
 STOCK = dict(ep7_facade=0x607f9062, ep7_refresh=0x60de3670, ep7_init=INIT,
              ep7_info_f=INFO_F, ep7_info_s=INFO_S, ep7_up_f=0x60e22b0c, ep7_up_s=0x60e22d90,
              ep7_dn_f=0x60e22b55, ep7_dn_s=0x60e22dbc, ep7_lt_f=0x60e22b9e, ep7_lt_s=0x60e22de8,
              ep7_rt_f=0x60e22bca, ep7_rt_s=0x60e22dec,
-             ep7_d1_f=0x60e22bf6, ep7_d1_s=0x60e22df0)
+             ep7_d1_f=0x60e22bf6, ep7_d1_s=0x60e22df0, ep7_scp_lbl=0x60e11afd)
 
 
 def library_presets():
@@ -151,6 +155,10 @@ def check_stock(d):
     for a, exp in [(k, v[1]) for k, v in LBL_SITES.items()] + [LBL_GET]:
         if d[a - BASE:a - BASE + len(exp) // 2].hex() != exp:
             raise ValueError(f'label site {a:#x} differs')
+    if [u32(d, SCP_PART_WORD + 4 * i) for i in range(5)] != list(SCP_PARTS) or \
+            [m.start() + BASE for m in re.finditer(re.escape(struct.pack('<I', SCP_PART_WORD + 0x1d67d40)), d)] != [0x60e11a38 + 2] or \
+            d[SCP_PART - BASE:SCP_PART - BASE + 2].hex() != 'cf30':
+        raise ValueError('SCP filter view parts list differs')
     keys = [u16(d, REC_TABLE + 56 * i) for i in range(REC_N)]
     recs = {}
     for k in KEYS_F + KEYS_S:
@@ -252,7 +260,7 @@ def build(base_spec, out):
             for off in HOOKS:
                 if a < r + off + 4 and r + off < a + n:
                     raise ValueError(f'edit {a:#x} overlaps a MONO record word')
-        for s0, (_, exp) in LBL_SITES.items():
+        for s0, (_, exp) in list(LBL_SITES.items()) + [(SCP_PART_WORD, (0, '00' * 4))]:
             if a < s0 + len(exp) // 2 and s0 < a + n:
                 raise ValueError(f'edit {a:#x} overlaps label site {s0:#x}')
     new = [dict(kind='0x100', addr=hex(CODE[0]), expect=d[CODE[0] - BASE:CODE[0] - BASE + len(code)].hex(),
@@ -272,6 +280,9 @@ def build(base_spec, out):
         nb = b'\xdd' + struct.pack('<I', rel) + b'\0\0' + b'\xcb' * (len(exp) // 2 - 7)
         new.append(dict(kind='0x100', addr=hex(a), expect=exp, new=nb.hex(),
                         why=f'Profile view MONO page guide label -> {sym} (call {syms_b[sym]:#x},[],0)'))
+    new.append(dict(kind='0x100', addr=hex(SCP_PART_WORD), expect=struct.pack('<I', SCP_PART).hex(),
+                    new=struct.pack('<I', syms_b['mp_lbl3']).hex(),
+                    why='SCP colour-filter view part 0 (filter name label, .data 0x61fc3570 init image) -> mp_lbl3'))
     for e in new:
         e['source'] = 'patches/mono_presets'
     allsyms = {**syms_b, **syms}

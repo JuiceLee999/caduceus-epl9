@@ -3,13 +3,13 @@
  * fm_core: section 9, 0x6143a410.. (FF; sec 9 is loaded whenever the loader's handle is valid: its gate needs all 9).
  *
  *   fm_valid <- the editor's ed_cfg_fv word (12e ed_page, on Light -> next page). CALLS, a2 = P (validated).
- *               -> d0 1 when LOOKS.BIN is loaded: P+1020 'EP7F', L = P+1016 inside the class-1 pool and 4-aligned,
- *               L+1408 'EP7L', L+1412 == P. Clobbers d0, d1, a0.
+ *               -> d0 1 when LOOKS.BIN is loaded: P+1020 'EP7F', L = P+1016 inside the class-2 pool and 4-aligned,
+ *               L+2112 'EP7L', L+2116 == P. Clobbers d0, d1, a0.
  *   fm_load  <- the editor's ed_cfg_fl word (12e ed_trig, every half-press with a valid P). CALLS, a2 = P.
- *               Once per power-on (P+1020 'EP7F' or 'EP7X' -> nothing): mark 'EP7X', malloc(2048) = L,
- *               fopen C:\EP7MOD\LOOKS.BIN "r", size = 64 + 64 n (1 <= n <= 20), fread, fclose, fm_check (the rules of
+ *               Once per power-on (P+1020 'EP7F' or 'EP7X' -> nothing): mark 'EP7X', malloc({lsize}) = L,
+ *               fopen C:\EP7MOD\LOOKS.BIN "r", size = 64 + 64 n (1 <= n <= 32), fread, fclose, fm_check (the rules of
  *               tools/ep7_looks_bin.py check_file), the slot positions (a slot whose name matches a colour look
- *               resumes on it), publish L+1408 'EP7L', L+1412 P, P+1016 L, then P+1020 'EP7F' last. Any failure: free
+ *               resumes on it), publish L+2112 'EP7L', L+2116 P, P+1016 L, then P+1020 'EP7F' last. Any failure: free
  *               L, P+1020 stays 'EP7X'.
  *   fm_up / fm_down <- COLOR1-4 records +12 / +16 (0x61185be8/bec, c20/c24, c58/c5c, c90/c94; stock Up 0x60e20e0a /
  *               Down 0x60e2107a), copied to parent+48/+52: every value step (dial, arrows, touch) of the editor.
@@ -19,8 +19,8 @@
  *               cleared first, set last) and name P+544+16k ('EP7N' after the name), set dirty P+{dirty} (the
  *               editor's half-press save writes BUNDLES.BIN), then the editor's ed_poke (cursor re-write: the guide
  *               shows the new name), return 1. Anything else: jmp to the stock handler with registers intact.
- * L layout: +0 LOOKS.BIN (<= 1344 B), +1408 'EP7L', +1412 P, +1416 n, +1417 pos[4], +1421 snap[4],
- *   +1428 own snapshots 4 x 80 B (entry 64 + name 16), +1752 staging 80 B (ends 1832 < 2048).
+ * L layout: +0 LOOKS.BIN (<= 2112 B), +2112 'EP7L', +2116 P, +2120 n, +2121 pos[4], +2125 snap[4],
+ *   +2132 own snapshots 4 x 80 B (entry 64 + name 16), +2456 staging 80 B (ends 2536; +2536 = lv_art_refresh old art byte; block {lsize}).
  * Stores: P, L (heap) and the stack only. No absolute stores, no mul/div, no setlb/Lcc.
  */
  .am33_2
@@ -44,10 +44,10 @@ _start:
  add {npool},d0
  cmp {llim},d0
  bcc \miss
- mov (1408,a0),d0
+ mov (2112,a0),d0
  cmp FL_MAGIC,d0
  bne \miss
- mov (1412,a0),d0
+ mov (2116,a0),d0
  mov a2,d1
  cmp d1,d0
  bne \miss
@@ -79,7 +79,7 @@ fm_load:                          /* CALLS, a2 = P */
  beq l_out
  mov FX_MAGIC,d0                  /* one attempt per power-on */
  mov d0,(1020,a2)
- mov 2048,d0
+ mov {lsize},d0                   /* > 2048: class-2 block (n <= 32 does not fit class 1) */
  call ep7_malloc,[],4
  mov a0,a3                        /* a3 = L */
  cmp 0,a3
@@ -103,13 +103,13 @@ fm_load:                          /* CALLS, a2 = P */
  bne l_close
  mov (4,sp),a0
  call ep7_ftell,[d2,a2,a3],16
- mov d0,d3                        /* size: 128..1344, a multiple of 64 */
+ mov d0,d3                        /* size: 128..2112, a multiple of 64 */
  mov d3,d1
  and 63,d1
  bne l_close
  cmp 128,d3
  bcs l_close
- cmp 1345,d3
+ cmp 2113,d3
  bcc l_close
  mov d3,(8,sp)
  mov (4,sp),a0
@@ -135,10 +135,10 @@ fm_load:                          /* CALLS, a2 = P */
  mov d3,d0                        /* n = (size - 64) / 64 */
  add -64,d0
  lsr 6,d0
- movbu d0,(1416,a3)
+ movbu d0,(2120,a3)
  clr d0                           /* pos[4] = own, snap[4] = 0 */
  mov a3,a0
- add 1417,a0
+ add 2121,a0
  mov 8,d1
 1:
  movbu d0,(a0)
@@ -184,11 +184,11 @@ fm_load:                          /* CALLS, a2 = P */
  mov (8,sp),d1
  mov a3,a0
  add d1,a0
- movbu d0,(1417,a0)
+ movbu d0,(2121,a0)
  bra 6f
 5:
  inc d3
- movbu (1416,a3),d0
+ movbu (2120,a3),d0
  cmp d0,d3
  bcs 3b
 6:
@@ -199,8 +199,8 @@ fm_load:                          /* CALLS, a2 = P */
  bne 2b
 l_pub:
  mov FL_MAGIC,d0                  /* publish: L tags, then P+1016, then 'EP7F' last */
- mov d0,(1408,a3)
- mov a2,(1412,a3)
+ mov d0,(2112,a3)
+ mov a2,(2116,a3)
  mov a3,(1016,a2)
  mov FF_MAGIC,d0
  mov d0,(1020,a2)
@@ -214,7 +214,7 @@ l_free:
 l_out:
  ret [d2,d3,a2,a3],32
 
-/* fm_check: a3 = L (file), d3 = size (128..1344, 64 | size) -> d0 0 valid / 1 invalid. Uses d0-d3, a0-a2. */
+/* fm_check: a3 = L (file), d3 = size (128..2112, 64 | size) -> d0 0 valid / 1 invalid. Uses d0-d3, a0-a2. */
 fm_check:
  mov fm_hdr,a1                    /* header bytes 0..11, 20..23, 26..63 against the template */
  clr d2
@@ -363,10 +363,10 @@ fm_mod:
  bcc m_no
  mov a0,a1
  add d3,a1
- movbu (1417,a1),d0               /* pos */
+ movbu (2121,a1),d0               /* pos */
  cmp 0,d0
  beq m_no                         /* own */
- movbu (1416,a0),d1
+ movbu (2120,a0),d1
  inc d1
  cmp d1,d0
  bcc m_no                         /* Stock (n + 1) or out of range */

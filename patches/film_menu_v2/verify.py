@@ -45,7 +45,8 @@ Region, run, asm, img, mem = EV.Region, EV.run, EV.asm, EV.img, EV.mem
 BASE, H_OK, P_OK, NMAGIC = EV.BASE, EV.H_OK, EV.P_OK, EV.NMAGIC
 DRV, OUT, PAR, SENT, SP0, STK = EV.DRV, EV.OUT, EV.PAR, EV.SENT, EV.SP0, EV.STK
 O = FB.OFF
-L_AT = B3.POOL + 0x8000                     # the L block (inside the class-1 pool)
+L_AT = FB.POOL2 + 0x4040 * 7 + 0x40         # the L block (inside the class-2 pool, v0.15)
+LSZ = FB.L_SIZE
 FSC = 0x18d00000                            # film file-service control / log / file
 G = {}
 
@@ -60,6 +61,8 @@ def init(base, layered):
     # test13b: the release card library (v2: CineStill800 carries bloom colour red at record +47)
     G['looks'] = LB.compile_looks(FB.colour_library(ROOT / 'bundles/library_v2.json'))[0]
     G['looks_all'] = LB.compile_looks(json.loads((ROOT / 'bundles/library_v1.json').read_text()))[0]
+    G['looks32'] = LB.make_file([LB.record(LB.to_rec96(rec(G['looks'], j % 16)))[:48] +
+                                 f'Look{j:02d}'.encode().ljust(16, b'\0') for j in range(32)])   # v0.15 limit
 
 
 def code_regions(im):
@@ -67,7 +70,8 @@ def code_regions(im):
     ui0 = int(fs['ui'][0], 16)
     return [img(im, FB.CODE[0], FB.CODE[1], 'fmcore'), img(im, ui0, FB.UI[1], 'fmui'),
             img(im, 0x61185b00, 0x61185d00, 'rec', 'r'), img(im, LE.UI[0], LE.UI[1], 'ui'),
-            img(im, LE.KEYS[0], LE.KEYS[1], 'keys')]
+            img(im, LE.KEYS[0], LE.KEYS[1], 'keys')] + \
+        ([img(im, 0x601e3758, 0x601e383c, 'artrf')] if 'lv_art_refresh' in G['spec'] else [])   # v0.14 fm_pre/fm_post
 
 
 # ------------------------------------------------------------------ models
@@ -81,7 +85,7 @@ def rec(looks, j):
 
 def loaded_L(looks, blk):
     """L as fm_load leaves it (bytes past the file: 0xee filler as mapped)."""
-    L = bytearray([0xee]) * 2048
+    L = bytearray([0xee]) * LSZ
     L[:len(looks)] = looks
     n = n_of(looks)
     struct.pack_into('<II', L, O['ltag'], FB.LMAGIC, P_OK)
@@ -134,6 +138,8 @@ def step_model(blk, L, k, d):
         if T[:64] != LB.place(r, k):
             raise AssertionError(f'model entry != place() for look {pos - 1} slot {k}')
     L[O['stage']:O['stage'] + 80] = T
+    if 'lv_art_refresh' in G['spec']:                  # v0.14 fm_pre stashes the old art byte (entry +46) at T+80
+        L[O['stage'] + 80] = blk[32 + 64 * k + 46]
     blk[32 + 64 * k:96 + 64 * k] = T[:64]
     if not names:
         blk[544:672] = bytes(128)
@@ -168,7 +174,7 @@ def bad_handles():
     out = []
     for lab, mark in (('EP7X', FB.XMAGIC), ('zero mark', 0), ('EP7F-1', FB.FMAGIC - 1)):
         out.append((lab, film_block(fmark=mark), L))
-    for lab, la in (('L misaligned', L_AT + 2), ('L below pool', B3.POOL - 4), ('L past pool', B3.POOL + FB.LLIM),
+    for lab, la in (('L misaligned', L_AT + 2), ('L below pool', FB.POOL2 - 4), ('L past pool', FB.POOL2 + FB.LLIM), ('L in class-1 pool', B3.POOL + 0x8000),
                     ('L null', 0)):
         out.append((lab, film_block(L_addr=la), L))
     L2 = bytearray(L)
@@ -301,6 +307,8 @@ def p_cases(quick=False):
     out.append(('mono skipped up', 0x13b4, 1, G['looks_all'], True))
     out.append(('mono skipped down', 0x140c, -1, G['looks_all'], True))
     out.append(('no names section', 0x13b5, 1, G['looks'], False))
+    out.append(('32 looks wrap up', 0x13b3, 1, G['looks32'], True))
+    out.append(('32 looks wrap down', 0x140c, -1, G['looks32'], True))
     return out
 
 
@@ -439,7 +447,7 @@ def fs_log(r):
 def load_run(blk, data, **fsk):
     src = f' mov {G["fs"]["fm_load"]:#x},a1\n mov {P_OK:#x},a2\n calls (a1)\n'
     code, sy = asm(src, DRV)
-    regions = [Region('drv', DRV, code, 'rx'), Region('L', L_AT, b'\xee' * 2048, 'rw', True)] + \
+    regions = [Region('drv', DRV, code, 'rx'), Region('L', L_AT, b'\xee' * LSZ, 'rw', True)] + \
         code_regions(G['lay']) + fs_regions(data, **fsk) + EV.state_regions(H_OK, blk)
     return run(regions, {'pc': DRV}, sy['done'], limit=20_000_000), sy
 
@@ -465,7 +473,7 @@ def l_case(args):
         struct.pack_into('<II', exp, O['lptr'], L_AT, FB.FMAGIC)
         eL = loaded_L(data, blk)
         if L != bytes(eL):
-            d = [i for i in range(2048) if L[i] != eL[i]]
+            d = [i for i in range(LSZ) if L[i] != eL[i]]
             return label, f'L differs at {d[:8]}'
         if calls != ['malloc', 'fopen', 'fseek', 'ftell', 'fseek', 'fread', 'fclose']:
             return label, f'calls {calls}'
@@ -519,10 +527,10 @@ def bad_files():
     out.append(('size 64 (n 0)', fix(bytes(hdr))))
     out.append(('size 65', fix(good + b'\0')))
     out.append(('size 1088+32', fix(good + bytes(32))))
-    b = bytearray(good + good[64:64 + 64 * 5])   # 21 looks = 1408 B
-    struct.pack_into('<IH', b, 12, 64 * 21, 0)
-    struct.pack_into('<H', b, 24, 21)
-    out.append(('21 looks (1408 B)', fix(bytes(b))))
+    b = bytearray(good + (good[64:] * 3)[:64 * (33 - (len(good) - 64) // 64)])   # 33 looks = 2176 B (v0.15 limit 32)
+    struct.pack_into('<IH', b, 12, 64 * 33, 0)
+    struct.pack_into('<H', b, 24, 33)
+    out.append(('33 looks (2176 B)', fix(bytes(b))))
     b = bytearray(good[:64 + 64 * 3])           # n field says 16, file has 3
     out.append(('n/payload vs size', fix(bytes(b))))
     return out
@@ -535,6 +543,10 @@ def l_cases(quick=False):
     full = LB.make_file([rec(G['looks_all'], j % 19) if j < 19 else rec(G['looks'], 0) for j in range(19)] +
                         [LB.record(LB.to_rec96(rec(G['looks'], 1)))[:48] + b'Twenty'.ljust(16, b'\0')])
     out.append(('20 looks', full, 'ok', {}))
+    for n in (21, 24, 32):                      # v0.15: up to 32 looks (distinct names; the last one non-mono)
+        recs = [LB.record(LB.to_rec96(rec(G['looks'], j % 16)))[:48] + f'Look{j:02d}'.encode().ljust(16, b'\0')
+                for j in range(n)]
+        out.append((f'{n} looks', LB.make_file(recs), 'ok', {}))
     for lab, data in bad_files():
         out.append((lab, data, 'bad', {}))
     out.append(('no file', None, 'bad', {}))
@@ -553,7 +565,7 @@ def press_run(blk, data, Lbuf=None, editor_fs=False, files=None):
     struct.pack_into('<I', stack, SP0 - STK + 16, B3.EV_PRESS)
     im = G['lay']
     regions = [Region('stack', STK, bytes(stack), 'rw', True), img(im, 0x605b7180, 0x605b7800, 'sec3'),
-               Region('L', L_AT, bytes(Lbuf) if Lbuf is not None else b'\xee' * 2048, 'rw', True)] + \
+               Region('L', L_AT, bytes(Lbuf) if Lbuf is not None else b'\xee' * LSZ, 'rw', True)] + \
         [x for x in code_regions(im) if x.name not in ('rec',)] + EV.state_regions(H_OK, blk)
     if editor_fs:
         fs = EV.fs_image(files or {})

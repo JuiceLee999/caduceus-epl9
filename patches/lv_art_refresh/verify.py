@@ -11,7 +11,7 @@ BASE = v0.14 before this fix (git show 97ccd59:releases/v0.14/edits.json). Image
                                    change, then BASE's own call restores S; heap/regs/stack == BASE
      art sector, same byte      -> log, heap, regs, stack == BASE (no extra call)
      other sectors, ALL mode, no card table / bad heap -> == BASE (no extra call)
-  F  fm_pre / fm_post (u_apply sites): old byte stashed at L+1832, replayed store; changed -> manager
+  F  fm_pre / fm_post (u_apply sites): old byte stashed at L+2536 (v0.15 L layout), replayed store; changed -> manager
      (id0(k), S-1, inner) then (id0(k), S, inner) once each, then ed_poke with a3/sp/d3 intact; same -> no call
   P  package: tools/build_package.build(NEW) decodes to the emulated NEW image; restore == stock
 """
@@ -70,7 +70,7 @@ def init(base, new):
 
 
 def code_regions(im):
-    return LX.code_regions(im)          # its 'xreg' (0x601e323c..0x601e383c) holds our code too
+    return LX.code_regions(im) + [img(im, RB.RS_AT, RB.RS_END, 'rs')]   # 'xreg' holds ex_art; v0.15 ex_rs
 
 
 def set_run(im, idv, val, h, blk, all_on):
@@ -156,13 +156,13 @@ def f_case(args):
     P[1016:1020] = struct.pack('<I', LBLK)
     entry = 32 + 64 * k
     P[entry + 46], P[entry + 31] = old, 2
-    L = bytearray(2048)
-    T = LBLK + 1752
-    L[1752 + 46] = new
+    L = bytearray(2560)
+    T = LBLK + 2456
+    L[2456 + 46] = new
     common = [Region('fac', 0x607f9062, fac, 'rx'), Region('facobj', FAC, struct.pack('<II', 0, INNER), 'r'),
               Region('sget', LE.STOCK['ep7_sget'], gcode, 'rx'), Region('mgr', 0x60827440, mcode, 'rx'),
               Region('log', LOG, bytes(4 + 16 * 8), 'rw', True),
-              img(im, 0x601e2c3c, 0x601e2edc, 'fmui'), img(im, RB.CODE_AT, RB.CODE_END, 'rf'),
+              img(im, 0x601e2c3c, 0x601e2edc, 'fmui'), img(im, RB.CODE_AT, RB.CODE_END, 'rf'), img(im, RB.RS_AT, RB.RS_END, 'rs'),
               img(im, 0x61242a00, 0x61242a10, 'poke')]
     r1 = run(common + [Region('P', PBLK, bytes(P), 'rw', True), Region('L', LBLK, bytes(L), 'rw', True)],
              {'pc': 0x601e2e35, 'd0': PBLK + entry, 'a0': 0x0a0a0a0a, 'a1': T}, 0x601e2e3b)
@@ -170,10 +170,10 @@ def f_case(args):
         return tag, f'pre run {r1["fault"]}'
     q = r1['registers']
     lm, pm = mem(r1, 'L'), mem(r1, 'P')
-    if lm[1832] != old or pm[entry + 31] != 0 or q['d0'] != 0 or q['a0'] != PBLK + entry or q['a1'] != T \
+    if lm[2536] != old or pm[entry + 31] != 0 or q['d0'] != 0 or q['a0'] != PBLK + entry or q['a1'] != T \
             or any(q[x] != EV.SENT[x] for x in ('d2', 'd3', 'a2', 'a3')) or q['sp'] != EV.SP0:
         return tag, 'pre: stash/replay/registers wrong'
-    if bytes(pm[:entry + 31]) != bytes(P[:entry + 31]) or bytes(lm[:1832]) != bytes(L[:1832]):
+    if bytes(pm[:entry + 31]) != bytes(P[:entry + 31]) or bytes(lm[:2536]) != bytes(L[:2536]):
         return tag, 'pre: stray store'
     P2 = bytearray(pm)
     P2[entry + 46] = new                               # the copy loop writes the new entry
@@ -202,7 +202,7 @@ def f_cases():
 def s_check(base_spec, new_spec):
     b, n = G['base'], G['lay']
     diff = [i + BASE for i in range(len(b)) if b[i] != n[i]]
-    ok_spans = [(a, a + len(w)) for a, w, _ in RB.SITES.values()] + [(RB.CODE_AT, RB.CODE_AT + G['rf']['code_len'])]
+    ok_spans = [(a, a + len(w)) for a, w, _ in RB.SITES.values()] + [(RB.CODE_AT, RB.CODE_AT + G['rf']['code_len']), (RB.RS_AT, RB.RS_AT + G['rf'].get('rs_len', 0))]
     bad = [hex(a) for a in diff if not any(lo <= a < hi for lo, hi in ok_spans)]
     st = G['stock']
     code_was_stock = b[RB.CODE_AT - BASE:RB.CODE_END - BASE] == st[RB.CODE_AT - BASE:RB.CODE_END - BASE]

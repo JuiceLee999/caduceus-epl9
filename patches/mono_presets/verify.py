@@ -211,6 +211,55 @@ def label_run(patched, syms, site, pm, slot404, blk, h, vals, getret=0):
     return r, bytes(view)
 
 
+SCP_STUB = """
+ mov 4,d0
+ mov d0,(20,a0)
+ mov 0x00030000,d0
+ mov d0,(24,a0)
+ mov 0x00650059,d0
+ mov d0,(28,a0)
+ clr d0
+ mov d0,(32,a0)
+ mov 0x0d0d0d0d,d0
+ mov 0x0e0e0e0e,d1
+ mov 0x0a0a0a0a,a1
+ rets
+"""
+
+
+def label_run3(patched, syms, pm, blk, h, vals, getret=0):
+    """v0.15c SCP route: the parts loop `calls` mp_lbl3 (a0 = view); the stock part 0x60e11afd is a stub that
+    writes kind 4 / style 3 / "Ye" into view+20 and clobbers d0/d1/a1 (keeps a2/a3)."""
+    view = bytearray(0x200)
+    view[20:94] = bytes([0x77]) * 74
+    scode, _ = asm(SCP_STUB, MB.SCP_PART)
+    tgt = int(syms['mp_lbl3'], 16)
+    src = f' mov {VIEW:#x},a0\n mov 0x11111111,d1\n mov lbl_t,a1\n calls (a1)\n'
+    code, sy = asm(src, DRV, {'lbl_t': tgt})
+    regions = [Region('drv', DRV, code, 'rx'), Region('view', VIEW, bytes(view), 'rw', True),
+               Region('scp', MB.SCP_PART, scode, 'rx')] + code_regions(patched) + \
+        gt_regions({**vals, 111: pm}, getret) + EV.state_regions(h, blk, 'r')
+    r = run(regions, {'pc': DRV}, sy['done'])
+    return r, bytes(view)
+
+
+def l3_err(r, v0, want):
+    rg = r['registers']
+    if r['fault']:
+        return f'fault {r["fault"]}'
+    if rg['sp'] != EV.SP0 or any(rg[k] != EV.SENT[k] for k in ('d2', 'd3', 'a2', 'a3')):
+        return 'registers'
+    v = mem(r, 'view')
+    kind, txt, style, u = label_text(v, 20)
+    if want is None:
+        return None if (kind, style, txt) == (4, 3, 'Ye') else f'stock label lost: {kind} {style} {txt!r}'
+    if kind != 5 or style != 2 or txt != want or any(u[len(want):]):
+        return f'label {kind} {style} {txt!r} != {want!r}'
+    rest = bytearray(v)
+    rest[20:94] = v0[20:94]
+    return None if bytes(rest) == v0 else 'view written outside the label'
+
+
 def label_text(v, slot):
     kind, = struct.unpack_from('<H', v, slot)
     u = struct.unpack_from('<33H', v, slot + 8)
@@ -390,6 +439,20 @@ def main():
                 # getter failure: no '*'
                 r, v0 = label_run(patched, syms, site, pm_of[m], slot404, named, H_OK, vals_for(m, pre, 0), getret=1)
                 check('L', f'm{m} site {site} slot {slot} getter fails', l_err(r, v0, slot, f'Film: {nm}'))
+    # v0.15c SCP colour-filter view: mp_lbl3 behind part 0 (the stock filter-name label)
+    for m in range(4):
+        pre = ps[(m * 5 + 2) % n]
+        nm = pre['name']
+        named = blk_with(mono_names={m: nm})
+        for lab, b, vals, want in (('preset', named, vals_for(m, pre), f'Film: {nm}'),
+                                   ('field 3 changed', named, vals_for(m, pre, 3), f'Film: {nm}*'),
+                                   ('no preset', blk_with(mono_names={m: 'Something'}), {}, 'Film[INFO]')):
+            r, v0 = label_run3(patched, syms, pm_of[m], b, H_OK, vals)
+            check('L', f'SCP m{m} {lab}', l3_err(r, v0, want))
+    for lab, pm, h, gr in (('no table', 57, 0, 0), ('COLOR mode 54', 54, H_OK, 0), ('mode 66', 66, H_OK, 0),
+                           ('GetValue(111) fails', 57, H_OK, 1)):
+        r, v0 = label_run3(patched, syms, pm, blk_with(mono_names={0: ps[0]['name']}), h, {}, gr)
+        check('L', f'SCP {lab}', l3_err(r, v0, None))
     for lab, pm, h in (('no table', 57, 0), ('COLOR mode 54', 54, H_OK), ('mode 0', 0, H_OK), ('mode 66', 66, H_OK)):
         for site in (1, 2):
             r, v0 = label_run(patched, syms, site, pm, 1, blk_with(mono_names={0: ps[0]['name']}), h, {})

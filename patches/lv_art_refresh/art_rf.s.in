@@ -12,10 +12,10 @@
  *
  *   ex_art  <- ex_set's art write ({ex_art_site}): id = the Extras sector id being edited; the restoring
  *              manager(id, S) is ex_set's own s_refresh.
- *   fm_pre  <- fm_ui u_apply ({fm_pre_site}): stash the slot's old art byte at L+1832 (staging T = L+1752 ends there).
+ *   fm_pre  <- fm_ui u_apply ({fm_pre_site}): stash the slot's old art byte at L+2536 (staging T = L+2456 ends there).
  *   fm_post <- fm_ui's final `jmp ed_poke` ({fm_post_site}): id = sector 0 of slot k (927/939/951/1655);
  *              manager(id, S'), manager(id, S) with a0 = the facade's inner object (as the GUI setter passes), then ed_poke.
- * Stores: heap P (the art byte ex_set already wrote), L+1832, the stack. No absolute stores, no mul/div.
+ * Stores: heap P (the art byte ex_set already wrote), L+2536, the stack. No absolute stores, no mul/div.
  */
  .am33_2
  .text
@@ -57,12 +57,12 @@ ex_art:                           /* d1 = new art 0..3, a2 = P + 64*slot, d0 = i
  mov (16,sp),a1
  add 24,sp
 1:
- jmp ex_s_dirty
+ jmp ex_rs                        /* v0.15: wheel-number resync (art_rs.s.in), then ex_s_dirty */
 
-fm_pre:                           /* d0 = entry (P+32+64k), a1 = T = L+1752 */
+fm_pre:                           /* d0 = entry (P+32+64k), a1 = T = L+2456 */
  mov d0,a0
  movbu (46,a0),d0
- movbu d0,(80,a1)                 /* L+1832 = old art byte */
+ movbu d0,(80,a1)                 /* L+2536 = old art byte */
  clr d0
  movbu d0,(31,a0)                 /* replayed */
  jmp fm_resume
@@ -74,7 +74,7 @@ fm_post:                          /* a2 = P, d3 = slot k, a3 = parent; ed_poke r
  mov d0,a0
  movbu (78,a0),d0                 /* new art (entry +46) */
  mov (1016,a2),a1                 /* L */
- movbu (1832,a1),d1               /* old art */
+ movbu (2536,a1),d1               /* old art */
  cmp d0,d1
  beq 2f
  mov 1655,d2                      /* id of sector 0 of slot k */

@@ -7,10 +7,10 @@
 
 Design: docs/LOOK_PICKER.md. The looks come from the same library JSON as tools/ep7_library.py (LIBRARY.BIN
 v2): same recipes, same names, same canonical bundle and the same placement rule P(look, slot). LOOKS.BIN is the
-compact v3 form the camera keeps in one 2048-byte heap block (at most 20 looks):
+compact v3 form the camera keeps in one heap block (at most 32 looks; v0.15: a class-2 block, was 20 in one 2048-B block):
 
   header 64 B: 'EP7B', u16 version 3, u16 64, u32 1100, u32 payload (= 64 n), u32 CRC-32 (zlib over bytes 0..15
-               then 20..end, the v1 rule), SHA prefix of the decoded main (4 B), u16 n (1..20), u16 64,
+               then 20..end, the v1 rule), SHA prefix of the decoded main (4 B), u16 n (1..32), u16 64,
                u32 layout_crc (tools/ep7_library.layout_crc), 32 zero bytes
   record 64 B: +0..44 canonical bundle bytes 0..44 (layout.json ABI; bundle bytes 46..63 are always 0),
                +45 class (0 colour, 1 mono), +46 slot mask (bit0 COLOR, bit1 MONO; colour 1 or 3, mono 2),
@@ -37,7 +37,7 @@ def _load(name, path):
 
 LIB = _load('ep7_library', ROOT / 'tools/ep7_library.py')
 SB = LIB.SB
-MAGIC, VERSION, HDR_LEN, REC_LEN, MAX_LOOKS = b'EP7B', 3, 64, 64, 20
+MAGIC, VERSION, HDR_LEN, REC_LEN, MAX_LOOKS = b'EP7B', 3, 64, 64, 32
 BUNDLE_USED = 45
 CLASS_OFF, MASK_OFF, NAME_OFF, NAME_LEN = 45, 46, 48, 16
 # test13b: record +47 = bloom_tint (0..4; old files have 0 = neutral), placed at bundle byte +45 (layout.json bloom_tint)
@@ -85,7 +85,7 @@ def allowed(rec64, k):
 def make_file(recs):
     n = len(recs)
     if not 1 <= n <= MAX_LOOKS:
-        raise ValueError(f'LOOKS.BIN holds 1..{MAX_LOOKS} looks (one 2048-B heap block), got {n}')
+        raise ValueError(f'LOOKS.BIN holds 1..{MAX_LOOKS} looks (the camera L block, film_menu_v2 MAX_LOOKS), got {n}')
     body = b''.join(recs)
     raw = header(n) + body
     crc = zlib.crc32(raw[:16] + raw[20:]) & 0xffffffff

@@ -39,9 +39,14 @@ STOCK = dict(ep7_up=UP, ep7_down=DOWN, **{k: v for k, v in B3.SERVICES.items()
 EMARK, AXIS, DIRTY = 680, 684, 685
 EMAGIC = struct.unpack('<I', b'EP7E')[0]
 LMAGIC, FMAGIC, XMAGIC = (struct.unpack('<I', m)[0] for m in (b'EP7L', b'EP7F', b'EP7X'))
-L_SIZE = 2048
-LLIM = B3.POOL_END - B3.POOL - L_SIZE + 1
-OFF = dict(lptr=1016, fmark=1020, ltag=1408, lback=1412, n=1416, pos=1417, snap=1421, snaps=1428, stage=1752)
+# v0.15: up to 32 looks (LOOKS.BIN 64 + 64 n <= 2112 B) + the L tail (tags/pos/snapshots/staging, 425 B incl. the
+# lv_art_refresh byte at +2536) no longer fit one class-1 block (2048 B), so L is a class-2 block (malloc 2049..16384:
+# 43 blocks of 0x4040 at 0xa1dd8d40, allocator tables 0x60026df4/e04/e34; free() range test 0x600227dd..eb).
+MAX_LOOKS = 32
+L_SIZE = 2560
+POOL2, POOL2_END = 0xa1dd8d40, 0xa1e85800
+LLIM = POOL2_END - POOL2 - L_SIZE + 1
+OFF = dict(lptr=1016, fmark=1020, ltag=2112, lback=2116, n=2120, pos=2121, snap=2125, snaps=2132, stage=2456)
 FILM_AXIS = 3
 
 
@@ -52,7 +57,7 @@ def bytes_lines(b):
 def source(name):
     lo, span, _ = LB.SB.range_table(LB.SB.layout())
     hdr = LB.header(1)
-    sub = dict(state=hex(B3.STATE), lim=hex(B3.LIM), pool=hex(B3.POOL), npool=hex(-B3.POOL & 0xffffffff),
+    sub = dict(state=hex(B3.STATE), lim=hex(B3.LIM), pool=hex(B3.POOL), npool=hex(-POOL2 & 0xffffffff), lsize=L_SIZE,
                llim=hex(LLIM), bmagic=hex(B3.MAGIC), nmagic=hex(B3.NMAGIC), emark=EMARK, emagic=hex(EMAGIC),
                axis=AXIS, dirty=DIRTY, lmagic=hex(LMAGIC), fmagic=hex(FMAGIC), xmagic=hex(XMAGIC),
                hdr_bytes=bytes_lines(hdr), lo_bytes=bytes_lines(bytes(v & 0xff for v in lo[:45])),
@@ -80,6 +85,18 @@ def image(spec):
 
 
 def check_stock(stock, patched):
+    # L heap class (v0.15, 32 looks): malloc 0x60022782 sends 2049..16384 to class 2; class-2 pool base/count/block size
+    # (0x60026df4/e04/e34 [2]) and free()'s class-2 range test 0x600227dd..0x600227eb.
+    if stock[0x60022795 - BASE:0x6002279d - BASE].hex() != 'fac80040c50b8002' or not 2048 < L_SIZE <= 16384:
+        raise ValueError('malloc class-2 size test differs')
+    if (u32(stock, 0x60026df4 + 8), u32(stock, 0x60026e04 + 8), u32(stock, 0x60026e34 + 8)) != (POOL2, 0x2b, 0x4040) \
+            or POOL2 + 0x2b * 0x4040 != POOL2_END:
+        raise ValueError('class-2 pool table differs')
+    want = b'\xfc\xc8' + struct.pack('<I', POOL2) + b'\xc4\x13' + b'\xfc\xc8' + struct.pack('<I', POOL2_END) + b'\xc6\x0b'
+    if stock[0x600227dd - BASE:0x600227dd - BASE + len(want)] != want:
+        raise ValueError('free() class-2 range test differs')
+    if 64 + 64 * MAX_LOOKS > OFF['ltag'] or OFF['stage'] + 81 > L_SIZE:
+        raise ValueError('L layout does not fit')
     if stock[CLAIM[0] - BASE:CLAIM[1] - BASE] != b'\xff' * (CLAIM[1] - CLAIM[0]):
         raise ValueError('sec-9 claim not FF in stock')
     if patched[CLAIM[0] - BASE:CLAIM[1] - BASE] != b'\xff' * (CLAIM[1] - CLAIM[0]):

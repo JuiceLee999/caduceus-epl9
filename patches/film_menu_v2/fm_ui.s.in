@@ -3,13 +3,13 @@
  * fm_core: section 9, 0x6143a410.. (FF; sec 9 is loaded whenever the loader's handle is valid: its gate needs all 9).
  *
  *   fm_valid <- the editor's ed_cfg_fv word (12e ed_page, on Light -> next page). CALLS, a2 = P (validated).
- *               -> d0 1 when LOOKS.BIN is loaded: P+1020 'EP7F', L = P+1016 inside the class-1 pool and 4-aligned,
- *               L+1408 'EP7L', L+1412 == P. Clobbers d0, d1, a0.
+ *               -> d0 1 when LOOKS.BIN is loaded: P+1020 'EP7F', L = P+1016 inside the class-2 pool and 4-aligned,
+ *               L+2112 'EP7L', L+2116 == P. Clobbers d0, d1, a0.
  *   fm_load  <- the editor's ed_cfg_fl word (12e ed_trig, every half-press with a valid P). CALLS, a2 = P.
- *               Once per power-on (P+1020 'EP7F' or 'EP7X' -> nothing): mark 'EP7X', malloc(2048) = L,
- *               fopen C:\EP7MOD\LOOKS.BIN "r", size = 64 + 64 n (1 <= n <= 20), fread, fclose, fm_check (the rules of
+ *               Once per power-on (P+1020 'EP7F' or 'EP7X' -> nothing): mark 'EP7X', malloc({lsize}) = L,
+ *               fopen C:\EP7MOD\LOOKS.BIN "r", size = 64 + 64 n (1 <= n <= 32), fread, fclose, fm_check (the rules of
  *               tools/ep7_looks_bin.py check_file), the slot positions (a slot whose name matches a colour look
- *               resumes on it), publish L+1408 'EP7L', L+1412 P, P+1016 L, then P+1020 'EP7F' last. Any failure: free
+ *               resumes on it), publish L+2112 'EP7L', L+2116 P, P+1016 L, then P+1020 'EP7F' last. Any failure: free
  *               L, P+1020 stays 'EP7X'.
  *   fm_mod   <- the editor's ed_cfg_fm word (13; in fm_core): 1 when the slot entry differs from its picked look.
  *   fm_up / fm_down <- COLOR1-4 records +12 / +16 (0x61185be8/bec, c20/c24, c58/c5c, c90/c94; stock Up 0x60e20e0a /
@@ -20,8 +20,8 @@
  *               cleared first, set last) and name P+544+16k ('EP7N' after the name), set dirty P+{dirty} (the
  *               editor's half-press save writes BUNDLES.BIN), then the editor's ed_poke (cursor re-write: the guide
  *               shows the new name), return 1. Anything else: jmp to the stock handler with registers intact.
- * L layout: +0 LOOKS.BIN (<= 1344 B), +1408 'EP7L', +1412 P, +1416 n, +1417 pos[4], +1421 snap[4],
- *   +1428 own snapshots 4 x 80 B (entry 64 + name 16), +1752 staging 80 B (ends 1832 < 2048).
+ * L layout: +0 LOOKS.BIN (<= 2112 B), +2112 'EP7L', +2116 P, +2120 n, +2121 pos[4], +2125 snap[4],
+ *   +2132 own snapshots 4 x 80 B (entry 64 + name 16), +2456 staging 80 B (ends 2536; +2536 = lv_art_refresh old art byte; block {lsize}).
  * Stores: P, L (heap) and the stack only. No absolute stores, no mul/div, no setlb/Lcc.
  */
  .am33_2
@@ -45,10 +45,10 @@ _start:
  add {npool},d0
  cmp {llim},d0
  bcc \miss
- mov (1408,a0),d0
+ mov (2112,a0),d0
  cmp FL_MAGIC,d0
  bne \miss
- mov (1412,a0),d0
+ mov (2116,a0),d0
  mov a2,d1
  cmp d1,d0
  bne \miss
@@ -116,11 +116,11 @@ u_go:
  bne u_miss
 1:
  mov d3,(4,sp)                    /* (4,sp) = k from here on (no fallback after the guards) */
- movbu (1416,a0),d1               /* n (1..20) */
+ movbu (2120,a0),d1               /* n (1..32) */
  inc d1                           /* d1 = n + 1 = the Stock position */
  mov a0,a1
  add d3,a1
- movbu (1417,a1),d0               /* pos */
+ movbu (2121,a1),d0               /* pos */
 2:
  add d2,d0
  cmp 0,d0
@@ -147,13 +147,13 @@ u_go:
  mov d0,(8,sp)                    /* (8,sp) = pos */
  mov a0,a1
  add d3,a1
- movbu d0,(1417,a1)               /* the new position */
- movbu (1421,a1),d0               /* first step for this slot: snapshot entry + name ("own") */
+ movbu d0,(2121,a1)               /* the new position */
+ movbu (2125,a1),d0               /* first step for this slot: snapshot entry + name ("own") */
  cmp 0,d0
  bne 6f
  mov 1,d0
- movbu d0,(1421,a1)
- call fm_snap,[d2],8              /* d0 = L + 1428 + 80k */
+ movbu d0,(2125,a1)
+ call fm_snap,[d2],8              /* d0 = L + 2132 + 80k */
  mov d0,a1
  mov d3,d0                        /* entry P+32+64k */
  asl 6,d0
@@ -174,9 +174,9 @@ u_go:
 61:
  call fm_zero,[d2],8              /* no names: an empty name */
 6:
- mov (8,sp),d0                    /* staging T = L + 1752 (80 B): the new entry + name */
+ mov (8,sp),d0                    /* staging T = L + 2456 (80 B): the new entry + name */
  mov a0,a1
- add 1752,a1
+ add 2456,a1
  cmp 0,d0
  bne 7f
  call fm_snap,[d2],8              /* own: T = snapshot */
@@ -184,7 +184,7 @@ u_go:
  call fm_copy,[d2,a2],8
  bra u_apply
 7:
- movbu (1416,a0),d1
+ movbu (2120,a0),d1
  inc d1
  cmp d1,d0
  bne 8f
@@ -206,11 +206,11 @@ u_go:
  mov (8,sp),a1                    /* test13b: T+45 = record +47 (bloom colour) */
  movbu (47,a1),d0
  mov a0,a1
- add 1752,a1
+ add 2456,a1
  movbu d0,(45,a1)
 u_apply:                          /* T -> slot k: flags byte first cleared, last written; then the name */
  mov a0,a1
- add 1752,a1                      /* a1 = T */
+ add 2456,a1                      /* a1 = T */
  mov d3,d0
  asl 6,d0
  add a2,d0
@@ -294,7 +294,7 @@ fm_zero:
  add -1,d1
  bne 1b
  ret [d2],8
-/* fm_snap: a0 = L, d3 = k -> d0 = L + 1428 + 80 k. `call fm_snap,[d2],8`. */
+/* fm_snap: a0 = L, d3 = k -> d0 = L + 2132 + 80 k. `call fm_snap,[d2],8`. */
 fm_snap:
  mov d3,d0
  asl 4,d0
@@ -302,7 +302,7 @@ fm_snap:
  asl2 d0
  add d2,d0
  add a0,d0
- add 1428,d0
+ add 2132,d0
  ret [d2],8
 
  .balign 4
