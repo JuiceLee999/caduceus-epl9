@@ -223,3 +223,13 @@ the dispatcher). Both verified FF in stock. The look picker owns sec 5 `0x60b9dd
 
 Design and mapping only. The phase-1 build was requested afterwards; it is **not built**: H4 needs the
 current-editor holder and H5 the polygon producer (§1.5), and neither is mapped yet. Phase 0 is the next task.
+
+## 6. As built (test12-editor, emulator-verified, not camera-tested)
+
+- Delete hook = the COLOR1–4 parent records' event word (+36 → parent+72, reached through router 0x60e20cdc).
+  It needs no RAM globals. The init word (+4) resets the axis on open. This replaces H4 at 0x60d1145e.
+- Save uses fopen "w" and fwrite 0x60635041. It runs from the loader's sd_back (0x605b7420) on the next half-press.
+  Order: .NEW (read back) → old .BIN copied to .BAK → .BIN (read back). Heap state lives at P+680..686.
+- Code: sec 3 0x605b7190 (529 B), sec 6 0x612429c0 (799 B). Range ±5 (phase 1b adds ±7). The polygon is still
+  unmapped.
+- Results and camera plan: `releases/test12-editor/README.md`; verifier `tools/ep7_verify_look_editor.py`.

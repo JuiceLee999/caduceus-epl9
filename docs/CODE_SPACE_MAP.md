@@ -27,10 +27,10 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | 0x60210ffe–0x60211000 | 1 | aperture ring published ring halfword (initial 0x8000, written at run time via 0xa0210ffe) | built + emulator-verified |
 | 0x61378f9c–0x61379000 | 7 | aperture ring `.ae` ae_hook (100 B, to section end; 0x61378f8c–0x61378f9c guard) — takes the sec-7 free tail | built + emulator-verified |
 | 0x601e383c–0x601e3a3c | 1 | Log View Assist (patches/view_assist): VA LUT 256 B at 0x601e383c (dead EVF step-0 R table) + va_hook (74 B probe / 105 B full) at 0x601e393c (dead EVF step-0 G table; rest of G stays stock). EVF tables are dead on the E-P7 (no EVF; COLORTEMP→EVF only when the current device is EVF, 0x60174d19) [I strong] | built + emulator-verified (docs/LOG_VIEW_ASSIST.md) |
-| 0x60b9dd00–0x60b9e000 | 5 | **PROPOSED (look picker design, docs/LOOK_PICKER.md; not built)**: film-menu label hooks v2 hookA/hookB (relocated from 0x61242d10/0x61242e10; adds the picker list/title routes) + 3 constant strings. Code 0x60b9dd10–0x60b9dff0, FF guards 0x60b9dd00–dd10 and 0x60b9dff0–e000. Sec-5 FF suffix inside the load (HSL_PORT.md section table: no real refs). Sec 5 loads before sec 6 | proposed 2026-11-01, not built |
+| 0x60b9dd00–0x60b9e000 | 5 | **PROPOSED (look picker design, docs/LOOK_PICKER.md; not built)**: film-menu label hooks v2 hookA/hookB (relocated from 0x61242d10/0x61242e10; adds the picker list/title routes) + 3 constant strings. Code 0x60b9dd10–0x60b9dff0, FF guards 0x60b9dd00–dd10 and 0x60b9dff0–e000. Sec-5 FF suffix inside the load (HSL_PORT.md section table: no real refs). Sec 5 loads before sec 6 | proposed 2026-11-01, not built; **not needed by picker v2** (LOOK_PICKER §10.3): release unless v1 returns |
 | 0x6143a400–0x6143a800 | 9 | **PROPOSED (look picker design; not built)**: picker core pk_press / pk_load / pk_apply / pk_save (LOOKS.BIN + SLOTS.BIN). Code 0x6143a410–0x6143a7f0, FF guards 0x6143a400–a410 and 0x6143a7f0–a800 (0x6143a350–0x6143a400 left free: the `cmp 0x6143a350,a0` bound at 0x613feff6 points at its start). Called only from sd_hook after a valid handle exists (the loader gate already required all 9 sections loaded) | proposed 2026-11-01, not built |
-| 0x605b71a0–0x605b73e0 | 3 | **look editor** ed_get/ed_default/ed_set (docs/LOOK_EDITOR.md; facade vtable words 0x60acb0e4/0x60acb174 and setter hook 0x607fa355 point here). Guards 0x605b7190–0x605b71a0 and 0x605b73e0–0x605b73f0 stay FF. Takes the provisional ORF/wifi area | claimed (design, not built) |
-| 0x61242a10–0x61242cf0 | 6 | **look editor** ed_dispatch / axis cycle / redraw (docs/LOOK_EDITOR.md), same section as the dispatcher hook 0x60d1145e. Reuses the dead v1 loader range (row 0x61242a00 above; v1 must stay retired). Guards 0x61242a00–a10 and 0x61242cf0–d00 stay FF; verified FF in stock | claimed (design, not built) |
+| 0x605b7190–0x605b73f0 | 3 | **look editor** ed_core: ed_get / ed_default / ed_set / ed_trig (patches/look_editor, docs/LOOK_EDITOR.md; 529 B used). Guard 0x605b7180–0x605b7190 (stock data ends 0x605b717f); 0x605b73f0–0x605b7400 is the loader's guard | built + emulator-verified (test12) |
+| 0x612429c0–0x61242cf0 | 6 | **look editor** ed_ui: ed_event / ed_init / ed_save / ed_wfile / ed_crc + paths (799 B used). Guards 0x612429b0–0x612429c0 (stock data ends 0x612429af) and 0x61242cf0–0x61242d00. Reuses the dead v1-loader range (v1 must stay retired) | built + emulator-verified (test12) |
 
 ## Hook sites (stock bytes replaced)
 | Site | Bytes | Owner |
@@ -64,6 +64,7 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | ~90 table rows for aspect ids 6/7 (patches/aspect/edits.json, `why` = table@addr) | 4–16 each | aspect: size/geometry tables |
 | 0x601751f4 | 5 | Log View Assist: display reply tail `movhu (44,sp),d0; clr d2; mov d0,d1` → jmp va_hook |
 | 0x601e3c40 | 12 (data) | Log View Assist: TFT gamma step-17 slot R/G/B pointers NULL → 0x601e383c |
-| 0x607fa355 | 7 | look editor (claimed): GUI setter `call 0x60827440,[d2,d3,a2],16` → ed_set |
-| 0x60acb0e4, 0x60acb174 | 4+4 (data) | look editor (claimed): facade vtable GetValue/GetDefault → ed_get/ed_default |
-| 0x60d1145e | 5 | look editor (claimed): editor FSM dispatcher `call 0x60d115c2,[],0` → jmp ed_dispatch |
+| 0x607fa355 | 7 | look editor: GUI setter `call 0x60827440,[d2,d3,a2],16` → ed_set |
+| 0x60acb0e4, 0x60acb174 | 4+4 (data) | look editor: facade vtable GetValue/GetDefault → ed_get/ed_default |
+| 0x61185be0/c18/c50/c88, 0x61185c00/c38/c70/ca8 | 4 each (data) | look editor: COLOR1–4 parent records +4 init → ed_init, +36 event → ed_event |
+| 0x605b7420 | 5 (inside the loader edit) | look editor: loader sd_back `jmp 0x602c8064` → jmp ed_trig |

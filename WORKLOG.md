@@ -219,3 +219,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - **TEST 8 step A PASSED (camera):** stock labels without file.
 - **TEST 8 PASSED (camera):** Picture Mode shows Kodachrome / Classic Neg / Warm / Portra from card. Tagged v0.6 (= test8 + card).
 - Test 11 = v0.6 + clarity + view assist (83 edits): clarity 21/21, menu S/X/M, bloom, view assist S/P/M pass; loader byte-identical to test8. Card: lachlan names + COLOR2 clarity 3.
+- Test 11 camera: worked, but card FAT corruption on last shot PB010089 (invalid cluster chain) → camera shows Write Protect. 171 files backed up. Cause TBD (power-off mid-write vs firmware). Test 12 (editor H/L + card save) built + verified (emulator found/fixed 3 bugs) — HOLD until card corruption cause understood (it writes to card). Picker v2: Delete in COLOR editor cycles library looks (design).

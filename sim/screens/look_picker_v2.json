@@ -1,0 +1,28 @@
+{
+  "name": "look_picker_v2",
+  "canvas": [720, 480],
+  "background": {"type": "image", "path": "generated/film/PA211062/velvia.jpg"},
+  "notes": [
+    "MOCK - look picker v2 (docs/LOOK_PICKER.md section 10): the stock Color Profile 1 editor; each Delete press steps COLOR1 to the next",
+    "LOOKS.BIN look (wraps through 'Stock'). Wheel, dials, INFO (ALL) and OK are stock. Title shows the slot name via the test-8 label hook",
+    "only if the editor title source is marked [?]; the 3/20 counter and look strip are an optional phase-2 overlay (needs draw code, not in v2a). Layout guessed."
+  ],
+  "elements": [
+    {"type": "rect", "box": [0, 0, 720, 64], "fill": "#99000000"},
+    {"type": "bitmap", "id": 4344, "x": 14, "y": 8},
+    {"type": "text", "text": "Velvia", "x": 92, "y": 12},
+    {"type": "text", "text": "3/20", "x": 704, "y": 14, "scale": 0.7, "anchor": "tr"},
+    {"type": "color_wheel", "cx": 360, "cy": 262, "r_outer": 170, "r_inner": 146,
+     "values": [0, 1, 2, 3, 2, 0, -1, -2, 0, 1, 0, -1], "selected": 3, "range": 5},
+    {"type": "text", "text": "+3", "x": 560, "y": 130, "fg": 1},
+    {"type": "rect", "box": [150, 372, 420, 48], "fill": "#C0101418", "outline": 6},
+    {"type": "text", "text": "Provia", "x": 168, "y": 380, "scale": 0.7},
+    {"type": "rect", "box": [282, 376, 156, 40], "fill": "#ff1f4a8c", "outline": 1, "width": 2},
+    {"type": "text", "text": "Velvia", "x": 360, "y": 396, "anchor": "cc", "scale": 0.75, "fg": 1},
+    {"type": "text", "text": "Astia", "x": 470, "y": 380, "scale": 0.7},
+    {"type": "rect", "box": [0, 430, 720, 50], "fill": "#99000000"},
+    {"type": "text", "text": "@A032@ Next look   @A017@ ALL   OK", "x": 14, "y": 436, "scale": 0.8},
+    {"type": "bitmap", "id": 7567, "x": 706, "y": 476, "anchor": "br"},
+    {"type": "watermark", "text": "MOCK", "x": 360, "y": 66, "fg": 13}
+  ]
+}

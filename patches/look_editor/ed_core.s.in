@@ -160,6 +160,7 @@ ed_trig:                          /* jmp from sd_back; frame = 0x602c7f5a's: eve
  cmp {ev_press},d0
  bne t_out
  movm [d2,d3,a2,a3],(sp)
+ add -4,sp                        /* (0,sp) receives the return address of the call below */
  PVAL t_back
  mov ({emark},a2),d0
  cmp {emagic},d0
@@ -172,6 +173,7 @@ ed_trig:                          /* jmp from sd_back; frame = 0x602c7f5a's: eve
  call ed_save,[d2,d3,a2,a3],24
  movbu d0,({status},a2)
 t_back:
+ add 4,sp
  movm (sp),[d2,d3,a2,a3]
 t_out:
  mov (0,sp),d0

@@ -40,8 +40,9 @@ ed_event:
  jmp ep7_event                    /* every other event: stock, untouched */
 1:
  movm [d2,d3,a2,a3],(sp)
- add -8,sp
+ add -12,sp
  mov d1,(4,sp)
+ mov a1,(8,sp)
  mov a0,a3
  cmp 0,a3
  beq e_no
@@ -110,12 +111,13 @@ ed_event:
  cmp 176,d2
  bne 6b
  mov 1,d0
- ret [d2,d3,a2,a3],24
+ ret [d2,d3,a2,a3],28
 e_no:
  mov a3,a0
  mov (4,sp),d1
+ mov (8,sp),a1
  mov 0x9016,d0
- add 8,sp
+ add 12,sp
  movm (sp),[d2,d3,a2,a3]
  jmp ep7_event
 
@@ -178,7 +180,7 @@ ed_save:
  mov ed_p_new,a0                  /* 1. BUNDLES.NEW, verified by read-back */
  mov a3,a1
  mov d2,d0
- call ed_wfile,[d2,d3,a2,a3],24
+ call ed_wfile,[d2,d3,a2,a3],28
  mov d0,d3
  mov 3,d0
  cmp 0,d3
@@ -207,12 +209,12 @@ ed_save:
  mov a3,a1
  add {old},a1
  mov d3,d0
- call ed_wfile,[d2,d3,a2,a3],24   /* a .BAK failure does not stop the save */
+ call ed_wfile,[d2,d3,a2,a3],28   /* a .BAK failure does not stop the save */
 4:
  mov ed_p_bin,a0                  /* 3. BUNDLES.BIN, verified by read-back */
  mov a3,a1
  mov d2,d0
- call ed_wfile,[d2,d3,a2,a3],24
+ call ed_wfile,[d2,d3,a2,a3],28
  mov d0,d3
  mov 4,d0
  cmp 0,d3
@@ -226,23 +228,24 @@ v_free:
 v_ret:
  ret [d2,d3,a2,a3],24
 
-/* a0 path, a1 buf, d0 n -> d0 0 ok / 1 fail. Read-back into buf + {rbd} (bounded by n <= 680). */
+/* a0 path, a1 buf, d0 n (<= 680), a3 = S (the caller's) -> d0 0 ok / 1 fail.
+ * Read-back always into S+{rbd}..S+2047 (680 B), never relative to buf. Locals: (4,sp) buf, (8,sp) handle. */
 ed_wfile:
- mov a0,a2                        /* a2 path, a3 buf, d2 n */
- mov a1,a3
+ mov a0,a2
  mov d0,d2
+ mov a1,(4,sp)
  mov ed_m_w,a1
  call ep7_fopen,[],4
  cmp 0,a0
  beq w_fail
+ mov a0,(8,sp)
  mov a0,a1                        /* fwrite(buf, 1, n, h) */
  mov d2,d1
  mov 1,d0
- mov a1,(4,sp)
- mov a3,a0
+ mov (4,sp),a0
  call ep7_fwrite,[d2,d3,a2,a3],24
  mov d0,d3
- mov (4,sp),a0
+ mov (8,sp),a0
  call ep7_fclose,[d2,a2,a3],16
  cmp d2,d3
  bne w_fail
@@ -251,7 +254,7 @@ ed_wfile:
  call ep7_fopen,[],4
  cmp 0,a0
  beq w_fail
- mov a0,(4,sp)
+ mov a0,(8,sp)
  mov a0,a1
  mov a3,a0
  add {rbd},a0
@@ -259,11 +262,11 @@ ed_wfile:
  mov 680,d1
  call ep7_fread,[d2,d3,a2,a3],24
  mov d0,d3
- mov (4,sp),a0
+ mov (8,sp),a0
  call ep7_fclose,[d2,a2,a3],16
  cmp d2,d3
  bne w_fail
- mov a3,a0
+ mov (4,sp),a0
  mov a3,a1
  add {rbd},a1
 5:
@@ -276,10 +279,10 @@ ed_wfile:
  add -1,d2
  bne 5b
  clr d0
- ret [d2,d3,a2,a3],24
+ ret [d2,d3,a2,a3],28
 w_fail:
  mov 1,d0
- ret [d2,d3,a2,a3],24
+ ret [d2,d3,a2,a3],28
 
 /* CRC-32 (zlib polynomial, reflected), no table: a0 ptr, d0 len > 0, d1 running crc -> d1. */
 ed_crc:
