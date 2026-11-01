@@ -205,3 +205,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - Test 7a verified (SD v2 suite 21 PASS incl. mutations); loaded on card with NO EP7MOD folder.
 - **TEST 7a FAILED (camera):** boots fine; crash + restart on first shutter half-press (card mounted, no EP7MOD). Matches REVIEW_SD_V2 H1 (section-RAM write). Plan: reflash test6; agent root-causing (docs/SD_V2_CRASH.md).
 - SD v2 crash analysis (agent, docs/SD_V2_CRASH.md): no proven cause; lead = sd_state store into section-3 RAM (stock never writes loaded image; writes only ≥0x61b2xxxx). Fix: state at 0x622cbcc2 (HLS object padding), table via malloc'd uncached buffer + accessor in 6 readers. Probe plan P1 (section-3 store only) / P2 (store at 0x622cbcc2) / P3 malloc / P4 fopen / P5 full.
+- Probe P2 (store to 0x622cbcc2 only, no section-RAM write, no file calls) built + emulator-verified; differs from test6 only at hook + 146-B probe (checked by me). Loaded on card.

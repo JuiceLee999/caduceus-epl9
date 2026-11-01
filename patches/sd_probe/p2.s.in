@@ -1,0 +1,31 @@
+/* E-P7 1.1 SD-crash probe P2 (ep7-firmware, our own code). docs/SD_V2_CRASH.md sections 3.1 and 4.
+ *
+ * Identical to P1 except for the state location: the once-per-power-on flag lives at 0x622cbcc2
+ * (2 B padding at +174 of the HLS event-manager singleton 0x622cbc14, .bss, 0 at power-on), not in
+ * section 3. After the gates pass it does ONLY
+ *   movhu 0xffff,(0x622cbcc2)            (0 = not attempted, non-zero = attempted; the 3.1 encoding)
+ * and returns. Nothing is written to section RAM. No malloc, no file calls.
+ */
+ .am33_2
+ .text
+ .global _start
+ .set sd_state, {state}
+_start:
+sd_hook:                          /* entered by jmp from 0x602c805f; frame = 0x602c7f5a's, a0 = sp+16 */
+ call ep7_trig,[d2,d3,a2,a3],36   /* the displaced stock call, same frame and contract */
+ mov (16,sp),d0                   /* canonical event */
+ cmp {ev_press},d0
+ bne sd_back
+ movhu (sd_state),d0
+ cmp 0,d0
+ bne sd_back                      /* already stored this power-on */
+ call sd_gate,[d2,d3,a2,a3],36
+sd_back:
+ jmp ep7_trig_ret                 /* 0x602c8064: mov (16,sp),d0 ... */
+
+{gate}
+sd_go:
+ mov 0xffff,d0
+ movhu d0,(sd_state)              /* THE probe: one halfword store into event-manager padding */
+sd_gout:
+ ret [d2,d3,a2,a3],36

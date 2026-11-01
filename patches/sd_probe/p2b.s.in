@@ -1,0 +1,28 @@
+/* E-P7 1.1 SD-crash probe P2b (ep7-firmware, our own code). docs/SD_V2_CRASH.md section 4.
+ *
+ * P1 minus its one store: same hook, frame, replay, event test, (read-only) section-3 flag test and
+ * gates. When the gates pass it returns without writing anything. Since the flag at 0x605b7692 is
+ * never cleared, the gates run on EVERY half-press (all reads). No stores at all, no malloc, no files.
+ */
+ .am33_2
+ .text
+ .global _start
+ .set sd_state, {state}
+_start:
+sd_hook:                          /* entered by jmp from 0x602c805f; frame = 0x602c7f5a's, a0 = sp+16 */
+ call ep7_trig,[d2,d3,a2,a3],36   /* the displaced stock call, same frame and contract */
+ mov (16,sp),d0                   /* canonical event */
+ cmp {ev_press},d0
+ bne sd_back
+ movbu (sd_state),d0
+ cmp 0,d0
+ beq sd_back                      /* never taken: nothing clears the flag */
+ call sd_gate,[d2,d3,a2,a3],36
+sd_back:
+ jmp ep7_trig_ret                 /* 0x602c8064: mov (16,sp),d0 ... */
+
+{gate}
+sd_go:
+ nop                              /* P1's store is absent here */
+sd_gout:
+ ret [d2,d3,a2,a3],36

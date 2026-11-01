@@ -1,0 +1,32 @@
+/* E-P7 1.1 SD-crash probe P1 (ep7-firmware, our own code). docs/SD_V2_CRASH.md section 4.
+ *
+ * Same hook, frame, replay, event test and gates as the SD loader v2 (patches/sd_bundles_v2), at the
+ * same address 0x605b7400. After the gates pass it does ONLY the v2 section-3 store
+ *   movbu 0,(0x605b7692)                 (sd_state, section-3 RAM, cached alias; flash value 0xFF)
+ * and returns. No malloc, no file calls, nothing else is written.
+ * sd_state is the erased (0xFF) stock byte at 0x605b7692, the very byte v2 used; it is not part of
+ * any edit. Once it is 0 the gates are skipped for the rest of the power-on (as in v2).
+ */
+ .am33_2
+ .text
+ .global _start
+ .set sd_state, {state}
+_start:
+sd_hook:                          /* entered by jmp from 0x602c805f; frame = 0x602c7f5a's, a0 = sp+16 */
+ call ep7_trig,[d2,d3,a2,a3],36   /* the displaced stock call, same frame and contract */
+ mov (16,sp),d0                   /* canonical event */
+ cmp {ev_press},d0
+ bne sd_back
+ movbu (sd_state),d0
+ cmp 0,d0
+ beq sd_back                      /* already stored this power-on */
+ call sd_gate,[d2,d3,a2,a3],36
+sd_back:
+ jmp ep7_trig_ret                 /* 0x602c8064: mov (16,sp),d0 ... */
+
+{gate}
+sd_go:
+ clr d0
+ movbu d0,(sd_state)              /* THE probe: one byte store into section-3 RAM */
+sd_gout:
+ ret [d2,d3,a2,a3],36
