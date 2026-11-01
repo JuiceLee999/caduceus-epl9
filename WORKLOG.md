@@ -203,3 +203,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - Test 6 verified (WB 26 functional, grain 7, bloom 6, bundles 73; config-dependent mutation misses only). Loaded on card.
 - **TEST 6 PASSED (camera):** per-profile WB — COLOR4 shot EXIF WB fine-tune A+2 G0 (override) vs COLOR3 0/0 (global); R/B 1.31 vs 1.19.
 - Test 7a verified (SD v2 suite 21 PASS incl. mutations); loaded on card with NO EP7MOD folder.
+- **TEST 7a FAILED (camera):** boots fine; crash + restart on first shutter half-press (card mounted, no EP7MOD). Matches REVIEW_SD_V2 H1 (section-RAM write). Plan: reflash test6; agent root-causing (docs/SD_V2_CRASH.md).
