@@ -192,3 +192,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - Aperture ring parked (user) — excluded from builds; kept in repo for community later.
 - Agents: SD loader v2 (boot-safe, post-boot trigger), film-sim library + menu design, log view-assist feasibility.
 - Bootloop analysis (agent, docs/BOOTLOOP_T3.md): #1 aperture ring (runs at power-on every lens request; bit 0x80 unproven; parser consumes 2 bytes unconditionally), #2 WB (4 LV-start sites), #3 MONO chroma; bundles low risk at boot. Test 4 (rec+log+bundles) cleared.
+- **TEST 4 PASSED (camera):** rec_limit + log + bundles booted fine; COLOR2/COLOR4 colours visibly changed.
