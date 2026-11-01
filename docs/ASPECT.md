@@ -9,7 +9,7 @@ Evidence labels:
 - **[I]** inference: consistent with the data, not proven.
 - **[?]** open question.
 
-Patch: `patches/aspect/build.py` writes `patches/aspect/edits.json`. That file holds **128 edits, 1577 bytes (v6: + 11 LV-switch / rec-view edits, §1e)**; v5 had 117 edits, 1437 bytes (+ 9 runtime-geometry edits, §1d); v4 had 108 edits, 1209 bytes (+ the 2 validator edits, §1c; v3 had 106 edits, 1192 bytes),
+Patch: `patches/aspect/build.py` writes `patches/aspect/edits.json`. That file holds **145 edits, 2082 bytes (v7: + 17 UI edits, §1f)**; v6 had 128 edits, 1577 bytes (+ 11 LV-switch / rec-view edits, §1e); v5 had 117 edits, 1437 bytes (+ 9 runtime-geometry edits, §1d); v4 had 108 edits, 1209 bytes (+ the 2 validator edits, §1c; v3 had 106 edits, 1192 bytes),
 all in component 0x100 (v3, 2026-11-02: the 103 v2 edits unchanged + 3 SCP/Live Control option-strip edits, §1b;
 v2 = 101 table/menu/switch edits as in v0.4 + the 2-edit boot clamp, §3(c)).
 The script also runs 198 emulator and parse checks (174 as in v2 + 24 SCP-strip checks), and all of them pass,
@@ -129,6 +129,28 @@ Camera result on test13 (v5): capture correct (5184×1920 / 5184×2224), but LV 
 - Checks (`build.py --lean`, 70/70): native S7–S10 dispatch, ids 1,2,3,4,9 identical to stock, 6/7 → 640×240 / 640×272; rec-view getters.
 - [I] Not emulated: what the LV pipeline does with the box (expected: full-width frame, top/bottom bars). Remaining 7:6 immediates
   (280/288, 840/864, 1120/1152) were checked and are unrelated (lists / vtable offsets).
+
+### 1f. Pixel-size readout "0x0" and the blank aspect icon (v7, camera test 13 v6 result)
+
+Camera result on test13 (v6): Panorama/Wide preview and capture right, but the size readout shows **"0x0"** and the aspect icon is blank.
+- [V] The readout is not the quality-screen string lists of §1b. Three UI callers (0x60dfac83, 0x60dfae48, 0x60ed951f) format UTF-16
+  `"%dx%d"` (0x61163d76) from **0x60eac4a9**(d0 = aspect id, d1 = size setting, a0 = &w, a1 = &h). It reads sec-6 table **0x611f09e0**:
+  u16 ids[5] = 1,3,2,4,9, then 10 rows × 22 B `{u16 size key, u16 w[5], u16 h[5]}`, keys 0 (L), 13, 11, 8, 7, 6, 5, 3, 20, 21 = the
+  0x60b8ce30 recorded-size keys (stock columns equal those lists, build-asserted). d1 == 22 is a shortcut to row 0 / column 0 (5184×3888).
+  Ids 6/7 miss → w/h untouched → the callers' zeroed buffers print "0x0".
+- [V] The info-display icon: records `{u32 item, listA, listB, u32 count}` 0x6123dd04 / 0x6123ddb4 (skin 1) and 0x6123f17c / 0x6123f438
+  (skin 2) in the 11-record tables read by 0x60ed8885 (item id, then list A, list B, count copied out). Lists are value → bitmap u32 pairs, no type
+  field, so text is not possible here. The only aspect bitmaps in the 50×38 / 64×48 sizes are 4:3, 16:9, 3:2, 1:1, 3:4 (17:9 exists only as a 44×32 movie icon).
+- **Fix (v7, 17 edits, 505 B)**: a 7-column copy of the readout table (ids 1,3,2,4,9,6,7; 30-B rows; ids 6/7 = the patched 0x60b8ce30 rows, i.e. what is recorded:
+  L 5184×1920 / 5184×2224, 3200×1184/1376, 2560×944/1104, 1600×592/688, 1280×480/544, 1024×384/432, 640×240/272, 1920×704/816, 8160×3008/3504,
+  5760×2128/2464) at **0x601e14b0–0x601e15ea**; 0x60eac4a9's 4 table pointers (5 sites) and 5 immediates (id count 5→7, row stride 22→30 ×2, h offset 12→16 ×2).
+  Two 7-entry icon lists at **0x601e15f0 / 0x601e1628** (56 B each; ids 6 and 7 both borrow the **16:9** bitmaps 476 white / 471 green), all four records → new lists, count 5→7.
+  Placement: the rest of aspect's dead EVF step-12 tables (claim now 0x601e143c–0x601e173c); a whole-image u32 scan (any alignment, cached + uncached alias) finds only the step-table
+  words 0x601e3d40/44/48 (+ 2 dis-checked byte matches inside `call` encodings) in stock, and after the patch only those plus the v6 jump entries and the v7 pointers.
+- Checks (`build.py --lean`, 157/157; full suite 362/362): U native 0x60eac4a9 (facade GetValue stubbed) for all 10 size keys × ids 1,2,3,4,9,6,7,5: 1–4/9 identical to stock,
+  6/7 stock miss → patched = recorded size, 5 still misses; d1 = 22 shortcut unchanged; I the four icon records (7 entries, stock 5 unchanged); U2 reference scan.
+- [I] Not emulated: the "%dx%d" rendering and the icon draw. Panorama and Wide show the **same** 16:9 icon (no better bitmap). The quality/pixel-count screen of §1b
+  (type-5 string lists, record 0x611d6754) is a different screen and still shows a blank aspect label / size for 6/7 if it is ever reached.
 
 ## 2. Consumers of the aspect id
 

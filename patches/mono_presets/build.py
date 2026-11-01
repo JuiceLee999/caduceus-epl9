@@ -61,6 +61,9 @@ EXTRA = [
 EMARK, AXIS, DIRTY, STATUS = LE.EMARK, LE.AXIS, LE.DIRTY, LE.STATUS
 MPOS, MMARK = 1004, 1008                 # heap P: pos[4] (past the probe's +1000..1003, below the film +1016..)
 MMAGIC = struct.unpack('<I', b'EP7M')[0]
+# test13c preset label: Profile view (0x60e26ab0) MONO filter page / shading page `call 0x60e26789,[],0` sites
+LBL_SITES = {0x60e27209: ('mp_lbl1', '5c0891cd7df50000'), 0x60e275c1: ('mp_lbl2', '9899cdc6f10000')}
+LBL_GET = (0x60e26789, 'f80154de0000')     # `mov (84,a1),d0; retf` (replayed in mp_lbl1/2)
 STOCK = dict(ep7_info_f=INFO_F, ep7_info_s=INFO_S, ep7_facade=0x607f9062, ep7_refresh=0x60de3670)
 
 
@@ -124,6 +127,9 @@ def check_stock(d):
     for t in (INFO_F, INFO_S):
         if d[t - BASE:t - BASE + 5].hex() != '8003de0000':
             raise ValueError(f'{t:#x} is not `mov 3,d0; retf`')
+    for a, exp in [(k, v[1]) for k, v in LBL_SITES.items()] + [LBL_GET]:
+        if d[a - BASE:a - BASE + len(exp) // 2].hex() != exp:
+            raise ValueError(f'label site {a:#x} differs')
     keys = [u16(d, REC_TABLE + 56 * i) for i in range(REC_N)]
     recs = {}
     for k in KEYS_F + KEYS_S:
@@ -201,6 +207,16 @@ def build(base_spec, out):
         new.append(dict(kind='0x100', addr=hex(a + 44), expect=struct.pack('<I', INFO_F if k in KEYS_F else INFO_S).hex(),
                         new=struct.pack('<I', syms['mp_info_f' if k in KEYS_F else 'mp_info_s']).hex(),
                         why=f'MONO editor {k:#x} INFO (+44) -> mono preset step'))
+    for a, (sym, exp) in LBL_SITES.items():
+        rel = (syms[sym] - a) & 0xffffffff
+        nb = b'\xdd' + struct.pack('<I', rel) + b'\0\0' + b'\xcb' * (len(exp) // 2 - 7)
+        new.append(dict(kind='0x100', addr=hex(a), expect=exp, new=nb.hex(),
+                        why=f'Profile view MONO page guide label -> {sym} (call {syms[sym]:#x},[],0)'))
+    for e in spec['edits']:
+        a, n = int(e['addr'], 16), len(e['new']) // 2
+        for s0, (_, exp) in LBL_SITES.items():
+            if a < s0 + len(exp) // 2 and s0 < a + n:
+                raise ValueError(f'edit {a:#x} overlaps label site {s0:#x}')
     for e in new:
         e['source'] = 'patches/mono_presets'
     meta = dict(code=[hex(CODE[0]), len(code)], symbols={k: hex(v) for k, v in syms.items() if not k.startswith(('_', '.'))},

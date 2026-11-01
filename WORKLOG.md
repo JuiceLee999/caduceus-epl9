@@ -264,3 +264,13 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
     L 50 / P 5 / M 50 (quick); lv_art 8/8; loader v3 E 179 + N 29 on the base. Package == emulated image; restore
     == stock (identical to the previous test13); 3160 bytes differ from the previous test13, all inside edit spans.
     No mutations.
+- Camera test 13c bloom colour ("still a no go"), analysis only; releases/test13 unchanged (docs/HALATION_RED.md §9):
+  - Shots: 1380–1383 = COLOR2 (makernote mode 10; bloom 4 cool), 1384–1390 = COLOR4 (mode 17; bloom 5 red). The card's +45
+    bytes are right.
+  - The tint *is* applied for effect 1. halation verify on the release: F 24 / W 84 / D 112 PASS, and W covers effect 1 × tint 1..4.
+  - Fringe chroma: cool and red both show the LED's own warm fringe, about Cb −9 / Cr +10..14 at ≤30 px, with a neutral core.
+    This is as the model predicts: the halo stub only re-spreads the light's own chroma.
+  - The real luma-keyed tint was not built. New RE: bank groups A/B at +76/+120, each with a constant colour word; kind-3 mask
+    port at request+148; the blend setup copies +20/+84 only. Each route depends on unknown mask-mode/format semantics or on
+    buffer lifetime (§9). A tint-1-only probe build is proposed.
+- test13 in place, camera 13c fixes (273 edits): aspect v7: `%dx%d` table 0x611f09e0 extended to 7 ids (0x601e14b0), so Panorama/Wide read 5184x1920/2224; info icon lists +6/7 → 16:9 bitmap (0x601e15f0/1628), §1f. Mono preset label `Preset: <name>` in the Profile view (0x60e26ab0) guide slot on the MONO filter/shading pages (call sites 0x60e27209/0x60e275c1 → mp_lbl1/2; mp 1020 B). INFO already consumes the event with a table; the filter jump is the preset filter. mono S 98/H 48, label L 10/10, aspect lean 157/157; decode == emulated, restore == stock; 980 B differ, all in spans. No mutations. Not camera-tested.

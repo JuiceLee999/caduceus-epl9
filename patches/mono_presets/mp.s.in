@@ -265,6 +265,128 @@ mp_resume:
  mov d0,({mmark},a2)
  ret [d2,d3,a3],12
 
+/* test13c: preset label. The MONO filter / shading editors draw in the Profile view (vtable 0x61189ba8, update
+ * 0x60e26ab0, GUI data 229): page 1 = 0x60e27162 (MONO filter), page 2 = 0x60e275a9 (shading, every profile). Its
+ * guide slot is view+186 ((404,view) == 1) or view+260 (74-byte label: u16 kind, -, u16 id, u16 style, text[33]),
+ * as the colour page's "All colors[INFO]" and the tone page's "Hi. & Sh.[INFO]" use it; the MONO pages leave it
+ * empty (the update clears the block first).
+ *   mp_lbl1 <- `call` at 0x60e27209 (page 1; was `mov (8,sp),a0; mov a0,a1; call 0x60e26789,[],0`), view = d3
+ *   mp_lbl2 <- `call` at 0x60e275c1 (page 2; was `mov a2,a0; mov a2,a1; call 0x60e26789,[],0`), view = d2
+ * 0x60e26789 is `mov (84,a1),d0; retf`, replayed here. With a card table, a MONO picture mode (view+400: 57/58/59/65
+ * -> m) and slot name P+608+16m equal to a preset's name: the guide slot becomes kind-5 text "Preset: <name>".
+ * Anything else: the slot stays as the page left it. Keeps d2/d3/a2/a3, sp and the caller frame ((0,sp) as the
+ * stock call); no calls inside, so mdr still holds the return and retf returns like the stock call. Stores: the view's label (heap) and our own stack only. */
+mp_lbl1:
+ mov (8,sp),a1                    /* replay operand: a1 = (8,sp) */
+ mov d3,a0
+ bra mp_lblw
+mp_lbl2:
+ mov a2,a1                        /* replay operand: a1 = a2 */
+ mov d2,a0
+mp_lblw:                          /* a0 = view, a1 = the 0x60e26789 operand */
+ movm [d2,d3,a2,a3],(sp)
+ add -12,sp
+ mov a1,(8,sp)
+ mov d1,(4,sp)                    /* d1 kept (the stock call leaves it) */
+ mov a0,a3
+ mov (400,a3),d0                  /* picture mode (setting 111, stored by the view update) -> m */
+ clr d2
+ cmp 57,d0
+ beq 1f
+ inc d2
+ cmp 58,d0
+ beq 1f
+ inc d2
+ cmp 59,d0
+ beq 1f
+ inc d2
+ cmp 65,d0
+ bne l_out
+1:
+ PVAL l_out                       /* a2 = P */
+ mov (672,a2),d0
+ cmp {nmagic},d0
+ bne l_out
+ mov d2,d0                        /* a0 = slot name P+608+16m */
+ asl 4,d0
+ add a2,d0
+ add 608,d0
+ mov d0,a0
+ mov mp_tab,a1
+ clr d3
+2:
+ clr d1                           /* 16-byte compare as 4 words */
+3:
+ mov (d1,a0),d0
+ mov (d1,a1),d2
+ cmp d2,d0
+ bne 4f
+ add 4,d1
+ cmp 16,d1
+ bne 3b
+ bra 5f
+4:
+ add 24,a1
+ inc d3
+ cmp {n},d3
+ bne 2b
+ bra l_out                        /* not a preset name */
+5:
+ mov (404,a3),d1                  /* guide slot, as the stock pages pick it */
+ mov 260,d0
+ cmp 1,d1
+ bne 6f
+ mov 186,d0
+6:
+ add a3,d0
+ mov d0,a0
+ mov 5,d1
+ movhu d1,(a0)                    /* kind 5: text inline at +8 */
+ mov 2,d1
+ movhu d1,(6,a0)                  /* style as the stock guide */
+ add 8,a0
+ mov a0,a2
+ clr d0
+ mov 33,d1
+7:
+ movhu d0,(a2)                    /* clear text[0..32] */
+ add 2,a2
+ add -1,d1
+ bne 7b
+ mov a1,d2                        /* d2 = the preset name (<= 12 characters, build-checked) */
+ mov mp_t_pre,a1
+8:
+ movbu (a1),d0
+ cmp 0,d0
+ beq 9f
+ movhu d0,(a0)
+ inc a1
+ add 2,a0
+ bra 8b
+9:
+ mov d2,a1
+ mov 16,d1
+10:
+ movbu (a1),d0
+ cmp 0,d0
+ beq l_out
+ movhu d0,(a0)
+ inc a1
+ add 2,a0
+ add -1,d1
+ bne 10b
+l_out:
+ mov (8,sp),a0                    /* replay 0x60e26789: a0 = a1 = operand, d0 = (84,a1) */
+ mov (4,sp),d1
+ add 12,sp
+ movm (sp),[d2,d3,a2,a3]
+ mov a0,a1
+ mov (84,a1),d0
+ retf [],0
+
+mp_t_pre:
+ .asciz "Preset: "
+
  .balign 4
 mp_data:
 mp_keys:                          /* filter editors MONO1-4, then shading editors MONO1-4 */

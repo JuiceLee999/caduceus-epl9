@@ -898,6 +898,125 @@
    "expect": "e001e001",
    "new": "f0001001",
    "why": "rec-view 640-class H ids 6/7 (480, 480) -> (240, 272)"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e14b0",
+   "expect": "7475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacad",
+   "new": "01000300020004000900060007000000401440144014300f600b40144014300f680b800d300f300f8007b0080d00800c800c900c60092007800c800c60090807600860098009a00460050b00000a000af0098007a005000a000a8007a005a00680078007b00350040800400600063006c004600340064006b00460032004c00480045002b0020700000500051005c003d00200050005c003d0026003c003c003e0012002060000040004f003000340020004000400034002a002000300038001b0010500800280027002e001800180028002e0016801a001e0010002f00010010300800780078007a005500480078007a00538040005a005c005c00230031400e01fe01fe01fe017f011e01fe01fe817f0114015e017e817c00bb00d1500801680168016e010b00c80168016e010a80c000fe010e0105008a009",
+   "why": "v7 pixel-size readout table (ids (1, 3, 2, 4, 9, 6, 7), 10 x 30-B rows) in dead EVF step-12 tables"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac4b8",
+   "expect": "ec091f61",
+   "new": "c0141e60",
+   "why": "0x60eac4a9 readout table pointer (row0w) -> 0x601e14c0"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac4c0",
+   "expect": "f6091f61",
+   "new": "ce141e60",
+   "why": "0x60eac4a9 readout table pointer (row0h) -> 0x601e14ce"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac4f5",
+   "expect": "ea091f61",
+   "new": "be141e60",
+   "why": "0x60eac4a9 readout table pointer (rows) -> 0x601e14be"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac508",
+   "expect": "e0091f61",
+   "new": "b0141e60",
+   "why": "0x60eac4a9 readout table pointer (ids) -> 0x601e14b0"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac53d",
+   "expect": "ea091f61",
+   "new": "be141e60",
+   "why": "0x60eac4a9 readout table pointer (rows) -> 0x601e14be"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac51b",
+   "expect": "200c",
+   "new": "2010",
+   "why": "0x60eac4a9 h offset (a0) 12 -> 16"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac52a",
+   "expect": "a505",
+   "new": "a507",
+   "why": "0x60eac4a9 aspect id count 5 -> 7"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac530",
+   "expect": "2016",
+   "new": "201e",
+   "why": "0x60eac4a9 row stride (a0) 22 -> 30"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac536",
+   "expect": "f90216",
+   "new": "f9021e",
+   "why": "0x60eac4a9 row index * stride (debug print) 22 -> 30"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60eac54f",
+   "expect": "220c",
+   "new": "2210",
+   "why": "0x60eac4a9 h offset (a2, debug print) 12 -> 16"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e15f0",
+   "expect": "b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaeb",
+   "new": "01000000dd01000003000000dc01000002000000de01000009000000df010000040000007609000006000000dc01000007000000dc010000",
+   "why": "v7 info-display aspect icon list A (white): 7 entries, 6/7 -> 16:9 bitmap 476"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e1628",
+   "expect": "ecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223",
+   "new": "01000000d801000003000000d701000002000000d901000009000000db010000040000007509000006000000d701000007000000d7010000",
+   "why": "v7 info-display aspect icon list B (green): 7 entries, 6/7 -> 16:9 bitmap 471"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6123dd08",
+   "expect": "c4db2361ecdb236105000000",
+   "new": "f0151e6028161e6007000000",
+   "why": "icon record 0x6123dd04: lists -> v7 lists, count 5 -> 7"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6123ddb8",
+   "expect": "c4db2361ecdb236105000000",
+   "new": "f0151e6028161e6007000000",
+   "why": "icon record 0x6123ddb4: lists -> v7 lists, count 5 -> 7"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6123f180",
+   "expect": "6ced236194ed236105000000",
+   "new": "f0151e6028161e6007000000",
+   "why": "icon record 0x6123f17c: lists -> v7 lists, count 5 -> 7"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6123f43c",
+   "expect": "6ced236194ed236105000000",
+   "new": "f0151e6028161e6007000000",
+   "why": "icon record 0x6123f438: lists -> v7 lists, count 5 -> 7"
   }
  ]
 }

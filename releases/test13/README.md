@@ -1,5 +1,33 @@
 # test13: test12e + aspect v6 + Film `*`, bloom colour, mono presets
 
+## Fixed in place after camera test 13c (273 edits = 117 others unchanged + mono presets 11 + aspect v7 145)
+
+1. **Aspect readout and icon** (docs/ASPECT.md §1f). The "0x0" size came from the `%dx%d` routine 0x60eac4a9: its
+   size table 0x611f09e0 has columns for ids 1,3,2,4,9 only. A 7-column copy (0x601e14b0) gives Panorama/Wide the sizes
+   the camera records: L 5184x1920 / 5184x2224, then 3200x1184/1376, 2560x944/1104, 1600x592/688, 1280x480/544,
+   1024x384/432, 640x240/272. The icon slot holds bitmaps only, so text is not possible there. Panorama and Wide both
+   show the **16:9 icon** (the only 17:9 icon is a smaller movie icon). The icon lists are at 0x601e15f0 and 0x601e1628.
+2. **Mono preset label.** The MONO filter and shading pages of the Profile view (0x60e26ab0) now show
+   `Preset: Tri-X 400` in the guide slot. That is the slot the colour page uses for "All colors[INFO]". The label shows
+   when the card table is loaded and the MONO slot's name is a preset. Two `call` sites (0x60e27209, 0x60e275c1) go to
+   mp_lbl1/2, which replay the stock `mov (84,a1),d0`. mp is 1020 of 1024 B.
+3. **INFO in the MONO editor:** no change. INFO already steps only the preset and consumes the event when a card table
+   is loaded (the hook returns 1 and the stock handler never runs). Without a table it is stock. The filter you saw
+   jump is the preset's own filter: Acros green, Tri-X yellow, HP5 none, Red Contrast red, Sepia none, Cyanotype
+   yellow. The label now names the preset.
+
+Camera check:
+- I. Set the aspect to Panorama, then Wide. The info display should show the 16:9 icon and the size readout should
+  show 5184x1920 / 5184x2224 (and M/S sizes).
+- J. Open MONO1's filter screen with the card loaded and press INFO. The guide should read `Preset: <name>`, and the
+  shading screen should show it too. If nothing appears, the MONO editor uses another view: report what the guide area
+  shows.
+
+Emulator (no mutations): mono S 98 / H 48; label L 10/10 (both sites: Tri-X / Red Contrast in slots 186 / 260; no table,
+COLOR profile and non-preset name leave the view as stock; registers and stack equal to stock, d0 replayed); aspect
+`--lean` 157/157. Anti-brick: decode == stock + edits, restore == stock (unchanged); 980 bytes differ from the previous
+test13, all inside edit spans; nothing new on the boot path.
+
 ## Aspect v6 in place (254 edits = the 126 non-aspect edits unchanged + aspect v6, 128)
 
 Camera test 13: Panorama/Wide captured correctly (5184×1920 / 5184×2224) but live view kept the stock 7:6/6:5

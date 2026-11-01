@@ -162,3 +162,69 @@ That is well beyond the 110-B red-only design, so test13 ships red only. Suggest
 - **Verified** (`tools/ep7_halation_verify.py` vs the previous test13): F 24, W 84, D 112.
   - W covers tints 1..4 and effect 2 + tint 0 on both combiners, plus tint 5/255 and strength-6 guards.
   - D: bloom tint 0, clarity, off and erased banks are byte-identical.
+
+## 9. Camera test 13c: bloom colour "still a no go" (analysis; nothing new built)
+
+### Which slots were shot (makernote 0x0520 PictureMode; 9/10/11 = COLOR1–3, 17 = COLOR4 by elimination, 12 = MONO1)
+- PB021380–1383: mode 10 = **COLOR2** (bloom 4, tint 4 cool). PB021384–1390: mode 17 = **COLOR4** (bloom 5, tint 1 red).
+  - 1384–1388 are XPan desk scenes without a light source. The LED-strip shots are 1381–1383 (cool) and 1390 (red).
+- The card's BUNDLES.BIN passes `ep7_bundles_bin.py --check`. Byte +45 is 4 in COLOR2 and 1 in COLOR4, as intended.
+
+### 1. Is the tint applied for effect 1? Yes. Not a bug.
+- `bw_tint` takes effect 1 and 2. Effect 1 uses its own +45 tint, and effect 2 with tint 0 becomes red.
+- `tools/ep7_halation_verify.py` on releases/test13 gives F 24 / W 84 / D 112, all PASS. W covers effect 1 × tint 1..4 × strength 1/3/5
+  on combiner 11 (halo gains) and combiner 12 (plain pack).
+- Stills use combiner 11: clarity, which acts only there, was visible on camera in test 11.
+
+### 3. Fringe chroma, measured (1/8-size JPEG decode, rings around the largest Y > 248 region; Cb/Cr offset from 128)
+
+| Shot | slot / tint | core | ≤4 px | ≤12 | ≤30 | ≤60 | ≤120 |
+|---|---|---|---|---|---|---|---|
+| 1381 | COLOR2 cool | −1.6/+1.0 | −6.4/+4.1 | −9.8/+7.3 | −8.6/+10.0 | −5.0/+9.1 | −2.2/+4.2 |
+| 1382 | COLOR2 cool | −1.4/+1.1 | −5.4/+4.6 | −8.9/+8.9 | −9.0/+13.8 | −5.5/+13.7 | −2.4/+7.3 |
+| 1383 | COLOR2 cool | −2.7/+0.4 | −5.8/+5.4 | −8.5/+10.2 | −7.9/+13.2 | −4.7/+11.2 | −1.7/+5.3 |
+| 1390 | COLOR4 red | −1.2/+2.0 | −5.1/+4.4 | −10.8/+8.8 | −13.5/+14.5 | −9.6/+13.8 | −4.3/+8.1 |
+| 13b 1373 | COLOR1 red (eff 2) | −0.9/+0.5 | −3.4/+2.8 | −5.9/+5.4 | −2.5/+5.2 | −0.2/+3.3 | −0.7/+2.0 |
+
+(Cb/Cr pairs; units of 8-bit chroma.)
+- "Cool" and "red" give the **same warm fringe** (Cb −9, Cr +10..14). That fringe is the warm-white LED's own chroma, carried by the
+  luma glow. The core is neutral (|Cb|, |Cr| ≤ 3) in every shot.
+- The model predicts exactly this. The halo stub scales each chroma channel's own blur share, so it can only re-spread chroma the
+  light already has. A cool k_Cb = 3 on a source with Cb ≈ −9 makes the fringe *more* yellow, not blue. A clipped white core has
+  nothing to spread. A tint you can see needs a term that depends on luma.
+- A pixel "after" for the real route cannot be simulated. That route rests on ISP semantics that are not known (below), and there
+  is no ISP model to run it on.
+
+### 2. The real tinted-glow route: not built (blockers found this round)
+New facts [V bytes]:
+- Each combiner-bank input group is 44 B: A = +76..+119, B = +120..+163.
+  - +76 / +120 are the group's **constant colour word**: cleared by the config 0x603a013b; set by combiners 33/156/135.
+  - +80/+84 and +124/+128 are offsets, +88/+132 config, +92/+96 and +136/+140 gains, +104..+112 and +148..+156 clamps.
+  - +164/+168 is the output offset.
+- Config word byte 2 = 0x2A selects the image on all three channels, and byte 1 = 0x15 selects the constant (Vintage B =
+  0x1500 + colour 0x001900E1, weight 115). Combiner 135 is the same, with colour 0xFFFFFF and per-channel gains from request+672..676.
+  No stock config mixes per-channel sources, and none routes Y into a chroma channel.
+- Masks: kind-0 requests get the mask descriptor at request+532 (MONO 0x60359e15, shading 0x6035b0ab). **Kind-3 requests get it at
+  request+148** (shading modifier 0x6035b0d8, copied from job+14240 → +12, 64 B). The Soft Focus blend setup 0x6035ca31 copies
+  buffer 0x1000 → request+20 and 0x1061 → request+84 (job+6592 + 88·idx, idx from 0x60350975). Its +148 is not set.
+
+Why it is not built (each item is [I] and needs a camera probe; a wrong guess means garbage frames or an ISP stall on tinted slots):
+1. **Per-channel ops cannot do it.** Every gain, offset and clamp acts on one channel. In flat areas, a constant chroma term on
+   B tints the whole frame by β·K. A luma-keyed term needs a mask or a Y→chroma selector, and neither has been exercised.
+2. **Mask route inside the blend** (copy 0x1060's descriptor to blend request+148; bank in the combiner-33 style: mode 0x1002,
+   B = colour word, +180 = 3):
+   - The meaning of mode 0x1002 and of A config 0 in combiner 33 is unknown.
+   - The format of a 0x0305 (4 B/px, 160×120) buffer on the mask port is unknown. The shading mask is created by 0x6036b635,
+     format not traced.
+   - Whether B (+84) is still read in that mode is unknown.
+   - Either way, B = the colour word means the luma blur is replaced, not tinted.
+3. **Route via the stock late shading pass** (it already runs after every COLOR blend, combiner 33 = lerp(image, colour, mask)):
+   - It would need the mask from the blur buffer.
+   - 0x1060/0x1061 are released before that pass runs (blend callback), so a lifetime change across two entries is needed.
+     That risks a buffer-pool leak (48 slots) or reuse.
+   - It also takes over the slot's vignette.
+4. The full FUJI_GAPS §4 route (new mask pass) adds a full-size pass, so it is not at stock Soft Focus speed.
+
+Suggested next step (not done; needs the user's go-ahead): a **probe build** that changes only tint 1 (red) to route 2,
+with the other tints unchanged, shot on one warm and one white light. If the frame is valid, the mask/colour semantics are
+settled and the tints become colour words. If not, revert the tint-1 rows.

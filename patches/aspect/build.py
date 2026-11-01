@@ -28,6 +28,8 @@ Edits (all in main, component 0x100):
      in Panorama/Wide. Hook: boot phase "MCS..MCE" (0x60192961, between trace marks 2_l and 2_o), at the
      common tail 0x601929a4 after the stock per-boot resets (0x602af9e1 / 0x602af9f9). Same gate as stock
      (byte 0x62257b04 != 1). Values 1..5, 8..10 are untouched.
+  U  (v7) pixel-size readout 0x60eac4a9 ("0x0" for 6/7): 7-column table copy + pointer/immediate edits;
+     info-display aspect icon records -> 7-entry lists (6/7 borrow the 16:9 bitmaps). docs/ASPECT.md §1f.
 """
 import argparse, json, struct, sys
 from math import gcd
@@ -145,6 +147,40 @@ LV_AT, LV_CLAIM = 0x601e1440, (0x601e143c, 0x601e153c)
 # Rec-view (post-capture) 640-class image: u16 W/H arrays 0x6053e23c / 0x6053e24e (index id-1), getters 0x603f0bff /
 # 0x603f0c0f, used by the rec job builder (job +283 = id). Stock 560x480 / 576x480; scan_tables.py missed them (split arrays).
 REC640_W, REC640_H, REC640_GET = 0x6053e23c, 0x6053e24e, (0x603f0bff, 0x603f0c0f)
+
+# ---- UI (v7, camera test 13 v6: Panorama/Wide right, but the pixel-size readout shows "0x0" and the info-display
+# aspect icon is blank). Readout: three UI callers (0x60dfac83 / 0x60dfae48 / 0x60ed951f) format "%dx%d" (UTF-16
+# 0x61163d76) from 0x60eac4a9(d0 = aspect id, d1 = size setting, a0 = &w, a1 = &h). That routine reads a sec-6 table
+# 0x611f09e0: u16 ids[5] = 1,3,2,4,9, then 10 rows of 22 B {u16 size key, u16 w[5], u16 h[5]} (keys 0 L, 13, 11, 8,
+# 7, 6, 5, 3, 20, 21 = the 0x60b8ce30 size keys). Id 6/7 miss -> w/h untouched (0) -> "0x0". The table cannot grow
+# in place (strings follow), so a 7-column copy (30-B rows) goes to free space and the routine's 4 table pointers and
+# 5 layout immediates (ids count 5 -> 7, row stride 22 -> 30 twice, h offset 12 -> 16 twice) are patched.
+# Icon: display-resource records {u32 id, listA, listB, u32 count} (white 50x38 / green 64x48 value->bitmap u32
+# pairs, 5 entries, no type field: bitmap only) at 0x6123dd04 / 0x6123ddb4 (skin 1, item ids 0x1ff/0x200) and
+# 0x6123f17c / 0x6123f438 (skin 2, id 0x39), read by 0x60ed8885. New 7-entry lists (shared by both skins: the stock
+# skin lists are identical) borrow the 16:9 bitmaps (476 white / 471 green) for ids 6 and 7: the widest aspect icon in
+# these cell sizes (17:9 exists only as a 44x32 movie icon). Placement: the rest of the aspect's dead EVF step-12
+# gamma tables (R remainder + G; only refs = step-table words 0x601e3d40/44/48, build-checked).
+PIX_FN, PIX_TAB, PIX_ROWS, PIX_OLD_STRIDE = 0x60eac4a9, 0x611f09e0, 10, 22
+PIX_IDS = (1, 3, 2, 4, 9, 6, 7)
+PIX_AT = 0x601e14b0               # ids[7] (14 B), rows at +14 (10 x 30 B) -> 0x601e15ea
+PIX_STRIDE = 2 + 4 * len(PIX_IDS)
+# (site, stock bytes, new bytes builder key)
+PIX_CODE = [(0x60eac4b8, 'row0w'), (0x60eac4c0, 'row0h'), (0x60eac4f5, 'rows'), (0x60eac508, 'ids'),
+            (0x60eac53d, 'rows')]
+PIX_IMM = [(0x60eac51b, b'\x20\x0c', b'\x20\x10', 'h offset (a0) 12 -> 16'),
+           (0x60eac52a, b'\xa5\x05', b'\xa5\x07', 'aspect id count 5 -> 7'),
+           (0x60eac530, b'\x20\x16', b'\x20\x1e', 'row stride (a0) 22 -> 30'),
+           (0x60eac536, b'\xf9\x02\x16', b'\xf9\x02\x1e', 'row index * stride (debug print) 22 -> 30'),
+           (0x60eac54f, b'\x22\x0c', b'\x22\x10', 'h offset (a2, debug print) 12 -> 16')]
+PIX_CALLERS = (0x60dfac83, 0x60dfae48, 0x60ed951f)
+ICON_RECS = (0x6123dd04, 0x6123ddb4, 0x6123f17c, 0x6123f438)
+ICON_STOCK = ((0x6123dbc4, 0x6123dbec), (0x6123dbc4, 0x6123dbec), (0x6123ed6c, 0x6123ed94), (0x6123ed6c, 0x6123ed94))
+ICON_NEW = {6: (476, 471), 7: (476, 471)}      # 16:9 white / green
+ICON_A, ICON_B = 0x601e15f0, 0x601e1628   # 7 x 8 B each -> 0x601e1660
+UI_CLAIM = (0x601e14a4, 0x601e1660)       # inside the dead EVF step-12 R/G/B tables 0x601e143c-0x601e173c
+EVF12 = (0x601e143c, 0x601e173c, (0x601e3d40, 0x601e3d44, 0x601e3d48))
+EVF12_FP = (0x60020858, 0x606b9e6c)      # byte matches inside `call rel,[d2,a2],..` encodings (0xa01e15cd/0xa01e16cd), dis-checked
 
 
 def u16s(d, a, n):
@@ -409,10 +445,86 @@ def build(d):
         assert struct.unpack('<2H', old) in ((560, 576), (480, 480))
         edit(base + 10, old, struct.pack('<2H', *new), f'rec-view 640-class {"W" if base == REC640_W else "H"} ids 6/7 '
              f'{struct.unpack("<2H", old)} -> {new}')
+    # UI (v7): pixel-size readout table (7 columns) + info-display icon lists
+    p0 = apply(d, edits)
+    tab = pix_table(d, p0)
+    edit(PIX_AT, d[PIX_AT - B:PIX_AT - B + len(tab)], tab,
+         f'v7 pixel-size readout table (ids {PIX_IDS}, {PIX_ROWS} x {PIX_STRIDE}-B rows) in dead EVF step-12 tables')
+    rows = PIX_AT + 2 * len(PIX_IDS)
+    ptr = dict(ids=PIX_AT, rows=rows, row0w=rows + 2, row0h=rows + 2 + 2 * len(PIX_IDS))
+    stock_ptr = dict(ids=PIX_TAB, rows=PIX_TAB + 10, row0w=PIX_TAB + 12, row0h=PIX_TAB + 22)
+    for site, k in PIX_CODE:
+        old = d[site - B:site - B + 4]
+        assert struct.unpack('<I', old)[0] == stock_ptr[k], (hex(site), k)
+        edit(site, old, struct.pack('<I', ptr[k]), f'0x60eac4a9 readout table pointer ({k}) -> {ptr[k]:#x}')
+    for site, old, new, why in PIX_IMM:
+        edit(site, old, new, f'0x60eac4a9 {why}')
+    la, lb = icon_lists(d)
+    edit(ICON_A, d[ICON_A - B:ICON_A - B + len(la)], la, 'v7 info-display aspect icon list A (white): 7 entries, 6/7 -> 16:9 bitmap 476')
+    edit(ICON_B, d[ICON_B - B:ICON_B - B + len(lb)], lb, 'v7 info-display aspect icon list B (green): 7 entries, 6/7 -> 16:9 bitmap 471')
+    for rec, (sa, sb) in zip(ICON_RECS, ICON_STOCK):
+        old = d[rec + 4 - B:rec + 16 - B]
+        assert struct.unpack('<3I', old) == (sa, sb, 5), hex(rec)
+        edit(rec + 4, old, struct.pack('<3I', ICON_A, ICON_B, 7), f'icon record {rec:#x}: lists -> v7 lists, count 5 -> 7')
+    # the claim stays inside the dead step-12 tables, and nothing but the step-table words points into them
+    assert EVF12[0] <= LV_AT and UI_CLAIM[0] >= LV_AT + 100 and UI_CLAIM[1] <= EVF12[1]
+    assert PIX_AT + len(tab) <= ICON_A and ICON_B + len(lb) <= UI_CLAIM[1]
+    hits = [h for h in abs_refs(d, EVF12[0], EVF12[1]) if h not in EVF12_FP]
+    assert hits == list(EVF12[2]), [hex(h) for h in hits]
     # no overlaps
     spans = sorted((int(e['addr'], 16), int(e['addr'], 16) + len(e['new']) // 2) for e in edits)
     assert all(a[1] <= b[0] for a, b in zip(spans, spans[1:])), 'overlap'
     return edits, where, h640
+
+
+def abs_refs(d, lo, hi):
+    """Every byte offset whose u32 (any alignment) points into [lo, hi), cached (+0) or uncached (+0x40000000) alias."""
+    import numpy as np
+    a = np.frombuffer(d, dtype=np.uint8).astype(np.uint32)
+    w = a[:-3] | (a[1:-2] << 8) | (a[2:-1] << 16) | (a[3:] << 24)
+    m = ((w >= lo) & (w < hi)) | ((w >= lo + 0x40000000) & (w < hi + 0x40000000))
+    return [int(i) + B for i in np.nonzero(m)[0]]
+
+
+def size_list(d, key, aid):
+    """(w, h) of id aid in the recorded-size list of size key `key` (pointer table 0x60b8ce30, u32 {id, w, h})."""
+    for k in range(19):
+        kk, lst = struct.unpack_from('<II', d, 0x60b8ce30 + 8 * k - B)
+        if kk == key:
+            for j in range(10):
+                i, w, h = struct.unpack_from('<3I', d, lst + 12 * j - B)
+                if i == aid:
+                    return w, h
+    raise KeyError((key, aid))
+
+
+def pix_table(d, p0):
+    """v7 readout table: ids[7], then per stock row {key, w[7], h[7]}; ids 1-4/9 copied from the stock table, ids 6/7
+    from the (already aspect-patched) recorded-size list of the same size key, i.e. what the camera records."""
+    ids = struct.unpack_from('<5H', d, PIX_TAB - B)
+    assert ids == PIX_IDS[:5]
+    out = struct.pack(f'<{len(PIX_IDS)}H', *PIX_IDS)
+    for r in range(PIX_ROWS):
+        row = struct.unpack_from('<11H', d, PIX_TAB + 10 + PIX_OLD_STRIDE * r - B)
+        key, ws, hs = row[0], list(row[1:6]), list(row[6:11])
+        for j, aid in enumerate(PIX_IDS[:5]):      # the readout agrees with the recorded-size lists for stock ids
+            assert size_list(d, key, aid) == (ws[j], hs[j]), (key, aid)
+        for aid in (6, 7):
+            w, h = size_list(p0, key, aid)
+            assert w == max(ws[0], ws[1]) and h % HEIGHT_ALIGN == 0, (key, aid, w, h)
+            ws.append(w)
+            hs.append(h)
+        out += struct.pack(f'<{1 + 2 * len(PIX_IDS)}H', key, *ws, *hs)
+    return out
+
+
+def icon_lists(d):
+    la, lb = d[0x6123dbc4 - B:0x6123dbc4 - B + 40], d[0x6123dbec - B:0x6123dbec - B + 40]
+    assert la == d[0x6123ed6c - B:0x6123ed6c - B + 40] and lb == d[0x6123ed94 - B:0x6123ed94 - B + 40]
+    assert [struct.unpack_from('<II', la, 8 * j) for j in range(5)] == [(v, SCP_ICONS[v][0]) for v in (1, 3, 2, 9, 4)]
+    assert [struct.unpack_from('<II', lb, 8 * j) for j in range(5)] == [(v, SCP_ICONS[v][1]) for v in (1, 3, 2, 9, 4)]
+    return (la + b''.join(struct.pack('<II', i, ICON_NEW[i][0]) for i in (6, 7)),
+            lb + b''.join(struct.pack('<II', i, ICON_NEW[i][1]) for i in (6, 7)))
 
 
 def apply(d, edits):
@@ -707,6 +819,68 @@ def lv_checks(d, p, rep, h640):
         rep(f'RV rec-view 640 getters id{aid}', all(x[0] for x in s + q) and qv == want, sv, qv)
 
 
+def chk_pix(d, aid, key, param=176):
+    """Native readout lookup 0x60eac4a9 (d0 = id, d1 = size setting, a0 = &w, a1 = &h), as its callers call it.
+    Stubs: GUI facade 0x607f9062 -> object whose GetValue (vt+8) writes `key`; debug print 0x60e9e050. w/h preset
+    0xeeee (stock leaves them untouched on a miss; the callers' buffers then print as "0x0")."""
+    FAC, OUT = 0x19600000, 0x19700000
+    getv = FAC + 0x40
+    fac = bytearray(0x80)
+    struct.pack_into('<II', fac, 0, FAC + 0x10, 0)
+    struct.pack_into('<I', fac, 0x10 + 8, getv)
+    fac[0x40:0x48] = b'\x2c' + struct.pack('<H', key) + b'\x61\x00\xf0\xfc'      # mov key,d0; mov d0,(a1); clr d0; rets
+    regs = [PR.caller(PIX_FN, 0xf0, 48), img(d, 'fn', PIX_FN, 0x60eac561, 'rx'),
+            # wide maps: the debug-print tail reads row d2 (d2 = 10 on a row miss, = d1 on the d1 = 22 shortcut)
+            img(d, 'tab', PIX_TAB, PIX_TAB + 0x400), img(d, 'new', EVF12[0], EVF12[1] + 0x400),
+            Region('facade', 0x607f9062, b'\xfc\xdc' + struct.pack('<I', FAC) + b'\xdf\x00\x04', 'rx'),
+            Region('fac', FAC, bytes(fac), 'rx'),
+            Region('dbg', 0x60e9e050, b'\xdf\x30\x08', 'rx'),
+            Region('out', OUT, b'\xee' * 8, 'rw', True), Region('stack', STACK, bytes(0x2000), 'rw')]
+    r, m = run(regs, {'pc': PR.CALLER, 'sp': STACK + 0x1800, 'd0': aid, 'd1': param, 'a0': OUT, 'a1': OUT + 4,
+                      'd2': 0x2222, 'a3': 0x3333}, PR.CALLER + 7)
+    R = r['registers']
+    ok = (R['pc'] == PR.CALLER + 7 and not r['fault'] and R['sp'] == STACK + 0x1800 and R['d2'] == 0x2222
+          and R['a3'] == 0x3333)
+    return ok, (struct.unpack_from('<H', m['out'], 0)[0], struct.unpack_from('<H', m['out'], 4)[0])
+
+
+def icon_recs(d):
+    out = []
+    for rec in ICON_RECS:
+        _, la, lb, n = struct.unpack_from('<4I', d, rec - B)
+        out.append(tuple([struct.unpack_from('<II', d, l + 8 * j - B) for j in range(n)] for l in (la, lb)))
+    return out
+
+
+def ui_checks(d, p, rep):
+    """v7: readout lookup 0x60eac4a9 for every size key x ids 1,2,3,4,9,6,7 (+ the d1 = 22 shortcut); icon records."""
+    keys = [struct.unpack_from('<H', d, PIX_TAB + 10 + PIX_OLD_STRIDE * r - B)[0] for r in range(PIX_ROWS)]
+    for key in keys:
+        for aid in (1, 2, 3, 4, 9, 6, 7, 5):
+            s_ok, s = chk_pix(d, aid, key)
+            p_ok, q = chk_pix(p, aid, key)
+            if aid in (6, 7):
+                good = s == (0xeeee, 0xeeee) and q == size_list(p, key, aid)
+            else:                                   # stock ids identical; 5 (hidden 5:4) still misses
+                good = q == s and (s == (0xeeee, 0xeeee)) == (aid == 5)
+            rep(f'U readout 0x60eac4a9 key {key} id{aid}', s_ok and p_ok and good, s, q)
+    for aid in (1, 6):
+        s_ok, s = chk_pix(d, aid, 0, param=22)
+        p_ok, q = chk_pix(p, aid, 0, param=22)
+        rep(f'U readout 0x60eac4a9 d1=22 shortcut id{aid}', s_ok and p_ok and q == s == (5184, 3888), s, q)
+    want_a = [(v, SCP_ICONS[v][0]) for v in (1, 3, 2, 9, 4)] + [(i, ICON_NEW[i][0]) for i in (6, 7)]
+    want_b = [(v, SCP_ICONS[v][1]) for v in (1, 3, 2, 9, 4)] + [(i, ICON_NEW[i][1]) for i in (6, 7)]
+    sr, pr_ = icon_recs(d), icon_recs(p)
+    for rec, s, q in zip(ICON_RECS, sr, pr_):
+        rep(f'I icon record {rec:#x}: 7 entries, stock 5 unchanged, 6/7 -> 16:9',
+            q == (want_a, want_b) and s == (want_a[:5], want_b[:5]), [e[0] for e in s[0]], [e[0] for e in q[0]])
+    hits = [h for h in abs_refs(p, EVF12[0], EVF12[1]) if h not in EVF12_FP]
+    rep('U2 refs into the step-12 tables: the step-table words + the v7 pointers only',
+        sorted(set(hits) - set(EVF12[2])) == sorted([s for s, _ in PIX_CODE] + [r + o for r in ICON_RECS for o in (4, 8)] +
+                                                   [jt + 4 * i for jt in [x[2] for x in LV_SW] + [S10['jt']] for i in (6, 7)]),
+        'n/a', len(hits))
+
+
 def lean_checks(d, p, rep):
     """v5 checks (W/F/R/G): ids 6/7 get the new geometry, ids 1-4/9 stay stock."""
     exp_w = {i: wh_row(d, i, 0) for i in (6, 7)}
@@ -752,7 +926,7 @@ def main():
     ap.add_argument('--base', type=Path, help='run every check on this spec + aspect (e.g. a merged release spec); '
                     'the "stock" side of each check is then stock + base')
     ap.add_argument('--out', type=Path, default=ROOT / 'patches/aspect/edits.json', help='standalone spec to write')
-    ap.add_argument('--lean', action='store_true', help='v5 checks only (W/F/R2/G); skip the v1-v4 suite')
+    ap.add_argument('--lean', action='store_true', help='v5-v7 checks only (W/F/R2/G, LV, U/I); skip the v1-v4 suite')
     a = ap.parse_args()
     stock = PR.main_image()
     edits, where, h640 = build(stock)          # standalone: every expect is a stock byte
@@ -780,6 +954,7 @@ def main():
 
     lean_checks(d, p, rep)
     lv_checks(d, p, rep, h640)
+    ui_checks(d, p, rep)
     if a.lean:
         a.out.write_text(json.dumps(dict(components=['0x100'], edits=edits), indent=1) + '\n')
         print(f'{len(edits)} edits, {sum(len(e["new"]) // 2 for e in edits)} bytes; wrote {a.out} (lean: v5 checks only)')

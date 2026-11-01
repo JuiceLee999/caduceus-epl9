@@ -85,3 +85,28 @@ From the picture-parameter builder 0x602b7b71 MONO branches (public modes 57/58/
   step-table words, build-checked.
 - **Verified:** `patches/mono_presets/verify.py` S 98, H 48. H now expects 9 SetValue calls: the 8 fields, then field 0
   (filter editors) or field 4 (shading editors).
+
+## Camera test 13c: preset label
+
+- Camera: INFO stepped the presets, but nothing on screen named the preset. The filter jump on INFO is the
+  preset's own filter field. INFO is already consumed with a card table: the hook returns 1 and the stock
+  `mov 3,d0` never runs. Without a table it is stock.
+- [V] The MONO filter and shading editors draw in the Profile view: vtable 0x61189ba8, update 0x60e26ab0,
+  GUI data 229, 334-B block at view+4. The view's page byte (+396) selects the page writer:
+  - 0 → 0x60e26f80;
+  - 1 → 0x60e27162 for MONO (modes 57/58/59/65), 0x60e27289 for COLOR;
+  - 2 → 0x60e275a9 (shading, 995..997/1671);
+  - 3 → 0x60e27639 (tone).
+- [V] Guide slot: view+186 when (404,view) == 1, else view+260. Each slot is a 74-B label {u16 kind, -, u16 id,
+  u16 style, text[33]}. The COLOR page writes "All colors[INFO]" there and the tone page writes "Hi. & Sh.[INFO]".
+  The MONO pages leave the slot empty.
+- **Fix:** the `mov…; call 0x60e26789,[],0` sequences in page 1 (0x60e27209, 8 B) and page 2 (0x60e275c1, 7 B)
+  become `call mp_lbl1/2,[],0` (+ nop). mp_lbl writes kind 5 text `Preset: <name>` into the guide slot when:
+  - the card table is valid;
+  - view+400 is a MONO mode;
+  - the slot name P+608+16m equals a preset name.
+
+  It then replays `mov (84,a1),d0` and keeps d1, d2, d3, a2, a3 and sp. mp is 1020 B.
+- Checks: L 10/10 (scratch harness, both sites), S 98, H 48.
+- [I] Whether the MONO pages actually draw the guide slot, and whether this view is the screen the user sees.
+  The colour editor's camera-proven label lives in a different view (0x60dec790).
