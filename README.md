@@ -29,7 +29,7 @@ recording.
 
 | Feature | What you get | Status |
 |---|---|---|
-| **Film simulations** | 29 colour looks in `EP7MOD/LOOKS.BIN`: Provia, Velvia, Astia, Classic Chrome, Classic Neg, Nostalgic, Reala Ace, Eterna, Bleach Bypass, Kodachrome 25 and 64, Portra 160 and 400, Ektar 100, Gold 200, Ektachrome, UltraMax 400, CineStill 50D and 800T, Vision3 250D and 500T, Pro 400H, Fujicolor 200, Superia 400, Agfa Vista, Cibachrome, Polaroid, Cross Process and an Aerochrome-style false-colour IR look. Pick one per Colour Profile slot; its name shows in Picture Mode. | Camera-tested |
+| **Film simulations** | 29 colour looks in `EP7MOD/LOOKS.BIN`: Velvia, Astia, Classic Chrome, Classic Neg, Nostalgic, Reala Ace, Eterna, Bleach Bypass, Kodachrome 25 and 64, Portra 160 and 400, Ektar 100, Gold 200, Ektachrome, UltraMax 400, CineStill 50D and 800T, Vision3 250D and 500T, Pro 400H, Fujicolor 200, Superia 400, Agfa Vista, Cibachrome, Polaroid, Cross Process, Atrophy (inspired by [Gx]Ace) and Faux IR (an infrared-inspired false-colour look). Pick one per Colour Profile slot; its name shows in Picture Mode. | Camera-tested |
 | **On-camera look editor** | The stock Colour Profile wheel gains pages: Saturation, Hue, Light, Film and Extras (INFO cycles). The wheel follows the page; modified looks are marked `*`. | Camera-tested |
 | **Looks on the SD card** | Looks load from `EP7MOD/BUNDLES.BIN` on the first half-press. Edits made in the camera save back to the card (with a `.BAK` of the previous file). | Camera-tested |
 | **Extras per profile** | Colour film grain (the E-P7's mono grain hardware, on colour), bloom ↔ clarity (one slider), WB amber/blue and green/magenta shift, and Art Effects (Star Light, Pin Hole, Blur). | Camera-tested |
