@@ -1,0 +1,3611 @@
+{
+ "components": [
+  "0x100"
+ ],
+ "edits": [
+  {
+   "kind": "0x100",
+   "addr": "0x603537f0",
+   "expect": "2c803c",
+   "new": "2c983c",
+   "why": "job allocation 15488 -> 15512 (+24-byte bundle extension at job+15488)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6035390c",
+   "expect": "8510",
+   "new": "8528",
+   "why": "tail memset job+15472: 16 -> 40 bytes (zeroes the extension)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603b02d9",
+   "expect": "cd8ffdf060",
+   "new": "dcc008e6ff",
+   "why": "COLOR builder call -> jmp v0.2 bundle H/L routine (replaces v0.1)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603e66ab",
+   "expect": "f043a00cc926",
+   "new": "dc9da4e2ffcb",
+   "why": "converter 0x603e62d1: copy capture profile/mode into job extension",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603e91f0",
+   "expect": "5c24f040a00c",
+   "new": "dc8179e2ffcb",
+   "why": "converter 0x603e8af1: copy capture profile/mode into job extension",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210900",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "00ff00000706fefd06070502fcfcfdfeff020203fffdfbfb00010201000000020000000000000000000000000000000000000000000000000000000000000000feff00000301fefcfe0200fefdfdfefdfffffefffffffdfe00010301000000020000000000000000000000000000000000000000000000000000000000000000feff00000301fefcfe0200feffff00fffffffffffffffeff01010000000000020000000000000000000000000000000000000000000000000000000000000000000000010000000000fefdff010100000000ff0000000000000102000203ff02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000581b70178813a00fb80bd007e803000018fc30f848f460f078ec90e8a8e4d4fe06ff38ff6aff9cffceffe7ff00001900320064009600c800fa002c0100020406080a01030507090b5c14fa40135ef1ecfa505c3cf043fa505d3c2cb200fa505e3cf043a00cc907dc4a5b1d00dc695b1d005c18fa40135e5c14fa505c3c5c24f0405c14fa505d3c2cb200fa505e3c5c24f040a00cdc62861d00ddcff41900f060f8fee4420046044a084e0c431047144f18f8260471fcc8d45f3560c805cc9c00f8010494fad08c0c8a10f190c80b20382affc9f8cc85007494fad09cd3f191c97afa40823cfac8b200c970fa40813ca00bc968fa40803c28ffa004c65ef8c006fcdc00092160f160f8401ff8ec02c84b08f408102807a00fc64148aa18c9f4f82e0cfad3c20208fcdd3c0b2160f419f404102807e0fcdd000b2160f4b1f07f290cf404102807e0fcdd1e0b2160f4b1f87f04231848aa0cc9d0580059045a085b0c5c105d145f18f8fe1cdc74f6190000",
+   "why": "v0.2 code + LUTs + 8x64 bundle table (880 B) in section-1 FF tail",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6035749f",
+   "expect": "aa0cc605cc0604",
+   "new": "dc4198ebffcbcb",
+   "why": "work-list builder: key<12 branch -> jmp wl_hook (key 11: stock job-type gate + bundle slot grain)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603b5249",
+   "expect": "aa0cc605cc5201",
+   "new": "dc28bbe5ffcbcb",
+   "why": "combiner selector: key<12 branch -> jmp sel_hook (key 11 + stage 0x0902 -> 32)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210ce0",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "aa0cc405cc8300aa0bc805cc8100f862102df000f201a510c874a520c870a540c86cfae0000ffac80001c8629820fcfa40823cfac8b200c955fa40813ca00bc94dfa40803c28ffa004c643f8c006fcdc18092160f40028ffa003c63228019cfcdd7b6d3560fccdc66c35608001dd51661400f0109cfcdd9a0d2160dd786614003008dc5b6b1400dc3f671400dc3d6b1400aa0cc61daa0bc91ef006f84110a000c915f8610cfac80209c90c8020dfa00cdcc0441a00dc0a461a00f84110a000c93bfa40823cfac8b200c931fa40813ca00bc929fa40803c28ffa004c61ff8c006fcdc18092160f40028ffa003c60e2801fa5124072c0209f8710c00de0000",
+   "why": "per-profile COLOR-grain hooks + modifier (254 B) in section-1 FF tail",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603eabd7",
+   "expect": "fa43f65da000",
+   "new": "dc3962e2ffcb",
+   "why": "art-effect flag converter 0x603eab39: key 11 + slot effect bloom -> job flag 0x80 (Soft Focus pipeline)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6039fee8",
+   "expect": "f824342c5802",
+   "new": "dc730fe7ffcb",
+   "why": "Soft Focus mix-weight getter 0x6039fee8: key 11 -> w from the job's slot strength (else 600)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210e10",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "f862fea00bc93bf862fca000c934fa43f55da00bc92cfa43135e28ffa004c622f8c006fcdc00092160f160f8401ca001c910f8401d28ffa005c60772f8e48062fa43f65da000dc879d1d00f82434b50bc977f8240471fcc8d45f3560c965f8010494fad08c0c8510f190c80a203829ffc9f8ca4f7494fad09cd3f191c945fa40823cfac8b200c93bfa40813ca00bc933fa40803c28ffa004c629f8c006fcdc00092160f160f8401ca001c917f8401d28ffa005c60ee0fcdce00e2160f480de00002c5802de00002c5802dc14f0180000ae0371033303ec029a02",
+   "why": "per-profile COLOR-bloom stubs (218 B) in section-1 FF tail",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60319157",
+   "expect": "cc06",
+   "new": "907e",
+   "why": "record limit 1740s -> 32400s",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6031915c",
+   "expect": "201c",
+   "new": "907e",
+   "why": "record limit 7200s -> 32400s",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030df3d",
+   "expect": "266001f172",
+   "new": "dc532df0ff",
+   "why": "movie-picture-mode derivation entry: mov 352,a2; add a0,a2 -> jmp vlog_hook",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210c90",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "fa406001a000c91afa004c01a001c912f84110a003c804ca098002dcbcd20f00266001f172dc8dd20f00",
+   "why": "vlog_hook (42 B, section-1 FF tail): movie && pm==3 -> +925=2 (id 2001)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e5fe4",
+   "expect": "3002e001",
+   "new": "d0021001",
+   "why": "u16wh@0x601e5fd0 id6 (560, 480) -> (720, 272) (XPan 65:24, align 16, stock class 4)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e5fe8",
+   "expect": "4002e001",
+   "new": "d0023001",
+   "why": "u16wh@0x601e5fd0 id7 (576, 480) -> (720, 304) (21:9, align 16, stock class 4)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e6018",
+   "expect": "1003a002",
+   "new": "f0037001",
+   "why": "u16wh@0x601e6004 id6 (784, 672) -> (1008, 368) (XPan 65:24, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e601c",
+   "expect": "2603a002",
+   "new": "f003b001",
+   "why": "u16wh@0x601e6004 id7 (806, 672) -> (1008, 432) (21:9, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e604c",
+   "expect": "80030003",
+   "new": "00048001",
+   "why": "u16wh@0x601e6038 id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e6050",
+   "expect": "98030003",
+   "new": "0004b001",
+   "why": "u16wh@0x601e6038 id7 (920, 768) -> (1024, 432) (21:9, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248060",
+   "expect": "80030003",
+   "new": "00048001",
+   "why": "u16wh@0x6024804c id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248064",
+   "expect": "9003f802",
+   "new": "0004b001",
+   "why": "u16wh@0x6024804c id7 (912, 760) -> (1024, 432) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248088",
+   "expect": "80030003",
+   "new": "00048001",
+   "why": "u16wh@0x60248074 id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6024808c",
+   "expect": "9003f802",
+   "new": "0004b001",
+   "why": "u16wh@0x60248074 id7 (912, 760) -> (1024, 432) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602480b0",
+   "expect": "6004c003",
+   "new": "0005e001",
+   "why": "u16wh@0x6024809c id6 (1120, 960) -> (1280, 480) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602480b4",
+   "expect": "8004c003",
+   "new": "00052002",
+   "why": "u16wh@0x6024809c id7 (1152, 960) -> (1280, 544) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602480d8",
+   "expect": "3002e001",
+   "new": "8002f000",
+   "why": "u16wh@0x602480c4 id6 (560, 480) -> (640, 240) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602480dc",
+   "expect": "4002e001",
+   "new": "80021001",
+   "why": "u16wh@0x602480c4 id7 (576, 480) -> (640, 272) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248100",
+   "expect": "8c007800",
+   "new": "a0004000",
+   "why": "u16wh@0x602480ec id6 (140, 120) -> (160, 64) (XPan 65:24, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248104",
+   "expect": "90007800",
+   "new": "a0004000",
+   "why": "u16wh@0x602480ec id7 (144, 120) -> (160, 64) (21:9, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248150",
+   "expect": "9006a005",
+   "new": "8007c002",
+   "why": "u16wh@0x6024813c id6 (1680, 1440) -> (1920, 704) (XPan 65:24, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248154",
+   "expect": "c006a005",
+   "new": "80073003",
+   "why": "u16wh@0x6024813c id7 (1728, 1440) -> (1920, 816) (21:9, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248178",
+   "expect": "3002e001",
+   "new": "8002f000",
+   "why": "u16wh@0x60248164 id6 (560, 480) -> (640, 240) (XPan 65:24, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6024817c",
+   "expect": "4002e001",
+   "new": "80021001",
+   "why": "u16wh@0x60248164 id7 (576, 480) -> (640, 272) (21:9, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481a0",
+   "expect": "9006a005",
+   "new": "8007c002",
+   "why": "u16wh@0x6024818c id6 (1680, 1440) -> (1920, 704) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481a4",
+   "expect": "c006a005",
+   "new": "80073003",
+   "why": "u16wh@0x6024818c id7 (1728, 1440) -> (1920, 816) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481c8",
+   "expect": "6004c003",
+   "new": "0005e001",
+   "why": "u16wh@0x602481b4 id6 (1120, 960) -> (1280, 480) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481cc",
+   "expect": "8004c003",
+   "new": "00052002",
+   "why": "u16wh@0x602481b4 id7 (1152, 960) -> (1280, 544) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481f0",
+   "expect": "3002e001",
+   "new": "8002f000",
+   "why": "u16wh@0x602481dc id6 (560, 480) -> (640, 240) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602481f4",
+   "expect": "4002e001",
+   "new": "80021001",
+   "why": "u16wh@0x602481dc id7 (576, 480) -> (640, 272) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60248218",
+   "expect": "e000c000",
+   "new": "40017000",
+   "why": "u16wh@0x60248204 id6 (224, 192) -> (320, 112) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6024821c",
+   "expect": "2001f000",
+   "new": "40019000",
+   "why": "u16wh@0x60248204 id7 (288, 240) -> (320, 144) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x605223fc",
+   "expect": "80030003",
+   "new": "00048001",
+   "why": "u16wh@0x605223e8 id6 (896, 768) -> (1024, 384) (XPan 65:24, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60522400",
+   "expect": "9003f802",
+   "new": "0004b001",
+   "why": "u16wh@0x605223e8 id7 (912, 760) -> (1024, 432) (21:9, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x605338d0",
+   "expect": "280000003002e001280022005702bd01",
+   "new": "000078008002f000000078007f026701",
+   "why": "rect16@0x60533880 id6 (40, 0, 560, 480, 40, 34, 599, 445) -> (0, 120, 640, 240, 0, 120, 639, 359) (XPan 65:24, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x605338e0",
+   "expect": "200000004002e001200022005f02bd01",
+   "new": "0000680080021001000068007f027701",
+   "why": "rect16@0x60533880 id7 (32, 0, 576, 480, 32, 34, 607, 445) -> (0, 104, 640, 272, 0, 104, 639, 375) (21:9, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60533980",
+   "expect": "b40078001801f000140011002b01de00",
+   "new": "a000b80040017000000040003f01af00",
+   "why": "rect16@0x60533930 id6 (180, 120, 280, 240, 20, 17, 299, 222) -> (160, 184, 320, 112, 0, 64, 319, 175) (XPan 65:24, align 16, stock class 4)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60533990",
+   "expect": "b00078002001f000100011002f01de00",
+   "new": "a000a80040019000000030003f01bf00",
+   "why": "rect16@0x60533930 id7 (176, 120, 288, 240, 16, 17, 303, 222) -> (160, 168, 320, 144, 0, 48, 319, 191) (21:9, align 16, stock class 4)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6024350c",
+   "expect": "06000000e01be817",
+   "new": "06000000e01fc00b",
+   "why": "u16id0wh@0x602434e4 id6 (6, 0, 7136, 6120) -> (6, 0, 8160, 3008) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60243514",
+   "expect": "07000000b01ce817",
+   "new": "07000000e01fb00d",
+   "why": "u16id0wh@0x602434e4 id7 (7, 0, 7344, 6120) -> (7, 0, 8160, 3504) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60243564",
+   "expect": "06000000b013e010",
+   "new": "0600000080165008",
+   "why": "u16id0wh@0x6024353c id6 (6, 0, 5040, 4320) -> (6, 0, 5760, 2128) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6024356c",
+   "expect": "070000004014e010",
+   "new": "070000008016a009",
+   "why": "u16id0wh@0x6024353c id7 (7, 0, 5184, 4320) -> (7, 0, 5760, 2464) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a220",
+   "expect": "06000000d00dd00b",
+   "new": "06000000c00fd005",
+   "why": "u16id0wh@0x60b0a1f8 id6 (6, 0, 3536, 3024) -> (6, 0, 4032, 1488) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a228",
+   "expect": "07000000300ed00b",
+   "new": "07000000c00fc006",
+   "why": "u16id0wh@0x60b0a1f8 id7 (7, 0, 3632, 3024) -> (7, 0, 4032, 1728) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a278",
+   "expect": "060000006004c003",
+   "new": "060000000005e001",
+   "why": "u16id0wh@0x60b0a250 id6 (6, 0, 1120, 960) -> (6, 0, 1280, 480) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a280",
+   "expect": "070000008004c003",
+   "new": "0700000000052002",
+   "why": "u16id0wh@0x60b0a250 id7 (7, 0, 1152, 960) -> (7, 0, 1280, 544) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a2c8",
+   "expect": "0600000040058004",
+   "new": "0600000040065002",
+   "why": "u16id0wh@0x60b0a2a0 id6 (6, 0, 1344, 1152) -> (6, 0, 1600, 592) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a2d0",
+   "expect": "07000000a005b004",
+   "new": "070000004006b002",
+   "why": "u16id0wh@0x60b0a2a0 id7 (7, 0, 1440, 1200) -> (7, 0, 1600, 688) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a318",
+   "expect": "060000009006a005",
+   "new": "060000008007c002",
+   "why": "u16id0wh@0x60b0a2f0 id6 (6, 0, 1680, 1440) -> (6, 0, 1920, 704) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a320",
+   "expect": "07000000c006a005",
+   "new": "0700000080073003",
+   "why": "u16id0wh@0x60b0a2f0 id7 (7, 0, 1728, 1440) -> (7, 0, 1920, 816) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a3b8",
+   "expect": "06000000c0088007",
+   "new": "06000000000ab003",
+   "why": "u16id0wh@0x60b0a390 id6 (6, 0, 2240, 1920) -> (6, 0, 2560, 944) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a3c0",
+   "expect": "0700000000098007",
+   "new": "07000000000a5004",
+   "why": "u16id0wh@0x60b0a390 id7 (7, 0, 2304, 1920) -> (7, 0, 2560, 1104) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a458",
+   "expect": "06000000f00a6009",
+   "new": "06000000800ca004",
+   "why": "u16id0wh@0x60b0a430 id6 (6, 0, 2800, 2400) -> (6, 0, 3200, 1184) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a460",
+   "expect": "07000000400b6009",
+   "new": "07000000800c6005",
+   "why": "u16id0wh@0x60b0a430 id7 (7, 0, 2880, 2400) -> (7, 0, 3200, 1376) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a548",
+   "expect": "06000000c011300f",
+   "new": "0600000040148007",
+   "why": "u16id0wh@0x60b0a520 id6 (6, 0, 4544, 3888) -> (6, 0, 5184, 1920) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a550",
+   "expect": "070000004012300f",
+   "new": "070000004014b008",
+   "why": "u16id0wh@0x60b0a520 id7 (7, 0, 4672, 3888) -> (7, 0, 5184, 2224) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a5e8",
+   "expect": "06000000e000c000",
+   "new": "0600000040017000",
+   "why": "u16id0wh@0x60b0a5c0 id6 (6, 0, 224, 192) -> (6, 0, 320, 112) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a5f0",
+   "expect": "070000002001f000",
+   "new": "0700000040019000",
+   "why": "u16id0wh@0x60b0a5c0 id7 (7, 0, 288, 240) -> (7, 0, 320, 144) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a638",
+   "expect": "060000003002e001",
+   "new": "060000008002f000",
+   "why": "u16id0wh@0x60b0a610 id6 (6, 0, 560, 480) -> (6, 0, 640, 240) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a640",
+   "expect": "070000004002e001",
+   "new": "0700000080021001",
+   "why": "u16id0wh@0x60b0a610 id7 (7, 0, 576, 480) -> (7, 0, 640, 272) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a688",
+   "expect": "0600000080030003",
+   "new": "0600000000048001",
+   "why": "u16id0wh@0x60b0a660 id6 (6, 0, 896, 768) -> (6, 0, 1024, 384) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0a690",
+   "expect": "070000009003f802",
+   "new": "070000000004b001",
+   "why": "u16id0wh@0x60b0a660 id7 (7, 0, 912, 760) -> (7, 0, 1024, 432) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604e92e4",
+   "expect": "c011300f0706",
+   "new": "401480074118",
+   "why": "u16whcode@0x604e92c6 id6 (4544, 3888, 1543) -> (5184, 1920, 6209) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604e92ea",
+   "expect": "4012300f0605",
+   "new": "4014b0081509",
+   "why": "u16whcode@0x604e92c6 id7 (4672, 3888, 1286) -> (5184, 2224, 2325) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x605221bc",
+   "expect": "900da00b0706",
+   "new": "800fc0054118",
+   "why": "u16whcode@0x6052219e id6 (3472, 2976, 1543) -> (3968, 1472, 6209) (XPan 65:24, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x605221c2",
+   "expect": "f40da00b0605",
+   "new": "800fa0061509",
+   "why": "u16whcode@0x6052219e id7 (3572, 2976, 1286) -> (3968, 1696, 2325) (21:9, align 16, stock class 2)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c6ec",
+   "expect": "06000000d00d0000d00b0000",
+   "new": "06000000c00f0000d0050000",
+   "why": "u32idwh@0x60b8c6b0 id6 (6, 3536, 3024) -> (6, 4032, 1488) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c6f8",
+   "expect": "07000000300e0000d00b0000",
+   "new": "07000000c00f0000c0060000",
+   "why": "u32idwh@0x60b8c6b0 id7 (7, 3632, 3024) -> (7, 4032, 1728) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c764",
+   "expect": "0600000060040000c0030000",
+   "new": "0600000000050000e0010000",
+   "why": "u32idwh@0x60b8c728 id6 (6, 1120, 960) -> (6, 1280, 480) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c770",
+   "expect": "0700000080040000c0030000",
+   "new": "070000000005000020020000",
+   "why": "u32idwh@0x60b8c728 id7 (7, 1152, 960) -> (7, 1280, 544) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c7dc",
+   "expect": "060000004005000080040000",
+   "new": "060000004006000050020000",
+   "why": "u32idwh@0x60b8c7a0 id6 (6, 1344, 1152) -> (6, 1600, 592) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c7e8",
+   "expect": "07000000a0050000b0040000",
+   "new": "0700000040060000b0020000",
+   "why": "u32idwh@0x60b8c7a0 id7 (7, 1440, 1200) -> (7, 1600, 688) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c944",
+   "expect": "06000000c008000080070000",
+   "new": "06000000000a0000b0030000",
+   "why": "u32idwh@0x60b8c908 id6 (6, 2240, 1920) -> (6, 2560, 944) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8c950",
+   "expect": "070000000009000080070000",
+   "new": "07000000000a000050040000",
+   "why": "u32idwh@0x60b8c908 id7 (7, 2304, 1920) -> (7, 2560, 1104) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8ca34",
+   "expect": "06000000f00a000060090000",
+   "new": "06000000800c0000a0040000",
+   "why": "u32idwh@0x60b8c9f8 id6 (6, 2800, 2400) -> (6, 3200, 1184) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8ca40",
+   "expect": "07000000400b000060090000",
+   "new": "07000000800c000060050000",
+   "why": "u32idwh@0x60b8c9f8 id7 (7, 2880, 2400) -> (7, 3200, 1376) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cb9c",
+   "expect": "06000000c0110000300f0000",
+   "new": "060000004014000080070000",
+   "why": "u32idwh@0x60b8cb60 id6 (6, 4544, 3888) -> (6, 5184, 1920) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cba8",
+   "expect": "0700000040120000300f0000",
+   "new": "0700000040140000b0080000",
+   "why": "u32idwh@0x60b8cb60 id7 (7, 4672, 3888) -> (7, 5184, 2224) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cc8c",
+   "expect": "0600000090060000a0050000",
+   "new": "0600000080070000c0020000",
+   "why": "u32idwh@0x60b8cc50 id6 (6, 1680, 1440) -> (6, 1920, 704) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cc98",
+   "expect": "07000000c0060000a0050000",
+   "new": "070000008007000030030000",
+   "why": "u32idwh@0x60b8cc50 id7 (7, 1728, 1440) -> (7, 1920, 816) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cd04",
+   "expect": "06000000e0000000c0000000",
+   "new": "060000004001000070000000",
+   "why": "u32idwh@0x60b8ccc8 id6 (6, 224, 192) -> (6, 320, 112) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cd10",
+   "expect": "0700000020010000f0000000",
+   "new": "070000004001000090000000",
+   "why": "u32idwh@0x60b8ccc8 id7 (7, 288, 240) -> (7, 320, 144) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cd7c",
+   "expect": "06000000e01b0000e8170000",
+   "new": "06000000e01f0000c00b0000",
+   "why": "u32idwh@0x60b8cd40 id6 (6, 7136, 6120) -> (6, 8160, 3008) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cd88",
+   "expect": "07000000b01c0000e8170000",
+   "new": "07000000e01f0000b00d0000",
+   "why": "u32idwh@0x60b8cd40 id7 (7, 7344, 6120) -> (7, 8160, 3504) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cdf4",
+   "expect": "06000000b0130000e0100000",
+   "new": "060000008016000050080000",
+   "why": "u32idwh@0x60b8cdb8 id6 (6, 5040, 4320) -> (6, 5760, 2128) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8ce00",
+   "expect": "0700000040140000e0100000",
+   "new": "0700000080160000a0090000",
+   "why": "u32idwh@0x60b8cdb8 id7 (7, 5184, 4320) -> (7, 5760, 2464) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cf0c",
+   "expect": "0600000030020000e0010000",
+   "new": "0600000080020000f0000000",
+   "why": "u32idwh@0x60b8ced0 id6 (6, 560, 480) -> (6, 640, 240) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cf18",
+   "expect": "0700000040020000e0010000",
+   "new": "070000008002000010010000",
+   "why": "u32idwh@0x60b8ced0 id7 (7, 576, 480) -> (7, 640, 272) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cf84",
+   "expect": "060000008003000000030000",
+   "new": "060000000004000080010000",
+   "why": "u32idwh@0x60b8cf48 id6 (6, 896, 768) -> (6, 1024, 384) (XPan 65:24, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b8cf90",
+   "expect": "0700000090030000f8020000",
+   "new": "0700000000040000b0010000",
+   "why": "u32idwh@0x60b8cf48 id7 (7, 912, 760) -> (7, 1024, 432) (21:9, align 16, stock class 8)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61242f00",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "0100000004002401dc9917610300000004002301dc9917610200000004002501dc991761040000000400fa06dc9917610900000004002701dc991761060000000400f100dc991761070000000400650adc9917610a0000000400bd0cdc991761",
+   "why": "Image Aspect option list (8 entries) relocated to sec-6 tail",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6117af14",
+   "expect": "0e01060034a81761",
+   "new": "0e010800002f2461",
+   "why": "setting 270 option descriptor: count 6->8, list ptr",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210f00",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "2e80022ff000dc03a467002e80022f1001dcf8a367002f80022ef000dcc0a467002f80022e1001dcb5a467002d80022cf000dc668b68002d80022c1001dc5b8b68002c80022df000dc86a968002c80022d1001dc7ba96800804142188018dc9f186500801542188009dc94186500",
+   "why": "aspect case blocks (S1-S5) in sec-1 tail",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b04428",
+   "expect": "ecb28860",
+   "new": "000f2160",
+   "why": "S1 jump entry id6 0x6088b2ec -> block",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0442c",
+   "expect": "f1b28860",
+   "new": "0b0f2160",
+   "why": "S1 jump entry id7 0x6088b2f1 -> block",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b04454",
+   "expect": "bfb38860",
+   "new": "160f2160",
+   "why": "S2 jump entry id6 0x6088b3bf -> block",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b04458",
+   "expect": "c4b38860",
+   "new": "210f2160",
+   "why": "S2 jump entry id7 0x6088b3c4 -> block",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0daf8",
+   "expect": "7b9a8960",
+   "new": "2c0f2160",
+   "why": "S3 jump entry id6 0x60899a7b -> block",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0dafc",
+   "expect": "809a8960",
+   "new": "370f2160",
+   "why": "S3 jump entry id7 0x60899a80 -> block",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0e0ec",
+   "expect": "b1b88960",
+   "new": "420f2160",
+   "why": "S4 jump entry id6 0x6089b8b1 -> block",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0e0f0",
+   "expect": "b6b88960",
+   "new": "4d0f2160",
+   "why": "S4 jump entry id7 0x6089b8b6 -> block",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60af4a18",
+   "expect": "d3278660",
+   "new": "580f2160",
+   "why": "S5 ratio jump entry id6 -> block",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b01548",
+   "expect": "659e8760",
+   "new": "709e8760",
+   "why": "S6 fit-group entry id6: height-limited -> width-limited group",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60af4a1c",
+   "expect": "db278660",
+   "new": "630f2160",
+   "why": "S5 ratio jump entry id7 -> block",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60b0154c",
+   "expect": "659e8760",
+   "new": "709e8760",
+   "why": "S6 fit-group entry id7: height-limited -> width-limited group",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302c47",
+   "expect": "2bbdd5ff",
+   "new": "baba2500",
+   "why": "getter call 0x60302c46 (key 0x84f9 idx 0) rel32 -> wb_get (capture: preset / cat 1)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302c61",
+   "expect": "11bdd5ff",
+   "new": "a0ba2500",
+   "why": "getter call 0x60302c60 (key 0x9679 idx 0) rel32 -> wb_get (capture: preset / cat 1)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302da4",
+   "expect": "cebbd5ff",
+   "new": "5db92500",
+   "why": "getter call 0x60302da3 (key 0x84f9 idx 15) rel32 -> wb_get (capture: Flash)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302db9",
+   "expect": "b9bbd5ff",
+   "new": "48b92500",
+   "why": "getter call 0x60302db8 (key 0x9679 idx 15) rel32 -> wb_get (capture: Flash)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302e36",
+   "expect": "3cbbd5ff",
+   "new": "cbb82500",
+   "why": "getter call 0x60302e35 (key 0x84f9 idx 0) rel32 -> wb_get (capture: one-touch)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302e4c",
+   "expect": "26bbd5ff",
+   "new": "b5b82500",
+   "why": "getter call 0x60302e4b (key 0x9679 idx 0) rel32 -> wb_get (capture: one-touch)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302f24",
+   "expect": "4ebad5ff",
+   "new": "ddb72500",
+   "why": "getter call 0x60302f23 (key 0x84f9 idx 0) rel32 -> wb_get (capture: cat 4)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302f3c",
+   "expect": "36bad5ff",
+   "new": "c5b72500",
+   "why": "getter call 0x60302f3b (key 0x9679 idx 0) rel32 -> wb_get (capture: cat 4)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302f90",
+   "expect": "e2b9d5ff",
+   "new": "71b72500",
+   "why": "getter call 0x60302f8f (key 0x84f9 idx 1) rel32 -> wb_get (capture: Auto)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302fa9",
+   "expect": "c9b9d5ff",
+   "new": "58b72500",
+   "why": "getter call 0x60302fa8 (key 0x9679 idx 1) rel32 -> wb_get (capture: Auto)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030bb5c",
+   "expect": "162ed5ff",
+   "new": "a52b2500",
+   "why": "getter call 0x6030bb5b (key 0x84f9 idx 0) rel32 -> wb_get (compact ring slot +97 (live-view candidate))",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030bb6f",
+   "expect": "032ed5ff",
+   "new": "922b2500",
+   "why": "getter call 0x6030bb6e (key 0x9679 idx 0) rel32 -> wb_get (compact ring slot +99 (live-view candidate))",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030eb62",
+   "expect": "10fed4ff",
+   "new": "9ffb2400",
+   "why": "getter call 0x6030eb61 (key 0x84f9 idx 0) rel32 -> wb_get (params builder 0x6030e9d1 -> params+5520)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030eb78",
+   "expect": "fafdd4ff",
+   "new": "89fb2400",
+   "why": "getter call 0x6030eb77 (key 0x9679 idx 0) rel32 -> wb_get (params builder 0x6030e9d1 -> params+5521)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6055e700",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "821a87facaf984c808faca7996c97f2c2181cd84000004a003c8732c8194cd78000004a006c90a2c119dcd6c000004a00bc818a00cc9572c31f7cd5c00000428ffa004c6492804ca102cb1f6cd4a00000428ffa004c637545454fcdc00092160f160f84019f8e081a001c922f8401a280714a00fc618f8441b290715a50fc60ef8ee80c9038428f98ddfc00c881c8d9000dce001b0ff1c049000ddd701b0ffc00cdf0004",
+   "why": "per-profile WB stub wb_get (164 B) in section-2 FF tail",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603b02bf",
+   "expect": "f219a50bc936",
+   "new": "dc098afc00cb",
+   "owner": "mono_colour",
+   "why": "selector 0x603b0252 mode test -> jmp sel (MONO colour slot -> COLOR builder)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603b134e",
+   "expect": "cdadfee010",
+   "new": "dccd7afc00",
+   "owner": "mono_colour",
+   "why": "chroma stage 0x603b132a tone lookup -> jmp chroma (colour slot: no grey/toning)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60353db9",
+   "expect": "fa002c2ca00cc92a",
+   "new": "dc30510201cbcbcb",
+   "owner": "mono_colour",
+   "why": "packer mono-filter merge -> jmp fg (colour slot: filter/tone = 0)",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61378c80",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "581b70178813a00fb80bd007e803000018fc30f848f460f078ec90e8a8e4d4fe06ff38ff6aff9cffceffe7ff00001900320064009600c800fa002c0100020406080a01030507090bf219a50bc907dcf77503ffa50cc807dc227603fff8fef0420046044a08430c73fcc8d45f3560c805cc1b01f803049cfad08c0c8a10f190c80b20382affc9f8cc0401749cfad09cd3f191c805ccf700fa40823cfac8b200c805ccea00fa40813ca00cc805ccdf00fa40803c28ffa004c405ccd2002804f8c006fcdc00092160f160f84020a001c805ccbb008a21f408102805a00bc405ccad0048aa2dc9f1f8401ff8ec02c81408f408102807a00fc405cc930048aa18c9f15a08f8fe10f8060c9323219dfcacfce95160fcdc2cde5160ddd07203fff060f8fee4420046044a084e0c431047144f189c20dff8401ff8ec02c83cf82e0cfad3c20208fcddbc8c3761f419f404102807e0fcdd808c3761f4b1f07f290cf404102807e0fcdd9e8c3761f4b1f87f04231848aa0cc9d0580059045a085b0c5c105d145f18f8fe1cdcd87403ff580059045a085c0cf8fe10dce37403ffdde08303ffe010f8fef0420046044a08430cfccc53133b60f2f2b000c905cca000f80334a00cc805cc960072fcc8d45f3560c805cc8a00f8020498fad08c0c8a10f190c80a20382affc9f8ca737498fad09cd3f191c969fa40823cfac8b200c95ffa40813ca00cc957fa40803c28ffa004c64d2804f8c006fcdc00092160f160f84020a001c9398a21f408102805a00bc62e48aa2dc9f4f8401ff8ec02c81108f408102807a00fc61748aa18c9f4580059045a08f8fe109000dc7f8403ff580059045a085c0cf8fe10dc6f8403fffa002c2ca00cc807dcf8aefdfef8fef84a004304fa40823cfac8b200c966fa40813ca00cc95efa40803c28ffa004c6542804f8c006fcdc00092160f160f84020a001c9408a21f408102805a00bc63548aa2dc9f4f8401ff8ec02c81108f408102807a00fc61e48aa18c9f45c0400fa50bc15fa50bd155a00f8fe08800cdc83aefdfe5a005c04f8fe08800cdc4daefdfe000000",
+   "owner": "mono_colour",
+   "why": "MONO-colour LUTs + code (764 B) in section-7 FF tail",
+   "source": "releases/v0.4/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cae3c",
+   "expect": "7d0d2c006a00540055005800850d2200920d3802aa01800c7d0d2c006a00540055005800850d2200920d3802aa01",
+   "new": "7d0d2c006a00540055000c0d58001600f50c850d2200ae02920dd9015d02e00de10db5013802e50daa019d00800c",
+   "why": "buttons: shared full-button function list (23 codes) for sids 47/48/49",
+   "source": "patches/buttons/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cb00e",
+   "expect": "850d1000d10caa01e60d1a3b5800800c850d1000d10caa01e60d1a3b5800800c",
+   "new": "850d1000d10caa01e60d1a3b5800e00de10d3802920de50d2200b5011600800c",
+   "why": "buttons: shared arrow right/down function list (16 codes) for sids 51/53",
+   "source": "patches/buttons/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cda14",
+   "expect": "1800",
+   "new": "2e00",
+   "why": "buttons: sid 47 list bytes 24 -> 46",
+   "source": "patches/buttons/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cda20",
+   "expect": "54ae4c60",
+   "new": "3cae4c60",
+   "why": "buttons: sid 49 list ptr -> 0x604cae3c",
+   "source": "patches/buttons/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cda28",
+   "expect": "1800",
+   "new": "2e00",
+   "why": "buttons: sid 49 list bytes 24 -> 46",
+   "source": "patches/buttons/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cda34",
+   "expect": "6cae4c60",
+   "new": "3cae4c60",
+   "why": "buttons: sid 48 list ptr -> 0x604cae3c",
+   "source": "patches/buttons/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cda3c",
+   "expect": "1800",
+   "new": "2e00",
+   "why": "buttons: sid 48 list bytes 24 -> 46",
+   "source": "patches/buttons/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cdadc",
+   "expect": "1000",
+   "new": "2000",
+   "why": "buttons: sid 51 list bytes 16 -> 32",
+   "source": "patches/buttons/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cdae8",
+   "expect": "1eb04c60",
+   "new": "0eb04c60",
+   "why": "buttons: sid 53 list ptr -> 0x604cb00e",
+   "source": "patches/buttons/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x604cdaf0",
+   "expect": "1000",
+   "new": "2000",
+   "why": "buttons: sid 53 list bytes 16 -> 32",
+   "source": "patches/buttons/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601f9df7",
+   "expect": "c905cc8500",
+   "new": "dc89710100",
+   "why": "lens dispatcher `bne; jmp null` -> jmp disp_hook (request ring option 0x01 on C1 80 / 81 E3)",
+   "source": "/tmp/claude-1000/-mnt-Storage-Projects---software-Firmware-Olympus-E-P7/ca7a5b2b-a0cb-49f7-8a33-fbf59936fbd5/scratchpad/ar.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601f5ed7",
+   "expect": "f0435c044df85011",
+   "new": "ddf2b001000000cb",
+   "why": "status parser after DIS_FCENC -> call parse_hook,[],0 (consume + publish ring word)",
+   "source": "/tmp/claude-1000/-mnt-Storage-Projects---software-Firmware-Olympus-E-P7/ca7a5b2b-a0cb-49f7-8a33-fbf59936fbd5/scratchpad/ar.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60427ae7",
+   "expect": "cd611a0004",
+   "new": "dcb514f500",
+   "why": "AE snapshot aperture-point call -> jmp ae_hook (ring Av in A/M)",
+   "source": "/tmp/claude-1000/-mnt-Storage-Projects---software-Firmware-Olympus-E-P7/ca7a5b2b-a0cb-49f7-8a33-fbf59936fbd5/scratchpad/ar.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210f80",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "c844f8630ca000c938f8631218fac8c180c808fac881e3c928f84715f8ed08c92000ddbf17feff8008b000c814fa004004f8ec80c80bf84715f8e501f85715dc3d8efeffdcba8efefff0435c044df850115814f8ec02c919f8ee01c814f84701f8c108f043f2112302fc87fe0f21a0df0000",
+   "why": "aperture-ring lens hooks (114 B, section-1 FF tail)",
+   "source": "/tmp/claude-1000/-mnt-Storage-Projects---software-Firmware-Olympus-E-P7/ca7a5b2b-a0cb-49f7-8a33-fbf59936fbd5/scratchpad/ar.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210ffe",
+   "expect": "ffff",
+   "new": "0080",
+   "why": "aperture-ring published ring word, initial 0x8000 = A/auto (run-time, written via uncached alias)",
+   "source": "/tmp/claude-1000/-mnt-Storage-Projects---software-Firmware-Olympus-E-P7/ca7a5b2b-a0cb-49f7-8a33-fbf59936fbd5/scratchpad/ar.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x61378f9c",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "ddac050bff0004f8fef8420400ddb897e7fe8008b000c844fa004004f8ec80c83bf84302a004c806a006c930fcadfe0f21a019fac90080c823fcac50f61c6218f1e0fcac4ef61c6218f190c10fa1c20381f1d0a1c3038184ca045804f8fe08dcf1ea0aff",
+   "why": "aperture-ring AE hook (100 B, section-7 FF tail)",
+   "source": "/tmp/claude-1000/-mnt-Storage-Projects---software-Firmware-Olympus-E-P7/ca7a5b2b-a0cb-49f7-8a33-fbf59936fbd5/scratchpad/ar.json"
+  }
+ ],
+ "sources": [
+  "releases/v0.4/edits.json",
+  "patches/buttons/edits.json",
+  "/tmp/claude-1000/-mnt-Storage-Projects---software-Firmware-Olympus-E-P7/ca7a5b2b-a0cb-49f7-8a33-fbf59936fbd5/scratchpad/ar.json"
+ ],
+ "meta": {
+  "releases/v0.4/edits.json": {
+   "sources": [
+    "generated/v04/bundles/edits.json",
+    "generated/v04/grain/edits.json",
+    "generated/v04/bloom/edits.json",
+    "patches/rec_limit/edits.json",
+    "patches/video_log/edits.json",
+    "patches/aspect/edits.json",
+    "generated/wb/edits.json",
+    "generated/mono_colour/edits.json"
+   ],
+   "meta": {
+    "bundles-v0.2": {
+     "patch": "bundles-v0.2",
+     "bundle": "bundles/example.json",
+     "labels": {
+      "__bss_start": "0x60210c70",
+      "bundle_table": "0x60210900",
+      "bundle_table_end": "0x60210b00",
+      "code_end": "0x60210c6f",
+      "code_start": "0x60210b48",
+      "conv1": "0x60210b48",
+      "conv2": "0x60210b71",
+      "___ctors": "0x60210c70",
+      "___ctors_end": "0x60210c70",
+      "___dtors": "0x60210c70",
+      "___dtors_end": "0x60210c70",
+      "_edata": "0x60210c70",
+      "_end": "0x60210c70",
+      "hit": "0x60210bd7",
+      "hl": "0x60210b99",
+      "hue_lut": "0x60210b00",
+      ".L0\u0001_0": "0x60210bc0",
+      ".L1\u00021": "0x60210b6c",
+      "light_lut": "0x60210b1e",
+      "out": "0x60210c59",
+      "perm": "0x60210b3c",
+      "rec": "0x60210c27",
+      "scan": "0x60210bca",
+      "_stack": "0x80000",
+      "_start": "0x60210900",
+      "val": "0x60210c11"
+     },
+     "layout": {
+      "job_size": 15512,
+      "ext_profile": 15488,
+      "ext_mode": 15489,
+      "ext_magic": 15490,
+      "magic": 178,
+      "entry_bytes": 64,
+      "slots": [
+       "COLOR1",
+       "COLOR2",
+       "COLOR3",
+       "COLOR4",
+       "MONO1",
+       "MONO2",
+       "MONO3",
+       "MONO4"
+      ]
+     },
+     "slots": [
+      {
+       "slot": "COLOR1",
+       "enabled": true,
+       "recipe": "classic_neg",
+       "recipe_file": "fuji_like.json",
+       "hue_ui": [
+        0,
+        -1,
+        0,
+        0,
+        7,
+        6,
+        -2,
+        -3,
+        6,
+        7,
+        5,
+        2
+       ],
+       "light_ui": [
+        -4,
+        -4,
+        -3,
+        -2,
+        -1,
+        2,
+        2,
+        3,
+        -1,
+        -3,
+        -5,
+        -5
+       ],
+       "grain": 0,
+       "wb_override": true,
+       "wb_source": "slot",
+       "wb": [
+        2,
+        1
+       ],
+       "effect": [
+        0,
+        0
+       ],
+       "vignette": 0,
+       "flags": 2,
+       "advice_sat_ui": [
+        -3,
+        -2,
+        -2,
+        0,
+        -1,
+        -5,
+        -5,
+        -3,
+        -1,
+        -4,
+        -4,
+        -4
+       ],
+       "advice_grain": "off",
+       "colour": 0,
+       "sat_ui": null,
+       "native_rows": [
+        [
+         0,
+         -150
+        ],
+        [
+         0,
+         -100
+        ],
+        [
+         -7000,
+         -25
+        ],
+        [
+         2000,
+         50
+        ],
+        [
+         -6000,
+         -25
+        ],
+        [
+         -5000,
+         -200
+        ],
+        [
+         1000,
+         -150
+        ],
+        [
+         0,
+         -50
+        ],
+        [
+         -6000,
+         50
+        ],
+        [
+         3000,
+         100
+        ],
+        [
+         -7000,
+         -100
+        ],
+        [
+         -2000,
+         -200
+        ]
+       ]
+      },
+      {
+       "slot": "COLOR2",
+       "enabled": true,
+       "recipe": "kodachrome_64",
+       "recipe_file": "fuji_like.json",
+       "hue_ui": [
+        -2,
+        -1,
+        0,
+        0,
+        3,
+        1,
+        -2,
+        -4,
+        -2,
+        2,
+        0,
+        -2
+       ],
+       "light_ui": [
+        -3,
+        -3,
+        -2,
+        -3,
+        -1,
+        -1,
+        -2,
+        -1,
+        -1,
+        -1,
+        -3,
+        -2
+       ],
+       "grain": 0,
+       "wb_override": true,
+       "wb_source": "recipe",
+       "wb": [
+        3,
+        1
+       ],
+       "effect": [
+        0,
+        0
+       ],
+       "vignette": 0,
+       "flags": 2,
+       "advice_sat_ui": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        -1,
+        -1,
+        -1,
+        1,
+        -1,
+        -1,
+        -1
+       ],
+       "advice_grain": "low",
+       "colour": 0,
+       "sat_ui": null,
+       "native_rows": [
+        [
+         2000,
+         -100
+        ],
+        [
+         0,
+         -50
+        ],
+        [
+         -3000,
+         -25
+        ],
+        [
+         2000,
+         -50
+        ],
+        [
+         2000,
+         -25
+        ],
+        [
+         0,
+         -100
+        ],
+        [
+         1000,
+         -100
+        ],
+        [
+         0,
+         -100
+        ],
+        [
+         -1000,
+         -25
+        ],
+        [
+         4000,
+         -25
+        ],
+        [
+         -2000,
+         -25
+        ],
+        [
+         2000,
+         -50
+        ]
+       ]
+      },
+      {
+       "slot": "COLOR3",
+       "enabled": true,
+       "recipe": "classic_chrome",
+       "recipe_file": "fuji_like.json",
+       "hue_ui": [
+        -2,
+        -1,
+        0,
+        0,
+        3,
+        1,
+        -2,
+        -4,
+        -2,
+        2,
+        0,
+        -2
+       ],
+       "light_ui": [
+        -1,
+        -1,
+        0,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -2,
+        -1
+       ],
+       "grain": 1,
+       "wb_override": true,
+       "wb_source": "recipe",
+       "wb": [
+        0,
+        0
+       ],
+       "effect": [
+        0,
+        0
+       ],
+       "vignette": 0,
+       "flags": 2,
+       "advice_sat_ui": [
+        -2,
+        -2,
+        -2,
+        -1,
+        -1,
+        -3,
+        -3,
+        -3,
+        -1,
+        -3,
+        -3,
+        -3
+       ],
+       "advice_grain": "off",
+       "colour": 0,
+       "sat_ui": null,
+       "native_rows": [
+        [
+         2000,
+         -25
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         -3000,
+         -25
+        ],
+        [
+         2000,
+         -25
+        ],
+        [
+         2000,
+         -25
+        ],
+        [
+         0,
+         -50
+        ],
+        [
+         1000,
+         -25
+        ],
+        [
+         0,
+         -25
+        ],
+        [
+         -1000,
+         -25
+        ],
+        [
+         4000,
+         -25
+        ],
+        [
+         -2000,
+         -25
+        ],
+        [
+         2000,
+         -25
+        ]
+       ]
+      },
+      {
+       "slot": "COLOR4",
+       "enabled": true,
+       "recipe": "nostalgic_neg",
+       "recipe_file": "fuji_like.json",
+       "hue_ui": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -2,
+        -3,
+        -1
+       ],
+       "light_ui": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "grain": 0,
+       "wb_override": true,
+       "wb_source": "recipe",
+       "wb": [
+        2,
+        0
+       ],
+       "effect": [
+        2,
+        3
+       ],
+       "vignette": -1,
+       "flags": 2,
+       "advice_sat_ui": [
+        1,
+        1,
+        1,
+        0,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        0,
+        1
+       ],
+       "advice_grain": "off",
+       "colour": 0,
+       "sat_ui": null,
+       "native_rows": [
+        [
+         0,
+         25
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         0,
+         -25
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         3000,
+         0
+        ],
+        [
+         0,
+         25
+        ],
+        [
+         -1000,
+         0
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         2000,
+         0
+        ],
+        [
+         1000,
+         0
+        ]
+       ]
+      },
+      {
+       "slot": "MONO1",
+       "enabled": false
+      },
+      {
+       "slot": "MONO2",
+       "enabled": false
+      },
+      {
+       "slot": "MONO3",
+       "enabled": false
+      },
+      {
+       "slot": "MONO4",
+       "enabled": false
+      }
+     ],
+     "table_hex": "00ff00000706fefd06070502fcfcfdfeff020203fffdfbfb00010201000000020000000000000000000000000000000000000000000000000000000000000000feff00000301fefcfe0200fefdfdfefdfffffefffffffdfe00010301000000020000000000000000000000000000000000000000000000000000000000000000feff00000301fefcfe0200feffff00fffffffffffffffeff01010000000000020000000000000000000000000000000000000000000000000000000000000000000000010000000000fefdff010100000000ff0000000000000102000203ff02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "color_grain": {
+     "patch": "color_grain",
+     "level": "bundle",
+     "code_at": "0x60210ce0",
+     "requires": [
+      "bundles-v0.2"
+     ],
+     "grain_gate": "type&0xf0 in {0x10,0x20,0x40} or type&0xf00 == 0x100 -> no grain (stock 0x6035778b)",
+     "grain_layout": {
+      "table": "0x60210900",
+      "slot_bytes": 64,
+      "field": 24,
+      "ext_profile": 15488,
+      "ext_mode": 15489,
+      "ext_magic": 15490,
+      "magic": 178
+     },
+     "symbols": {
+      "grain_mod": "0x60210d9a",
+      "sel_hook": "0x60210d71",
+      "wl_hook": "0x60210ce0"
+     }
+    },
+    "color_bloom": {
+     "patch": "color_bloom",
+     "requires": [
+      "bundles-v0.2"
+     ],
+     "bloom": {
+      "mode": "bundle",
+      "strength_w": [
+       942,
+       881,
+       819,
+       748,
+       666
+      ],
+      "effect_id": 1,
+      "code_at": "0x60210e10",
+      "table": "0x60210900",
+      "f_effect": 28,
+      "f_strength": 29,
+      "ext": {
+       "profile": 15488,
+       "mode": 15489,
+       "marker": 15490,
+       "magic": 178
+      },
+      "cap": {
+       "profile": 24083,
+       "mode": 24053
+      },
+      "guard": {
+       "callback": "0x60355fd4",
+       "req_in_job": 11364,
+       "records": 14576,
+       "stride": 56,
+       "n": 16
+      },
+      "symbols": {
+       "bloom_flag": "0x60210e10",
+       "bloom_w": "0x60210e5b",
+       "w_lut": "0x60210ee0"
+      }
+     }
+    },
+    "patches/rec_limit/edits.json": {},
+    "video_log_A": {
+     "patch": "video_log_A",
+     "trig_log": 3,
+     "trig_flat": null,
+     "code_at": "0x60210c90",
+     "code_len": 42
+    },
+    "patches/aspect/edits.json": {},
+    "wb_profile": {
+     "patch": "wb_profile",
+     "wb": {
+      "code_at": "0x6055e700",
+      "code_len": 164,
+      "getter": "0x6005e971",
+      "sites": [
+       {
+        "site": "0x60302c46",
+        "key": 34041,
+        "idx": 0,
+        "role": "capture: preset / cat 1"
+       },
+       {
+        "site": "0x60302c60",
+        "key": 38521,
+        "idx": 0,
+        "role": "capture: preset / cat 1"
+       },
+       {
+        "site": "0x60302da3",
+        "key": 34041,
+        "idx": 15,
+        "role": "capture: Flash"
+       },
+       {
+        "site": "0x60302db8",
+        "key": 38521,
+        "idx": 15,
+        "role": "capture: Flash"
+       },
+       {
+        "site": "0x60302e35",
+        "key": 34041,
+        "idx": 0,
+        "role": "capture: one-touch"
+       },
+       {
+        "site": "0x60302e4b",
+        "key": 38521,
+        "idx": 0,
+        "role": "capture: one-touch"
+       },
+       {
+        "site": "0x60302f23",
+        "key": 34041,
+        "idx": 0,
+        "role": "capture: cat 4"
+       },
+       {
+        "site": "0x60302f3b",
+        "key": 38521,
+        "idx": 0,
+        "role": "capture: cat 4"
+       },
+       {
+        "site": "0x60302f8f",
+        "key": 34041,
+        "idx": 1,
+        "role": "capture: Auto"
+       },
+       {
+        "site": "0x60302fa8",
+        "key": 38521,
+        "idx": 1,
+        "role": "capture: Auto"
+       },
+       {
+        "site": "0x6030bb5b",
+        "key": 34041,
+        "idx": 0,
+        "role": "compact ring slot +97 (live-view candidate)"
+       },
+       {
+        "site": "0x6030bb6e",
+        "key": 38521,
+        "idx": 0,
+        "role": "compact ring slot +99 (live-view candidate)"
+       },
+       {
+        "site": "0x6030eb61",
+        "key": 34041,
+        "idx": 0,
+        "role": "params builder 0x6030e9d1 -> params+5520"
+       },
+       {
+        "site": "0x6030eb77",
+        "key": 38521,
+        "idx": 0,
+        "role": "params builder 0x6030e9d1 -> params+5521"
+       }
+      ],
+      "raw_sites_stock": [
+       "0x60c68a45",
+       "0x60c68a59"
+      ],
+      "keys": {
+       "a_b": 34041,
+       "g_m": 38521,
+       "wb_category": 33057,
+       "cwb": 3,
+       "picture_mode": 38017,
+       "picture_mode6": 40209,
+       "color_profile": 63153,
+       "mono_profile": 63281
+      },
+      "layout": {
+       "bundle_table": "0x60210900",
+       "slot_bytes": 64,
+       "wb_flags": 25,
+       "wb_ab": 26,
+       "wb_gm": 27
+      },
+      "symbols": {
+       "__bss_start": "0x6055e7a4",
+       "___ctors": "0x6055e7a4",
+       "___ctors_end": "0x6055e7a4",
+       "___dtors": "0x6055e7a4",
+       "___dtors_end": "0x6055e7a4",
+       "_edata": "0x6055e7a4",
+       "_end": "0x6055e7a4",
+       "_stack": "0x80000",
+       "_start": "0x6055e700",
+       "wb_color": "0x6055e749",
+       "wb_get": "0x6055e700",
+       "wb_key": "0x6055e70f",
+       "wb_mode": "0x6055e72f",
+       "wb_pass": "0x6055e78c",
+       "wb_prop": "0x6055e796",
+       "wb_ret": "0x6055e786",
+       "wb_slot": "0x6055e757"
+      },
+      "requires": "bundles-v0.2 table at bundle_table (merge with patches/bundles/build.py output)"
+     }
+    },
+    "mono_colour": {
+     "patch": "mono_colour",
+     "mono_colour": {
+      "code_at": "0x61378c80",
+      "code_len": 764,
+      "labels": {
+       "__bss_start": "0x61378f7c",
+       "ch_keep": "0x61378ed9",
+       "chroma": "0x61378e1b",
+       "code_end": "0x61378f79",
+       "code_start": "0x61378cc8",
+       "___ctors": "0x61378f7c",
+       "___ctors_end": "0x61378f7c",
+       "___dtors": "0x61378f7c",
+       "___dtors_end": "0x61378f7c",
+       "_edata": "0x61378f7c",
+       "_end": "0x61378f7c",
+       "fg": "0x61378ee9",
+       "fg_mono": "0x61378f6b",
+       "hl_done": "0x61378df5",
+       "hue_lut": "0x61378c80",
+       "light_lut": "0x61378c9e",
+       "perm": "0x61378cbc",
+       "rec": "0x61378dc3",
+       "sel": "0x61378cc8",
+       "sel_mono": "0x61378e0b",
+       "_stack": "0x80000",
+       "_start": "0x61378c80"
+      },
+      "sites": {
+       "sel": "0x603b02bf",
+       "chroma": "0x603b134e",
+       "fg": "0x60353db9"
+      },
+      "requires": "bundles-v0.2",
+      "layout": {
+       "colour": 32,
+       "sat": 33,
+       "flags": 31,
+       "bundle_table": "0x60210900"
+      }
+     }
+    }
+   },
+   "bundle": "bundles/example.json",
+   "labels": {
+    "__bss_start": "0x60210c70",
+    "bundle_table": "0x60210900",
+    "bundle_table_end": "0x60210b00",
+    "code_end": "0x60210c6f",
+    "code_start": "0x60210b48",
+    "conv1": "0x60210b48",
+    "conv2": "0x60210b71",
+    "___ctors": "0x60210c70",
+    "___ctors_end": "0x60210c70",
+    "___dtors": "0x60210c70",
+    "___dtors_end": "0x60210c70",
+    "_edata": "0x60210c70",
+    "_end": "0x60210c70",
+    "hit": "0x60210bd7",
+    "hl": "0x60210b99",
+    "hue_lut": "0x60210b00",
+    ".L0\u0001_0": "0x60210bc0",
+    ".L1\u00021": "0x60210b6c",
+    "light_lut": "0x60210b1e",
+    "out": "0x60210c59",
+    "perm": "0x60210b3c",
+    "rec": "0x60210c27",
+    "scan": "0x60210bca",
+    "_stack": "0x80000",
+    "_start": "0x60210900",
+    "val": "0x60210c11"
+   },
+   "table_hex": "00ff00000706fefd06070502fcfcfdfeff020203fffdfbfb00010201000000020000000000000000000000000000000000000000000000000000000000000000feff00000301fefcfe0200fefdfdfefdfffffefffffffdfe00010301000000020000000000000000000000000000000000000000000000000000000000000000feff00000301fefcfe0200feffff00fffffffffffffffeff01010000000000020000000000000000000000000000000000000000000000000000000000000000000000010000000000fefdff010100000000ff0000000000000102000203ff02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+   "slots": [
+    {
+     "slot": "COLOR1",
+     "enabled": true,
+     "recipe": "classic_neg",
+     "recipe_file": "fuji_like.json",
+     "hue_ui": [
+      0,
+      -1,
+      0,
+      0,
+      7,
+      6,
+      -2,
+      -3,
+      6,
+      7,
+      5,
+      2
+     ],
+     "light_ui": [
+      -4,
+      -4,
+      -3,
+      -2,
+      -1,
+      2,
+      2,
+      3,
+      -1,
+      -3,
+      -5,
+      -5
+     ],
+     "grain": 0,
+     "wb_override": true,
+     "wb_source": "slot",
+     "wb": [
+      2,
+      1
+     ],
+     "effect": [
+      0,
+      0
+     ],
+     "vignette": 0,
+     "flags": 2,
+     "advice_sat_ui": [
+      -3,
+      -2,
+      -2,
+      0,
+      -1,
+      -5,
+      -5,
+      -3,
+      -1,
+      -4,
+      -4,
+      -4
+     ],
+     "advice_grain": "off",
+     "colour": 0,
+     "sat_ui": null,
+     "native_rows": [
+      [
+       0,
+       -150
+      ],
+      [
+       0,
+       -100
+      ],
+      [
+       -7000,
+       -25
+      ],
+      [
+       2000,
+       50
+      ],
+      [
+       -6000,
+       -25
+      ],
+      [
+       -5000,
+       -200
+      ],
+      [
+       1000,
+       -150
+      ],
+      [
+       0,
+       -50
+      ],
+      [
+       -6000,
+       50
+      ],
+      [
+       3000,
+       100
+      ],
+      [
+       -7000,
+       -100
+      ],
+      [
+       -2000,
+       -200
+      ]
+     ]
+    },
+    {
+     "slot": "COLOR2",
+     "enabled": true,
+     "recipe": "kodachrome_64",
+     "recipe_file": "fuji_like.json",
+     "hue_ui": [
+      -2,
+      -1,
+      0,
+      0,
+      3,
+      1,
+      -2,
+      -4,
+      -2,
+      2,
+      0,
+      -2
+     ],
+     "light_ui": [
+      -3,
+      -3,
+      -2,
+      -3,
+      -1,
+      -1,
+      -2,
+      -1,
+      -1,
+      -1,
+      -3,
+      -2
+     ],
+     "grain": 0,
+     "wb_override": true,
+     "wb_source": "recipe",
+     "wb": [
+      3,
+      1
+     ],
+     "effect": [
+      0,
+      0
+     ],
+     "vignette": 0,
+     "flags": 2,
+     "advice_sat_ui": [
+      0,
+      0,
+      0,
+      1,
+      1,
+      -1,
+      -1,
+      -1,
+      1,
+      -1,
+      -1,
+      -1
+     ],
+     "advice_grain": "low",
+     "colour": 0,
+     "sat_ui": null,
+     "native_rows": [
+      [
+       2000,
+       -100
+      ],
+      [
+       0,
+       -50
+      ],
+      [
+       -3000,
+       -25
+      ],
+      [
+       2000,
+       -50
+      ],
+      [
+       2000,
+       -25
+      ],
+      [
+       0,
+       -100
+      ],
+      [
+       1000,
+       -100
+      ],
+      [
+       0,
+       -100
+      ],
+      [
+       -1000,
+       -25
+      ],
+      [
+       4000,
+       -25
+      ],
+      [
+       -2000,
+       -25
+      ],
+      [
+       2000,
+       -50
+      ]
+     ]
+    },
+    {
+     "slot": "COLOR3",
+     "enabled": true,
+     "recipe": "classic_chrome",
+     "recipe_file": "fuji_like.json",
+     "hue_ui": [
+      -2,
+      -1,
+      0,
+      0,
+      3,
+      1,
+      -2,
+      -4,
+      -2,
+      2,
+      0,
+      -2
+     ],
+     "light_ui": [
+      -1,
+      -1,
+      0,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1,
+      -2,
+      -1
+     ],
+     "grain": 1,
+     "wb_override": true,
+     "wb_source": "recipe",
+     "wb": [
+      0,
+      0
+     ],
+     "effect": [
+      0,
+      0
+     ],
+     "vignette": 0,
+     "flags": 2,
+     "advice_sat_ui": [
+      -2,
+      -2,
+      -2,
+      -1,
+      -1,
+      -3,
+      -3,
+      -3,
+      -1,
+      -3,
+      -3,
+      -3
+     ],
+     "advice_grain": "off",
+     "colour": 0,
+     "sat_ui": null,
+     "native_rows": [
+      [
+       2000,
+       -25
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       -3000,
+       -25
+      ],
+      [
+       2000,
+       -25
+      ],
+      [
+       2000,
+       -25
+      ],
+      [
+       0,
+       -50
+      ],
+      [
+       1000,
+       -25
+      ],
+      [
+       0,
+       -25
+      ],
+      [
+       -1000,
+       -25
+      ],
+      [
+       4000,
+       -25
+      ],
+      [
+       -2000,
+       -25
+      ],
+      [
+       2000,
+       -25
+      ]
+     ]
+    },
+    {
+     "slot": "COLOR4",
+     "enabled": true,
+     "recipe": "nostalgic_neg",
+     "recipe_file": "fuji_like.json",
+     "hue_ui": [
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      -2,
+      -3,
+      -1
+     ],
+     "light_ui": [
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      -1,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "grain": 0,
+     "wb_override": true,
+     "wb_source": "recipe",
+     "wb": [
+      2,
+      0
+     ],
+     "effect": [
+      2,
+      3
+     ],
+     "vignette": -1,
+     "flags": 2,
+     "advice_sat_ui": [
+      1,
+      1,
+      1,
+      0,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1,
+      0,
+      1
+     ],
+     "advice_grain": "off",
+     "colour": 0,
+     "sat_ui": null,
+     "native_rows": [
+      [
+       0,
+       25
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       -25
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       3000,
+       0
+      ],
+      [
+       0,
+       25
+      ],
+      [
+       -1000,
+       0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       2000,
+       0
+      ],
+      [
+       1000,
+       0
+      ]
+     ]
+    },
+    {
+     "slot": "MONO1",
+     "enabled": false
+    },
+    {
+     "slot": "MONO2",
+     "enabled": false
+    },
+    {
+     "slot": "MONO3",
+     "enabled": false
+    },
+    {
+     "slot": "MONO4",
+     "enabled": false
+    }
+   ],
+   "layout": {
+    "job_size": 15512,
+    "ext_profile": 15488,
+    "ext_mode": 15489,
+    "ext_magic": 15490,
+    "magic": 178,
+    "entry_bytes": 64,
+    "slots": [
+     "COLOR1",
+     "COLOR2",
+     "COLOR3",
+     "COLOR4",
+     "MONO1",
+     "MONO2",
+     "MONO3",
+     "MONO4"
+    ]
+   },
+   "symbols": {
+    "grain_mod": "0x60210d9a",
+    "sel_hook": "0x60210d71",
+    "wl_hook": "0x60210ce0"
+   },
+   "level": "bundle",
+   "code_at": "0x60210ce0",
+   "bloom": {
+    "mode": "bundle",
+    "strength_w": [
+     942,
+     881,
+     819,
+     748,
+     666
+    ],
+    "effect_id": 1,
+    "code_at": "0x60210e10",
+    "table": "0x60210900",
+    "f_effect": 28,
+    "f_strength": 29,
+    "ext": {
+     "profile": 15488,
+     "mode": 15489,
+     "marker": 15490,
+     "magic": 178
+    },
+    "cap": {
+     "profile": 24083,
+     "mode": 24053
+    },
+    "guard": {
+     "callback": "0x60355fd4",
+     "req_in_job": 11364,
+     "records": 14576,
+     "stride": 56,
+     "n": 16
+    },
+    "symbols": {
+     "bloom_flag": "0x60210e10",
+     "bloom_w": "0x60210e5b",
+     "w_lut": "0x60210ee0"
+    }
+   },
+   "wb": {
+    "code_at": "0x6055e700",
+    "code_len": 164,
+    "getter": "0x6005e971",
+    "sites": [
+     {
+      "site": "0x60302c46",
+      "key": 34041,
+      "idx": 0,
+      "role": "capture: preset / cat 1"
+     },
+     {
+      "site": "0x60302c60",
+      "key": 38521,
+      "idx": 0,
+      "role": "capture: preset / cat 1"
+     },
+     {
+      "site": "0x60302da3",
+      "key": 34041,
+      "idx": 15,
+      "role": "capture: Flash"
+     },
+     {
+      "site": "0x60302db8",
+      "key": 38521,
+      "idx": 15,
+      "role": "capture: Flash"
+     },
+     {
+      "site": "0x60302e35",
+      "key": 34041,
+      "idx": 0,
+      "role": "capture: one-touch"
+     },
+     {
+      "site": "0x60302e4b",
+      "key": 38521,
+      "idx": 0,
+      "role": "capture: one-touch"
+     },
+     {
+      "site": "0x60302f23",
+      "key": 34041,
+      "idx": 0,
+      "role": "capture: cat 4"
+     },
+     {
+      "site": "0x60302f3b",
+      "key": 38521,
+      "idx": 0,
+      "role": "capture: cat 4"
+     },
+     {
+      "site": "0x60302f8f",
+      "key": 34041,
+      "idx": 1,
+      "role": "capture: Auto"
+     },
+     {
+      "site": "0x60302fa8",
+      "key": 38521,
+      "idx": 1,
+      "role": "capture: Auto"
+     },
+     {
+      "site": "0x6030bb5b",
+      "key": 34041,
+      "idx": 0,
+      "role": "compact ring slot +97 (live-view candidate)"
+     },
+     {
+      "site": "0x6030bb6e",
+      "key": 38521,
+      "idx": 0,
+      "role": "compact ring slot +99 (live-view candidate)"
+     },
+     {
+      "site": "0x6030eb61",
+      "key": 34041,
+      "idx": 0,
+      "role": "params builder 0x6030e9d1 -> params+5520"
+     },
+     {
+      "site": "0x6030eb77",
+      "key": 38521,
+      "idx": 0,
+      "role": "params builder 0x6030e9d1 -> params+5521"
+     }
+    ],
+    "raw_sites_stock": [
+     "0x60c68a45",
+     "0x60c68a59"
+    ],
+    "keys": {
+     "a_b": 34041,
+     "g_m": 38521,
+     "wb_category": 33057,
+     "cwb": 3,
+     "picture_mode": 38017,
+     "picture_mode6": 40209,
+     "color_profile": 63153,
+     "mono_profile": 63281
+    },
+    "layout": {
+     "bundle_table": "0x60210900",
+     "slot_bytes": 64,
+     "wb_flags": 25,
+     "wb_ab": 26,
+     "wb_gm": 27
+    },
+    "symbols": {
+     "__bss_start": "0x6055e7a4",
+     "___ctors": "0x6055e7a4",
+     "___ctors_end": "0x6055e7a4",
+     "___dtors": "0x6055e7a4",
+     "___dtors_end": "0x6055e7a4",
+     "_edata": "0x6055e7a4",
+     "_end": "0x6055e7a4",
+     "_stack": "0x80000",
+     "_start": "0x6055e700",
+     "wb_color": "0x6055e749",
+     "wb_get": "0x6055e700",
+     "wb_key": "0x6055e70f",
+     "wb_mode": "0x6055e72f",
+     "wb_pass": "0x6055e78c",
+     "wb_prop": "0x6055e796",
+     "wb_ret": "0x6055e786",
+     "wb_slot": "0x6055e757"
+    },
+    "requires": "bundles-v0.2 table at bundle_table (merge with patches/bundles/build.py output)"
+   },
+   "mono_colour": {
+    "code_at": "0x61378c80",
+    "code_len": 764,
+    "labels": {
+     "__bss_start": "0x61378f7c",
+     "ch_keep": "0x61378ed9",
+     "chroma": "0x61378e1b",
+     "code_end": "0x61378f79",
+     "code_start": "0x61378cc8",
+     "___ctors": "0x61378f7c",
+     "___ctors_end": "0x61378f7c",
+     "___dtors": "0x61378f7c",
+     "___dtors_end": "0x61378f7c",
+     "_edata": "0x61378f7c",
+     "_end": "0x61378f7c",
+     "fg": "0x61378ee9",
+     "fg_mono": "0x61378f6b",
+     "hl_done": "0x61378df5",
+     "hue_lut": "0x61378c80",
+     "light_lut": "0x61378c9e",
+     "perm": "0x61378cbc",
+     "rec": "0x61378dc3",
+     "sel": "0x61378cc8",
+     "sel_mono": "0x61378e0b",
+     "_stack": "0x80000",
+     "_start": "0x61378c80"
+    },
+    "sites": {
+     "sel": "0x603b02bf",
+     "chroma": "0x603b134e",
+     "fg": "0x60353db9"
+    },
+    "requires": "bundles-v0.2",
+    "layout": {
+     "colour": 32,
+     "sat": 33,
+     "flags": 31,
+     "bundle_table": "0x60210900"
+    }
+   }
+  },
+  "buttons": {
+   "patch": "buttons",
+   "buttons": {
+    "full_sids": [
+     47,
+     48,
+     49
+    ],
+    "dpad_sids": [
+     51,
+     53
+    ],
+    "full": [
+     3453,
+     44,
+     106,
+     84,
+     85,
+     3340,
+     88,
+     22,
+     3317,
+     3461,
+     34,
+     686,
+     3474,
+     473,
+     605,
+     3552,
+     3553,
+     437,
+     568,
+     3557,
+     426,
+     157,
+     3200
+    ],
+    "dpad": [
+     3461,
+     16,
+     3281,
+     426,
+     3558,
+     15130,
+     88,
+     3552,
+     3553,
+     568,
+     3474,
+     3557,
+     34,
+     437,
+     22,
+     3200
+    ],
+    "full_at": "0x604cae3c",
+    "dpad_at": "0x604cb00e"
+   }
+  },
+  "aperture_ring": {
+   "patch": "aperture_ring",
+   "aperture_ring": {
+    "disp_site": "0x601f9df7",
+    "disp_cont": "0x601f9dfc",
+    "disp_null": "0x601f9e7e",
+    "parse_site": "0x601f5ed7",
+    "ae_site": "0x60427ae7",
+    "ae_wrap": "0x60429548",
+    "ae_cont": "0x60427aec",
+    "dev_get": "0x601f2761",
+    "cap_off": "0x440",
+    "cap_bit": "0x80",
+    "av_min": "0x621cf64e",
+    "av_max": "0x621cf650",
+    "state_init": "0x8000",
+    "state": "0x60210ffe",
+    "state_uncached": "0xa0210ffe",
+    "lens_at": "0x60210f80",
+    "lens_len": 114,
+    "ae_at": "0x61378f9c",
+    "ae_len": 100,
+    "modes": {
+     "4": "A",
+     "6": "M"
+    },
+    "symbols": {
+     "ae_body": "0x61378ff6",
+     "ae_hi_ok": "0x61378ff3",
+     "ae_hook": "0x61378f9c",
+     "ae_lo_ok": "0x61378fed",
+     "ae_out": "0x61378ff8",
+     "ae_ring": "0x61378fc8",
+     "__bss_start": "0x0",
+     "___ctors": "0x0",
+     "___ctors_end": "0x0",
+     "disp_chk": "0x60210f99",
+     "disp_hook": "0x60210f80",
+     "disp_null": "0x60210fc4",
+     "disp_resume": "0x60210fbf",
+     "___dtors": "0x0",
+     "___dtors_end": "0x0",
+     "_edata": "0x0",
+     "_end": "0x0",
+     "parse_done": "0x60210fef",
+     "parse_hook": "0x60210fc9",
+     "_stack": "0x80000"
+    }
+   }
+  }
+ },
+ "bundle": "bundles/example.json",
+ "labels": {
+  "__bss_start": "0x60210c70",
+  "bundle_table": "0x60210900",
+  "bundle_table_end": "0x60210b00",
+  "code_end": "0x60210c6f",
+  "code_start": "0x60210b48",
+  "conv1": "0x60210b48",
+  "conv2": "0x60210b71",
+  "___ctors": "0x60210c70",
+  "___ctors_end": "0x60210c70",
+  "___dtors": "0x60210c70",
+  "___dtors_end": "0x60210c70",
+  "_edata": "0x60210c70",
+  "_end": "0x60210c70",
+  "hit": "0x60210bd7",
+  "hl": "0x60210b99",
+  "hue_lut": "0x60210b00",
+  ".L0\u0001_0": "0x60210bc0",
+  ".L1\u00021": "0x60210b6c",
+  "light_lut": "0x60210b1e",
+  "out": "0x60210c59",
+  "perm": "0x60210b3c",
+  "rec": "0x60210c27",
+  "scan": "0x60210bca",
+  "_stack": "0x80000",
+  "_start": "0x60210900",
+  "val": "0x60210c11"
+ },
+ "table_hex": "00ff00000706fefd06070502fcfcfdfeff020203fffdfbfb00010201000000020000000000000000000000000000000000000000000000000000000000000000feff00000301fefcfe0200fefdfdfefdfffffefffffffdfe00010301000000020000000000000000000000000000000000000000000000000000000000000000feff00000301fefcfe0200feffff00fffffffffffffffeff01010000000000020000000000000000000000000000000000000000000000000000000000000000000000010000000000fefdff010100000000ff0000000000000102000203ff02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+ "slots": [
+  {
+   "slot": "COLOR1",
+   "enabled": true,
+   "recipe": "classic_neg",
+   "recipe_file": "fuji_like.json",
+   "hue_ui": [
+    0,
+    -1,
+    0,
+    0,
+    7,
+    6,
+    -2,
+    -3,
+    6,
+    7,
+    5,
+    2
+   ],
+   "light_ui": [
+    -4,
+    -4,
+    -3,
+    -2,
+    -1,
+    2,
+    2,
+    3,
+    -1,
+    -3,
+    -5,
+    -5
+   ],
+   "grain": 0,
+   "wb_override": true,
+   "wb_source": "slot",
+   "wb": [
+    2,
+    1
+   ],
+   "effect": [
+    0,
+    0
+   ],
+   "vignette": 0,
+   "flags": 2,
+   "advice_sat_ui": [
+    -3,
+    -2,
+    -2,
+    0,
+    -1,
+    -5,
+    -5,
+    -3,
+    -1,
+    -4,
+    -4,
+    -4
+   ],
+   "advice_grain": "off",
+   "colour": 0,
+   "sat_ui": null,
+   "native_rows": [
+    [
+     0,
+     -150
+    ],
+    [
+     0,
+     -100
+    ],
+    [
+     -7000,
+     -25
+    ],
+    [
+     2000,
+     50
+    ],
+    [
+     -6000,
+     -25
+    ],
+    [
+     -5000,
+     -200
+    ],
+    [
+     1000,
+     -150
+    ],
+    [
+     0,
+     -50
+    ],
+    [
+     -6000,
+     50
+    ],
+    [
+     3000,
+     100
+    ],
+    [
+     -7000,
+     -100
+    ],
+    [
+     -2000,
+     -200
+    ]
+   ]
+  },
+  {
+   "slot": "COLOR2",
+   "enabled": true,
+   "recipe": "kodachrome_64",
+   "recipe_file": "fuji_like.json",
+   "hue_ui": [
+    -2,
+    -1,
+    0,
+    0,
+    3,
+    1,
+    -2,
+    -4,
+    -2,
+    2,
+    0,
+    -2
+   ],
+   "light_ui": [
+    -3,
+    -3,
+    -2,
+    -3,
+    -1,
+    -1,
+    -2,
+    -1,
+    -1,
+    -1,
+    -3,
+    -2
+   ],
+   "grain": 0,
+   "wb_override": true,
+   "wb_source": "recipe",
+   "wb": [
+    3,
+    1
+   ],
+   "effect": [
+    0,
+    0
+   ],
+   "vignette": 0,
+   "flags": 2,
+   "advice_sat_ui": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    -1,
+    -1,
+    -1,
+    1,
+    -1,
+    -1,
+    -1
+   ],
+   "advice_grain": "low",
+   "colour": 0,
+   "sat_ui": null,
+   "native_rows": [
+    [
+     2000,
+     -100
+    ],
+    [
+     0,
+     -50
+    ],
+    [
+     -3000,
+     -25
+    ],
+    [
+     2000,
+     -50
+    ],
+    [
+     2000,
+     -25
+    ],
+    [
+     0,
+     -100
+    ],
+    [
+     1000,
+     -100
+    ],
+    [
+     0,
+     -100
+    ],
+    [
+     -1000,
+     -25
+    ],
+    [
+     4000,
+     -25
+    ],
+    [
+     -2000,
+     -25
+    ],
+    [
+     2000,
+     -50
+    ]
+   ]
+  },
+  {
+   "slot": "COLOR3",
+   "enabled": true,
+   "recipe": "classic_chrome",
+   "recipe_file": "fuji_like.json",
+   "hue_ui": [
+    -2,
+    -1,
+    0,
+    0,
+    3,
+    1,
+    -2,
+    -4,
+    -2,
+    2,
+    0,
+    -2
+   ],
+   "light_ui": [
+    -1,
+    -1,
+    0,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -2,
+    -1
+   ],
+   "grain": 1,
+   "wb_override": true,
+   "wb_source": "recipe",
+   "wb": [
+    0,
+    0
+   ],
+   "effect": [
+    0,
+    0
+   ],
+   "vignette": 0,
+   "flags": 2,
+   "advice_sat_ui": [
+    -2,
+    -2,
+    -2,
+    -1,
+    -1,
+    -3,
+    -3,
+    -3,
+    -1,
+    -3,
+    -3,
+    -3
+   ],
+   "advice_grain": "off",
+   "colour": 0,
+   "sat_ui": null,
+   "native_rows": [
+    [
+     2000,
+     -25
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     -3000,
+     -25
+    ],
+    [
+     2000,
+     -25
+    ],
+    [
+     2000,
+     -25
+    ],
+    [
+     0,
+     -50
+    ],
+    [
+     1000,
+     -25
+    ],
+    [
+     0,
+     -25
+    ],
+    [
+     -1000,
+     -25
+    ],
+    [
+     4000,
+     -25
+    ],
+    [
+     -2000,
+     -25
+    ],
+    [
+     2000,
+     -25
+    ]
+   ]
+  },
+  {
+   "slot": "COLOR4",
+   "enabled": true,
+   "recipe": "nostalgic_neg",
+   "recipe_file": "fuji_like.json",
+   "hue_ui": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -2,
+    -3,
+    -1
+   ],
+   "light_ui": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "grain": 0,
+   "wb_override": true,
+   "wb_source": "recipe",
+   "wb": [
+    2,
+    0
+   ],
+   "effect": [
+    2,
+    3
+   ],
+   "vignette": -1,
+   "flags": 2,
+   "advice_sat_ui": [
+    1,
+    1,
+    1,
+    0,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    0,
+    1
+   ],
+   "advice_grain": "off",
+   "colour": 0,
+   "sat_ui": null,
+   "native_rows": [
+    [
+     0,
+     25
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     -25
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     3000,
+     0
+    ],
+    [
+     0,
+     25
+    ],
+    [
+     -1000,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     2000,
+     0
+    ],
+    [
+     1000,
+     0
+    ]
+   ]
+  },
+  {
+   "slot": "MONO1",
+   "enabled": false
+  },
+  {
+   "slot": "MONO2",
+   "enabled": false
+  },
+  {
+   "slot": "MONO3",
+   "enabled": false
+  },
+  {
+   "slot": "MONO4",
+   "enabled": false
+  }
+ ],
+ "layout": {
+  "job_size": 15512,
+  "ext_profile": 15488,
+  "ext_mode": 15489,
+  "ext_magic": 15490,
+  "magic": 178,
+  "entry_bytes": 64,
+  "slots": [
+   "COLOR1",
+   "COLOR2",
+   "COLOR3",
+   "COLOR4",
+   "MONO1",
+   "MONO2",
+   "MONO3",
+   "MONO4"
+  ]
+ },
+ "symbols": {
+  "grain_mod": "0x60210d9a",
+  "sel_hook": "0x60210d71",
+  "wl_hook": "0x60210ce0"
+ },
+ "level": "bundle",
+ "code_at": "0x60210ce0",
+ "bloom": {
+  "mode": "bundle",
+  "strength_w": [
+   942,
+   881,
+   819,
+   748,
+   666
+  ],
+  "effect_id": 1,
+  "code_at": "0x60210e10",
+  "table": "0x60210900",
+  "f_effect": 28,
+  "f_strength": 29,
+  "ext": {
+   "profile": 15488,
+   "mode": 15489,
+   "marker": 15490,
+   "magic": 178
+  },
+  "cap": {
+   "profile": 24083,
+   "mode": 24053
+  },
+  "guard": {
+   "callback": "0x60355fd4",
+   "req_in_job": 11364,
+   "records": 14576,
+   "stride": 56,
+   "n": 16
+  },
+  "symbols": {
+   "bloom_flag": "0x60210e10",
+   "bloom_w": "0x60210e5b",
+   "w_lut": "0x60210ee0"
+  }
+ },
+ "wb": {
+  "code_at": "0x6055e700",
+  "code_len": 164,
+  "getter": "0x6005e971",
+  "sites": [
+   {
+    "site": "0x60302c46",
+    "key": 34041,
+    "idx": 0,
+    "role": "capture: preset / cat 1"
+   },
+   {
+    "site": "0x60302c60",
+    "key": 38521,
+    "idx": 0,
+    "role": "capture: preset / cat 1"
+   },
+   {
+    "site": "0x60302da3",
+    "key": 34041,
+    "idx": 15,
+    "role": "capture: Flash"
+   },
+   {
+    "site": "0x60302db8",
+    "key": 38521,
+    "idx": 15,
+    "role": "capture: Flash"
+   },
+   {
+    "site": "0x60302e35",
+    "key": 34041,
+    "idx": 0,
+    "role": "capture: one-touch"
+   },
+   {
+    "site": "0x60302e4b",
+    "key": 38521,
+    "idx": 0,
+    "role": "capture: one-touch"
+   },
+   {
+    "site": "0x60302f23",
+    "key": 34041,
+    "idx": 0,
+    "role": "capture: cat 4"
+   },
+   {
+    "site": "0x60302f3b",
+    "key": 38521,
+    "idx": 0,
+    "role": "capture: cat 4"
+   },
+   {
+    "site": "0x60302f8f",
+    "key": 34041,
+    "idx": 1,
+    "role": "capture: Auto"
+   },
+   {
+    "site": "0x60302fa8",
+    "key": 38521,
+    "idx": 1,
+    "role": "capture: Auto"
+   },
+   {
+    "site": "0x6030bb5b",
+    "key": 34041,
+    "idx": 0,
+    "role": "compact ring slot +97 (live-view candidate)"
+   },
+   {
+    "site": "0x6030bb6e",
+    "key": 38521,
+    "idx": 0,
+    "role": "compact ring slot +99 (live-view candidate)"
+   },
+   {
+    "site": "0x6030eb61",
+    "key": 34041,
+    "idx": 0,
+    "role": "params builder 0x6030e9d1 -> params+5520"
+   },
+   {
+    "site": "0x6030eb77",
+    "key": 38521,
+    "idx": 0,
+    "role": "params builder 0x6030e9d1 -> params+5521"
+   }
+  ],
+  "raw_sites_stock": [
+   "0x60c68a45",
+   "0x60c68a59"
+  ],
+  "keys": {
+   "a_b": 34041,
+   "g_m": 38521,
+   "wb_category": 33057,
+   "cwb": 3,
+   "picture_mode": 38017,
+   "picture_mode6": 40209,
+   "color_profile": 63153,
+   "mono_profile": 63281
+  },
+  "layout": {
+   "bundle_table": "0x60210900",
+   "slot_bytes": 64,
+   "wb_flags": 25,
+   "wb_ab": 26,
+   "wb_gm": 27
+  },
+  "symbols": {
+   "__bss_start": "0x6055e7a4",
+   "___ctors": "0x6055e7a4",
+   "___ctors_end": "0x6055e7a4",
+   "___dtors": "0x6055e7a4",
+   "___dtors_end": "0x6055e7a4",
+   "_edata": "0x6055e7a4",
+   "_end": "0x6055e7a4",
+   "_stack": "0x80000",
+   "_start": "0x6055e700",
+   "wb_color": "0x6055e749",
+   "wb_get": "0x6055e700",
+   "wb_key": "0x6055e70f",
+   "wb_mode": "0x6055e72f",
+   "wb_pass": "0x6055e78c",
+   "wb_prop": "0x6055e796",
+   "wb_ret": "0x6055e786",
+   "wb_slot": "0x6055e757"
+  },
+  "requires": "bundles-v0.2 table at bundle_table (merge with patches/bundles/build.py output)"
+ },
+ "mono_colour": {
+  "code_at": "0x61378c80",
+  "code_len": 764,
+  "labels": {
+   "__bss_start": "0x61378f7c",
+   "ch_keep": "0x61378ed9",
+   "chroma": "0x61378e1b",
+   "code_end": "0x61378f79",
+   "code_start": "0x61378cc8",
+   "___ctors": "0x61378f7c",
+   "___ctors_end": "0x61378f7c",
+   "___dtors": "0x61378f7c",
+   "___dtors_end": "0x61378f7c",
+   "_edata": "0x61378f7c",
+   "_end": "0x61378f7c",
+   "fg": "0x61378ee9",
+   "fg_mono": "0x61378f6b",
+   "hl_done": "0x61378df5",
+   "hue_lut": "0x61378c80",
+   "light_lut": "0x61378c9e",
+   "perm": "0x61378cbc",
+   "rec": "0x61378dc3",
+   "sel": "0x61378cc8",
+   "sel_mono": "0x61378e0b",
+   "_stack": "0x80000",
+   "_start": "0x61378c80"
+  },
+  "sites": {
+   "sel": "0x603b02bf",
+   "chroma": "0x603b134e",
+   "fg": "0x60353db9"
+  },
+  "requires": "bundles-v0.2",
+  "layout": {
+   "colour": 32,
+   "sat": 33,
+   "flags": 31,
+   "bundle_table": "0x60210900"
+  }
+ }
+}
