@@ -1,0 +1,30 @@
+--- a/tools/ep7_verify_sd_bundles_v3.py
++++ b/tools/ep7_verify_sd_bundles_v3.py
+@@ -321,7 +321,8 @@
+         pass
+     tgt_ok, refs, leftover, store_rows = True, [], [], []
+     regions = [(a, b) for a, b in ed.items() if (0x60210900 <= a < 0x60211000 or 0x61378c80 <= a < 0x61379000 or
+-                                                0x6055e700 <= a < 0x6055e7a6)]
++                                                0x6055e700 <= a < 0x6055e7a6 or
++                                                0x6055e5c0 <= a < 0x6055e6f0)]   # bloom --clarity (docs/CLARITY.md)
+     tbl_imm = struct.pack('<I', B3.TABLE)
+     for a, b in regions:
+         start = a + (512 if a == B3.TABLE else 0)          # skip the table data itself
+@@ -367,10 +368,13 @@
+         start, stop = _code_span(name, s3, a, b)
+         new = collections.Counter((t, k) for _, t, k, _ in B3.store_audit(B3.disasm(b[start - a:stop - a], start)))
+         old_spec = _flash_spec(name)
+-        e0 = [e for e in old_spec['edits'] if int(e['addr'], 16) == a][0]
+-        b0 = bytes.fromhex(e0['new'])
+-        start0, stop0 = _code_span(name, old_spec, a, b0)
+-        old = collections.Counter((t, k) for _, t, k, _ in B3.store_audit(B3.disasm(b0[start0 - a:stop0 - a], start0)))
++        e0 = [e for e in old_spec['edits'] if int(e['addr'], 16) == a]
++        if not e0 and name == 'bloom' and 'clarity' in s3['bloom']:     # moved to sec 2: compare with the sec-1 routine
++            e0 = [max(old_spec['edits'], key=lambda e: len(e['new']))]
++        e0 = e0[0]
++        a0, b0 = int(e0['addr'], 16), bytes.fromhex(e0['new'])
++        start0, stop0 = _code_span(name, old_spec, a0, b0)
++        old = collections.Counter((t, k) for _, t, k, _ in B3.store_audit(B3.disasm(b0[start0 - a0:stop0 - a0], start0)))
+         added = new - old
+         bad = [t for (t, k), n in added.items() if k != 'sp']
+         abs_img = [t for (t, k) in new if k == 'abs']

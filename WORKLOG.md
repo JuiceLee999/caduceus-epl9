@@ -213,3 +213,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - **TEST 7b step B PASSED (camera):** EP7MOD/BUNDLES.BIN (COLOR1 greens hue +7) loaded on first half-press → teal greens. SD look loading proven on camera.
 - View Assist: safe trigger found (display reply tail 0x601751f4); blocker = no playback flag → LUT can't auto-off in playback. Awaiting user choice.
 - Look library v1 (agent, docs/LIBRARY_V1.md): 19 looks (16 colour, 3 mono), camera-feasible, tuned over 4 rounds on test shots; names ≤12 chars.
+- Clarity (agent, docs/CLARITY.md): effect_id 3 unsharp via bloom path with weights 1100–1420 (negative blend weight in combiner 11 mode unproven on HW). 270 B @0x6055e5c0; loader effect range 0..3. test9 = test7b + 5 edits; all verifiers pass.
