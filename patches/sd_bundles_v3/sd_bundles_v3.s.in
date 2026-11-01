@@ -1,0 +1,122 @@
+/* E-P7 1.1 SD-card look loader v3 (ep7-firmware, our own code). docs/SD_BUNDLES_V3.md
+ *
+ * v2 (docs/SD_BUNDLES_V2.md) crashed on the first half-press; prime suspect: its two kinds of store into
+ * flash-loaded section RAM (sd_state in section 3, table copy into section 1). docs/SD_V2_CRASH.md section 3.
+ * v3 never stores into the loaded image (0x60020020..0x6191ffe0):
+ *   - state = u16 at {state} (event-manager padding, .bss, 0 at power-on; probe P2 store target):
+ *       0 = not attempted, 0xFFFF = attempted / no table, 1..{lim} = handle of the loaded table
+ *   - the file is read into a malloc({buf_size}) buffer (class-1 pool {pool}..{pool_end}, uncached alias);
+ *     on success the buffer is KEPT (never freed, one per power-on) and h = buf - {pool} + 1 is published.
+ *     Readers find the table through tbl_idx / tbl_off (section-2 accessor), never by address.
+ * Hook, replay, TRIG1-press test and gate: byte-for-byte the v2 / P2 ones (0x602c805f -> jmp sd_hook).
+ * Order on the first gated press: state = 0xFFFF (one attempt per power-on, whatever happens), then
+ *   malloc -> fopen -> fseek(END)/ftell == {file_len} -> fseek(SET) -> fread == size -> fclose
+ *   -> validate (header, CRC-32, per-byte ranges; v1/v2 rules) -> buffer in pool, 4-aligned -> state = h.
+ * Any failure frees the buffer and leaves state 0xFFFF (flashed table). No mul/div/setlb.
+ */
+ .am33_2
+ .text
+ .global _start
+ .set sd_state, {state}
+_start:
+sd_hook:                          /* entered by jmp from 0x602c805f; frame = 0x602c7f5a's, a0 = sp+16 */
+ call ep7_trig,[d2,d3,a2,a3],36   /* the displaced stock call, same frame and contract */
+ mov (16,sp),d0                   /* canonical event */
+ cmp {ev_press},d0
+ bne sd_back
+ movhu (sd_state),d0
+ cmp 0,d0
+ bne sd_back                      /* already attempted this power-on */
+ call sd_gate,[d2,d3,a2,a3],36
+sd_back:
+ jmp ep7_trig_ret                 /* 0x602c8064: mov (16,sp),d0 ... */
+
+{gate}
+sd_go:
+ mov 0xffff,d0
+ movhu d0,(sd_state)              /* one attempt per power-on (flashed table until a handle is stored) */
+ call sd_load,[d2,d3,a2,a3],36
+sd_gout:
+ ret [d2,d3,a2,a3],36
+
+sd_load:                          /* frame 36: scratch 0..19; (0..11) left to callees */
+ mov {buf_size},d0
+ call ep7_malloc,[],4
+ mov a0,a2
+ cmp 0,a2
+ beq sd_out
+ mov sd_path,a0
+ mov sd_mode,a1
+ call ep7_fopen,[],4
+ mov a0,a3
+ cmp 0,a3
+ beq sd_free                      /* no file */
+ mov a3,a0
+ clr d0
+ mov 1,d1                         /* whence 1 = END (0x6064610d) */
+ call ep7_fseek,[d2,d3,a2,a3],20
+ cmp 0,d0
+ bne sd_close
+ mov a3,a0
+ call ep7_ftell,[d2,a2,a3],16
+ mov d0,d3                        /* file size */
+ cmp {file_len},d3
+ bne sd_close
+ mov a3,a0
+ clr d0
+ mov 2,d1                         /* whence 2 = SET */
+ call ep7_fseek,[d2,d3,a2,a3],20
+ cmp 0,d0
+ bne sd_close
+ mov a2,a0
+ mov 1,d0
+ mov d3,d1
+ mov a3,a1
+ call ep7_fread,[d2,d3,a2,a3],24
+ mov d0,d2                        /* bytes read */
+ mov a3,a0
+ call ep7_fclose,[d2,a2,a3],16
+ cmp d3,d2
+ bne sd_free
+ mov a2,a0
+ call sd_check,[d2,d3,a2,a3],16
+ cmp 0,d0
+ bne sd_free
+ mov a2,d0                        /* valid: publish the buffer instead of copying it */
+ add {neg_pool},d0                /* buf - pool */
+ cmp {lim},d0
+ bcc sd_free                      /* not inside the class-1 pool (the accessor could not find it) */
+ btst 3,d0
+ bne sd_free                      /* not 4-aligned */
+ mov d0,d3                        /* d3 = buf - pool (kept for h) */
+ clr d0                           /* zero the name area +{names_lo}..+{names_hi} (docs/FILM_LIBRARY.md 8.3: */
+ mov {names_lo},d2                /* names[8][16] at +544, 'EP7N' at +672): a BUNDLES.BIN block never */
+sd_z:                             /* carries names, whatever an earlier user left in the buffer. */
+ movbu d0,(d2,a2)                 /* a2 = buf, proven inside the pool above; d2 < {names_hi} <= buf size */
+ inc d2
+ cmp {names_hi},d2
+ bne sd_z
+ mov d3,d0
+ inc d0                           /* h = buf - pool + 1, 1..lim */
+ movhu d0,(sd_state)              /* the ONLY other store: readers switch to the loaded table */
+ bra sd_out                       /* buffer kept for the rest of the power-on */
+sd_close:
+ mov a3,a0
+ call ep7_fclose,[d2,a2,a3],16
+sd_free:
+ mov a2,a0
+ call ep7_free,[],4
+sd_out:
+ ret [d2,d3,a2,a3],36
+
+{check}
+sd_path:
+ .asciz "{path_asm}"
+sd_mode:
+ .asciz "r"
+sd_hdr:
+{hdr_bytes}
+sd_lo:
+{lo_bytes}
+sd_span:
+{span_bytes}

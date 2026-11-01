@@ -1,0 +1,47 @@
+/* E-P7 1.1 bundle-table accessor for SD look loader v3 (ep7-firmware, our own code). docs/SD_BUNDLES_V3.md
+ *
+ * Every bundle-table reader (bundles H/L, WB, grain, bloom x2, MONO-colour) calls this instead of
+ * using the flashed table address {table} directly. Section-2 FF tail (section 2 holds every reader's
+ * hook site, so this is loaded before any reader can run).
+ *
+ *   call tbl_idx,[d2,d3],8    d0 = slot index 0..7   -> a0 = &table[d0 * 64]
+ *   call tbl_off,[d2,d3],8    d0 = byte offset       -> a0 = table + d0
+ *
+ * table = the SD-loaded copy when the loader published one, else the flashed table:
+ *   h = u16 at {state} (padding in the HLS event-manager object, .bss, 0 at power-on; written only by
+ *   the v3 loader: 0 = not attempted, 0xFFFF = attempted / no table, 1..{lim} = loaded)
+ *   loaded  iff  1 <= h <= {lim}, (h-1) % 4 == 0 and the word at buf = {pool} + h - 1 is the file magic;
+ *   then table = buf + {hdr_len} (the validated payload inside the kept malloc buffer, uncached alias).
+ * Preserves d0, d1, a1, a2, a3 (d2/d3 are saved by the caller's call instruction). Clobbers a0, PSW and
+ * MDR (the call sets it; callers that need MDR save it around the call). Writes nothing but its own
+ * frame below the caller's sp and the return-address word at the caller's (sp). No loops, no mul/div.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+tbl_idx:
+ mov d0,d3
+ asl 6,d3                         /* slot * 64 */
+ bra tbl_go
+tbl_off:
+ mov d0,d3
+tbl_go:
+ movhu ({state}),d2
+ add -1,d2                        /* h - 1 (0 -> 0xffffffff) */
+ cmp {lim},d2
+ bcc tbl_fl                       /* h == 0, h > lim (incl. 0xFFFF): flashed */
+ btst 3,d2
+ bne tbl_fl                       /* misaligned: never produced by the loader */
+ mov d2,a0
+ add {pool},a0                    /* a0 = buf */
+ mov (a0),d2
+ cmp {magic},d2
+ bne tbl_fl                       /* buffer no longer holds our file */
+ add {hdr_len},a0
+ bra tbl_x
+tbl_fl:
+ mov {table},a0
+tbl_x:
+ add d3,a0
+ ret [d2,d3],8
