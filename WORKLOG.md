@@ -180,3 +180,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   arrows 51/53 -> 16 codes (+ISO/WB, WB/ISO, Peaking, Magnify, Level, tele-con, Multi Function, RAW). tools/ep7_buttons_verify.py
   S/V/N/A/M PASS. Merge releases/v0.5-candidate/edits.json (v0.4 + buttons, 146 edits/3,005 B): bundles, grain, bloom, WB,
   MONO-colour, buttons verifiers all PASS. Queued: profile-slot select (no function code exists), ISO/WB-only, up/left, movie arrows.
+- Aperture ring (agent, docs/APERTURE_RING.md): port of fishcu PR #4 with E-P7 fix (81 E3 kind 4/5 → parse rule (kind&2)==0). 6 edits/223 B; dispatcher 1921/1921, parser 600/600, AE 298/298, 8/8 mutations. Merges with v0.4 (142 edits), other verifiers pass. Risks: section-1 RAM write, Panasonic ring word from PEN-F reports only.

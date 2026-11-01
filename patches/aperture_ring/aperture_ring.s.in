@@ -1,0 +1,118 @@
+/* E-P7 1.1 lens aperture-ring support (ep7-firmware, our own code). docs/APERTURE_RING.md
+ *
+ * Three hooks, two code blocks:
+ *   .lens (section 1, same section as both lens hooks)
+ *     disp_hook  - shared lens-request dispatcher {disp_site}; entered by the jmp that replaces its
+ *                  `bne; jmp null` pair, with the flags of the stock `cmp 0,a3` (a3 = request, d2 = 0).
+ *                  For a C1 80 or 81 E3 status request (req+12 == 0, option byte req+21 without the
+ *                  IS-extra bit 0x08) to a connected lens whose capability word (device+{cap_off}) has
+ *                  bit {cap_bit}, set option bit 0x01 in req+21: the lens appends its LE ring word.
+ *     parse_hook - status parser {parse_site}, right after DIS_FCENC (record+17). Replays the 8
+ *                  displaced bytes. If the request carried option 0x01 (parser d2 = req+21) and the
+ *                  response kind is C1 80 / 81 E3 (kind bit 1 clear: kinds 0,1,4,5), consume the
+ *                  ring word and publish it with one halfword store to {state_unc} (uncached alias).
+ *                  The state starts as 0x8000 (= ring at A/auto) and is only written here.
+ *   .ae (section 7, loads before section 2)
+ *     ae_hook    - AE snapshot {ae_site} (section 2): replaces `call aperture-point wrapper`.
+ *                  In exposure mode 4 (A) or 6 (M), with a connected capable lens and a published
+ *                  ring value other than 0x8000, return the ring Av clamped to the zoom-dependent
+ *                  official limits [{av_min}],[{av_max}]; otherwise the stock value.
+ */
+ .am33_2
+ .section .lens,"ax"
+ .global disp_hook, parse_hook
+disp_hook:
+ beq disp_null                    /* stock `cmp 0,a3` flags: NULL request */
+ movhu (12,a3),d0
+ cmp 0,d0
+ bne disp_resume
+ movhu (18,a3),d0                 /* command bytes, little endian */
+ exth d0
+ cmp -32575,d0                    /* 0x80c1: C1 80 */
+ beq disp_chk
+ cmp -7295,d0                     /* 0xe381: 81 E3 */
+ bne disp_resume
+disp_chk:
+ movbu (21,a3),d1
+ btst 0x08,d1
+ bne disp_resume                  /* IS-extra request: stock (no ring) */
+ clr d0
+ call dev_get,[d2],8              /* a0 = lens device or 0 (connected check inside); d2 kept */
+ cmp 0,a0
+ beq disp_resume
+ mov ({cap_off},a0),d0
+ btst {cap_bit},d0
+ beq disp_resume
+ movbu (21,a3),d1
+ or 1,d1
+ movbu d1,(21,a3)
+disp_resume:
+ jmp disp_cont
+disp_null:
+ jmp disp_null_cont
+
+parse_hook:                       /* entered by call [],0: sp == parser sp */
+ movbu (a3),d0                    /* replay: DIS_FCENC -> record+17 */
+ mov (4,sp),a0
+ inc a3
+ movbu d0,(17,a0)
+ mov (20,sp),d0                   /* response kind */
+ btst 2,d0
+ bne parse_done                   /* kinds 2,3 (C1 00): never extended */
+ btst 1,d2                        /* request option byte req+21 */
+ beq parse_done
+ movbu (1,a3),d1
+ asl 8,d1
+ movbu (a3),d0
+ or d0,d1
+ add 2,a3
+ movhu d1,({state_unc})
+parse_done:
+ ret [],0
+
+ .section .ae,"ax"
+ .global ae_hook
+ae_hook:                          /* entered by jmp: sp == snapshot sp, a3 = AE config */
+ call ae_wrap,[],4                /* stock: d0 = body aperture point */
+ add -8,sp
+ mov d0,(4,sp)
+ clr d0
+ call dev_get,[d2],8
+ cmp 0,a0
+ beq ae_body
+ mov ({cap_off},a0),d0
+ btst {cap_bit},d0
+ beq ae_body
+ movbu (2,a3),d0                  /* exposure mode */
+ cmp 4,d0
+ beq ae_ring
+ cmp 6,d0
+ bne ae_body
+ae_ring:
+ movhu ({state_unc}),d1
+ exth d1
+ cmp -32768,d1
+ beq ae_body                      /* ring at A/auto, or never published */
+ movhu ({av_max}),d0
+ exth d0
+ mov d0,a0
+ movhu ({av_min}),d0
+ exth d0
+ cmp a0,d0
+ bgt ae_body                      /* reversed range */
+ cmp d0,d1
+ bge ae_lo_ok
+ mov d0,d1
+ae_lo_ok:
+ mov a0,d0
+ cmp d0,d1
+ ble ae_hi_ok
+ mov d0,d1
+ae_hi_ok:
+ mov d1,d0
+ bra ae_out
+ae_body:
+ mov (4,sp),d0
+ae_out:
+ add 8,sp
+ jmp ae_cont
