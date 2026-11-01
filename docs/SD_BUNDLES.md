@@ -1,8 +1,9 @@
 # SD-card bundle loading, phase 1 (data only)
 
 Offline only. Nothing here was run on a camera. No SD-update-named file was created and nothing was committed.
-**Status: built and statically checked. The emulator verification has NOT been done: no verifier exists yet. Do not
-flash this until it has been.**
+**Status: built, statically checked and emulator-verified (`tools/ep7_verify_sd_bundles.py`, §6), standalone with
+the bundles spec and inside `releases/v0.4-candidate/edits_full.json`. The [I] items in §2–§3 are still unproven on
+a camera. Not cleared for flashing.**
 
 [V] means verified from the disassembly of the decoded main (SHA `5dd9af16…`). [I] means inference.
 
@@ -115,14 +116,87 @@ flash this until it has been.**
 
 ## 5. Still to do before any flash
 
-1. **Emulator verification.** Not written. Stub the file service at its real entries with matching frames. Cases:
-   - valid file → table replaced;
-   - bad magic, version, build, length, CRC or range;
-   - wrong size;
-   - fseek, ftell or fread error;
-   - fopen or malloc failure → table untouched.
-   In every case, registers, stack and the status variable must equal stock, and sd_state must behave as specified.
-   Add mutations.
-2. Merge with the bundles spec. `tools/merge_specs.py` keeps the metadata under `meta.sd_bundles`.
+1. ~~Emulator verification.~~ Done, see §6.
+2. ~~Merge with the bundles spec.~~ Done: `tools/merge_specs.py` now also copies `sd_bundles` to the top level, and
+   `releases/v0.4-candidate/edits_full.json` contains it.
 3. Confirm the [I] items: HIGHLEVEL_MAIN as the context, that the section-1 table is writable, and cache coherency.
    First camera check: a valid file changes COLOR1, and booting with no card, or with a corrupt file, behaves as stock.
+
+## 6. Emulator verification (`tools/ep7_verify_sd_bundles.py`)
+
+`.venv/bin/python -I tools/ep7_verify_sd_bundles.py SPEC.json [--json out] [--no-mutations]`. The spec must contain the
+sd_bundles patch and the v0.2 bundles table. The tool builds the package with `tools/build_package.build()` and runs
+code from the exact patched and restore (stock) main payloads in the fishcu emulator, from the hook site
+(pc 0x60863e90, d0 = media type, d1 = d2 = 0xF000) to site+7. The stock run on the same fixture is the reference.
+
+- **What runs natively.** The site, the loader (0x61242a00–0x61242d00, rwx because sd_state is written), and the
+  **real stock 0x6077d590** with its status words (0x61fa8fb8–0x61fa9040). The only stub on the stock side is its
+  logger 0x60767ee5, which records the call.
+- **File service stubs (ours, assembled with gas).**
+  - A 5-byte `jmp` sits at each real entry: malloc, free, fopen, fclose, fread, ftell, fseek. fopen and fclose are only
+    9 bytes apart, hence the trampolines.
+  - The bodies serve an in-memory file with a real position (2 SET / 0 CUR / 1 END). They log every call (registers,
+    sp, return address, the caller's arguments and mdr) and return with the stock frame.
+  - They behave like a hostile callee: they clobber d0/d1/a0/a1 (all but the result), mdr, and the caller's (4,sp) and
+    (8,sp).
+  - The fread stub has its own self-test.
+- **Static checks.**
+  - The site rel32 points to sd_hook and the rest of the site is stock.
+  - The loader bytes equal the spec, and the region is FF up to 0x61242d00.
+  - Every loader call frame equals the frame used at **all** stock call sites of that service: malloc 744, free 764,
+    fopen 76, fclose 145, fseek 37, ftell 10 and fread 49 sites. A manual read of the stock wrappers found no writes
+    above their own frames, so the loader's a0/a1 save at (12,sp)/(16,sp) is safe.
+- **Results: PASS**, both standalone (bundles v0.4 + sd_bundles) and on `edits_full.json`.
+  - **173 single-mount cases.** 12 are valid:
+    - `mono_colour_example.json` and `example.json` via `ep7_bundles_bin.build()`;
+    - all-lo and all-hi boundary tables;
+    - media types 1/4/8/32/0/2;
+    - a 0xEE-prefilled table;
+    - stale garbage in the buffer.
+
+    In each valid case the 512 bytes at 0x60210900 equal the payload exactly, nothing else in 0x60210800–0x60211000
+    changes, and the call sequence is malloc(1024) fopen("C:\EP7MOD\BUNDLES.BIN","r") fseek(h,0,END) ftell
+    fseek(h,0,SET) fread(buf,1,544,h) fclose free(buf).
+  - **161 reject cases**, all leaving the table byte-identical:
+    - bad magic, version, header length, build or payload length;
+    - bad CRC: wrong value, big-endian, zero, or a stale CRC after a payload flip;
+    - bad SHA prefix, or non-zero reserved bytes;
+    - each of the 64 slot bytes at lo−1 and hi+1. These cases carry a correct CRC, so only the intended check rejects.
+    - file size 0, 543, 545 or 1024;
+    - short reads of 543, 32 or 0 bytes, including short reads over a stale copy of the file in the buffer;
+    - ftell −1, fseek END/SET errors, a missing file, an fopen error and a malloc failure.
+
+    The desktop `check_file()` agrees on every case.
+  - **Checked on every run:**
+    - all registers (d0–d3, a0–a3, sp, pc, mdr, psw, lir, lar) equal stock;
+    - the stack from the site frame up equals stock;
+    - the status words of 0x6077d590 and its "MOUNT OK" log call equal stock (media type, status 0xF000, string,
+      arguments, return address, sp);
+    - fclose runs exactly once on every path that opened the file, with no file call after it;
+    - free runs if and only if malloc succeeded;
+    - the heap outside the 1024-byte buffer is untouched;
+    - the loader region changes only at sd_state;
+    - the peak stack is 96 B below the site sp (with stub callees).
+
+    For media types other than 1/4/8/32, the stock 0x6077d590 returns without its own call. mdr and the dead site
+    frame then hold the loader's last call. This is accepted because the method continues only to calls and `ret`,
+    never to `retf`.
+  - **7 load-once sequences, all as specified:**
+    - valid → second file ignored;
+    - no file, fopen error or malloc failure → retried and loaded at the next mount;
+    - opened but rejected (bad CRC, wrong size) → never re-read;
+    - entry with d1 ≠ 0xF000 → stock.
+  - **17/17 mutations detected:**
+    - CRC compare flipped, CRC compare removed, CRC init 0;
+    - file-size check removed, size 545;
+    - fread count check removed;
+    - range check removed, range check bcc;
+    - header compare removed;
+    - sd_state store removed;
+    - error-path fclose skipped;
+    - a0, a1, d0 or d1 not restored;
+    - table address +1;
+    - copy 511 bytes.
+- **Not covered.** The real fileif/FILECLBK path (blocking, task context, deadlock), cache coherency, whether
+  section 1 is writable, and whether section 6 is writable (sd_state lives at 0x61242c33, in the DRAM copy of
+  section 6; same [I] as §3).

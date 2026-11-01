@@ -57,3 +57,41 @@ unknown grain.
   route (GRAIN_PORT risk 1).
 - The bloom input order is unproven, and so is the assumption that the combiner sees the job-embedded request.
   If the guard fails on the camera, a bloom slot renders at the stock weight 600.
+
+## Full merge: `edits_full.json` (v0.4 + WB + MONO-colour + SD loader; NOT cleared for flashing)
+
+`tools/merge_specs.py releases/v0.4-candidate/edits_full.json` with these sources, in order: the six `edits.json`
+sources above, then `generated/wb/edits.json`, `generated/mono_colour/edits.json` and `generated/sd_bundles/edits.json`.
+That makes 138 edits and 3,504 changed payload bytes, in main only.
+- Re-merging the six sources reproduces `edits.json`'s 117 edits exactly.
+- The current `patches/wb/build.py` and `patches/mono_colour/build.py` rebuild their specs byte-identically, so
+  nothing had to be rebuilt.
+- No overlaps (packager checks). Conflicts: none.
+- The MONO-colour builder's reservation list still names v0.3, but v0.4 moved grain and bloom into section 1 and
+  MONO-colour is in section 7. Its verifier passes on this v0.4-based merge.
+
+| | sha256 |
+|---|---|
+| edits_full.json | b707fee3e4aa774c245905fb5d65d730a33363aa3bdc9a156f393b172bb3ab38 |
+| patched.pkg (rebuilt in memory) | 6517c741fbcb752a4281834d5d402e012f756ee94970e5a9f9180c1a2f7bda48 |
+| restore-stock.pkg | 245b9c8fcf247a0271121238b09769b5d90f682924e3086aacc4762211b82612 (= stock) |
+
+Verification of `edits_full.json` (emulator only, run 2026-11-01):
+| Verifier | Result |
+|---|---|
+| `ep7_verify_bundles.py` | PASS overall, 75/75 (A–D, F + 19 mutations) |
+| `ep7_grain_verify.py` | T1–T7 all PASS (T7 real table: COLOR3 low only) |
+| `ep7_bloom_verify.py` | T1–T5, T7 all PASS (no bloom slot → stock weight 600) |
+| `ep7_verify_wb.py` | T, S, U (14 sites), K, W, C, G PASS + 20/20 mutations |
+| `ep7_mono_colour_verify.py` | 213/213 tests, 20/20 mutations PASS |
+| `ep7_verify_sd_bundles.py` (new) | S, 173 single-mount cases, 7 load-once sequences, 17/17 mutations PASS (docs/SD_BUNDLES.md §6) |
+| `patches/aspect/build.py` | 137/137 PASS |
+| `patches/video_log/build_and_verify.py` | PASS |
+| `patches/rec_limit/build_and_verify.py` | PASS |
+
+The aspect, video_log and rec_limit scripts are image-level standalone checks. They rewrite their own `edits.json`
+identically.
+
+Still open for the SD loader: the [I] items in docs/SD_BUNDLES.md. These are the HIGHLEVEL_MAIN context, blocking
+fileif at mount, writable section-1 and section-6 copies, and cache coherency. The first camera check is the one
+given there.
