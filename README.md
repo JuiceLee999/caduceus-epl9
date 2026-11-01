@@ -150,6 +150,8 @@ Muted. Left: the standard curve. Right: the hidden log curve, rendered with the 
 - Tinted halation (red glow around white lights), probably via a mask built from the exposure meter grid.
 - Vignette on colour profiles as Extras sector 6 (−5..+5, finer than stock), using the stock shading stage
   (plan: `docs/VIGNETTE.md`).
+- Far future (Ricoh GR-style): **highlight-weighted metering** (meter the whole frame but protect highlights) and
+  **snap focus** (a preset focus distance used when the shutter is pressed straight through).
 - Maybe: use the ART position on the mode dial as a quick "silent shutter" switch.
 - Parked: colour looks on Monochrome slots or extra profile slots; a list-style menu instead of the wheel;
   4:3 "open gate" video.
