@@ -16,7 +16,8 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | 0x60210ce0–0x60210e00 | 1 | v0.4 per-profile colour grain: wl_hook (job-type gate + bundle slot), sel_hook, grain_mod (patches/grain; 0x60210cd0–0x60210ce0 guard) | claimed (v0.4) |
 | 0x60210e10–0x60210ef0 | 1 | v0.4 per-profile colour bloom: bloom_flag, bloom_w (+strength LUT) (patches/bloom; 0x60210e00–0x60210e10 and 0x60210ef0–0x60210f00 guards) | claimed (v0.4) |
 | 0x60210f00–0x60210f80 | 1 | aspect case blocks S1–S5 (patches/aspect; 110 B used, 0x60210f00–0x60210f6e) | built + emulator-verified |
-| 0x61242a00–0x61242d00 | 6 | SD-card bundle loader sd_hook/sd_load/sd_check/sd_crc + path, header, range tables, `sd_state` byte (patches/sd_bundles; 564 B used, 0x61242a00–0x61242c34, sd_state at 0x61242c33 is written at run time). Guards 0x612429b0–0x61242a00 and 0x61242d00–0x61242f00 stay FF; stock data ends 0x612429af | built + emulator-verified (docs/SD_BUNDLES.md) |
+| 0x61242a00–0x61242d00 | 6 | SD-card bundle loader sd_hook/sd_load/sd_check/sd_crc + path, header, range tables, `sd_state` byte (patches/sd_bundles; 564 B used, 0x61242a00–0x61242c34, sd_state at 0x61242c33 is written at run time). Guards 0x612429b0–0x61242a00 and 0x61242d00–0x61242f00 stay FF; stock data ends 0x612429af | **superseded by v2** (dead hook, REVIEW_v04 H1-new); never combine with v2 |
+| 0x605b7400–0x605b7780 | 3 | SD look loader **v2** sd_hook/sd_gate/sd_load/sd_check/sd_crc + path/header/range tables + `sd_state` (0x605b7692, written at run time) (patches/sd_bundles_v2; 659 B used, 0x605b7400–0x605b7693). Guards 0x605b73f0–0x605b7400 and 0x605b7780–0x605b7800 stay FF. 0x605b7190–0x605b73f0 left clear for the provisional ORF/wifi placements (HSL_PORT.md). Stock data ends 0x605b717f; sec 3 load end 0x605b7800 | built + emulator-verified (docs/SD_BUNDLES_V2.md) |
 | 0x61242f00–0x61242f60 | 6 | aspect: relocated Image Aspect option list, 8 × 12 B data (patches/aspect) | built + list parse verified |
 | 0x61378c80–0x61378f7c | 7 | MONO-colour LUTs + sel/chroma/fg stubs (patches/mono_colour; 764 B). Guards 0x61378c68–0x61378c80 and 0x61378f7c–0x61378f8c stay FF; 0x61378f8c–0x61379000 (116 B) free. Sec-7 end 0x61379000 re-verified via loader 0x60027068 entry 6 + end getter 0x60045786 → 0x600457c4 | built + emulator-verified (docs/MONO_COLOUR.md) |
 | 0x60210f80–0x60210ff2 | 1 | aperture ring `.lens` (disp_hook + parse_hook, 114 B; patches/aperture_ring, docs/APERTURE_RING.md). 0x60210ff2–0x60210ffe stays FF | built + emulator-verified |
@@ -44,7 +45,8 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | 0x60427ae7 | 5 | aperture ring: AE snapshot `call 0x60429548,[],4` (aperture point 0x80ca) → jmp ae_hook |
 | 0x603537f0 (3), 0x6035390c (2) | 5 | v0.2 job size 15488→15512, tail memset 16→40 |
 | 0x603e66ab (6), 0x603e91f0 (6) | 12 | v0.2 converter transport (replaces the 0x603e669f/0x603e91e4 candidates) |
-| 0x60863e91 | 4 | SD bundle loader: rel32 of the mount-OK `call 0x6077d590,[d2],20` at 0x60863e90 → sd_hook (tail-jumps to 0x6077d590) |
+| 0x60863e91 | 4 | SD bundle loader v1 (superseded, dead path): rel32 of the mount-OK `call 0x6077d590,[d2],20` at 0x60863e90 → sd_hook (tail-jumps to 0x6077d590) |
+| 0x602c805f | 5 | SD look loader v2: appevent TRIG tracker `call 0x602c818c,[d2,d3,a2,a3],36` (in 0x602c7f5a, task HLS_EVENT) → `jmp sd_hook` (replays the call, returns to 0x602c8064) |
 | 0x60210900–0x60210b00 | data (run time) | SD bundle loader rewrites the v0.2 bundle table in RAM from a valid C:\EP7MOD\BUNDLES.BIN (no flash edit) |
 | 0x6117af14 | 8 | aspect: setting-270 option descriptor (count 6→8, list ptr → 0x61242f00) |
 | 0x60b04428/2c, 0x60b04454/58, 0x60b0daf8/fc, 0x60b0e0ec/f0, 0x60af4a18/1c, 0x60b01548/4c | 4 each | aspect: jump-table entries ids 6/7 (S1–S6, sec 5) |

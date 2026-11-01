@@ -1,0 +1,240 @@
+/* E-P7 1.1 SD-card look loader v2 (ep7-firmware, our own code). docs/SD_BUNDLES_V2.md
+ *
+ * Trigger: the FIRST SHUTTER HALF-PRESS after boot, seen in the appevent dispatcher.
+ *   Task HLS_EVENT (created by HIGHLEVEL init 0x6076fd56, entry 0x6076fdb6) loops in 0x6076fe04:
+ *   0x60770217 -> 0x602c7f5a (appevent get: blocking receive from queue (0x60040ce8)) ->
+ *   0x602c805f  call 0x602c818c,[d2,d3,a2,a3],36   (release-notice tracker, only for low16 0x100/0x101)
+ *   The tracker canonicalises (a0) = (16,sp) of 0x602c7f5a: 0x02040100 -> 0x02000100 etc., and zeroes
+ *   events that do not change the combined TRIG state. 0x02000100 after it = TRIG1 (half) pressed.
+ * Hook: those 5 bytes become `jmp sd_hook`. sd_hook replays the call on the same frame, then
+ *   tail-jumps to 0x602c8064 (the stock continuation, which reloads d0 from (16,sp); d1/a0/a1 dead).
+ * sd_gate runs only for event == 0x02000100 while sd_state == 0xFF, and then only if ALL hold:
+ *   (0xa272e420 & 0x1ff) == 0x1ff        all 9 sections copied (boot loader 0x600457e7 sets bit n-1)
+ *   get_tid (0x600317ac) == 0 and tid == (0x622cbcc0)   the caller is the HLS_EVENT task itself
+ *   (0x622cbcc0) in 1..0x7fff                           (event manager +172; -1 until the task exists)
+ *   one media status word (0x61fa8fb8/c0/c8/d0) == 0xF000 "MOUNT OK" (media manager, 0x6077d590)
+ * Then sd_state = 0 (ONE attempt per power-on, whatever the outcome) and sd_load reads
+ * {path} through fileif (served by FILECLBK):
+ *   malloc({buf_size}) -> fopen(path,"r") -> fseek(END)/ftell == {file_len} -> fseek(SET)
+ *   -> fread(buf,1,size) == size -> fclose -> validate (header, CRC-32, per-byte ranges) -> copy -> free.
+ * Any failure leaves the flashed table untouched. No mul/div/setlb.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+sd_hook:                          /* entered by jmp from 0x602c805f; frame = 0x602c7f5a's, a0 = sp+16 */
+ call ep7_trig,[d2,d3,a2,a3],36   /* the displaced stock call, same frame and contract */
+ mov (16,sp),d0                   /* canonical event */
+ cmp {ev_press},d0
+ bne sd_back
+ movbu (sd_state),d0
+ cmp 0,d0
+ beq sd_back                      /* already attempted this power-on */
+ call sd_gate,[d2,d3,a2,a3],36
+sd_back:
+ jmp ep7_trig_ret                 /* 0x602c8064: mov (16,sp),d0 ... */
+
+sd_gate:                          /* frame 36: scratch 0..19, (12,sp) = tid out */
+ mov (ep7_secbits),d0
+ and 511,d0
+ cmp 511,d0
+ bne sd_gout                      /* boot section copy not finished */
+ mov sp,a0
+ add 12,a0
+ call ep7_get_tid,[a2],4
+ cmp 0,d0
+ bne sd_gout                      /* not a task context */
+ movhu (ep7_hls_tid),d1
+ cmp 0,d1
+ beq sd_gout
+ btst 0x8000,d1
+ bne sd_gout                      /* HLS_EVENT not created yet (-1) */
+ movhu (12,sp),d0
+ cmp d1,d0
+ bne sd_gout                      /* not the HLS_EVENT task */
+ mov 61440,d1
+ mov (ep7_ms_a),d0
+ cmp d1,d0
+ beq sd_go
+ mov (ep7_ms_b),d0
+ cmp d1,d0
+ beq sd_go
+ mov (ep7_ms_c),d0
+ cmp d1,d0
+ beq sd_go
+ mov (ep7_ms_d),d0
+ cmp d1,d0
+ bne sd_gout                      /* no medium reports MOUNT OK: no file call, retry next half-press */
+sd_go:
+ clr d0
+ movbu d0,(sd_state)              /* one attempt per power-on */
+ call sd_load,[d2,d3,a2,a3],36
+sd_gout:
+ ret [d2,d3,a2,a3],36
+
+sd_load:                          /* frame 36: scratch 0..19; (0..11) left to callees */
+ mov {buf_size},d0
+ call ep7_malloc,[],4
+ mov a0,a2
+ cmp 0,a2
+ beq sd_out
+ mov sd_path,a0
+ mov sd_mode,a1
+ call ep7_fopen,[],4
+ mov a0,a3
+ cmp 0,a3
+ beq sd_free                      /* no file */
+ mov a3,a0
+ clr d0
+ mov 1,d1                         /* whence 1 = END (0x6064610d) */
+ call ep7_fseek,[d2,d3,a2,a3],20
+ cmp 0,d0
+ bne sd_close
+ mov a3,a0
+ call ep7_ftell,[d2,a2,a3],16
+ mov d0,d3                        /* file size */
+ cmp {file_len},d3
+ bne sd_close
+ mov a3,a0
+ clr d0
+ mov 2,d1                         /* whence 2 = SET */
+ call ep7_fseek,[d2,d3,a2,a3],20
+ cmp 0,d0
+ bne sd_close
+ mov a2,a0
+ mov 1,d0
+ mov d3,d1
+ mov a3,a1
+ call ep7_fread,[d2,d3,a2,a3],24
+ mov d0,d2                        /* bytes read */
+ mov a3,a0
+ call ep7_fclose,[d2,a2,a3],16
+ cmp d3,d2
+ bne sd_free
+ mov a2,a0
+ call sd_check,[d2,d3,a2,a3],16
+ cmp 0,d0
+ bne sd_free
+ mov a2,a0
+ add {hdr_len},a0
+ mov {table},a1
+ clr d2
+sd_copy:
+ movbu (d2,a0),d0
+ movbu d0,(d2,a1)
+ inc d2
+ cmp {payload_len},d2
+ bne sd_copy
+ bra sd_free
+sd_close:
+ mov a3,a0
+ call ep7_fclose,[d2,a2,a3],16
+sd_free:
+ mov a2,a0
+ call ep7_free,[],4
+sd_out:
+ ret [d2,d3,a2,a3],36
+
+/* sd_check: a0 = file buffer ({file_len} bytes) -> d0 = 0 valid, 1 invalid. (unchanged from v1) */
+sd_check:
+ mov a0,a2
+ mov sd_hdr,a3
+ clr d2
+sd_h1:
+ movbu (d2,a2),d0
+ movbu (d2,a3),d1
+ cmp d1,d0
+ bne sd_bad
+ inc d2
+ cmp 16,d2
+ bne sd_h1
+ mov 20,d2
+sd_h2:
+ movbu (d2,a2),d0
+ movbu (d2,a3),d1
+ cmp d1,d0
+ bne sd_bad
+ inc d2
+ cmp {hdr_len},d2
+ bne sd_h2
+ mov -1,d0
+ mov a2,a0
+ mov 16,d1
+ call sd_crc,[d2,d3],12
+ mov a2,a0
+ add 20,a0
+ mov {crc_tail},d1
+ call sd_crc,[d2,d3],12
+ not d0
+ clr d2
+sd_c1:
+ movbu (16,a2),d1                 /* stored CRC, little-endian, one byte at a time */
+ mov d0,d3
+ and 255,d3
+ cmp d3,d1
+ bne sd_bad
+ lsr 8,d0
+ inc a2
+ inc d2
+ cmp 4,d2
+ bne sd_c1
+ add -4,a2
+ mov a2,a0
+ add {hdr_len},a0
+ clr d2
+sd_r1:
+ movbu (d2,a0),d0
+ extb d0                          /* value, signed */
+ mov d2,d1
+ and 63,d1                        /* offset in the 64-byte slot */
+ mov sd_lo,a1
+ movbu (d1,a1),d3
+ extb d3
+ sub d3,d0                        /* value - lo */
+ mov sd_span,a1
+ movbu (d1,a1),d3
+ cmp d3,d0
+ bhi sd_bad                       /* unsigned: below lo wraps high */
+ inc d2
+ cmp {payload_len},d2
+ bne sd_r1
+ clr d0
+ ret [d2,d3,a2,a3],16
+sd_bad:
+ mov 1,d0
+ ret [d2,d3,a2,a3],16
+
+/* sd_crc: d0 = running CRC, a0 = data, d1 = length (> 0) -> d0. */
+sd_crc:
+ movbu (a0),d2
+ xor d2,d0
+ mov 8,d3
+sd_b1:
+ btst 1,d0
+ beq sd_b0
+ lsr 1,d0
+ xor 0xedb88320,d0
+ bra sd_b2
+sd_b0:
+ lsr 1,d0
+sd_b2:
+ add -1,d3
+ bne sd_b1
+ inc a0
+ add -1,d1
+ bne sd_crc
+ ret [d2,d3],12
+
+sd_path:
+ .asciz "{path_asm}"
+sd_mode:
+ .asciz "r"
+sd_hdr:
+{hdr_bytes}
+sd_lo:
+{lo_bytes}
+sd_span:
+{span_bytes}
+sd_state:
+ .byte 0xff

@@ -1,5 +1,8 @@
 # SD-card bundle loading, phase 1 (data only)
 
+> **Superseded by v2 (docs/SD_BUNDLES_V2.md, patches/sd_bundles_v2).** The v1 hook 0x60863e90 is on a dead path
+> (REVIEW_v04 H1-new). The file format, CRC and ranges below are unchanged and still used by v2.
+
 Offline only. Nothing here was run on a camera. No SD-update-named file was created and nothing was committed.
 **Status: built, statically checked and emulator-verified (`tools/ep7_verify_sd_bundles.py`, §6), standalone with
 the bundles spec and inside `releases/v0.4-candidate/edits_full.json`. The [I] items in §2–§3 are still unproven on
