@@ -110,3 +110,86 @@ From the picture-parameter builder 0x602b7b71 MONO branches (public modes 57/58/
 - Checks: L 10/10 (scratch harness, both sites), S 98, H 48.
 - [I] Whether the MONO pages actually draw the guide slot, and whether this view is the screen the user sees.
   The colour editor's camera-proven label lives in a different view (0x60dec790).
+
+## v0.15: mono film-sim picker (emulator-verified, not camera-tested)
+
+Modelled on the colour Film page: a **Film page** inside the stock MONO filter and shading editors.
+
+| Key in a MONO1–4 filter / shading editor | Stock | v0.15 (card table loaded) |
+|---|---|---|
+| INFO (+44) | closes | toggle normal ↔ Film page (INFO is the only extra key proven to reach editors, 12d; MENU/PLAYBACK hooked in the editor never worked on the colour camera test, so +36 stays stock) |
+| MENU / PLAYBACK | stock | stock |
+| Up / Left (+12 / +20), Down / Right (+16 / +24) | filter: Left/Right = filter, Up/Down = strength (only if setting 130 ≠ 0); shading: Up/Down = shading, Left/Right nothing | **Film page only:** next / previous preset (Up and Left send 0x9004 in stock, so they are "next"). Stock page: unchanged |
+| Dials, touch drag | reach +12..+24 through the helpers 0x60e20bd5/bfd/c25/c4d [V] | follow the arrows. The filter rear dial (+28) is gated on setting 130 in stock, so on the Film page `mp_d1_f` jumps to the shading editor's dial routine 0x60e22df0 (same delta, Up/Down helpers, no gate) |
+| Init (+4) | build the parent | Film page off, then stock |
+
+[V] The editor router 0x60e20cdc routes only 0x900c / INFO / 0x9015 / 0x9012 to fixed slots; every other event,
+including MENU, goes to parent+72 = record +36, where the stock MONO handler checks 0x900e itself. The router and
+init are shared with the colour editor, whose +36 / +12 / +16 hooks are camera-proven (12e/13).
+
+**Guide label** (mp_lbl1/2, the camera-proven 13c slot):
+- Film page: `Film: Acros`, `Film: Acros*`, or `Film: Custom` (slot name is not a preset).
+- Stock page: `Acros[INFO]` / `Acros*[INFO]`, or `Film[INFO]` (no preset), so the key is discoverable.
+- At most 17 characters (build check ≤ 20; 13c showed 20).
+- `*` = any of the preset's 8 settings now reads differently. The check runs on every view update, through
+  facade GetValue (+8) on the MONO ids, compares the low byte only (so sign- and zero-extended values both
+  work), and a failed read adds no `*`.
+- ed_get / ex_get on the same facade word only take COLOR sector ids (927–962, 1655–1666), so MONO ids read
+  stock storage [V]. A hand edit to filter, strength, toning, grain, shading or Hi/Sh shows the `*` on the next
+  redraw. Contrast and sharpness are not compared.
+
+**Redraw:** after a step or a page toggle, every child is refreshed, then the editor's own first setting
+(filter / shading) is re-written with its current value (GetValue → SetValue). This is the colour editor's
+ed_poke, which is camera-proven for its page step. For the toggle it is the only trigger: [I] strong.
+
+**Persistence and resume:** the slot name is written into P+608+16m (`EP7N`) with dirty set, and the editor's
+half-press save writes BUNDLES.BIN (camera-proven). After a power cycle, the first take-over rebuilds the
+positions from the names (`mp_resume`), and the label matches by name directly. The page byte P+1012 is trusted
+only with `EP7M` at P+1008, and it is cleared by `mp_resume` and by every editor init.
+
+**Presets (10, slowest film first):**
+
+| Preset | filter / strength | toning | grain | shading | HL / SH / MID |
+|---|---|---|---|---|---|
+| Pan F 50 | yellow 1 | – | off | 0 | +1 / −3 / +1 |
+| Acros | green 1 | – | low | 0 | −1 / −2 / 0 |
+| T-Max 100 | none | – | off | 0 | −1 / 0 / +1 |
+| SFX 200 | red 3 | – | medium | −1 | +2 / −2 / 0 |
+| Tri-X 400 | yellow 2 | – | medium | 0 | −1 / −3 / 0 |
+| HP5 Plus | none | – | high | 0 | −2 / +1 / 0 |
+| Delta 3200 | none | – | high | −2 | −2 / +2 / +1 |
+| Sepia Print | none | sepia | low | −2 | −1 / +1 / 0 |
+| Selenium | none | purple [I] | low | −1 | 0 / −2 / 0 |
+| Cyanotype | yellow 1 | blue | off | 0 | 0 / −1 / 0 |
+
+"Red Contrast" was replaced by SFX 200. A slot saved as "Red Contrast" shows `Film: Custom` until the next pick.
+
+**Code:**
+- Part A, 932 B at 0x601e283c: entries, step, page, init and rear dial; 10 stock fallbacks through 8-byte
+  trampolines, which the build checks.
+- Part B, 800 B at 0x601e173c: the label, keys, ids and presets. It sits in the dead EVF step-11 R/G/B and
+  step-10 R tables. Their only references are the step-table words 0x601e3d30/34/38 and 0x601e3d20, which the
+  build checks.
+- 56 record words (8 records × +4/+12/+16/+20/+24/+44, + 4 filter +28) and 2 label sites.
+- Heap: P+1004..1007 pos, P+1008 `EP7M`, P+1012 page. This is below film +1016 and above the editor's 680..703.
+
+**Verified** (`patches/mono_presets/verify.py`):
+- S 530: stock paths on every hooked word, +36 stays stock;
+- I 24: init;
+- H 192: steps both ways, wraps, stale position, resume, no names section;
+- K 48: INFO page toggle;
+- L 408: label texts, `*` per field, byte vs s32 values, getter failure, no `EP7M`, non-MONO mode;
+- D 28: rear dial, with an end-to-end run through the real 0x60e22df0 and helpers.
+- No mutations (user request).
+
+**Routes and limits:**
+- Only the filter and shading screens are wheel editors. The editor descriptor table has no record for
+  toning, grain or Hi/Sh, so the picker lives in these two screens. Whichever route opens them (Picture Mode
+  → MONO → INFO / →, or SCP), it is the same record.
+- Picture-mode slot m comes from the editor key. The label uses the view's picture mode (view+400).
+- With MONO slots used as colour bundle slots (8-slot work), a preset still writes only the stock mono
+  settings and the slot name. It overwrites a bundle name on that slot.
+
+**Colour Film page as host?** No. The Color Profile editor opens only in COLOR modes (Up re-reads setting 111
+∈ {54, 55, 56, 64}), and its children are the COLOR saturation ids, so a MONO slot cannot reach it. The mono
+picker therefore stays in the MONO editors. Note for the 8-slot agent: this needs no change in film_menu_v2.

@@ -1,0 +1,88 @@
+/* E-P7 1.1 v0.14: live-view refresh after an Art Effect change (ep7-firmware, our own code). docs/LV_ART_PREVIEW.md.
+ *
+ * Bug: lv_art ORs the slot's Art Effect flag (slot +46) into the LV job only when the record task builds a new LV
+ * development job, so an Art-field edit showed only after the next capture. Stock reconfigures LV after a
+ * picture-mode set: the GUI setter -> settings manager 0x60827440 with id 111 runs the picture-mode latch
+ * 0x602ccfcb / 0x602cd045 around the set, the id-111 descriptor callback 0x602b4f81 (effective parameters) and the
+ * listeners. This module runs that same id-111 path, with the unchanged picture-mode value, from the same GUI task,
+ * only when a slot's art byte really changed:
+ *
+ *   ex_art  <- ex_set's art write ({ex_art_site}: movbu d1,(78,a2); bra s_dirty). old != new -> manager(111, S(111),
+ *              a0/a1 as given to ex_set) -> s_dirty. Equal -> s_dirty only (stock-identical flow).
+ *   fm_pre  <- fm_ui u_apply ({fm_pre_site}: mov d0,a0; clr d0; movbu d0,(31,a0)): stash the slot's old art byte
+ *              at L+1832 (the 80-B staging T = L+1752 ends there; L is a 2048-B heap block).
+ *   fm_post <- fm_ui's final `jmp ed_poke` ({fm_post_site}): old != new -> facade GetValue(111) / SetValue(111, 0, v)
+ *              (the stock GUI path, as ed_poke does for the cursor id), then ed_poke.
+ * Profile switch: that IS a stock id-111 set (the same path), so nothing is added for it.
+ * Stores: heap P (the art byte ex_set already wrote), L+1832, the stack. No absolute stores.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+ex_art:                           /* d1 = new art 0..5, a2 = P + 64*slot, d0 = id, a0/a1 = ex_set args */
+ movbu (78,a2),d2
+ movbu d1,(78,a2)
+ cmp d1,d2
+ beq 1f
+ add -24,sp
+ mov d0,(4,sp)
+ mov d1,(8,sp)
+ mov a0,(12,sp)
+ mov a1,(16,sp)
+ mov mdr,d0
+ mov d0,(20,sp)
+ mov 111,d0
+ call ep7_sget,[],4               /* d0 = picture mode (stock getter, keeps d2/d3/a2/a3) */
+ mov d0,d1
+ mov 111,d0
+ mov (12,sp),a0
+ mov (16,sp),a1
+ call ep7_manager,[d2,d3,a2],16   /* the stock picture-mode set path, unchanged value */
+ mov (20,sp),d0
+ mov d0,mdr
+ mov (4,sp),d0
+ mov (8,sp),d1
+ mov (12,sp),a0
+ mov (16,sp),a1
+ add 24,sp
+1:
+ jmp ex_s_dirty
+
+fm_pre:                           /* d0 = entry (P+32+64k), a1 = T = L+1752 */
+ mov d0,a0
+ movbu (46,a0),d0
+ movbu d0,(80,a1)                 /* L+1832 = old art byte */
+ clr d0
+ movbu d0,(31,a0)                 /* replayed */
+ jmp fm_resume
+
+fm_post:                          /* a2 = P, d3 = slot k, a3 = parent; ed_poke reloads everything else */
+ mov d3,d0
+ asl 6,d0
+ add a2,d0
+ mov d0,a0
+ movbu (78,a0),d0                 /* new art (entry +46) */
+ mov (1016,a2),a1                 /* L */
+ movbu (1832,a1),d1               /* old art */
+ cmp d0,d1
+ beq 2f
+ call ep7_facade,[],4
+ mov (a0),a2
+ mov (8,a2),a2                    /* GetValue(111, &out) */
+ mov sp,a1
+ add 4,a1
+ mov 111,d0
+ calls (a2)
+ cmp 0,d0
+ bne 2f
+ call ep7_facade,[],4
+ mov (a0),a2
+ mov (a2),a2                      /* SetValue(111, 0, the same value) */
+ mov 111,d0
+ clr d1
+ mov (4,sp),a1
+ calls (a2)
+2:
+ jmp ed_poke
+code_end:
