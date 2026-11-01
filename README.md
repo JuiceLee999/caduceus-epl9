@@ -3,9 +3,10 @@
 Open-source firmware patches for the **Olympus PEN E-P7** (firmware 1.1). Per-profile film looks,
 colour grain, bloom, true log video, XPan and 21:9 stills, and longer video recording.
 
-> **Status: pre-release research.** Every patch is verified in an emulator of the camera's CPU, and
-> the update and recovery path has been partly tested on a real camera. **No modded firmware has run
-> on a camera yet.** Flashing modified firmware can brick your camera. Read [Safety](#safety) first.
+> **Status: early testing.** Every patch is verified in an emulator of the camera's CPU. The SD update and
+> recovery path is proven on a real E-P7 (including recovery from a bootloop), and the features marked
+> **camera-tested** below run on a real camera. Flashing modified firmware can still brick your camera.
+> Read [Safety](#safety) first.
 
 ![XPan crop with a Classic Chrome-style look](docs/img/xpan_classic_chrome.jpg)
 
@@ -13,14 +14,16 @@ colour grain, bloom, true log video, XPan and 21:9 stills, and longer video reco
 
 | Feature | What you get | Status |
 |---|---|---|
-| **Profile bundles** | Each Colour Profile slot (COLOR1–4) carries its own full look: per-colour hue and lightness on top of the stock saturation and tone. Switch looks with the profile selector. | Built, emulator-verified |
+| **Profile bundles** | Each Colour Profile slot (COLOR1–4) carries its own full look: per-colour hue and lightness on top of the stock saturation and tone. Switch looks with the profile selector. | Camera-tested |
 | **Per-profile WB shift** | Each slot can carry its own A/B and G/M fine-tune, so a warm look stays warm without touching other profiles. | Built, emulator-verified |
-| **Colour film grain** | The E-P7's grain hardware, previously Monochrome-only, on colour profiles. | Built, emulator-verified |
-| **Bloom** | The Soft Focus glow engine applied subtly to colour profiles, Pro-Mist style. | Built, emulator-verified |
-| **True log video** | A hidden OM-Log-style curve already present in the firmware (~12.4% output per stop), unlocked in movie mode. | Built, emulator-verified |
+| **Colour film grain** | The E-P7's grain hardware, previously Monochrome-only, on colour profiles. | Camera-tested |
+| **Bloom** | The Soft Focus glow engine applied subtly to colour profiles, Pro-Mist style. | Camera-tested (adds a short write delay) |
+| **True log video** | A hidden OM-Log-style curve already present in the firmware (~12.4% output per stop), unlocked in movie mode. | Camera-tested |
 | **XPan 65:24 and 21:9** | Two new still aspect ratios (5184×1912 and 5184×2224) from hidden aspect slots. | Built, emulator-verified |
-| **Recording limit** | 29-minute and 2-hour caps raised to 9 hours (file, chapter and heat limits still apply). | Built, emulator-verified |
-| Looks from the SD card | Load bundles from `EP7MOD/BUNDLES.BIN`; change looks without reflashing. | In progress |
+| **Recording limit** | 29-minute and 2-hour caps raised to 9 hours (file, chapter and heat limits still apply). | Camera-tested |
+| Looks from the SD card | Load bundles from `EP7MOD/BUNDLES.BIN` on the first half-press; change looks without reflashing. | Built, emulator-verified |
+| Film Simulation menu | Look names from the card shown in the Picture Mode list. | Designed |
+| Log View Assist | Normal-looking preview on the LCD while recording log. | Researched (feasible) |
 | MONO slots as colour slots | 8 universal look slots. | In progress |
 | On-camera HSL editor and profile naming | Edit looks and names in the camera. | Planned |
 
@@ -67,8 +70,9 @@ Mock-ups drawn with the camera's own fonts and icons, extracted from its firmwar
 ## Safety
 
 - Only the E-P7 on firmware **1.1** is supported.
-- The camera's SD updater (hold **OK** while switching on, with the file in `DCOLYMP/`) is confirmed working
-  and rejects corrupt files without writing. Restoring stock firmware through it is still being validated.
+- The camera's SD updater (hold **OK** while switching on, file at `DCOLYMP/E1429999.BIN`) is confirmed working:
+  LED steady while writing, then a ~2 Hz blink when done. It rejects corrupt files without writing, and stock
+  firmware has been restored through it, including from a bootloop.
 - A full battery and an uninterrupted write are essential. A failed write can leave the camera unbootable.
 - Test one feature at a time, following `docs/REVIEW_v03.md`.
 
