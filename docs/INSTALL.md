@@ -9,6 +9,16 @@ Caduceus patches the Olympus PEN **E-P7 firmware 1.1**. This repository contains
 the update file yourself from OM's official 1.1 download. Flashing modified firmware can brick your camera.
 You do this at your own risk.
 
+## Quick version
+
+It really is mostly drag and drop. The only extra step is a one-command build on your computer, because OM's
+licence doesn't allow us to share a ready-made firmware file:
+
+1. **Build:** run `caduceus.py` once (below). It downloads OM's official 1.1 file and makes the update.
+2. **Drag and drop:** copy the `DCOLYMP` and `EP7MOD` folders from `out/` to the root of the SD card.
+3. **Flash:** hold **OK**, switch on, wait for the blinking LED.
+4. **Shoot:** half-press once, and the film looks load from the card.
+
 ## Requirements
 
 - An Olympus PEN E-P7 on firmware **1.1** (Setup > Firmware). No other model or version.
@@ -17,13 +27,34 @@ You do this at your own risk.
 - Python **3.10 or newer** (Windows, macOS or Linux). Nothing else to install.
 - This repository (git clone or the release zip).
 
+## Get the files and Python
+
+**Get Caduceus:** on the GitHub page click **Code → Download ZIP** and unzip it (or `git clone` it).
+
+**Get Python 3.10+** (one-time):
+
+| | How |
+|---|---|
+| **Windows** | Install from [python.org](https://www.python.org/downloads/) (tick "Add python.exe to PATH") or the Microsoft Store. |
+| **macOS** | Install from [python.org](https://www.python.org/downloads/), then run "Install Certificates.command" in the Python folder once. (`brew install python` also works.) |
+| **Linux** | Usually already installed. Otherwise `sudo apt install python3` / `sudo dnf install python3`. |
+
+**Open a terminal in the unzipped folder:**
+
+- **Windows:** open the folder in File Explorer, click the address bar, type `cmd`, press Enter.
+- **macOS:** right-click the folder in Finder → **New Terminal at Folder** (or `cd` into it in Terminal).
+- **Linux:** right-click → **Open in Terminal** (or `cd` into it).
+
 ## Build
 
+Windows:
+```
+py caduceus.py build --release v0.15
+```
+macOS / Linux:
 ```
 python3 caduceus.py build --release v0.15
 ```
-
-On Windows, type `py` instead of `python3`.
 
 The command:
 
@@ -50,7 +81,10 @@ Re-check at any time with `python3 caduceus.py verify out`.
 
 ## Copy to the card
 
-Copy `DCOLYMP` and `EP7MOD` from `out/` to the root of the card. Do **not** copy `restore/` to the card.
+Put the card in your computer (card reader, or the camera over USB in storage mode), then drag the `DCOLYMP`
+and `EP7MOD` folders from `out/` onto the card's top level (same level as `DCIM`). This works the same in
+Windows Explorer, macOS Finder and Linux file managers. Do **not** copy `restore/` to the card. Eject the card
+properly before removing it (Windows "Eject", macOS eject button, Linux "Unmount").
 
 ```
 (card root)
@@ -79,7 +113,7 @@ Rebuild and copy again.
 - Open a Colour Profile's colour wheel. **INFO** steps through Saturation, Hue, Light, Film and Extras.
 - Leave the editor and half-press: your changes are saved to `EP7MOD/BUNDLES.BIN` (the previous file is kept
   as `.BAK`).
-- Without the `EP7MOD` folder the camera behaves as stock.
+- Without the `EP7MOD` folder the camera is almost stock (log video, XPan/21:9 and the recording limit stay).
 
 See the [README](../README.md#using-it) for the full feature list.
 
