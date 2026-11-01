@@ -16,7 +16,7 @@ for p, s in zip(sys.argv[2:], specs):
         if key in seen:
             sys.exit(f'duplicate edit {key} from {p}')
         seen.add(key)
-        edits.append(dict(e, source=p))
+        edits.append(dict(e, source=e.get('source', p)))
 merged = dict(components=comps, edits=edits, sources=sys.argv[2:], meta={})
 for p_, s in zip(sys.argv[2:], specs):   # full per-patch metadata, namespaced (never conflicts)
     merged['meta'][s.get('patch', p_)] = {k: v for k, v in s.items() if k not in ('edits', 'components')}
