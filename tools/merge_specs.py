@@ -24,7 +24,9 @@ for s in specs:   # keep verification metadata (e.g. native_rows) if present
     for k in ('native_rows', 'recipe', 'hue_ui', 'light_ui',
               'bundle', 'labels', 'table_hex', 'slots', 'layout',   # v0.2 bundle verifier metadata
               'symbols', 'level', 'code_at',                        # grain verifier metadata
-              'bloom'):                                             # bloom verifier metadata
+              'bloom',                                              # bloom verifier metadata
+              'wb',                                                 # WB verifier metadata
+              'mono_colour'):                                       # MONO-colour verifier metadata
         if k in s:
             if k in merged and merged[k] != s[k]:
                 continue   # top-level keeps the first patch's value (verifiers read it); all copies are in meta

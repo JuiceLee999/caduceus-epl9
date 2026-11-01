@@ -1,0 +1,109 @@
+/* E-P7 1.1 per-profile WB fine-tune (ep7-firmware, our own code). docs/WB_PATCH.md
+ *
+ * wb_get replaces the property getter 0x6005e971 at the image-pipeline reads of the WB
+ * fine-tune arrays (key {key_a} A-B, key {key_g} G-M). Each site keeps its 7-byte
+ * `call <rel32>,[d2,d3],12`; only the rel32 now points here, so we are entered with exactly
+ * the getter's frame and contract:  d0 = key, d1 = idx, a0 = 0  ->  d0 = value.
+ *
+ * Override (return bundle value) only when ALL hold:
+ *   key is A-B or G-M; WB category (key {k_wbcat}) != {cwb} (CWB);
+ *   picture mode (key {k_pmode}; 6 -> key {k_pmode6}) is 11 (COLOR) or 12 (MONO);
+ *   profile (key {k_color} / {k_mono}) is 1..4  -> slot 0..3 / 4..7;
+ *   bundle[slot].wb_flags bit0 set and bit7 clear (0xFF = erased table); wb_ab AND wb_gm both in -7..7.
+ * Otherwise wb_pass TAIL-JUMPS into the stock getter with the original d0/d1/a0 on the
+ * original sp/frame, so the stock path IS the stock getter on an identical frame (its own
+ * `ret [d2,d3],12` returns to the site). d2/d3 hold key/idx at that point; the getter
+ * overwrites both before reading them (0x6005e971: mov d1,d3; mov d0,d2).
+ * MDR: never written explicitly. The last thing either path does is a real getter call, which
+ * always ends in calls/retf inside 0x6005c8cf, so MDR at return equals stock. No mul/div/setlb.
+ * Override path leaves d1 = idx and a1 = the getter's last value like stock; only a0 differs
+ * (bundle slot pointer instead of the property data pointer; caller-saved, every site's
+ * continuation rewrites a0 before reading it - tools/ep7_verify_wb.py runs them natively).
+ * Peak stack: +16 B over stock (our 12-B frame + wb_prop's 4-B frame).
+ * Property keys are < 0x10000 and are loaded/compared as sign-extended imm16 (3/4-byte
+ * forms); wb_prop zero-extends before calling the getter, wb_pass zero-extends the key back.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+wb_get:
+ mov d0,d2                        /* key (d2/d3 are saved in the site's frame) */
+ exth d2                          /* compare as imm16 */
+ mov d1,d3                        /* idx */
+ cmp {key_a},d2
+ beq wb_key
+ cmp {key_g},d2
+ bne wb_pass
+wb_key:
+ mov {k_wbcat},d0
+ call wb_prop,[],4
+ cmp {cwb},d0
+ beq wb_pass                      /* CWB: stock (stock capture never reads it for CWB) */
+ mov {k_pmode},d0
+ call wb_prop,[],4
+ cmp 6,d0
+ bne wb_mode
+ mov {k_pmode6},d0
+ call wb_prop,[],4
+wb_mode:
+ cmp 11,d0
+ beq wb_color
+ cmp 12,d0
+ bne wb_pass
+ mov {k_mono},d0
+ call wb_prop,[],4
+ add -1,d0
+ cmp 4,d0
+ bcc wb_pass                      /* MONO profile 0 or >4 (unsigned) */
+ add 4,d0                         /* MONO1..4 -> slot 4..7 */
+ bra wb_slot
+wb_color:
+ mov {k_color},d0
+ call wb_prop,[],4
+ add -1,d0
+ cmp 4,d0
+ bcc wb_pass                      /* COLOR1..4 -> slot 0..3 */
+wb_slot:
+ asl2 d0
+ asl2 d0
+ asl2 d0                          /* * 64 (slot_bytes) */
+ mov {bundle_table},a0
+ add d0,a0
+ movbu ({f_flags},a0),d0
+ and 0x81,d0
+ cmp 1,d0                         /* wb_flags: bit0 = override, bit7 must be 0 (0xFF = erased) */
+ bne wb_pass
+ movbu ({f_ab},a0),d0
+ add 7,d0
+ extbu d0
+ cmp 15,d0
+ bcc wb_pass                      /* wb_ab outside -7..7 */
+ movbu ({f_gm},a0),d1
+ add 7,d1
+ extbu d1
+ cmp 15,d1
+ bcc wb_pass                      /* wb_gm outside -7..7 */
+ btst {sel_bit},d2                /* key A-B (low byte {sel_a}) vs G-M (low byte {sel_g}) */
+ bne wb_ret
+ mov d1,d0
+wb_ret:
+ add -7,d0                        /* -7..7, sign-extended like the getter's s8 */
+ mov d3,d1                        /* d1 = idx, as the stock getter leaves it */
+ ret [d2,d3],12
+
+wb_pass:
+ mov d2,d0
+ exthu d0                         /* original key */
+ mov d3,d1                        /* original idx */
+ mov 0,a0                         /* every redirected site passes a0 = 0 (checked by build.py) */
+ jmp ep7_getter                   /* stock getter on the site's frame */
+
+/* wb_prop: d0 = key (imm16, sign-extended) -> d0 = global property [key][0]. All keys used
+ * here are type 1 (unsigned byte), so the getter returns 0..255. Entered with call ...,[],4. */
+wb_prop:
+ exthu d0
+ clr d1
+ mov 0,a0
+ call ep7_getter,[d2,d3],12
+ ret [],4
