@@ -176,7 +176,7 @@ def store_audit(ins):
         if op not in ('mov', 'movbu', 'movhu') or not m:
             continue
         tgt = m.group(2)
-        ab = re.fullmatch(r'\((?:0x)?([0-9a-f]+)\)', tgt)
+        ab = re.fullmatch(r'\(0x([0-9a-f]+)\)', tgt)
         if ab:
             out.append((a, f'{op} {args}', 'abs', int(ab.group(1), 16)))
         elif re.fullmatch(r'\((-?\d+,)?sp\)', tgt):

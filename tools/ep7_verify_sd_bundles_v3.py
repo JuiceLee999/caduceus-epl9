@@ -1,0 +1,536 @@
+#!/usr/bin/env python3
+"""Emulator verification of a BUILT SD look loader v3 package (offline; emulator only; no camera).
+
+Takes a merged spec with patches/sd_bundles_v3 + --sd-v3 readers (tools/merge_specs.py). Builds the package in
+memory (tools/build_package.build()), decodes the patched and restore (= stock) main payloads and runs code from
+them with the SD v2 verifier's fixture (tools/ep7_verify_sd_bundles_v2.py): every loader run starts at the REAL
+upstream event (HLS_EVENT's call of the appevent get 0x602c7f5a, injected event word, real low16 gate, hook site,
+real TRIG tracker, real get_tid, stock code to the function's own ret), stub file service with an in-memory file.
+Differences from the v2 fixture (the v3 point): the section-3 loader tail, the section-1 tail with the flashed
+table and the section-2 tail with the accessor are mapped READ-ONLY, so any store into loaded-image RAM faults;
+the event manager 0x622cbc00..0x622cbd00 is writable and captured (state u16 at 0x622cbcc2); malloc returns a
+buffer inside the class-1 pool (or outside it, for the pool-check cases).
+
+  S  static: site jmp, loader/accessor bytes == spec, FF to the section ends, every reader call into the accessor
+     lands on tbl_idx/tbl_off, no reader still loads the flashed table address, store audit of every NEW
+     instruction (loader, accessor, --sd-v3 reader routines): absolute stores only to 0x622cbcc2, register-indirect
+     stores only stack-relative, the loader's buffer clear, or ones the flashed-table reader version already had.
+  E/F single presses per power-on, v1 file cases (valid / reject / missing / I/O errors / malloc failure / pool
+     edge): registers, live stack, tracker byte, app RAM, event, leaf calls == stock; file-call sequence per model;
+     valid -> no free, state = buf - pool + 1, buffer = file + zeroed name area; otherwise free + state 0xFFFF;
+     event manager changed only at the state halfword; no fault (no write into image RAM).
+  Q  power-on sequences (v2's): boot windows not consumed, load once, missing/rejected file consumes the attempt.
+  A  accessor: tbl_idx/tbl_off for state 0 / 0xFFFF / valid / misaligned / out of range / bad magic, every slot:
+     a0, all other registers and memory as specified, nothing written.
+  R  readers before/after: a real loader run's resulting state + heap fed to the accessor return the loaded
+     table (bytes == file payload); with state 0 the flashed table.
+  M  mutations of loader / accessor: each must fail.
+
+Usage: tools/ep7_verify_sd_bundles_v3.py SPEC.json [--part S,E,Q,A,R,M] [--quick] [--json out.json]
+"""
+import argparse, importlib.util, json, struct, sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'tools'))
+sys.path.insert(0, str(ROOT / 'external/oly_fw_analysis/tools'))
+import build_package as BP  # noqa: E402
+import oly_container as oc  # noqa: E402
+from penf_emulator import Region, execute  # noqa: E402
+
+
+def _load(name, path):
+    s = importlib.util.spec_from_file_location(name, path)
+    m = importlib.util.module_from_spec(s)
+    s.loader.exec_module(m)
+    return m
+
+
+W2 = _load('ep7_verify_sd_bundles_v2', ROOT / 'tools/ep7_verify_sd_bundles_v2.py')
+B3 = _load('ep7_sd_bundles_v3_build', ROOT / 'patches/sd_bundles_v3/build.py')
+V1, SB = W2.V1, W2.SB
+BASE, sl = W2.BASE, W2.sl
+CALLER, SP0, STACK, STACK_FILL = W2.CALLER, W2.SP0, W2.STACK, W2.STACK_FILL
+Env, OK = W2.Env, W2.OK
+PRESS, RELEASE = W2.PRESS, W2.RELEASE
+SEC_LO, SEC_HI = W2.SEC_LO, W2.SEC_HI
+T1_LO, T1_HI = 0x602108ec, 0x60211000
+T2_LO, T2_HI = 0x6055e5b0, 0x6055e800
+EVM_LO, EVM_HI = 0x622cbc00, 0x622cbd00
+ST_OFF = B3.STATE - EVM_LO
+POOL, POOL_END, LIM = B3.POOL, B3.POOL_END, B3.LIM
+HEAP_IN = POOL + 0x2000            # heap fixture inside the pool; buffer at +0x400 like v1's fixture
+BUF_IN = HEAP_IN + 0x400
+HEAP_LEN = V1.HEAP_LEN
+NAMES_LO, NAMES_HI = B3.NAMES_LO, B3.NAMES_HI
+ALL = W2.ALL_REGS
+
+
+def evm_block(hls, pad):
+    b = bytearray((0x37 + 13 * i) & 0xff for i in range(EVM_HI - EVM_LO))
+    struct.pack_into('<H', b, 0xc0, hls & 0xffff)
+    struct.pack_into('<H', b, ST_OFF, pad)
+    return bytes(b)
+
+
+def run(img, case, ev, env, *, evm=None, trig=0, buf=BUF_IN, heap=None):
+    getfn = bytearray(sl(img, W2.CODE_LO, W2.CODE_HI))
+    getfn[W2.RECV_AT - W2.CODE_LO:W2.RECV_AT - W2.CODE_LO + 5] = W2.jmp_to(W2.RECV_AT, W2.STUB_SYMS['inject'])
+    k, P = W2.kern(env)
+    tri = bytearray(0x10)
+    tri[8] = trig
+    ctl = bytearray(W2.ctl_block(case, ev, 0x11223344, env))
+    struct.pack_into('<I', ctl, 4, buf if case.malloc_ok else 0)
+    hbase = buf - 0x400
+    evm = evm if evm is not None else evm_block(env.hls, 0)
+    evm = evm[:0xc0] + struct.pack('<H', env.hls & 0xffff) + evm[0xc2:]
+    regions = [Region('caller', CALLER, b'\xdd' + struct.pack('<i', B3.V2.GET_FN - CALLER) + b'\xf0\x58\xcb', 'rx'),
+               Region('getfn', W2.CODE_LO, bytes(getfn), 'rx'),
+               Region('loader', SEC_LO, sl(img, SEC_LO, SEC_HI), 'rx'),          # read-only: image RAM
+               Region('tail1', T1_LO, sl(img, T1_LO, T1_HI), 'r'),              # read-only: flashed table
+               Region('tail2', T2_LO, sl(img, T2_LO, T2_HI), 'rx'),             # read-only: accessor
+               Region('get_tid', W2.TID_LO, sl(img, W2.TID_LO, W2.TID_HI), 'rx'),
+               Region('cpuid', 0x8050, bytes(4), 'r'),
+               Region('tcbtab', 0x8ff00000, bytes(4) + struct.pack('<I', P) + bytes(8), 'r'),
+               Region('kern', W2.KERN, k, 'r'),
+               Region('secbits', 0xa272e400, bytes(0x20) + struct.pack('<I', env.secbits) + bytes(0x1c), 'r'),
+               Region('evm', EVM_LO, evm, 'rw', True),
+               Region('media', 0x61fa8f00, W2.media_data(env), 'r'),
+               Region('trig', 0x61f9f1c0, bytes(tri), 'rw', True),
+               Region('appram', 0x6224b400, bytes(0x2800), 'rw', True),
+               Region('a2699', 0xa2699900, bytes(0x80), 'rw', True),
+               Region('ctl', W2.CTL, bytes(ctl), 'rw', True),
+               Region('heap', hbase, heap if heap is not None else V1.heap_init(case), 'rw', True),
+               Region('stack', STACK, bytes([STACK_FILL]) * 0x2000, 'rw', True)] + W2.stub_regions()
+    if case.file:
+        regions.append(Region('file', V1.FILE_AT, bytes(case.file)))
+    r = execute(regions, dict(W2.INIT, pc=CALLER, sp=SP0), CALLER + 7, limit=3_000_000, timeout=120)
+    m = {x['name']: bytes.fromhex(x['hex']) for x in r['memory']}
+    c = m['ctl']
+    n = (struct.unpack_from('<I', c, V1.C_LOGP)[0] - W2.LOG) // W2.LOG_SZ
+    log = []
+    for i in range(max(0, min(n, W2.LOG_N))):
+        v = struct.unpack_from('<11I', c, 0x100 + i * W2.LOG_SZ)
+        log.append(dict(fn=W2.IDS.get(v[0], v[0]), d0=v[1], d1=v[2], a0=v[3], a1=v[4], sp=v[5], ret=v[6],
+                        arg4=v[7], arg8=v[8], arg12=v[9]))
+    return dict(fault=r['fault'], regs={k: r['registers'][k] for k in ALL}, log=log, mem=m,
+                inj=struct.unpack_from('<I', c, 0x60)[0], live=m['stack'][SP0 - STACK:])
+
+
+def in_pool(buf):
+    o = buf - POOL
+    return 0 <= o < LIM and o % 4 == 0
+
+
+def model(case, ev, env, state, trig, buf):
+    """-> (expected file calls, new state, loaded?, new trig)."""
+    seq, load, st2, ts = W2.model(case, ev, env, 0xff if state == 0 else 0, trig)
+    if st2 == (0xff if state == 0 else 0):         # loader did not act
+        return seq, state, False, ts
+    if load and in_pool(buf):
+        return seq[:-1], buf - POOL + 1, True, ts   # buffer kept: no free
+    return seq, 0xffff, False, ts
+
+
+def check(case, ev, env, s, p, st_in, trig_in, evm_in, heap_in, buf, code_len):
+    probs = []
+    seq, st_exp, loaded, ts_exp = model(case, ev, env, st_in, trig_in, buf)
+    if s['fault'] or p['fault']:
+        return False, [f"fault stock={s['fault']} patched={p['fault']}"], st_in
+    if p['regs']['pc'] != CALLER + 7:
+        probs.append('did not return to the caller')
+    d = [k for k in ALL if s['regs'][k] != p['regs'][k]]
+    if d:
+        probs.append(f'registers != stock: {d}')
+    if s['live'] != p['live']:
+        probs.append('live stack != stock')
+    for k in ('trig', 'appram', 'a2699'):
+        if s['mem'][k] != p['mem'][k]:
+            probs.append(f'{k} != stock')
+    if s['inj'] != p['inj']:
+        probs.append('event swallowed/returned differs')
+    if s['mem']['trig'][8] != ts_exp:
+        probs.append('tracker model disagrees with stock')
+    LK = ('fn', 'd0', 'sp', 'ret', 'arg4', 'arg8', 'arg12')
+    if [{k: e[k] for k in LK} for e in s['log'] if e['fn'] in W2.LEAF] != \
+            [{k: e[k] for k in LK} for e in p['log'] if e['fn'] in W2.LEAF]:
+        probs.append('appevent leaf calls != stock')
+    calls = [e for e in p['log'] if e['fn'] not in W2.LEAF]
+    if [e['fn'] for e in calls] != seq:
+        probs.append(f"calls {[e['fn'] for e in calls]} != {seq}")
+    for e in calls:
+        if not B3.CODE_AT <= e['ret'] < B3.CODE_AT + code_len:
+            probs.append(f"{e['fn']} returns outside the loader")
+        if e['fn'] == 'malloc' and e['d0'] != SB.BUF_SIZE:
+            probs.append(f"malloc({e['d0']})")
+        if e['fn'] == 'free' and e['a0'] != buf:
+            probs.append('free of a wrong pointer')
+        if e['fn'] == 'fread' and (e['a0'], e['d0'], e['d1']) != (buf, 1, SB.FILE_LEN):
+            probs.append('fread args')
+    pe, st = p['mem']['evm'], struct.unpack_from('<H', p['mem']['evm'], ST_OFF)[0]
+    if pe[:ST_OFF] + pe[ST_OFF + 2:] != evm_in[:ST_OFF] + evm_in[ST_OFF + 2:]:
+        probs.append('event manager changed outside the state halfword')
+    if st != st_exp:
+        probs.append(f'state {st:#x} != {st_exp:#x}')
+    h, o = p['mem']['heap'], buf - (buf - 0x400)
+    if h[:o] != heap_in[:o] or h[o + SB.BUF_SIZE:] != heap_in[o + SB.BUF_SIZE:]:
+        probs.append('heap written outside the buffer')
+    if loaded:
+        b = h[o:o + SB.BUF_SIZE]
+        if b[:SB.FILE_LEN] != case.file or b[NAMES_LO:NAMES_HI] != bytes(NAMES_HI - NAMES_LO) or \
+                b[SB.FILE_LEN:NAMES_LO] != heap_in[o + SB.FILE_LEN:o + NAMES_LO] or b[NAMES_HI:] != heap_in[o + NAMES_HI:o + SB.BUF_SIZE]:
+            probs.append('kept buffer != file + zeroed name area')
+    return not probs, probs, st
+
+
+class Runner:
+    def __init__(self, stock, code_len):
+        self.stock, self.code_len = stock, code_len
+
+    def step(self, img, case, ev, env, evm, trig, buf, heap):
+        st_in = struct.unpack_from('<H', evm, ST_OFF)[0]
+        p = run(img, case, ev, env, evm=evm, trig=trig, buf=buf, heap=heap)
+        s = run(self.stock, case, ev, env, evm=evm, trig=trig, buf=buf, heap=heap)
+        ev_in = evm[:0xc0] + struct.pack('<H', env.hls & 0xffff) + evm[0xc2:]
+        ok, probs, st = check(case, ev, env, s, p, st_in, trig, ev_in, heap, buf, self.code_len)
+        return ok, probs, p
+
+    def single(self, img, case, buf=BUF_IN):
+        heap = V1.heap_init(case)
+        return self.step(img, case, PRESS, OK, evm_block(OK.hls, 0), 0, buf, heap)
+
+    def sequence(self, img, steps):
+        evm, trig, heap, rows, ok = evm_block(OK.hls, 0), 0, None, [], True
+        for label, case, ev, env in steps:
+            heap = heap if heap is not None else V1.heap_init(case)
+            g, probs, p = self.step(img, case, ev, env, evm, trig, BUF_IN, heap)
+            rows.append(dict(step=label, ok=g, problems=probs))
+            ok &= g
+            if p['fault']:
+                break
+            evm, trig, heap = p['mem']['evm'], p['mem']['trig'][8], p['mem']['heap']
+        return ok, rows, (evm, heap)
+
+
+def cases(F, rng, quick):
+    cl = V1.cases(F, rng)
+    if quick:
+        cl = [c for c in cl if c.expect == 'load'][:3] + [c for c in cl if c.expect != 'load'][:6] + \
+             [c for c in cl if not c.malloc_ok or not c.fopen_ok][:3]
+    return cl
+
+
+def pool_cases(F):
+    v = F['mono']
+    C = V1.Case
+    return [('valid, buf at pool start', C('valid', v, expect='load'), POOL),
+            ('valid, buf at the last fitting block (h = lim)', C('valid', v, expect='load'), POOL + LIM - 1 & ~3),
+            ('valid, buf 4 B past the last fitting block', C('valid', v, expect='load'), (POOL + LIM - 1 & ~3) + 4),
+            ('valid, buf below the pool', C('valid', v, expect='load'), POOL - 0x800),
+            ('valid, buf outside any pool (v1 fixture heap)', C('valid', v, expect='load'), V1.BUF),
+            ('valid, buf 2-aligned', C('valid', v, expect='load'), BUF_IN + 2)]
+
+
+# ------------------------------------------------------------------ accessor
+ACC_CALLER = 0x18100000
+
+
+def acc_run(img, entry, d0, state, pool_bytes=None, pool_at=BUF_IN):
+    code = b'\xdd' + struct.pack('<i', entry - ACC_CALLER) + b'\xc0\x08\xcb'      # call entry,[d2,d3],8
+    regions = [Region('caller', ACC_CALLER, code, 'rx'), Region('tail2', T2_LO, sl(img, T2_LO, T2_HI), 'rx'),
+               Region('st', 0x622cbcc0, struct.pack('<HHI', 0x42, state, 0x5a5a5a5a), 'r'),
+               Region('stack', STACK, bytes([STACK_FILL]) * 0x2000, 'rw', True)]
+    if pool_bytes is not None:
+        regions.append(Region('pool', pool_at, pool_bytes, 'r'))
+    regs = dict(pc=ACC_CALLER, sp=SP0, d0=d0, d1=0xd1d1d1d1, d2=0xd2d2d2d2, d3=0xd3d3d3d3, a0=0xa0a0a0a0, a1=0xa1a1a1a1,
+                a2=0xa2a2a2a2, a3=0xa3a3a3a3, mdr=0x3d3d3d3d)
+    r = execute(regions, regs, ACC_CALLER + 7, limit=200)
+    stk = bytes.fromhex(r['memory'][0]['hex'])
+    return r, regs, stk
+
+
+def t_accessor(img, syms):
+    rows, ok = [], True
+    blk = SB.MAGIC + bytes(28) + bytes(range(256)) * 2 + bytes(480)
+    h_ok = BUF_IN - POOL + 1
+    for entry in ('tbl_idx', 'tbl_off'):
+        e = syms[entry]
+        for label, state, pool, loaded in (('state 0', 0, blk, False), ('state 0xFFFF', 0xffff, blk, False),
+                                           ('valid handle', h_ok, blk, True), ('misaligned h', h_ok + 1, blk, False),
+                                           ('misaligned h, magic at the misaligned address', h_ok + 1, b'\0' + blk[:-1], False),
+                                           ('h = lim + 1', LIM + 1, None, False), ('bad magic', h_ok, b'EP7C' + blk[4:], False),
+                                           ('h = 0xad41 (doc bound)', 0xad41, None, False)):
+            for d0 in ((0, 3, 4, 7) if entry == 'tbl_idx' else (0, 24, 64 * 5 + 29, 511)):
+                r, regs, stk = acc_run(img, e, d0, state, pool)
+                off = d0 * 64 if entry == 'tbl_idx' else d0
+                want = (BUF_IN + 32 if loaded else B3.TABLE) + off
+                rr = r['registers']
+                good = (not r['fault'] and rr['pc'] == ACC_CALLER + 7 and rr['a0'] == want and rr['sp'] == SP0 and
+                        all(rr[k] == regs[k] for k in ('d0', 'd1', 'd2', 'd3', 'a1', 'a2', 'a3')) and
+                        stk[SP0 - STACK + 4:] == bytes([STACK_FILL]) * (len(stk) - (SP0 - STACK) - 4))
+                ok &= good
+                rows.append(dict(entry=entry, case=label, d0=d0, a0=hex(rr['a0']), want=hex(want), ok=good,
+                                 fault=r['fault']))
+    return ok, rows
+
+
+def t_readers(R, img, F, syms):
+    """Real loader run -> its state + kept buffer -> accessor returns the file payload; state 0 -> flashed."""
+    rows, ok = [], True
+    v = F['mono']
+    case = V1.Case('valid', v, expect='load')
+    g, probs, p = R.single(img, case)
+    st = struct.unpack_from('<H', p['mem']['evm'], ST_OFF)[0]
+    buf = p['mem']['heap'][0x400:0x400 + SB.BUF_SIZE]
+    ok &= g
+    rows.append(dict(step='loader run (valid file)', ok=g, state=hex(st), problems=probs))
+    flashed = sl(img, B3.TABLE, B3.TABLE + 512)
+    for state, src, label in ((0, flashed, 'before load (state 0)'), (0xffff, flashed, 'after a failed attempt'),
+                              (st, v[32:], 'after load')):
+        good = True
+        for slot in range(8):
+            r, regs, _ = acc_run(img, syms['tbl_idx'], slot, state, buf)
+            a0 = r['registers']['a0']
+            got = (buf[a0 - BUF_IN:a0 - BUF_IN + 64] if BUF_IN <= a0 < BUF_IN + SB.BUF_SIZE
+                   else sl(img, a0, a0 + 64) if B3.TABLE <= a0 < B3.TABLE_END else None)
+            good &= not r['fault'] and got == src[slot * 64:slot * 64 + 64]
+        ok &= good
+        rows.append(dict(step=label, ok=good))
+    ok &= v[32:] != flashed
+    return ok, rows
+
+
+# ------------------------------------------------------------------ static
+def check_static(spec, meta, stock, patched):
+    r = {}
+    site = B3.SITE
+    r['site_jmp'] = patched[site - BASE] == 0xdc and site + struct.unpack_from('<i', patched, site + 1 - BASE)[0] == B3.CODE_AT
+    code = sl(patched, B3.CODE_AT, B3.CODE_AT + meta['code_len'])
+    acc = sl(patched, B3.ACC_AT, B3.ACC_AT + meta['acc_len'])
+    ed = {int(e['addr'], 16): bytes.fromhex(e['new']) for e in spec['edits']}
+    r['loader_bytes_eq_spec'] = ed.get(B3.CODE_AT) == code
+    r['accessor_bytes_eq_spec'] = ed.get(B3.ACC_AT) == acc
+    r['loader_ff_to_section_end'] = set(sl(patched, B3.CODE_AT + len(code), 0x605b7800)) == {0xff}
+    r['accessor_ff_to_section_end'] = set(sl(patched, B3.ACC_AT + len(acc), 0x6055e800)) == {0xff}
+    r['no_v1_v2_probe_edits'] = not any(a in (0x60863e91, 0x61242a00) for a in ed) and \
+        sum(1 for a in ed if 0x605b7000 <= a < 0x605b7800) == 1
+    syms = {k: int(v, 16) for k, v in meta['accessor'].items()}
+    # reader routines: every call32/call16 into the accessor claim must hit an entry; no flashed-table load left
+    readers = {}
+    for k in ('labels', 'symbols'):
+        pass
+    tgt_ok, refs, leftover, store_rows = True, [], [], []
+    regions = [(a, b) for a, b in ed.items() if (0x60210900 <= a < 0x60211000 or 0x61378c80 <= a < 0x61379000 or
+                                                0x6055e700 <= a < 0x6055e7a6)]
+    tbl_imm = struct.pack('<I', B3.TABLE)
+    for a, b in regions:
+        start = a + (512 if a == B3.TABLE else 0)          # skip the table data itself
+        ins = B3.disasm(b[start - a:], start)
+        for x, op, args in ins:
+            if op == 'call':
+                o = x - BASE
+                if patched[o] == 0xdd:
+                    t = x + struct.unpack_from('<i', patched, o + 1)[0]
+                elif patched[o] == 0xcd:
+                    t = x + struct.unpack_from('<h', patched, o + 1)[0]
+                else:
+                    continue
+                if B3.ACC_AT <= t < 0x6055e800:
+                    refs.append((hex(x), hex(t)))
+                    tgt_ok &= t in syms.values() and patched[o + (5 if patched[o] == 0xdd else 3)] == 0xc0
+        k = 0
+        while True:
+            k = b.find(tbl_imm, k + 1)
+            if k < 0:
+                break
+            leftover.append(hex(a + k))
+    r['accessor_calls_hit_entries'] = tgt_ok and len(refs) >= 6
+    r['no_flashed_table_address_in_readers'] = not leftover
+    # store audit over every new instruction: compare per-routine indirect-store multisets with the flash builds
+    st = B3.store_audit(B3.disasm(code, B3.CODE_AT, int(meta['symbols']['sd_path'], 16)))
+    st += B3.store_audit(B3.disasm(acc, B3.ACC_AT))
+    abs_ok = all(not B3.in_image(t) for _, _, k, t in st if k == 'abs') and \
+        [t for _, _, k, t in st if k == 'abs'] == [B3.STATE, B3.STATE]
+    ind = [t for _, t, k, _ in st if k == 'ind']
+    r['loader_accessor_stores'] = abs_ok and ind == ['movbu d0,(d2,a2)']
+    return all(r.values()), dict(r, accessor_calls=refs, flashed_table_imm=leftover, stores=[(hex(a), t, k) for a, t, k, _ in st])
+
+
+def reader_store_audit(gen):
+    """--sd-v3 reader routines vs their flashed-table builds: the only NEW stores may be stack-relative."""
+    import collections
+    out, ok = {}, True
+    for name in ('bundles', 'grain', 'bloom', 'wb', 'mono_colour'):
+        s3 = json.loads((gen / name / 'edits.json').read_text())
+        code3 = [(int(e['addr'], 16), bytes.fromhex(e['new'])) for e in s3['edits'] if len(e['new']) > 40]
+        a, b = code3[0]
+        start, stop = _code_span(name, s3, a, b)
+        new = collections.Counter((t, k) for _, t, k, _ in B3.store_audit(B3.disasm(b[start - a:stop - a], start)))
+        old_spec = _flash_spec(name)
+        e0 = [e for e in old_spec['edits'] if int(e['addr'], 16) == a][0]
+        b0 = bytes.fromhex(e0['new'])
+        start0, stop0 = _code_span(name, old_spec, a, b0)
+        old = collections.Counter((t, k) for _, t, k, _ in B3.store_audit(B3.disasm(b0[start0 - a:stop0 - a], start0)))
+        added = new - old
+        bad = [t for (t, k), n in added.items() if k != 'sp']
+        abs_img = [t for (t, k) in new if k == 'abs']
+        out[name] = dict(added=[f'{t} x{n}' for (t, _), n in added.items()], bad=bad, abs=abs_img)
+        ok &= not bad and not abs_img
+    return ok, out
+
+
+def _code_span(name, spec, a, b):
+    """Code-only span of a reader routine edit (skip tables / LUTs)."""
+    if name == 'bundles':
+        L = spec['labels']
+        return int(L['code_start'], 16), int(L['code_end'], 16)
+    if name == 'mono_colour':
+        L = spec['mono_colour']['labels']
+        return int(L['code_start'], 16), int(L['code_end'], 16)
+    if name == 'bloom':
+        return a, int(spec['bloom']['symbols']['w_lut'], 16)
+    return a, a + len(b)
+
+
+def _flash_spec(name):
+    import contextlib, io
+    mod = _load(f'ep7_{name}_build_flash', ROOT / f'patches/{name}/build.py')
+    with contextlib.redirect_stdout(io.StringIO()):
+        if name == 'bundles':
+            return mod.make_spec(ROOT / 'bundles/lachlan_v3.json')[0]
+        if name in ('grain',):
+            return mod.build_spec()[0]
+        if name == 'bloom':
+            return mod.build_spec()[0]
+        return mod.make_spec()[0]
+
+
+# ------------------------------------------------------------------ mutations
+def mutations(patched, meta):
+    out = []
+    lo, hi = B3.CODE_AT, B3.CODE_AT + meta['code_len']
+    st = struct.pack('<I', B3.STATE)
+
+    def mut(name, pat, new, off=0, a=lo, b=hi):
+        m = bytearray(patched)
+        i = V1.find_once(m, pat, a, b) + off
+        m[i:i + len(new)] = new
+        out.append((name, bytes(m)))
+    syms = {k: int(v, 16) for k, v in meta['symbols'].items()}
+    # the two state stores: fc 83 abs32 (movhu d0,(abs32))
+    stores = [i for i in range(lo - BASE, hi - BASE) if patched[i:i + 6] == b'\xfc\x83' + st]
+    for n, i in enumerate(stores):
+        m = bytearray(patched)
+        m[i:i + 6] = b'\xcb' * 6
+        out.append((f'state store {n} removed', bytes(m)))
+    m = bytearray(patched)
+    i = stores[1]
+    m[i + 2:i + 6] = struct.pack('<I', B3.STATE + 2)
+    out.append(('publish store retargeted +2', bytes(m)))
+    mut('pool bound check removed', b'\xfc\xc8' + struct.pack('<I', LIM), b'\xcb' * 8, 0)
+    mut('name clear end 680 -> 676', struct.pack('<H', NAMES_HI)[:2], struct.pack('<H', NAMES_HI - 4)[:2], 0,
+        syms['sd_z'], syms['sd_z'] + 12)
+    mut('state test removed', b'\xfc\xac' + st + b'\xa0\x00\xc9', b'\xcb' * 2, 9)
+    al, ah = B3.ACC_AT, B3.ACC_AT + meta['acc_len']
+    mut('accessor: magic check skipped', b'\xfc\xca' + B3.V1.MAGIC, b'\xfc\xca' + B3.V1.MAGIC[:3] + b'C', 0, al, ah)
+    mut('accessor: header offset 32 -> 36', b'\x20\x20', b'\x20\x24', 0, al, ah)
+    mut('accessor: alignment test removed', b'\xf8\xee\x03', b'\xf8\xee\x00', 0, al, ah)
+    mut('accessor: idx shift 6 -> 5', b'\xf8\xc3\x06', b'\xf8\xc3\x05', 0, al, ah)
+    return out
+
+
+def core_suite(R, img, F, rng, syms):
+    v = F['mono']
+    C = V1.Case
+    ok = True
+    for c in [C('valid', v, expect='load'), C('missing', None), C('bad CRC', v[:16] + bytes(4) + v[20:], expect='reject')]:
+        ok &= R.single(img, c)[0]
+    for label, c, buf in pool_cases(F)[:3]:
+        ok &= R.single(img, c, buf)[0]
+    for name, steps in W2.sequences(F)[4:6]:
+        ok &= R.sequence(img, steps)[0]
+    ok &= t_accessor(img, syms)[0]
+    ok &= t_readers(R, img, F, syms)[0]
+    return ok
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('edits', type=Path)
+    ap.add_argument('--part', default='S,E,Q,A,R,M')
+    ap.add_argument('--quick', action='store_true')
+    ap.add_argument('--json', type=Path)
+    a = ap.parse_args()
+    parts = set(a.part.split(','))
+    spec = json.loads(a.edits.read_text())
+    meta = spec.get('sd_bundles_v3')
+    if not meta:
+        sys.exit("spec lacks 'sd_bundles_v3'")
+    pkg, restore, info = BP.build(spec, BP.STOCK.read_bytes())
+    patched, stock = oc.parse(pkg)[0].payload, oc.parse(restore)[0].payload
+    F, rng = V1.files()
+    syms = {k: int(v, 16) for k, v in meta['accessor'].items()}
+    R = Runner(stock, meta['code_len'])
+    res = []
+
+    def report(test, passed, **kw):
+        res.append(dict(test=test, passed=passed, **kw))
+        print(f"{'PASS' if passed else 'FAIL'}  {test}", flush=True)
+        for x in kw.get('rows', []):
+            if not x.get('ok', True):
+                print('      BAD', json.dumps(x, default=str)[:500])
+        if not passed and 'detail' in kw:
+            print('      ', json.dumps(kw['detail'], default=str)[:1500])
+    if 'S' in parts:
+        g, det = check_static(spec, meta, stock, patched)
+        report('S static: site, bytes, FF tails, accessor calls, no flashed-table address in readers, loader stores', g, detail=det)
+        g, det = reader_store_audit(a.edits.parent)
+        report('S reader store audit: new instructions add only stack-relative stores', g, detail=det)
+        pad = B3._load('ep7_sd_probe_build', ROOT / 'patches/sd_probe/build.py').pad_evidence(bytes(stock))
+        report('S 0x622cbcc2 unreferenced padding in the runtime-written event manager (P2 store target)', pad['ok'])
+    if 'E' in parts:
+        cl = cases(F, rng, a.quick)
+        rows = []
+        for c in cl:
+            g, probs, p = R.single(patched, c)
+            rows.append(dict(case=c.name, ok=g, problems=probs))
+        for label, c, buf in pool_cases(F):
+            g, probs, p = R.single(patched, c, buf)
+            rows.append(dict(case=label, ok=g, problems=probs))
+        report(f'E/F {len(rows)} one-press power-ons from the upstream event, vs stock, image RAM read-only',
+               all(r['ok'] for r in rows), rows=rows)
+    if 'Q' in parts:
+        seqs = W2.sequences(F)
+        if a.quick:
+            seqs = seqs[:1] + seqs[4:7]
+        rows = []
+        for name, steps in seqs:
+            g, r_, _ = R.sequence(patched, steps)
+            rows.append(dict(sequence=name, ok=g, steps=r_))
+        report(f'Q {len(rows)} power-on sequences (boot windows, once, missing/rejected consume)', all(r['ok'] for r in rows), rows=rows)
+    if 'A' in parts:
+        g, rows = t_accessor(patched, syms)
+        report(f'A accessor {len(rows)} runs (states x entries x slots)', g, rows=rows)
+    if 'R' in parts:
+        g, rows = t_readers(R, patched, F, syms)
+        report('R readers before / after loading (real loader run -> accessor)', g, rows=rows)
+    if 'M' in parts:
+        mres = []
+        for name, img in mutations(patched, meta):
+            try:
+                g = core_suite(R, img, F, rng, syms)
+            except Exception as e:      # a mutation that breaks the fixture counts as detected
+                g = False
+            mres.append(dict(mutation=name, detected=not g))
+            print(f"{'PASS' if not g else 'FAIL'}  M mutation '{name}' detected", flush=True)
+        report(f'M {sum(m["detected"] for m in mres)}/{len(mres)} mutations detected', all(m['detected'] for m in mres), rows=[])
+    allok = all(r['passed'] for r in res)
+    print(f"{'PASS' if allok else 'FAIL'}  overall (parts {a.part}{', quick' if a.quick else ''}); package {info}")
+    if a.json:
+        a.json.write_text(json.dumps(dict(spec=str(a.edits), parts=a.part, quick=a.quick, package=info, passed=allok,
+                                          results=res, scope='emulator only; no camera contacted'), indent=1, default=str))
+    sys.exit(0 if allok else 1)
+
+
+if __name__ == '__main__':
+    main()
