@@ -1,4 +1,35 @@
-# test13: test12e + aspect v6 + Film `*`, bloom colour, mono presets
+# v0.14: test12e + aspect v6 + Film `*`, bloom colour, mono presets
+
+## Red-tint mask-route probe (274 edits = the 273 below with the log probe, bloom colour stub grown + 1 hook)
+
+Camera 13c: bloom colour was invisible. The chroma-spread stage only re-spreads a light's own colour (docs/HALATION_RED.md §9).
+This probe tries a real luma-keyed red glow, for **red-tint slots only** (effect 1 tint 1, or effect 2). §10 has the details.
+- Blend setup hook 0x6035caad → `probe_set`. For a red slot whose job has the 160×120 reduce buffer 0x1060, it copies
+  that buffer's descriptor into the blend request's third port (+148) and sets +680 = 1024. Otherwise it stores nothing.
+- Combiner-11 halo stub: on a red weight, and only when request+148 is exactly that descriptor, the bank takes the
+  combiner-33 (vignette) shape. That is lerp(image, colour 0xC060D0 orange-red, mask = blurred image; strength 2b).
+  In every other case it is the previous bloom-colour bank (fail safe).
+- Other tints, tint 0, clarity, off and LV (combiner 12) are unchanged. Code is 510 B in the dead EVF step-6 R+G tables.
+- Card: COLOR1 (CineStill800) = bloom 4, tint Red. COLOR2–4 and MONO are as on your card. LOOKS.BIN is unchanged.
+
+Camera check (COLOR1):
+- R1: frame a **warm** light (tungsten bulb or warm LED) on a dark background.
+- R2: frame a **white** light (white LED or phone torch) on a dark background.
+- Shoot both again on COLOR4 (also red), plus one COLOR2 (cool, old route) for comparison.
+- Report what you see:
+  - a red/orange halo around the white light: the mask route works;
+  - a blue/purple halo: the Cb/Cr order is swapped;
+  - a whole-frame tint, corner vignette, garbage or banding: the mask is not read as hoped;
+  - a stall or a "card/processing" error.
+- If it stalls, pull the battery and set Bloom to Neutral (Extras sector 5). This is capture-path only, so boot is not touched.
+
+Emulator (no mutations): probe S 110/110 (setup hook: red with and without 0x1060, other tints, marker/mode/profile
+guards, registers kept), B 66/66 (banks: red + matching port = mask shape; mismatching or missing port, other tints,
+tint 0, clarity, combiner 12 = byte-identical to the previous test13). Halation F 24 / D 112 pass. W 84 bank values are
+equal, and only the call scratch word at (sp) differs (the stub's `call p_find`, a slot stock calls also overwrite).
+Anti-brick: decode == stock + edits, restore == stock (unchanged), 12445 bytes differ from stock, all inside edit spans,
+nothing on the boot path. Rebuild: `patches/bloom/build.py --sd-v3 --clarity --halation --red-probe`, then fold its 6 edits
+over the previous edits.json.
 
 ## Fixed in place after camera test 13c (273 edits = 117 others unchanged + mono presets 11 + aspect v7 145)
 
@@ -272,7 +303,24 @@ python patches/lv_bundles/build.py --base generated/test13r/fm/merged.json --out
 python patches/lv_art/build.py --base generated/test13r/lv/merged.json --out generated/test13r/la
 python patches/mono_presets/build.py --base generated/test13r/la/merged.json --out generated/test13r/mp
 python tools/merge_specs.py generated/test13r/merged.json generated/test13r/mp/merged.json patches/aspect/edits.json
-python tools/build_package.py generated/test13r/merged.json --out generated/test13r/pkg  (then copied into releases/test13)
+python tools/build_package.py generated/test13r/merged.json --out generated/test13r/pkg  (then copied into releases/v0.14)
 LOOKS.BIN = ep7_looks_bin.compile_looks(film_menu_v2 colour_library(bundles/library_v2.json))
 ```
 The 12d sources are kept in generated/look_editor_12d/src_12d and generated/look_extras_12d/src_12d.
+
+## Video log probe (test13d, in place)
+
+Movie + Muted recorded non-log on test13 and live view looked like normal Muted, so View Assist was off (+925 ≠ 2).
+`patches/video_log/build_probe.py` moves `vlog_hook` to the dead EVF step-8 R/G tables (0x601e203c, 373 B; the
+0x60210c90 stub is FF again) with the **same decision**, and adds a probe in the loader's heap block P
+(P+960 `VLGP`, +964 call counter, +965 Muted-seen, +980 text; no image stores; nothing when BUNDLES.BIN is not loaded).
+look_extras shows it: Extras page, sectors 6–12, instead of `Extras: 1-5 only`.
+
+Label `Vnn ppp m? t? r?`: nn = hook calls since power-on (mod 100; `V00`/no label = never reached); pp = picture mode
+seen by the hook (03 = Muted); m = movie flag A+332 (1 = movie); t = stock MovPicModeType A+352 (must be 0);
+r = `L` log branch taken / `S` stock. The text is from the last Muted call (or the last call if none was Muted).
+
+Reading it: power on, half-press once (loads BUNDLES.BIN), switch to movie mode, Picture Mode Muted, wait 2 s in live
+view (record a 2 s clip too), then Picture Mode COLOR2 → open its Color Profile editor → MENU to the Extras page →
+move the cursor to sector 6 or beyond → read the label. Emulator: 30 decision cases (no P / bad P / P) == video_log,
+text/sticky/counter cases and vlog_txt fallbacks pass; anti-brick: decode == stock + edits, restore == stock.

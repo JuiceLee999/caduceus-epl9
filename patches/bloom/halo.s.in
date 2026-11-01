@@ -22,6 +22,7 @@
  .text
  .global _start
 _start:
+ .set PROBE, {probe}              /* --red-probe (HALATION_RED section 10): red tint -> mask route (combiner-33 style) */
 
 bw_tint:
  add -1,d0
@@ -71,6 +72,9 @@ t_def:
  .endm
 
 halo:
+ .if PROBE
+ mov a2,a0                        /* a0 = combiner ctx (caller-saved here: the handler was entered by jmp (a0)) */
+ .endif
  mov d1,(136,a3)                  /* replayed: 0x603a04e8 */
  mov d3,(140,a3)                  /* replayed: 0x603a04ec */
  mov t_w+10,a2                    /* rows 1..4 */
@@ -89,6 +93,12 @@ halo:
  bne 2b
  bra h_out                        /* not a tinted weight: exactly the stock tail */
 h_go:
+ .if PROBE
+ cmp t_k,a1                       /* row 1 = red */
+ bne h_chroma
+ jmp probe_bank
+h_chroma:
+ .endif
  movbu (1,a1),d1
  KMUL                             /* d0 = B_Cr */
  mov d0,(140,a3)
@@ -110,6 +120,127 @@ h_out:
  mov d3,d0
  asl 16,d0                        /* stock d0 at the tail */
  ret [d2,d3,a2,a3],20
+
+ .if PROBE
+/* ---- red-tint mask route (probe). probe_bank <- h_go for a red-row weight: a0 = ctx, a1 = t_k, a3 = bank, d2 = w,
+ * d3 = b. Only if request+148 holds exactly the 64-B descriptor of job buffer 0x1060 (written by probe_set in this
+ * job's blend setup) is the bank turned into the combiner-33 shape: mode 0x1002, A cfg 0 / gains 1024, B = colour
+ * word {colour} (cfg 0x151500), B gains beta = 2b, +180 = 3. Otherwise: the chroma-spread path (fail safe).
+ * The request is the job-embedded one (bloom_w's guard passed for this weight), job = request - {req_in_job}. */
+probe_bank:
+ mov (4,a0),a1                    /* request */
+ mov a1,a0
+ add {buf_tab},a0                 /* job + 6592 - {req_in_job}: buffer entries (88 B, id at +76) */
+ call p_find,[],0
+ cmp 0,a0
+ beq pb_no
+ add 148,a1                       /* request+148: third port descriptor */
+ mov 16,d1
+53:
+ mov (a0),d0
+ mov (a1),a2
+ cmp a2,d0
+ bne pb_no
+ add 4,a0
+ add 4,a1
+ add -1,d1
+ bne 53b
+ mov 4098,d0                      /* mode 0x1002 (combiner 33 / 156) */
+ mov d0,(4,a3)
+ clr d0
+ mov d0,(88,a3)                   /* A cfg 0 (as combiner 33) */
+ mov 1024,d0
+ mov d0,(96,a3)
+ mov d0,d1
+ asl 16,d1
+ or d0,d1
+ mov d1,(92,a3)                   /* A gains 1024 */
+ mov {colour},d0
+ mov d0,(120,a3)                  /* B constant colour word */
+ mov 0x151500,d0
+ mov d0,(132,a3)                  /* B cfg (as combiner 33) */
+ mov d3,d0
+ add d0,d0                        /* beta = 2b <= 714 (b <= 357 on tint rows; build-checked) */
+ mov d0,(140,a3)
+ mov d0,d1
+ asl 16,d1
+ or d0,d1
+ mov d1,(136,a3)                  /* B gains beta */
+ mov 3,d0
+ mov d0,(180,a3)
+ jmp h_out
+pb_no:
+ mov t_k,a1
+ jmp h_chroma
+
+/* ---- probe_set <- jmp from 0x6035caad in the Soft Focus blend setup 0x6035ca31 (classes 0-3; LV uses 0x6035cc1b):
+ * a2 = request, a3 = buffer entry of 0x1000, (8,sp) = job; d3 = idx of 0x1061 (kept). Free: d0, d1, d2, a0, a1.
+ * For a red-tint bloom job (marker/mode/profile, slot effect 1 tint 1 or effect 2 tint 0/1, strength 1..5) with job
+ * buffer 0x1060 (the 160x120 reduce, alive until the blend callback) present: copy its descriptor to request+148 and
+ * set request+680 = 1024 (mask gain, the shading modifier's neutral value). Anything else: no store (fail safe).
+ * Replays movhu (12,a3),d1 / movhu (14,a3),d2 and jumps back to 0x6035cab3. */
+probe_set:
+ mov (8,sp),a0
+ movbu ({ext_magic},a0),d0
+ cmp {magic},d0
+ bne ps_out
+ movbu ({ext_mode},a0),d0
+ cmp 11,d0
+ bne ps_out
+ movbu ({ext_profile},a0),d0
+ add -1,d0
+ cmp 4,d0
+ bcc ps_out
+ call ep7_tbl_idx,[d2,d3],8       /* a0 = slot d0 (clobbers a0, MDR only) */
+ movbu ({f_tint},a0),d1
+ movbu ({f_effect},a0),d0
+ cmp 1,d0
+ beq 61f
+ cmp 2,d0
+ bne ps_out
+ cmp 0,d1                         /* red bloom (effect 2) with tint 0 = red */
+ beq 62f
+61:
+ cmp 1,d1
+ bne ps_out
+62:
+ mov (8,sp),a0
+ add 6592,a0
+ call p_find,[],0
+ cmp 0,a0
+ beq ps_out                       /* 0x1060 not allocated: stock blend request */
+ mov a0,a1
+ mov a2,a0
+ add 148,a0
+ mov 16,d1
+65:
+ mov (a1),d0
+ mov d0,(a0)
+ add 4,a1
+ add 4,a0
+ add -1,d1
+ bne 65b
+ mov 1024,d0
+ movhu d0,(680,a2)
+ps_out:
+ movhu (12,a3),d1                 /* replayed: 0x6035caad */
+ movhu (14,a3),d2                 /* replayed: 0x6035cab0 */
+ jmp ep7_ps_back                  /* 0x6035cab3 */
+
+/* a0 = job buffer table (48 entries x 88 B, id at +76) -> a0 = entry of {mask_id}, or 0. Clobbers d0, d1. */
+p_find:
+ mov 48,d1
+71:
+ mov (76,a0),d0
+ cmp {mask_id},d0
+ beq 72f
+ add 88,a0
+ add -1,d1
+ bne 71b
+ mov 0,a0
+72:
+ ret [],0
+ .endif
 
  .balign 2
 t_w:                              /* [tint 0..4][strength 1..5] */

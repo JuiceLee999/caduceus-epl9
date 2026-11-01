@@ -61,6 +61,13 @@ F_TINT = 45
 HALO_AT, HALO_END = 0x601e263c, 0x601e273c
 HALO_REF = 0x601e3ce0
 STEP6 = (0x601e3b3c + 320 + 16 * 6, (6, 0x601e263c, 0x601e273c, 0x601e283c))
+# --red-probe (docs/HALATION_RED.md section 10): red tint -> mask route. Code grows into the dead EVF step-6 G table
+# (0x601e273c..0x601e283c, only ref: step-table word 0x601e3ce4); blend-setup hook 0x6035caad (the 0x1000 entry's
+# width/height loads) -> probe_set copies job buffer 0x1060's descriptor to request+148.
+PROBE_END, PROBE_REF = 0x601e283c, 0x601e3ce4
+PS_HOOK, PS_STOCK, PS_BACK = 0x6035caad, bytes.fromhex('f8670cf86b0e'), 0x6035cab3
+PROBE_COLOUR = 0x00C060D0                                              # Y 0xD0, Cb 0x60, Cr 0xC0 (orange-red; order [I])
+MASK_ID, BUF_TAB = 0x1060, 6592
 SF_W = [600, 653, 707, 760, 680, 520, 440, 360, 280, 200, 1024]       # stock Soft Focus table 0x604ec02e, A-effect, A-only
 
 
@@ -92,7 +99,7 @@ TBL_W_SDV3 = TBL_FLAG_SDV3 + """
  mov d1,(0,sp)                    /* restore the caller's return word (== MDR at entry) */"""
 
 
-def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=False, template=None):
+def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=False, template=None, probe=False):
     lay = layout()
     sub = dict(tbl_flag=TBL_FLAG_SDV3 if sd_v3 else TBL_FLASH, tbl_w=TBL_W_SDV3 if sd_v3 else TBL_FLASH, cap_mode=CAP_MODE, cap_profile=CAP_PROFILE, table=hex(lay['table']), f_effect=lay['f_effect'],
                f_strength=lay['f_strength'], callback=hex(CALLBACK), rec_off=RECORDS_IN_JOB - REQ_IN_JOB,
@@ -101,6 +108,7 @@ def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=Fa
                w_lut=','.join(str(int(w)) for w in weights))
     if clarity is not None:
         sub.update(c11_ret=hex(C11_RET), c11_lut=','.join(str(int(w)) for w in clarity), c12_lut=','.join(['1024'] * 5))
+    sub.update(probe=int(bool(probe)), colour=hex(PROBE_COLOUR), mask_id=hex(MASK_ID), buf_tab=BUF_TAB - REQ_IN_JOB)
     sub.update(halo=int(bool(halo)), f_tint=F_TINT, t_w=','.join(str(w) for r in tint_rows(weights) for w in r),
                t_k=','.join(str(k) for p in TINT_K for k in p))
     src = (Path(__file__).parent / (template or ('bloom_clarity.s.in' if clarity is not None else 'bloom.s.in'))).read_text()
@@ -122,7 +130,7 @@ def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=Fa
         return (t / 'p.bin').read_bytes(), src, (t / 'p.lst').read_text() + '\n' + dis, syms, lay
 
 
-def check_step6(d):
+def check_step6(d, end=None, refs=(HALO_REF,)):
     """The dead EVF step-6 R table: its only abs32 reference is the step-table word (as patches/mono_presets)."""
     import numpy as np
     at, want = STEP6
@@ -130,9 +138,9 @@ def check_step6(d):
         raise SystemExit('EVF step-6 slot differs')
     for off in range(4):
         w = np.frombuffer(d[off:off + (len(d) - off) // 4 * 4], dtype='<u4')
-        for k in np.nonzero((w >= HALO_AT) & (w < HALO_END))[0]:
+        for k in np.nonzero((w >= HALO_AT) & (w < (end or HALO_END)))[0]:
             a = BASE + off + 4 * int(k)
-            if a != HALO_REF:
+            if a not in refs:
                 raise SystemExit(f'abs32 reference into the step-6 R table at {a:#x}')
 
 
@@ -144,7 +152,7 @@ def sdv3_accessor():
     return m.accessor_symbols()
 
 
-def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False):
+def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=False):
     weights = [int(w) for w in weights]
     if len(weights) != 5 or not all(0 <= w <= 1024 for w in weights):
         raise SystemExit('need 5 weights in 0..1024')
@@ -164,8 +172,12 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False):
         tw = [w for r in tint_rows(weights)[1:] for w in r]
         if len(set(tw)) != 20 or set(tw) & set(weights + list(clarity or []) + SF_W) or max(tw) > 1023:
             raise SystemExit('bloom-colour weights must differ from every other weight')
-        check_step6(d)
-        hcode, hsrc, hlst, hsyms, _ = assemble(weights, template='halo.s.in', at=HALO_AT, halo=True)
+        if probe and not sd_v3:
+            raise SystemExit('--red-probe needs --sd-v3 --clarity --halation')
+        hend = PROBE_END if probe else HALO_END
+        check_step6(d, hend, (HALO_REF, PROBE_REF) if probe else (HALO_REF,))
+        hextra = dict(ep7_tbl_idx=acc['tbl_idx'], ep7_ps_back=PS_BACK) if probe else None
+        hcode, hsrc, hlst, hsyms, _ = assemble(weights, extra=hextra, template='halo.s.in', at=HALO_AT, halo=True, probe=probe)
         extra['ep7_bw_tint'] = hsyms['bw_tint']
     code, src, lst, syms, lay = assemble(weights, sd_v3, extra or None, clarity, code_at, halo)
     for at, stock in ((FLAG_HOOK, FLAG_STOCK), (W_HOOK, W_STOCK)):
@@ -202,8 +214,8 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False):
              f'per-profile COLOR bloom + clarity stubs ({len(code)} B) in section-2 FF tail'),
     ]
     if halo:
-        if HALO_AT + len(hcode) > HALO_END:
-            raise SystemExit(f'halo stubs ({len(hcode)} B) do not fit {HALO_AT:#x}..{HALO_END:#x}')
+        if HALO_AT + len(hcode) > hend:
+            raise SystemExit(f'halo stubs ({len(hcode)} B) do not fit {HALO_AT:#x}..{hend:#x}')
         if d[HALO_HOOK - BASE:HALO_HOOK - BASE + 8] != HALO_STOCK or d[HALO_TAIL[0] - BASE:HALO_TAIL[0] - BASE + 3] != HALO_TAIL[1]:
             raise SystemExit('combiner-11 tail bytes differ')
         tw = hcode[hsyms['t_w'] - HALO_AT:hsyms['t_w'] - HALO_AT + 50]
@@ -214,13 +226,22 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False):
         if any(k * (1024 - w) // 8 > 1024 * 8 for p in TINT_K for k in p for w in weights):
             raise SystemExit('k b overflow')
         ins = [l.split('\t')[2].split()[0] for l in hlst.splitlines() if l.count('\t') >= 2 and l.split('\t')[0].strip().endswith(':')]
-        if {'mul', 'mulu', 'div', 'divu', 'setlb', 'call', 'calls'} & set(ins):
+        bad = {'mul', 'mulu', 'div', 'divu', 'setlb', 'call', 'calls'} & set(ins)
+        if bad - ({'call'} if probe else set()) or (probe and ins.count('call') != 3):
             raise SystemExit('forbidden instruction in the halo stubs')
         edits.append(dict(kind='0x100', addr=hex(HALO_HOOK), expect=HALO_STOCK.hex(),
                           new=(b'\xdc' + struct.pack('<i', hsyms['halo'] - HALO_HOOK) + b'\xcb\xcb\xcb').hex(),
                           why='combiner-11 tail 0x603a04e8: gain stores -> jmp halo (bloom colour chroma gains)'))
         edits.append(dict(kind='0x100', addr=hex(HALO_AT), expect=d[HALO_AT - BASE:HALO_AT - BASE + len(hcode)].hex(),
                           new=hcode.hex(), why=f'bloom colour stubs bw_tint + halo ({len(hcode)} B) in the dead EVF step-6 R table'))
+        if probe:
+            if max(2 * (1024 - w) for r in tint_rows(weights)[1:] for w in r) > 1024:
+                raise SystemExit('red probe: beta = 2b > 1024')
+            if d[PS_HOOK - BASE:PS_HOOK - BASE + 6] != PS_STOCK:
+                raise SystemExit('blend setup bytes differ at 0x6035caad')
+            edits.append(dict(kind='0x100', addr=hex(PS_HOOK), expect=PS_STOCK.hex(),
+                              new=jmp(PS_HOOK, hsyms['probe_set']).hex(),
+                              why='Soft Focus blend setup 0x6035ca31: -> probe_set (red tint: buffer 0x1060 descriptor -> request+148)'))
         lst += '\n' + hlst
     meta = dict(mode='bundle', strength_w=weights, effect_id=EFFECT_BLOOM, code_at=hex(code_at),
                 table=hex(lay['table']), f_effect=lay['f_effect'], f_strength=lay['f_strength'],
@@ -235,7 +256,10 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False):
         meta['halation'] = dict(effect_id=EFFECT_HALO, legacy='effect 2 with tint 0 = red', tint_byte=F_TINT, tints=TINTS,
                                 tint_w=tint_rows(weights), tint_k_eighths=dict(zip(TINTS[1:], TINT_K)), hook=hex(HALO_HOOK),
                                 stub=hex(HALO_AT), stub_len=len(hcode), channels='Y,Cb,Cr [I]',
-                                symbols={k: hex(v) for k, v in hsyms.items() if k in ('bw_tint', 'halo', 'h_go', 't_w', 't_k', 't_end')})
+                                symbols={k: hex(v) for k, v in hsyms.items() if k in ('bw_tint', 'halo', 'h_go', 't_w', 't_k', 't_end', 'probe_bank', 'probe_set', 'pb_no', 'h_chroma')})
+        if probe:
+            meta['halation']['red_probe'] = dict(hook=hex(PS_HOOK), colour=hex(PROBE_COLOUR), mask_buffer=hex(MASK_ID),
+                                                 port='request+148', mode=0x1002, beta='2b', claim=[hex(HALO_AT), hex(PROBE_END)])
     if sd_v3:
         meta['sd_v3'] = dict(accessor={k: hex(v) for k, v in acc.items()}, requires='sd_bundles_v3 (accessor edit)')
     spec = dict(components=['0x100'], patch=('color_bloom_clarity_sdv3' if clarity is not None else 'color_bloom_sdv3') if sd_v3 else 'color_bloom', requires=['bundles-v0.2'],
@@ -250,11 +274,12 @@ def main():
     ap.add_argument('--sd-v3', action='store_true', help='read the table through the SD loader v3 accessor')
     ap.add_argument('--clarity', action='store_true', help='add effect_id 3 = clarity (needs --sd-v3; section-2 placement)')
     ap.add_argument('--halation', action='store_true', help='effect_id 2 = red bloom (needs --clarity; docs/HALATION_RED.md)')
+    ap.add_argument('--red-probe', action='store_true', help='red tint -> mask route probe (docs/HALATION_RED.md section 10)')
     ap.add_argument('--clarity-weights', help='5 comma-separated Q10 weights > 1024 for clarity strength 1..5')
     a = ap.parse_args()
     weights = [int(x) for x in a.weights.split(',')] if a.weights else STRENGTH_W
     clarity = ([int(x) for x in a.clarity_weights.split(',')] if a.clarity_weights else CLARITY_W) if a.clarity else None
-    spec, code, src, lst, syms = build_spec(weights, a.sd_v3, clarity, a.halation)
+    spec, code, src, lst, syms = build_spec(weights, a.sd_v3, clarity, a.halation, a.red_probe)
     a.out.mkdir(parents=True, exist_ok=False)
     (a.out / 'edits.json').write_text(json.dumps(spec, indent=1) + '\n')
     (a.out / 'routine.s').write_text(src)

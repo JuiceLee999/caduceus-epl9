@@ -274,3 +274,11 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
     port at request+148; the blend setup copies +20/+84 only. Each route depends on unknown mask-mode/format semantics or on
     buffer lifetime (§9). A tint-1-only probe build is proposed.
 - test13 in place, camera 13c fixes (273 edits): aspect v7: `%dx%d` table 0x611f09e0 extended to 7 ids (0x601e14b0), so Panorama/Wide read 5184x1920/2224; info icon lists +6/7 → 16:9 bitmap (0x601e15f0/1628), §1f. Mono preset label `Preset: <name>` in the Profile view (0x60e26ab0) guide slot on the MONO filter/shading pages (call sites 0x60e27209/0x60e275c1 → mp_lbl1/2; mp 1020 B). INFO already consumes the event with a table; the filter jump is the preset filter. mono S 98/H 48, label L 10/10, aspect lean 157/157; decode == emulated, restore == stock; 980 B differ, all in spans. No mutations. Not camera-tested.
+- test13 in place, red-tint mask-route probe (274 edits; on top of the log probe, 04:18:49 spec):
+  - What it does: on red-tint slots only, the blend setup hook 0x6035caad copies job buffer 0x1060's descriptor to
+    request+148. The halo stub then sets a combiner-33-shape bank (mode 0x1002, colour 0xC060D0, β = 2b), but only if
+    the port matches. Otherwise it falls back to bloom colour.
+  - Code: 510 B in the EVF step-6 R+G tables.
+  - Card: COLOR1 = bloom 4 Red, other slots kept from the 13c card.
+  - Checks: probe S 110 / B 66, halation F 24 / D 112 (W: (sp) scratch word only). Decode == emulated image, restore == stock.
+    No mutations. Not camera-tested. docs/HALATION_RED.md §10.

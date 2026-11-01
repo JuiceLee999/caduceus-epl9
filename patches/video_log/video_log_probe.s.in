@@ -1,0 +1,153 @@
+ .am33_2
+ .text
+ .global _start
+/* E-P7 1.1 video log + on-camera probe (test13). Same decision as video_log.s.in, plus a probe record in the
+   loader's heap block P (only when P is valid: h at {state}, 1 <= h, h-1 < {lim}, 4-aligned, P+0 == 'EP7B').
+   Entry contract (stock caller 0x6032641f: call 0x6030df3d,[a2],4): a0 = message A, a1 = &rec68[13].
+   Free here: d0, d1, a2 (a2 is saved by the caller's call mask; d0/d1 caller-saved). a0/a1 are preserved.
+   Probe stores (heap only, never the image):
+     P+960 u32 'VLGP' magic, P+964 u8 call counter (0..99), P+965 u8 1 = a trigger-mode call was seen,
+     P+980..P+996 text "Vnn ppp m? t? r?" + NUL (16 chars), from the last trigger-mode call (or the last call
+     while none was seen):  nn = calls mod 100, pp = rec68[29] (picture mode), m = A+332 (movie flag),
+     t = A+352 (stock MovPicModeType), r = L (log branch) / S (stock body).
+   vlog_txt: CALLS helper for look_extras ex_guide (replaces its `mov ex_t_other,a2`): a2 = P+980 when P and
+   the probe magic are valid, else the stock "Extras: 1-5 only" text. Clobbers d0 and a2 only. */
+_start:
+vlog_hook:
+ mov 0x53,d1                       /* 'S' */
+ movbu (352,a0),d0
+ cmp 0,d0
+ bne 1f
+ mov (332,a0),d0
+ cmp 1,d0
+ bne 1f
+ movbu (16,a1),d0
+ cmp {trig_log},d0
+ bne 1f
+ mov 0x4c,d1                       /* 'L' */
+1:
+ movhu ({state}),d0                /* ---- probe: P validation (as look_extras PVAL) */
+ add -1,d0
+ cmp {lim},d0
+ bcc decide
+ btst 3,d0
+ bne decide
+ mov d0,a2
+ add {pool},a2
+ mov (a2),d0
+ cmp {bmagic},d0
+ bne decide
+ movbu (16,a1),d0                  /* snapshot when pm == trigger, or while no trigger call was seen */
+ cmp {trig_log},d0
+ beq snap
+ movbu (965,a2),d0
+ cmp 0,d0
+ bne count
+snap:
+ movbu d1,(995,a2)                 /* stash the branch letter before d1 is reused */
+ mov {w0},d0
+ mov d0,(980,a2)                   /* "Vnn " */
+ mov {w1},d0
+ mov d0,(984,a2)                   /* "pxx " */
+ mov {w2},d0
+ mov d0,(988,a2)                   /* "mx t" */
+ movbu (995,a2),d1
+ mov {w3},d0
+ mov d0,(992,a2)                   /* "x rx" */
+ movbu d1,(995,a2)                 /* branch letter */
+ clr d0
+ mov d0,(996,a2)                   /* NUL */
+ movbu (16,a1),d0                  /* picture mode, 2 digits ('?' tens when >= 100) */
+ mov 0x30,d1
+2:
+ cmp 10,d0
+ bcs 3f
+ add -10,d0
+ inc d1
+ bra 2b
+3:
+ cmp 0x39,d1
+ bls 4f
+ mov 0x3f,d1
+4:
+ movbu d1,(985,a2)
+ add 0x30,d0
+ movbu d0,(986,a2)
+ mov (332,a0),d0                   /* movie flag digit */
+ cmp 9,d0
+ bls 5f
+ mov 15,d0
+5:
+ add 0x30,d0
+ movbu d0,(989,a2)
+ movbu (352,a0),d0                 /* stock MovPicModeType digit */
+ cmp 9,d0
+ bls 6f
+ mov 15,d0
+6:
+ add 0x30,d0
+ movbu d0,(992,a2)
+ movbu (16,a1),d0
+ cmp {trig_log},d0
+ bne count
+ mov 1,d0
+ movbu d0,(965,a2)                 /* a trigger-mode call was seen: snapshot sticks to those */
+count:
+ movbu (964,a2),d0                 /* call counter 0..99 */
+ inc d0
+ cmp 100,d0
+ bcs 7f
+ clr d0
+7:
+ movbu d0,(964,a2)
+ mov 0x30,d1
+8:
+ cmp 10,d0
+ bcs 9f
+ add -10,d0
+ inc d1
+ bra 8b
+9:
+ movbu d1,(981,a2)
+ add 0x30,d0
+ movbu d0,(982,a2)
+ mov {vmagic},d0
+ mov d0,(960,a2)
+decide:                            /* ---- decision (recomputed; unchanged from video_log.s.in) */
+ movbu (352,a0),d0
+ cmp 0,d0
+ bne stock
+ mov (332,a0),d0
+ cmp 1,d0
+ bne stock
+ movbu (16,a1),d0
+ cmp {trig_log},d0
+ bne stock
+ mov 2,d0                          /* +925 = 2 -> effect id 2001 */
+ jmp ep7_store_ret                 /* 0x6030df67: movbu d0,(a1); retf [a2],4 */
+stock:
+ mov 352,a2                        /* displaced stock instructions */
+ add a0,a2
+ jmp ep7_stock_body                /* 0x6030df42 */
+
+vlog_txt:                          /* CALLS entry; out a2; clobbers d0 */
+ movhu ({state}),d0
+ add -1,d0
+ cmp {lim},d0
+ bcc 20f
+ btst 3,d0
+ bne 20f
+ mov d0,a2
+ add {pool},a2
+ mov (a2),d0
+ cmp {bmagic},d0
+ bne 20f
+ mov (960,a2),d0
+ cmp {vmagic},d0
+ bne 20f
+ add 980,a2
+ rets
+20:
+ mov {ex_t_other},a2
+ rets
+code_end:

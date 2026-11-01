@@ -228,3 +228,32 @@ Why it is not built (each item is [I] and needs a camera probe; a wrong guess me
 Suggested next step (not done; needs the user's go-ahead): a **probe build** that changes only tint 1 (red) to route 2,
 with the other tints unchanged, shot on one warm and one white light. If the frame is valid, the mask/colour semantics are
 settled and the tints become colour words. If not, revert the tint-1 rows.
+
+## 10. Red-tint mask-route probe (built into test13 in place; not camera-tested)
+
+User go-ahead after §9: route 2, red tint only.
+- **probe_set** (hook 0x6035caad in blend setup 0x6035ca31; replays `movhu (12,a3),d1; movhu (14,a3),d2` → 0x6035cab3).
+  - Guards: job marker 0xB2, mode 11, profile 1..4. The slot comes via the v3 accessor and must be effect 1 tint 1, or
+    effect 2 tint 0/1.
+  - It then finds job buffer 0x1060 (job+6592, 48 × 88 B, id at +76; the 160×120 reduce, alive until the blend
+    callback) and copies its 64-B descriptor to request+148, the kind-3 third port (the shading mask port; the generic
+    programmer 0x60352729 always loads +148).
+  - It also sets request+680 = 1024 (the shading modifier's neutral mask gain [I]).
+  - Fail safe: any failed check, or no 0x1060, means no store.
+- **probe_bank** (halo stub, red row only). If request+148 equals the 0x1060 descriptor word for word, the bank becomes
+  combiner 33's (vignette) shape:
+  - mode 0x1002, A cfg 0, A gains 1024, B colour word +120 = 0x00C060D0 (Y 0xD0, Cb 0x60, Cr 0xC0), B cfg 0x151500,
+    B gains β = 2b (≤ 714, build-checked), +180 = 3.
+  - Otherwise it is the §8 chroma-spread bank.
+  - Expected look [I]: lerp(image, orange-red, β × blurred-image mask). The colour's Y gives the glow, so this replaces
+    the luma blur blend for red slots.
+- Space and checks: bw_tint + halo + probe = 510 B in 0x601e263c–0x601e283c (dead EVF step-6 R and G). The only abs32
+  refs are the step-table words 0x601e3ce0/e4. `--red-probe` adds the hook edit. Builds without the flag are
+  byte-identical to before.
+- Unknowns the camera decides:
+  - whether mode 0x1002 reads the mask from port +148 at 160×120 / format 0x0305;
+  - which byte of the colour word is Cr. A blue halo means swap 0x60/0xC0;
+  - the mask scale.
+  - A stall is possible on the hardware side only. The CPU side always falls back.
+- Verified: `tools/ep7_red_probe_verify.py` S 110 / B 66; halation F/D pass, and W differs only in the (sp) call scratch
+  word. Anti-brick: decode == stock + edits, restore == stock.
