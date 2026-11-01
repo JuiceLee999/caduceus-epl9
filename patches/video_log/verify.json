@@ -15,6 +15,17 @@
     "passed": true
    },
    {
+    "case": "movie pm COLOR, stills pm = trigger (v0.14: not log)",
+    "pm": 11,
+    "stock": 0,
+    "patched": 0,
+    "expected": [
+     0,
+     0
+    ],
+    "passed": true
+   },
+   {
     "case": "stills (A+332=0) + trigger pm",
     "pm": 3,
     "stock": 0,

@@ -104,7 +104,7 @@ TBL_W_SDV3 = TBL_FLAG_SDV3 + """
  mov d1,(0,sp)                    /* restore the caller's return word (== MDR at entry) */"""
 
 
-def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=False, template=None, probe=False, art=False):
+def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=False, template=None, probe=False, art=False, eff2=False):
     lay = layout()
     sub = dict(tbl_flag=TBL_FLAG_SDV3 if sd_v3 else TBL_FLASH, tbl_w=TBL_W_SDV3 if sd_v3 else TBL_FLASH, cap_mode=CAP_MODE, cap_profile=CAP_PROFILE, table=hex(lay['table']), f_effect=lay['f_effect'],
                f_strength=lay['f_strength'], callback=hex(CALLBACK), rec_off=RECORDS_IN_JOB - REQ_IN_JOB,
@@ -113,7 +113,7 @@ def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=Fa
                w_lut=','.join(str(int(w)) for w in weights))
     if clarity is not None:
         sub.update(c11_ret=hex(C11_RET), c11_lut=','.join(str(int(w)) for w in clarity), c12_lut=','.join(['1024'] * 5))
-    sub.update(art=int(bool(art)), f_art=F_ART)
+    sub.update(art=int(bool(art)), f_art=F_ART, eff2=int(bool(eff2)))
     sub.update(probe=int(bool(probe)), colour=hex(PROBE_COLOUR), mask_id=hex(MASK_ID), buf_tab=BUF_TAB - REQ_IN_JOB)
     sub.update(halo=int(bool(halo)), f_tint=F_TINT, t_w=','.join(str(w) for r in tint_rows(weights) for w in r),
                t_k=','.join(str(k) for p in TINT_K for k in p))
@@ -158,7 +158,7 @@ def sdv3_accessor():
     return m.accessor_symbols()
 
 
-def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=False, art=False):
+def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=False, art=False, eff2=False):
     weights = [int(w) for w in weights]
     if len(weights) != 5 or not all(0 <= w <= 1024 for w in weights):
         raise SystemExit('need 5 weights in 0..1024')
@@ -199,14 +199,16 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=
                     raise SystemExit(f'abs32 reference into the step-9 R table at {BASE + off + 4 * int(k):#x}')
         # two passes: bloom routine (bf_art) <-> art stub (art); every external jmp is the fixed d32 form
         extra = dict(extra, ep7_art=ART_AT)
-        _, _, _, syms0, _ = assemble(weights, sd_v3, extra, clarity, code_at, halo, art=True)
+        _, _, _, syms0, _ = assemble(weights, sd_v3, extra, clarity, code_at, halo, art=True, eff2=eff2)
         acode, asrc, alst, asyms, _ = assemble(weights, extra=dict(ep7_art_back=syms0['bf_art']), template='art.s.in', at=ART_AT)
         if asyms['art'] != ART_AT or ART_AT + len(acode) > ART_END:
             raise SystemExit('art stub layout')
         tab = acode[asyms['art_tab'] - ART_AT:asyms['art_end'] - ART_AT]
         if tab != b''.join(struct.pack('<II', *ART_FLAGS[k]) for k in range(1, 6)):
             raise SystemExit('art table bytes wrong')
-    code, src, lst, syms, lay = assemble(weights, sd_v3, extra or None, clarity, code_at, halo, art=art)
+    if eff2 and (halo or clarity is None):
+        raise SystemExit('--eff2-bloom needs --clarity and no --halation')
+    code, src, lst, syms, lay = assemble(weights, sd_v3, extra or None, clarity, code_at, halo, art=art, eff2=eff2)
     if art and syms['bf_art'] != syms0['bf_art']:
         raise SystemExit('bf_art moved between passes')
     for at, stock in ((FLAG_HOOK, FLAG_STOCK), (W_HOOK, W_STOCK)):
@@ -293,6 +295,8 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=
         if probe:
             meta['halation']['red_probe'] = dict(hook=hex(PS_HOOK), colour=hex(PROBE_COLOUR), mask_buffer=hex(MASK_ID),
                                                  port='request+148', mode=0x1002, beta='2b', claim=[hex(HALO_AT), hex(PROBE_END)])
+    if eff2:
+        meta['eff2_bloom'] = 'effect_id 2 -> plain bloom (flag and weight); bloom_tint +45 ignored (no halo hook)'
     if art:
         meta['art'] = dict(byte=F_ART, values=['off', 'star_light', 'pin_hole', 'blur', 'white_edge', 'frame'],
                            flags={k: [hex(a), hex(o)] for k, (a, o) in ART_FLAGS.items()}, stub=hex(ART_AT), stub_len=len(acode),
@@ -311,13 +315,14 @@ def main():
     ap.add_argument('--sd-v3', action='store_true', help='read the table through the SD loader v3 accessor')
     ap.add_argument('--clarity', action='store_true', help='add effect_id 3 = clarity (needs --sd-v3; section-2 placement)')
     ap.add_argument('--halation', action='store_true', help='effect_id 2 = red bloom (needs --clarity; docs/HALATION_RED.md)')
+    ap.add_argument('--eff2-bloom', action='store_true', help='effect_id 2 renders as plain bloom, tint ignored (v0.14)')
     ap.add_argument('--art', action='store_true', help='slot +46 Art Effect for COLOR stills (v0.14; section 11)')
     ap.add_argument('--red-probe', action='store_true', help='red tint -> mask route probe (docs/HALATION_RED.md section 10)')
     ap.add_argument('--clarity-weights', help='5 comma-separated Q10 weights > 1024 for clarity strength 1..5')
     a = ap.parse_args()
     weights = [int(x) for x in a.weights.split(',')] if a.weights else STRENGTH_W
     clarity = ([int(x) for x in a.clarity_weights.split(',')] if a.clarity_weights else CLARITY_W) if a.clarity else None
-    spec, code, src, lst, syms = build_spec(weights, a.sd_v3, clarity, a.halation, a.red_probe, a.art)
+    spec, code, src, lst, syms = build_spec(weights, a.sd_v3, clarity, a.halation, a.red_probe, a.art, a.eff2_bloom)
     a.out.mkdir(parents=True, exist_ok=False)
     (a.out / 'edits.json').write_text(json.dumps(spec, indent=1) + '\n')
     (a.out / 'routine.s').write_text(src)

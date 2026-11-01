@@ -294,3 +294,9 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   - Checks: art F 768 / L 20 / S 4096, extras G 936 / W 5392 / V 864, halation F/W/D, build_probe PASS; decode ==
     stock + edits, restore == stock.
   - The blur probe crash is noted in HALATION_RED §10e.
+- v0.14 in place (268 edits, on the 04:57:52 spec), after camera feedback that the Art Effects and log work:
+  - Bloom colour off: --eff2-bloom, no halo hook; tint ignored and effect 2 = plain bloom. B 240.
+  - Extras: sector 6 hidden; Art wraps modulo 6. G 936 / W 5392 / V 864.
+  - LV Art Effect: Pin Hole, Blur, White Edge and Frame via lv_art; Star Light not. V 20; lv_art S / H 49 / gates / C / D / R.
+  - Log probe and LOGDBG dump removed; the decision fix (A+354) is kept at 0x60210c90. H/M/G/L PASS.
+  - Art F 768 / L 20 / S 4096. Decode == stock + edits, restore == stock; 11365 B in spans. AE-grid mask idea parked (§12).

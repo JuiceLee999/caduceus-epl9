@@ -6,7 +6,7 @@
      a0 = settings message A (A+352 MovPicModeType, A+353 MovPicMode, A+8, A+332 movie flag)
      a1 = &rec68[13]  (rec68[29] = picture mode from property 0x9481 -> (16,a1))
    Stock result byte (a1) becomes settings-record +925 (0 / 1 -> id 2000 / 2 -> id 2001).
-   New: only when A+352 == 0 (stock type off) and A+332 == 1 (movie) and picture mode == {trig_log}
+   New: only when A+352 == 0 (stock type off) and A+332 == 1 (movie) and movie picture mode A+354 == {trig_log}
    (or {trig_flat}, if enabled) -> result 2 (1). Every other input runs the untouched stock body. */
 _start:
 vlog_hook:
@@ -16,7 +16,7 @@ vlog_hook:
  mov (332,a0),d0                   /* movie-mode flag (u32) */
  cmp 1,d0
  bne stock
- movbu (16,a1),d0                  /* rec68[29] = picture mode */
+ movbu (354,a0),d0                 /* v0.14 fix: the message's movie picture mode A+354 (was rec68[29], the stills pm) */
  cmp {trig_log},d0
  beq is_log
 {flat_code}

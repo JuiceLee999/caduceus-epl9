@@ -75,4 +75,5 @@ out:
  mov a3,a0                           /* replayed 0x60353c6f */
  call ep7_dispatch,[d2,a2,a3],16     /* replayed 0x60353c70 */
  jmp ep7_resume                      /* 0x60353c75 */
+{art_tab}
 code_end:

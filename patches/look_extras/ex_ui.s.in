@@ -11,8 +11,7 @@
  *                 3 WB Blue N | 3 WB Amber/Blue | 3 WB Amber N
  *                 4 WB Magenta N | 4 WB Green/Mag. | 4 WB Green N
  *                 5 Art Off|Star Light|Pin Hole|Blur|White Edge|Frame (v0.14)
- *                 6 Bloom Neutral|Red|Amber|Warm|Cool (test13b; sector 6 from v0.14)
- *                 sectors 7-12: "Extras: 1-6 only"; ALL on (stock 2756): "Extras: no All"
+ *                 sectors 6-12: "Extras: 1-5 only" (v0.14: bloom colour hidden); ALL on (stock 2756): "Extras: no All"
  *               At most 16 characters.
  * Stores: the label in the view object, the stack. No absolute stores, no mul/div/setlb.
  */
@@ -98,7 +97,7 @@ ex_guide:                         /* CALLS entry, a0 = view */
  mov (4,sp),d3                    /* cursor 1..12 = sector 0..11 */
  add -1,d3
  mov ex_t_other,a2
- cmp 6,d3
+ cmp 5,d3
  bcc q_put0
  mov (8,sp),d0                    /* the sector's value through ex_get (as the wheel number) */
  add d3,d0
@@ -119,21 +118,11 @@ ex_guide:                         /* CALLS entry, a0 = view */
  bra q_put0
 6:
  cmp 4,d3
- bne 61f
+ bne 60f
  cmp 6,d1                         /* art effect 0..5 (v0.14) */
  bcc q_out
  asl2 d1
  mov ex_ta,a2
- add d1,a2
- mov (a2),a2
- bra q_put0
-61:
- cmp 5,d3
- bne 60f
- cmp 5,d1                         /* bloom colour 0..4 */
- bcc q_out
- asl2 d1
- mov ex_tt,a2
  add d1,a2
  mov (a2),a2
  bra q_put0
@@ -200,8 +189,6 @@ q_out:
 ex_ui_data:
 ex_tg:
  .long ex_g0, ex_g1, ex_g2, ex_g3
-ex_tt:
- .long ex_t0, ex_t1, ex_t2, ex_t3, ex_t4
 ex_ta:
  .long ex_a0, ex_a1, ex_a2, ex_a3, ex_a4, ex_a5
 ex_tf:
@@ -216,16 +203,6 @@ ex_g2:
  .asciz "1 Grain Medium"
 ex_g3:
  .asciz "1 Grain High"
-ex_t0:
- .asciz "6 Bloom Neutral"
-ex_t1:
- .asciz "6 Bloom Red"
-ex_t2:
- .asciz "6 Bloom Amber"
-ex_t3:
- .asciz "6 Bloom Warm"
-ex_t4:
- .asciz "6 Bloom Cool"
 ex_a0:
  .asciz "5 Art Off"
 ex_a1:
@@ -257,7 +234,7 @@ ex_m_z:
 ex_m_p:
  .asciz "4 WB Green "
 ex_t_other:
- .asciz "Extras: 1-6 only"
+ .asciz "Extras: 1-5 only"
 ex_t_all:
  .asciz "Extras: no All"
 ex_ui_end:

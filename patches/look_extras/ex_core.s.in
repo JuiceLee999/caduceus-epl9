@@ -12,12 +12,11 @@
  *   s 1 (orange)     effect       -5..-1 = bloom 5..1 (id 1), 0 = none, +1..+5 = clarity 1..5 (id 3); +28 id, +29 strength
  *   s 2 (orange-red) WB A-B       slot +26 (-5..5 here), override bit0 of +25
  *   s 3 (red)        WB G-M       slot +27
- *   s 4              art effect slot +46 (v0.14): 0 off, 1 star light, 2 pin hole, 3 blur, 4 white edge, 5 frame (0..5)
- *   s 5              bloom colour slot +45 (test13b; sector 5 from v0.14): 0 neutral, 1 red, 2 amber, 3 warm, 4 cool;
- *                    reads show 1 for a red-bloom slot (effect 2) with 0 there. Writes clamp to 0..4.
- *   s 6..11          unused: read 0, writes change nothing
- * Effect 2 (red bloom) reads as glow (negative) like bloom; a sector-2 write on an effect-2 slot with tint 0 first
- * sets the tint to red, so the slot stays red when it becomes effect 1.
+ *   s 4              art effect slot +46 (v0.14): 0 off, 1 star light, 2 pin hole, 3 blur, 4 white edge, 5 frame.
+ *                    Writes wrap modulo 6 (-1 -> 5 ... -5 -> 1, 6 -> 0), so the dial never parks outside 0..5.
+ *   s 5..11          unused: read 0, writes change nothing (v0.14: the bloom colour field is hidden; +45 is kept
+ *                    but ignored, patches/bloom --eff2-bloom)
+ * Effect 2 (old red bloom) reads as glow (negative) like bloom; a sector-2 write makes it id 1 / 3 / 0.
  * Writes are clamped to the range, then (as the editor's 12c H/L path) the stock settings manager 0x60827440 runs
  * with the id's unchanged S value so its listeners redraw the screen. In ALL mode (0x61fc3800 / 0x61fc3804 set)
  * nothing is written. WB: the override bit is set when A-B or G-M is non-zero and cleared at 0/0 (camera fine-tune).
@@ -116,8 +115,6 @@ ex_get:                           /* CALLS entry: (0,sp) = return address = MDR 
 2:
  cmp 4,d3
  beq 23f
- cmp 5,d3
- beq 21f
  bcc g_zero
  movbu (57,a2),d0                 /* WB: only while the slot overrides (+25 & 0x81 == 1) */
  and 0x81,d0
@@ -139,18 +136,6 @@ ex_get:                           /* CALLS entry: (0,sp) = return address = MDR 
  cmp 6,d0
  bcs g_val
  bra g_zero
-21:
- movbu (77,a2),d0                 /* bloom colour +45 */
- cmp 0,d0
- bne 22f
- movbu (60,a2),d2
- cmp 2,d2                         /* red bloom without a colour shows red */
- bne g_val
- mov 1,d0
- bra g_val
-22:
- cmp 5,d0
- bcs g_val
 g_zero:
  clr d0
 g_val:
@@ -205,8 +190,29 @@ ex_set:                           /* entered like 0x60827440: d2/d3/a2 saved by 
  and 63,d3                        /* sector */
  and 0xc0,d2
  add d2,a2                        /* a2 = P + 64*slot */
- cmp 6,d3
+ cmp 5,d3
  bcc s_refresh
+ cmp 4,d3
+ bne 1f
+ cmp -6,d1                        /* art effect: pre-clamp to -6..11, then wrap into 0..5 */
+ bge 12f
+ mov -6,d1
+12:
+ cmp 11,d1
+ ble 13f
+ mov 11,d1
+13:
+ cmp 0,d1
+ bge 14f
+ add 6,d1
+14:
+ cmp 6,d1
+ bcs 15f
+ add -6,d1
+15:
+ movbu d1,(78,a2)
+ bra s_dirty
+1:
  cmp -5,d1                        /* clamp to -5..5 (grain below to 0..3) */
  bge 2f
  mov -5,d1
@@ -230,15 +236,6 @@ ex_set:                           /* entered like 0x60827440: d2/d3/a2 saved by 
 4:
  cmp 1,d3
  bne 7f
- movbu (60,a2),d2                 /* red bloom (2) without a colour: make it red first (kept as id 1) */
- cmp 2,d2
- bne 41f
- movbu (77,a2),d2
- cmp 0,d2
- bne 41f
- mov 1,d2
- movbu d2,(77,a2)
-41:
  clr d2                           /* effect: id 0 first, then strength, then the new id */
  movbu d2,(60,a2)
  mov d1,d2
@@ -257,27 +254,6 @@ ex_set:                           /* entered like 0x60827440: d2/d3/a2 saved by 
  movbu d2,(61,a2)                 /* 0: none, strength 0 */
  bra s_dirty
 7:
- cmp 4,d3
- bne 74f
- cmp 0,d1                         /* art effect 0..5 (the generic clamp already capped 5) */
- bge 75f
- clr d1
-75:
- movbu d1,(78,a2)
- bra s_dirty
-74:
- cmp 5,d3
- bne 71f
- cmp 0,d1                         /* bloom colour 0..4 */
- bge 72f
- clr d1
-72:
- cmp 4,d1
- ble 73f
- mov 4,d1
-73:
- movbu d1,(77,a2)
- bra s_dirty
 71:
  movbu (57,a2),d2                 /* WB: entering override from off -> both axes start at 0 */
  and 0x81,d2

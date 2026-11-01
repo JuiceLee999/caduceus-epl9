@@ -67,13 +67,14 @@ def patched_image(stock, code):
 
 
 # ---------------------------------------------------------------- H: derivation 0x6030df3d
-def run_derive(img, msg_fields, pm):
+def run_derive(img, msg_fields, pm, stills_pm=11):
     msg = bytearray(0x200 + 400)
     for off, val, size in msg_fields:
         struct.pack_into({1: '<B', 4: '<I'}[size], msg, off, val)
+    msg[354] = pm                                      # v0.14: movie picture mode A+354 decides
     rec = bytearray(68)
     rec[13] = 0xee                                     # sentinel: must be overwritten
-    rec[29] = pm
+    rec[29] = stills_pm                                # stills picture mode (property 0x9481): ignored
     regions = [VP.caller(HOOK, 0x20, 4),               # same form as stock caller 0x6032641f
                VP.img(img, 'fn', HOOK, FN_END, 'rx'),
                VP.img(img, 'tail', CODE_AT, CODE_LIMIT, 'rx'),
@@ -89,8 +90,9 @@ def check_derive(stock, patched, trig_log, trig_flat):
     T, M, P = (352, 1), (353, 1), (332, 4)      # (offset, size)
     def f(t=0, m=254, a8=0, mov=1):
         return [(352, t, 1), (353, m, 1), (8, a8, 1), (332, mov, 4)]
-    cases = [  # name, fields, pm, expected stock, expected patched
+    cases = [  # name, fields, pm, expected stock, expected patched (pm = movie picture mode A+354; stills pm 11)
         ('movie + trigger pm -> log', f(mov=1), trig_log, 0, 2),
+        ('movie pm COLOR, stills pm = trigger (v0.14: not log)', f(mov=1), 11, 0, 0),
         ('stills (A+332=0) + trigger pm', f(mov=0), trig_log, 0, 0),
         ('movie + Natural(2)', f(), 2, 0, 0),
         ('movie + COLOR(11)', f(), 11, 0, 0),
@@ -106,8 +108,9 @@ def check_derive(stock, patched, trig_log, trig_flat):
         cases.insert(1, ('movie + flat trigger pm -> flat', f(), trig_flat, 0, 1))
     res = []
     for name, fields, pm, es, ep in cases:
-        vs, oks, _ = run_derive(stock, fields, pm)
-        vp, okp, _ = run_derive(patched, fields, pm)
+        sp_ = trig_log if 'stills pm = trigger' in name else 11
+        vs, oks, _ = run_derive(stock, fields, pm, sp_)
+        vp, okp, _ = run_derive(patched, fields, pm, sp_)
         good = oks and okp and (vs, vp) == (es, ep)
         res.append(dict(case=name, pm=pm, stock=vs, patched=vp, expected=[es, ep], passed=bool(good)))
     return dict(check='H 0x6030df3d (+925 source) stock vs patched', passed=all(x['passed'] for x in res), cases=res)

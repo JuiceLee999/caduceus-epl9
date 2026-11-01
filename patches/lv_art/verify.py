@@ -62,6 +62,7 @@ def fixture(slots):
         b = i * 64
         t[b + 31] = 2 if v.get('hl') else 0
         t[b + 28], t[b + 29], t[b + 24] = v.get('eff', 0), v.get('s', 0), v.get('grain', 0)
+        t[b + 46] = v.get('art', 0)
     return bytes(t)
 
 
@@ -72,7 +73,21 @@ TABLES = {
     'T3': fixture({0: dict(eff=1, s=1, grain=3), 1: dict(hl=True, eff=2, s=3), 2: dict(grain=4, eff=1, s=2),
                    3: dict(hl=True, eff=1, s=5, grain=1)}),
     'erased': b'\xff' * 512,
+    # v0.14 Art Effect (+46): every value 0..6, alone and with H/L / bloom / grain
+    'A1': fixture({0: dict(art=2), 1: dict(art=3, hl=True), 2: dict(art=4, eff=1, s=3), 3: dict(art=5, grain=2)}),
+    'A2': fixture({0: dict(art=1), 1: dict(art=6), 2: dict(art=0, eff=1, s=2), 3: dict(art=0xff, hl=True)}),
+    'A3': fixture({0: dict(art=5, eff=3, s=2), 1: dict(art=2, grain=1, hl=True), 2: dict(art=3, eff=2, s=4), 3: dict(art=4)}),
 }
+LV_ART_FLAGS = {2: 0x400, 3: 0x100, 4: 0x2000, 5: 0x8000}
+
+
+def art_flag(feats, table, *, ret, key, jtype, profile):
+    """v0.14 Art Effect job flag lv_art ORs in (0 = none)."""
+    if 'art' not in feats or ret != LV_RET or key != 11 or jtype & 0xf0 != 0x30 or jtype & 0xf00 == 0x100:
+        return 0
+    if profile is None or not 1 <= profile <= 4:
+        return 0
+    return LV_ART_FLAGS.get(table[(profile - 1) * 64 + 46], 0)
 
 
 def model(feats, table, *, ret, key, jtype, profile):
@@ -143,8 +158,9 @@ def compare(feats, pr, br, table, **case):
     exp = bytearray(bj)
     if tp is not None:
         exp[EXT:EXT + 3] = bytes([tp, 11, BB.MAGIC])
-    if fl:
-        struct.pack_into('<I', exp, 16, struct.unpack_from('<I', bj, 16)[0] | 0x80)
+    af = art_flag(feats, table, **case)
+    if fl or af:
+        struct.pack_into('<I', exp, 16, struct.unpack_from('<I', bj, 16)[0] | (0x80 if fl else 0) | af)
     caller_stack_same = pm['stack'][SP0 - STACK + 4:] == bm['stack'][SP0 - STACK + 4:]
     good = pok and bok and bytes(pj) == bytes(exp) and caller_stack_same
     return good, dict(expect_transport=tp, expect_flag=fl, patched_ext=list(pj[EXT:EXT + 3]),
@@ -224,6 +240,8 @@ def store_audit(code):
 def S_static(img, stock, spec):
     la = spec['lv_art']
     code = sl(img, CODE_AT, CODE_AT + la['code_len'])
+    tab = la.get('labels', {}).get('lv_art_tab')        # v0.14 art flag table: data, not instructions
+    icode = code[:int(tab, 16) - CODE_AT] if tab is not None else code
     want = b'\xdc' + struct.pack('<i', CODE_AT - HOOK) + b'\xcb'
     s = dict(hook=sl(img, HOOK, HOOK + 6) == want, stock_hook=sl(stock, HOOK, HOOK + 6) == bytes.fromhex('9ccd990ab010'),
              resume_stock=sl(img, RESUME, RESUME + 4) == sl(stock, RESUME, RESUME + 4),
@@ -235,8 +253,8 @@ def S_static(img, stock, spec):
     others = [h for h in into if not (h[0] == 'abs32' and h[1] == hex(EVF_SLOT13_R))
               and not (0x601de13c <= int(h[1], 16) < 0x601e3b3c)]
     s['only_evf13_ptr_references_placement'] = not others
-    stores, bad = store_audit(code)
-    s['store_audit'] = not bad and len(stores) == 6
+    stores, bad = store_audit(icode)
+    s['store_audit'] = not bad and len(stores) == (7 if 'art' in la.get('features', []) else 6)   # + the art flag store
     s['changed_bytes_in_spans'] = VB.spans_check(spec, stock, img)[0]
     return [dict(test='S static', passed=all(s.values()), **s, interior_hits=hits, placement_refs=others, stores=stores, bad=bad)]
 

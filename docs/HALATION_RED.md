@@ -381,3 +381,34 @@ Rules for later:
 
 **Not verified:** the effects' own pass setups (buffer allocation, frame and overlay data) do not run in the emulator.
 They are the stock ART-mode setups for the same job flags.
+
+### 11b. v0.14 after the camera feedback (Art Effects and log work)
+- **Bloom colour off.** `patches/bloom --eff2-bloom --art`, with no --halation:
+  - the halo hook 0x603a04e8 and its stub are gone;
+  - effect 2 renders as plain bloom (flag and weight);
+  - +45 is kept and the loader still accepts 0..4, but it is ignored.
+  - `tools/ep7_bloom_tint_off_verify.py`: B 240. Every tint and effect 2 == plain bloom; clarity, off and erased == before.
+- **Extras:** sector 6 (bloom colour) is hidden; sectors 6–12 show "Extras: 1-5 only". The Art field wraps modulo 6:
+  writes are pre-clamped to −6..11 and stored as v mod 6. So the stock dial counter can never park outside 0..5: from
+  Off, one step down = Frame.
+  - The ±5 fields keep their clamp. Before, the Art field went through that −5..5 clamp and then 0..5, so the dial's own
+    counter could sit below 0 while the stored value stayed 0.
+  - extras G 936 / W 5392 (−6..6, ±127, ±2^31 on the art ids) / V 864.
+- **LV Art Effect** (`patches/lv_art --features hl,bloom,art`):
+  - COLOR LV jobs (the same lv_art gate) get the stock job flag for Pin Hole 0x400, Blur 0x100, White Edge 0x2000 and
+    Frame 0x8000, whether or not the slot has a transport.
+  - Star Light is not previewed. In stock it adds no LV stage in classes 5–7, and the stock LV converter gates it.
+  - `tools/ep7_art_verify.py` V 20: for each effect and LV class 5..8, the entries the builder adds on key 11 == those on
+    the Pop Art key. lv_art verify: S, H 49 (tables A1–A3 with every art value), gates 22, C, D, R.
+- **Log:** the probe ring, label and LOGDBG.TXT dump are removed (the step-8/7 tables are stock again, and the loader's
+  sd_back goes to ed_trig again). The log decision keeps the v0.14 fix: the trigger is the movie picture mode A+354.
+  It is in `video_log.s.in`, built by `build_and_verify.py`, at 0x60210c90. H/M/G/L PASS, including the case "stills
+  pm = trigger, movie pm COLOR -> not log".
+
+### 12. Parked idea: tinted halation from the AE metering grid
+A future tinted halation could build the vignette-format mask (0x080C, 128 × 128 u16 Q10, written by the CPU as the
+stock vignette generator 0x60338d49 does, §10c) from the **AE metering grid**. The CPU already reads that grid, so it is
+CPU-readable, unlike the reduce buffer, whose read crashed (§10e).
+- Upsample the grid's highlight cells into m = 1024 − k·max(0, Y − T).
+- Feed the mask to the existing mode-0x1002 lerp toward a colour word (proven to blend and to give a red hue in 10b).
+- Open: the grid's location and resolution per capture, and whether a grid-resolution key looks like a halo.

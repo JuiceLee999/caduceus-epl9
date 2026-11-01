@@ -110,6 +110,21 @@ def main():
                     fails.append(f'L art{art} cls{cls} extra{extra:#x}: ok={o1},{o0},{ok_c},{oa},{ob} same_as_old={e1 == e0 and p1 == p0} '
                                  f'added key11={[hex(x) for x in add11]} artkey={[hex(x) for x in addA]}')
     res['L'] = (n, fails)
+    # V: LV job classes 5..8 (lv_art previews 2 Pin Hole / 3 Blur / 4 White Edge / 5 Frame; 1 Star Light not)
+    n, fails = 0, []
+    for art, bit in ((1, 0x40), (2, 0x400), (3, 0x100), (4, 0x2000), (5, 0x8000)):
+        for cls in (5, 6, 7, 8):
+            o1, e1, p1, _ = wl(img, 11, cls, 0x80000 | bit)
+            o0, e0, p0, _ = wl(img, 11, cls, 0x80000)
+            oa, a1, ap1, _ = wl(stock, ART_KEY, cls, 0x80000 | bit)
+            ob, a0, ap0, _ = wl(stock, ART_KEY, cls, 0x80000)
+            add11 = [e[0] for e in e1 if e not in e0] + [x for x in p1 if x not in p0]
+            addA = [e[0] for e in a1 if e not in a0] + [x for x in ap1 if x not in ap0]
+            n += 1
+            lv = art != 1
+            if not (o1 and o0 and oa and ob and add11 == addA and (bool(add11) if lv else (cls == 8 or not add11))):
+                fails.append(f'V art{art} cls{cls}: key11 {[hex(x) for x in add11]} artkey {[hex(x) for x in addA]}')
+    res['V'] = (n, fails)
     # S
     n, fails, diff = 0, [], []
     for eff in range(0, 0x1000):

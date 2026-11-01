@@ -91,27 +91,23 @@ def model_get(blk, slot, sec):
         return clamp(s8(b[24 + sec]), -5, 5) if b[25] & 0x81 == 1 else 0
     if sec == 4:                                  # v0.14 art effect +46 (0..5)
         return b[46] if b[46] <= 5 else 0
-    if sec == 5:                                  # test13b bloom colour +45 (effect 2 with 0 shows red); sector 6 from v0.14
-        return b[45] if 1 <= b[45] <= 4 else (1 if b[45] == 0 and b[28] == 2 else 0)
-    return 0
+    return 0                                      # v0.14: sector 5 (bloom colour) hidden
 
 
 def model_set(blk, slot, sec, v, all_on):
     e = bytearray(blk)
-    if all_on or sec >= 6:
+    if all_on or sec >= 5:
         return e
     o = 32 + 64 * slot
+    if sec == 4:                                  # v0.14 art effect: pre-clamp -6..11, wrap modulo 6
+        e[o + 46] = clamp(v, -6, 11) % 6
+        e[DIRTY] = 1
+        return e
     v = clamp(v, -5, 5)
     if sec == 0:
         e[o + 24] = clamp(v, 0, 3)
     elif sec == 1:
-        if e[o + 28] == 2 and e[o + 45] == 0:
-            e[o + 45] = 1
         e[o + 28], e[o + 29] = (0, 0) if v == 0 else ((3, v) if v > 0 else (1, -v))
-    elif sec == 4:
-        e[o + 46] = clamp(v, 0, 5)
-    elif sec == 5:
-        e[o + 45] = clamp(v, 0, 4)
     else:
         if e[o + 25] & 0x81 != 1:
             e[o + 26] = e[o + 27] = 0
@@ -387,7 +383,7 @@ s_get:
 """
 # 12d: stock shows 2755 with ALL off and 2756 with ALL on; the X text is cut at 16 characters together with the
 # editor's key-probe code (EV.probe_suffix, '' when the editor is built without the probe).
-TXT = {'o': 'Extras: 1-6 only', 'all': 'Extras: no All'}
+TXT = {'o': 'Extras: 1-5 only', 'all': 'Extras: no All'}
 TINT_TXT = ['6 Bloom Neutral', '6 Bloom Red', '6 Bloom Amber', '6 Bloom Warm', '6 Bloom Cool']
 ART_TXT = ['5 Art Off', '5 Art Star Light', '5 Art Pin Hole', '5 Art Blur', '5 Art White Edge', '5 Art Frame']
 GRAIN = ['1 Grain Off', '1 Grain Low', '1 Grain Medium', '1 Grain High']
@@ -403,8 +399,6 @@ def x_text(blk, mode, sec):
         return GRAIN[v]
     if sec == 4:
         return ART_TXT[v]
-    if sec == 5:
-        return TINT_TXT[v]
     neg, zero, pos = SIGNED[sec]
     return zero if v == 0 else (pos + str(v)) if v > 0 else (neg + str(-v))
 
@@ -447,7 +441,7 @@ def guide_case(args):
     if is_x and kind == 4 and gid == 2756:
         txt = TXT['all']
     elif is_x and kind == 4 and gid == 2755 and mode in (54, 55, 56, 64):
-        txt = x_text(blk, mode, cursor - 1) if 1 <= cursor <= 6 else TXT['o']
+        txt = x_text(blk, mode, cursor - 1) if 1 <= cursor <= 5 else TXT['o']
     if txt:
         if len(txt) > 16:
             return tag, f'label {txt!r} > 16'

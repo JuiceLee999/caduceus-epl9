@@ -6,7 +6,7 @@
  "trig_log": 3,
  "trig_flat": null,
  "code_at": "0x60210c90",
- "code_len": 42,
+ "code_len": 43,
  "edits": [
   {
    "kind": "0x100",
@@ -18,9 +18,9 @@
   {
    "kind": "0x100",
    "addr": "0x60210c90",
-   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-   "new": "fa406001a000c91afa004c01a001c912f84110a003c804ca098002dcbcd20f00266001f172dc8dd20f00",
-   "why": "vlog_hook (42 B, section-1 FF tail): movie && pm==3 -> +925=2 (id 2001)"
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "fa406001a000c91bfa004c01a001c913fa406201a003c804ca098002dcbbd20f00266001f172dc8cd20f00",
+   "why": "vlog_hook (43 B, section-1 FF tail): movie && pm==3 -> +925=2 (id 2001)"
   }
  ]
 }
