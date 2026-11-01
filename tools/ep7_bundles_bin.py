@@ -127,6 +127,14 @@ def describe_effect(data, k):
     return f'{BB.SLOTS[k]} {EFFECT_NAMES.get(eid, eid)} {st}'
 
 
+ART_NAMES = {v: k for k, v in BB.ART.items()}
+
+
+def describe_art(data, k):
+    a = data[SB.HDR_LEN + 64 * k + BB.ART_OFF]
+    return f'{BB.SLOTS[k]} {ART_NAMES.get(a, a)}'
+
+
 def split_names(bundle):
     """-> (bundle without names, neutral name-only slots dropped; 8 names or None)."""
     out, names = {}, [None] * NAME_SLOTS
@@ -168,6 +176,7 @@ def main():
             print('names: ' + (', '.join(f'{s}={n!r}' for s, n in zip(BB.SLOTS, names_of(data)) if n) if not np_
                                else 'REJECTED (looks still load; stock labels): ' + '; '.join(np_)))
         if not probs:
+            print('art: ' + (', '.join(describe_art(data, k) for k in range(4) if data[SB.HDR_LEN + 64 * k + BB.ART_OFF]) or 'none'))
             print('effects: ' + (', '.join(describe_effect(data, k) for k in range(4) if data[SB.HDR_LEN + 64 * k + 28])
                                  or 'none'))
         print('OK: the loader would accept this file' if not probs else 'REJECT: ' + '; '.join(probs))

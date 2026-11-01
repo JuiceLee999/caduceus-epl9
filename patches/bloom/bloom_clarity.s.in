@@ -19,6 +19,7 @@
  .text
  .global _start
 _start:
+ .set ART, {art}                  /* --art (v0.14): slot +46 Art Effect -> stock job flag (art.s.in) */
  .set HALO, {halo}                /* --halation (docs/HALATION_RED.md): effect_id 2 = red bloom, bloom colour (test13b) */
 
 /* ---- entered by jmp from 0x603eabd7 inside 0x603eab39:
@@ -40,6 +41,10 @@ bloom_flag:
  cmp 4,d0
  bcc bf_resume
 {tbl_flag}
+ .if ART
+ jmp ep7_art                      /* Art Effect flag (art.s.in), returns to bf_art */
+bf_art:
+ .endif
  movbu ({f_effect},a0),d0
  cmp 1,d0                         /* effect_id 1 = bloom */
  beq bf_eff

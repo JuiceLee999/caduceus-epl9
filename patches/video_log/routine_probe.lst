@@ -1,5 +1,5 @@
 
-/tmp/tmpjw466bts/p.elf:     file format elf32-mn10300
+/tmp/tmpnj4uiria/p.elf:     file format elf32-mn10300
 
 
 Disassembly of section .text:
@@ -321,7 +321,7 @@ Disassembly of section .text:
 601e22c6:	1e 60 
 601e22c8:	f0 fc       	rets	
 
-/tmp/tmprgc72eel/p.elf:     file format elf32-mn10300
+/tmp/tmp9ifa0x50/p.elf:     file format elf32-mn10300
 
 
 Disassembly of section .text:

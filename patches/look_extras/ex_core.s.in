@@ -12,9 +12,10 @@
  *   s 1 (orange)     effect       -5..-1 = bloom 5..1 (id 1), 0 = none, +1..+5 = clarity 1..5 (id 3); +28 id, +29 strength
  *   s 2 (orange-red) WB A-B       slot +26 (-5..5 here), override bit0 of +25
  *   s 3 (red)        WB G-M       slot +27
- *   s 4              bloom colour slot +45 (test13b): 0 neutral, 1 red, 2 amber, 3 warm, 4 cool; reads show 1 for a
- *                    red-bloom slot (effect 2) with 0 there. Writes clamp to 0..4.
- *   s 5..11          unused: read 0, writes change nothing
+ *   s 4              art effect slot +46 (v0.14): 0 off, 1 star light, 2 pin hole, 3 blur, 4 white edge, 5 frame (0..5)
+ *   s 5              bloom colour slot +45 (test13b; sector 5 from v0.14): 0 neutral, 1 red, 2 amber, 3 warm, 4 cool;
+ *                    reads show 1 for a red-bloom slot (effect 2) with 0 there. Writes clamp to 0..4.
+ *   s 6..11          unused: read 0, writes change nothing
  * Effect 2 (red bloom) reads as glow (negative) like bloom; a sector-2 write on an effect-2 slot with tint 0 first
  * sets the tint to red, so the slot stays red when it becomes effect 1.
  * Writes are clamped to the range, then (as the editor's 12c H/L path) the stock settings manager 0x60827440 runs
@@ -114,6 +115,8 @@ ex_get:                           /* CALLS entry: (0,sp) = return address = MDR 
  bra g_val
 2:
  cmp 4,d3
+ beq 23f
+ cmp 5,d3
  beq 21f
  bcc g_zero
  movbu (57,a2),d0                 /* WB: only while the slot overrides (+25 & 0x81 == 1) */
@@ -131,6 +134,11 @@ ex_get:                           /* CALLS entry: (0,sp) = return address = MDR 
  ble g_val
  mov 5,d0
  bra g_val
+23:
+ movbu (78,a2),d0                 /* art effect +46: 0..5, anything else reads 0 */
+ cmp 6,d0
+ bcs g_val
+ bra g_zero
 21:
  movbu (77,a2),d0                 /* bloom colour +45 */
  cmp 0,d0
@@ -197,7 +205,7 @@ ex_set:                           /* entered like 0x60827440: d2/d3/a2 saved by 
  and 63,d3                        /* sector */
  and 0xc0,d2
  add d2,a2                        /* a2 = P + 64*slot */
- cmp 5,d3
+ cmp 6,d3
  bcc s_refresh
  cmp -5,d1                        /* clamp to -5..5 (grain below to 0..3) */
  bge 2f
@@ -250,6 +258,15 @@ ex_set:                           /* entered like 0x60827440: d2/d3/a2 saved by 
  bra s_dirty
 7:
  cmp 4,d3
+ bne 74f
+ cmp 0,d1                         /* art effect 0..5 (the generic clamp already capped 5) */
+ bge 75f
+ clr d1
+75:
+ movbu d1,(78,a2)
+ bra s_dirty
+74:
+ cmp 5,d3
  bne 71f
  cmp 0,d1                         /* bloom colour 0..4 */
  bge 72f

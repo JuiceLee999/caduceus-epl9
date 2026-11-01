@@ -63,6 +63,8 @@ GRAIN = {'off': 0, 'low': 1, 'medium': 2, 'med': 2, 'high': 3}
 EFFECT = {'none': 0, 'bloom': 1, 'halation': 2, 'clarity': 3}   # clarity: patches/bloom --clarity
 TINT = {'neutral': 0, 'red': 1, 'amber': 2, 'warm': 3, 'cool': 4}   # bloom_tint +45 (layout.json; test13b)
 TINT_OFF = 45
+ART = {'off': 0, 'star_light': 1, 'pin_hole': 2, 'blur': 3, 'white_edge': 4, 'frame': 5}   # art_effect +46 (v0.14)
+ART_OFF = 46
 FLAG_RENDER_COLOUR, FLAG_HL = 1, 2
 COLOUR_OFF, SAT_OFF = 32, 33               # MONO colour rendering (patches/mono_colour): u8 == 1, s8 x12
 WB_OVERRIDE = 1                            # wb_flags bit0 (layout.json); bit7 must stay 0
@@ -158,6 +160,12 @@ def slot_entry(name, slot, recipes):
             e[29] = ival(eff['strength'], 1, 5, f'{name} effect strength')
         elif eff.get('strength', 0) != 0:
             raise ValueError(f'{name}: effect none takes no strength')
+    art = slot.get('art_effect', 'off')
+    if not isinstance(art, str) or art not in ART:
+        raise ValueError(f'{name}: art_effect {art!r} (use one of {sorted(ART)})')
+    if art != 'off' and not name.startswith('COLOR'):
+        raise ValueError(f'{name}: art_effect is a COLOR-slot field')
+    e[ART_OFF] = ART[art]
     e[30] = struct.pack('<b', ival(slot.get('vignette', rc.get('vignette') or 0), -5, 5, f'{name} vignette'))[0]
     flags = FLAG_HL if name.startswith('COLOR') else 0      # v0.2 consumes COLOR H/L
     sat = None
@@ -181,7 +189,7 @@ def slot_entry(name, slot, recipes):
     e[31] = flags
     return bytes(e), dict(slot=name, enabled=bool(flags & FLAG_HL), recipe=rname, recipe_file=rc['_file'],
                           hue_ui=hue, light_ui=light, grain=e[24], wb_override=bool(e[25]), wb_source=wb_src,
-                          wb=list(struct.unpack('<2b', e[26:28])), effect=[e[28], e[29]], bloom_tint=e[TINT_OFF],
+                          wb=list(struct.unpack('<2b', e[26:28])), effect=[e[28], e[29]], bloom_tint=e[TINT_OFF], art_effect=e[ART_OFF],
                           vignette=struct.unpack('<b', e[30:31])[0], flags=flags,
                           advice_sat_ui=rc.get('sat'), advice_grain=rc.get('grain'), colour=e[COLOUR_OFF], sat_ui=sat,
                           native_rows=native_rows(hue, light))

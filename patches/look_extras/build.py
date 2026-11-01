@@ -104,10 +104,18 @@ def loader_allows_clarity(patched):
     lo, span, _ = V1.range_table(V1.layout())
     want = bytes(span)
     hits = [m.start() for m in re.finditer(re.escape(want), patched)]
+    if len(hits) != 1:                           # a base built before art_effect (+46, v0.14): span 0 there
+        w2 = bytearray(span)
+        w2[46] = 0
+        hits = [m.start() for m in re.finditer(re.escape(bytes(w2)), patched)]
+    if len(hits) != 1:                           # ... and before bloom_tint (+45, test13b)
+        w2[45] = 0
+        hits = [m.start() for m in re.finditer(re.escape(bytes(w2)), patched)]
     if len(hits) == 1:
         return True
     old = bytearray(span)
     old[28] = 2
+    old[45] = old[46] = 0
     if bytes(old) in patched:
         return False
     raise ValueError(f'loader span table found {len(hits)} times')

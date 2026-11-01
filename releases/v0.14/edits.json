@@ -597,38 +597,6 @@
   },
   {
    "kind": "0x100",
-   "addr": "0x601751f4",
-   "expect": "f8bc2c0881",
-   "new": "dc48e70600",
-   "why": "display reply tail movhu (44,sp),d0; clr d2; mov d0,d1 -> jmp va_hook (T-D reconcile)",
-   "source": "generated/view_assist/full.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e383c",
-   "expect": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
-   "new": "00000001010101010202020203030303030404040404050505050506060607070707080808090909090a0a0a0b0b0b0c0c0c0d0d0e0e0f0f0f1010111112121313141415151616171818191a1a1b1b1c1d1d1e1f1f20212122232324252526272828292a2b2c2c2d2e2f3031313233343536363738393a3b3c3d3e3f404142434445464748494a4c4d4e4f505253545657585a5b5d5e6062636567696b6c6e70727476787a7c7e7f8182848688898b8c8e8f9192949597999b9c9ea0a1a3a5a6a8aaacaeafb1b3b5b6b8babcbdbfc1c2c4c6c7c9cbcccecfd1d3d4d6d7d9dbdcdedfe1e2e4e5e6e8e9eaecedeeeff0f1f2f3f4f5f6f7f8f9fafafbfcfdfdfeff",
-   "why": "View Assist LUT (log 2001 -> row-0 display), in dead EVF step-0 R table",
-   "source": "generated/view_assist/full.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e393c",
-   "expect": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768",
-   "new": "fca40cc472a2f8ec01c8568001dd4f58faff0004f1e1fca418c472a2f8ec01c82dfcac4c1073a2a005c6232dd403f244f1e0fcd0981073a2fa409d03a002c90eb500c91dfcdc3c3c1e60ca0cb500c811fcdc2c3c1e608001dda53afafff05cf8bc2c0881dc5918f9ff",
-   "why": "va_hook (105 B, full) in dead EVF step-0 G table",
-   "source": "generated/view_assist/full.json"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e3c40",
-   "expect": "000000000000000000000000",
-   "new": "3c381e603c381e603c381e60",
-   "why": "TFT gamma step-17 slot R/G/B pointers NULL -> VA LUT",
-   "source": "generated/view_assist/full.json"
-  },
-  {
-   "kind": "0x100",
    "addr": "0x603eabd7",
    "expect": "fa43f65da000",
    "new": "dce9391700cb",
@@ -6979,7 +6947,8 @@
     }
    }
   },
-  "generated/test13t/aspect_from_release.json": {}
+  "generated/test13t/aspect_from_release.json": {},
+  "view_assist": "removed in v0.14 (suspected to un-log the recording: +925 = 2 proven on camera, clips still normal; log last worked in test 5, before View Assist)"
  },
  "bundle": "bundles/lachlan_v3.json",
  "labels": {

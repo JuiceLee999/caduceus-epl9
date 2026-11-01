@@ -63,7 +63,7 @@ DEFAULT_NAMES = {
 
 # Fields added in a backward-compatible way (0 = the old meaning) stay out of the ABI CRC, so files written before them
 # still load: bloom_tint (+45, test13b; 0 = neutral bloom).
-COMPAT_FIELDS = ('bloom_tint',)
+COMPAT_FIELDS = ('bloom_tint', 'art_effect')   # added later; zero in older files, kept out of the CRC
 
 
 def layout_crc():

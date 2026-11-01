@@ -68,6 +68,11 @@ PROBE_END, PROBE_REF = 0x601e283c, 0x601e3ce4
 PS_HOOK, PS_STOCK, PS_BACK = 0x6035caad, bytes.fromhex('f8670cf86b0e'), 0x6035cab3
 PROBE_COLOUR = 0x00C060D0                                              # Y 0xD0, Cb 0x60, Cr 0xC0 (orange-red; order [I])
 MASK_ID, BUF_TAB = 0x1060, 6592
+# --art (v0.14, docs/HALATION_RED.md section 11): slot +46 Art Effect -> stock converter flag, stub in EVF step-9 R.
+ART_AT, ART_END = 0x601e1d3c, 0x601e1e3c
+ART_REFS = (0x601e3d10, 0x601e3d14, 0x601e3d18)
+F_ART = 46
+ART_FLAGS = {1: (0xffffffff, 0x40), 2: (0xffffffff, 0x400), 3: (0xfffffcff, 0x100), 4: (0xffffffff, 0x2000), 5: (0xffffffff, 0x8000)}
 SF_W = [600, 653, 707, 760, 680, 520, 440, 360, 280, 200, 1024]       # stock Soft Focus table 0x604ec02e, A-effect, A-only
 
 
@@ -99,7 +104,7 @@ TBL_W_SDV3 = TBL_FLAG_SDV3 + """
  mov d1,(0,sp)                    /* restore the caller's return word (== MDR at entry) */"""
 
 
-def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=False, template=None, probe=False):
+def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=False, template=None, probe=False, art=False):
     lay = layout()
     sub = dict(tbl_flag=TBL_FLAG_SDV3 if sd_v3 else TBL_FLASH, tbl_w=TBL_W_SDV3 if sd_v3 else TBL_FLASH, cap_mode=CAP_MODE, cap_profile=CAP_PROFILE, table=hex(lay['table']), f_effect=lay['f_effect'],
                f_strength=lay['f_strength'], callback=hex(CALLBACK), rec_off=RECORDS_IN_JOB - REQ_IN_JOB,
@@ -108,6 +113,7 @@ def assemble(weights, sd_v3=False, extra=None, clarity=None, at=CODE_AT, halo=Fa
                w_lut=','.join(str(int(w)) for w in weights))
     if clarity is not None:
         sub.update(c11_ret=hex(C11_RET), c11_lut=','.join(str(int(w)) for w in clarity), c12_lut=','.join(['1024'] * 5))
+    sub.update(art=int(bool(art)), f_art=F_ART)
     sub.update(probe=int(bool(probe)), colour=hex(PROBE_COLOUR), mask_id=hex(MASK_ID), buf_tab=BUF_TAB - REQ_IN_JOB)
     sub.update(halo=int(bool(halo)), f_tint=F_TINT, t_w=','.join(str(w) for r in tint_rows(weights) for w in r),
                t_k=','.join(str(k) for p in TINT_K for k in p))
@@ -152,7 +158,7 @@ def sdv3_accessor():
     return m.accessor_symbols()
 
 
-def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=False):
+def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=False, art=False):
     weights = [int(w) for w in weights]
     if len(weights) != 5 or not all(0 <= w <= 1024 for w in weights):
         raise SystemExit('need 5 weights in 0..1024')
@@ -179,7 +185,30 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=
         hextra = dict(ep7_tbl_idx=acc['tbl_idx'], ep7_ps_back=PS_BACK) if probe else None
         hcode, hsrc, hlst, hsyms, _ = assemble(weights, extra=hextra, template='halo.s.in', at=HALO_AT, halo=True, probe=probe)
         extra['ep7_bw_tint'] = hsyms['bw_tint']
-    code, src, lst, syms, lay = assemble(weights, sd_v3, extra or None, clarity, code_at, halo)
+    if art:
+        if not (sd_v3 and clarity is not None):
+            raise SystemExit('--art needs --sd-v3 --clarity')
+        st9 = 0x601e3b3c + 320 + 16 * 9
+        if struct.unpack_from('<B3xIII', d, st9 - BASE) != (9, 0x601e1d3c, 0x601e1e3c, 0x601e1f3c):
+            raise SystemExit('EVF step-9 slot differs')
+        import numpy as np
+        for off in range(4):
+            w_ = np.frombuffer(d[off:off + (len(d) - off) // 4 * 4], dtype='<u4')
+            for k in np.nonzero((w_ >= ART_AT) & (w_ < ART_END))[0]:
+                if BASE + off + 4 * int(k) not in ART_REFS:
+                    raise SystemExit(f'abs32 reference into the step-9 R table at {BASE + off + 4 * int(k):#x}')
+        # two passes: bloom routine (bf_art) <-> art stub (art); every external jmp is the fixed d32 form
+        extra = dict(extra, ep7_art=ART_AT)
+        _, _, _, syms0, _ = assemble(weights, sd_v3, extra, clarity, code_at, halo, art=True)
+        acode, asrc, alst, asyms, _ = assemble(weights, extra=dict(ep7_art_back=syms0['bf_art']), template='art.s.in', at=ART_AT)
+        if asyms['art'] != ART_AT or ART_AT + len(acode) > ART_END:
+            raise SystemExit('art stub layout')
+        tab = acode[asyms['art_tab'] - ART_AT:asyms['art_end'] - ART_AT]
+        if tab != b''.join(struct.pack('<II', *ART_FLAGS[k]) for k in range(1, 6)):
+            raise SystemExit('art table bytes wrong')
+    code, src, lst, syms, lay = assemble(weights, sd_v3, extra or None, clarity, code_at, halo, art=art)
+    if art and syms['bf_art'] != syms0['bf_art']:
+        raise SystemExit('bf_art moved between passes')
     for at, stock in ((FLAG_HOOK, FLAG_STOCK), (W_HOOK, W_STOCK)):
         if d[at - BASE:at - BASE + len(stock)] != stock:
             raise SystemExit(f'stock bytes differ at {at:#x}')
@@ -243,6 +272,10 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=
                               new=jmp(PS_HOOK, hsyms['probe_set']).hex(),
                               why='Soft Focus blend setup 0x6035ca31: -> probe_set (red tint: buffer 0x1060 descriptor -> request+148)'))
         lst += '\n' + hlst
+    if art:
+        edits.append(dict(kind='0x100', addr=hex(ART_AT), expect=d[ART_AT - BASE:ART_AT - BASE + len(acode)].hex(), new=acode.hex(),
+                          why=f'COLOR Art Effect stub ({len(acode)} B, slot +46 -> stock converter flag) in the dead EVF step-9 R table'))
+        lst += '\n' + alst
     meta = dict(mode='bundle', strength_w=weights, effect_id=EFFECT_BLOOM, code_at=hex(code_at),
                 table=hex(lay['table']), f_effect=lay['f_effect'], f_strength=lay['f_strength'],
                 ext=dict(profile=lay['ext_profile'], mode=lay['ext_mode'], marker=lay['ext_magic'], magic=lay['magic']),
@@ -260,6 +293,10 @@ def build_spec(weights=STRENGTH_W, sd_v3=False, clarity=None, halo=False, probe=
         if probe:
             meta['halation']['red_probe'] = dict(hook=hex(PS_HOOK), colour=hex(PROBE_COLOUR), mask_buffer=hex(MASK_ID),
                                                  port='request+148', mode=0x1002, beta='2b', claim=[hex(HALO_AT), hex(PROBE_END)])
+    if art:
+        meta['art'] = dict(byte=F_ART, values=['off', 'star_light', 'pin_hole', 'blur', 'white_edge', 'frame'],
+                           flags={k: [hex(a), hex(o)] for k, (a, o) in ART_FLAGS.items()}, stub=hex(ART_AT), stub_len=len(acode),
+                           return_to=hex(syms['bf_art']))
     if sd_v3:
         meta['sd_v3'] = dict(accessor={k: hex(v) for k, v in acc.items()}, requires='sd_bundles_v3 (accessor edit)')
     spec = dict(components=['0x100'], patch=('color_bloom_clarity_sdv3' if clarity is not None else 'color_bloom_sdv3') if sd_v3 else 'color_bloom', requires=['bundles-v0.2'],
@@ -274,12 +311,13 @@ def main():
     ap.add_argument('--sd-v3', action='store_true', help='read the table through the SD loader v3 accessor')
     ap.add_argument('--clarity', action='store_true', help='add effect_id 3 = clarity (needs --sd-v3; section-2 placement)')
     ap.add_argument('--halation', action='store_true', help='effect_id 2 = red bloom (needs --clarity; docs/HALATION_RED.md)')
+    ap.add_argument('--art', action='store_true', help='slot +46 Art Effect for COLOR stills (v0.14; section 11)')
     ap.add_argument('--red-probe', action='store_true', help='red tint -> mask route probe (docs/HALATION_RED.md section 10)')
     ap.add_argument('--clarity-weights', help='5 comma-separated Q10 weights > 1024 for clarity strength 1..5')
     a = ap.parse_args()
     weights = [int(x) for x in a.weights.split(',')] if a.weights else STRENGTH_W
     clarity = ([int(x) for x in a.clarity_weights.split(',')] if a.clarity_weights else CLARITY_W) if a.clarity else None
-    spec, code, src, lst, syms = build_spec(weights, a.sd_v3, clarity, a.halation, a.red_probe)
+    spec, code, src, lst, syms = build_spec(weights, a.sd_v3, clarity, a.halation, a.red_probe, a.art)
     a.out.mkdir(parents=True, exist_ok=False)
     (a.out / 'edits.json').write_text(json.dumps(spec, indent=1) + '\n')
     (a.out / 'routine.s').write_text(src)
