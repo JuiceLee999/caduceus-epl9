@@ -1,0 +1,8 @@
+ep7_buttons_verify exit=0 pass=5 fail=0
+ep7_verify_aperture_ring exit=0 pass=0 fail=0
+ep7_grain_verify exit=0 pass=7 fail=0
+ep7_bloom_verify exit=0 pass=6 fail=0
+ep7_verify_wb exit=1 pass=25 fail=3
+ep7_mono_colour_verify exit=0 pass=234 fail=0
+ep7_verify_bundles exit=1 pass=73 fail=2
+DONE

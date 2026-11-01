@@ -186,3 +186,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - v0.5 = v0.4 + buttons + aperture ring: 152 edits / 3,233 B; all 7 verifiers PASS (background run).
 - **TEST 1 PASSED (camera):** rec_limit flashed via SD; movie remaining time now ~1 h (card-limited) vs stock 29-min cap; stock OSD restored.
 - **TEST 2 PASSED (camera):** movie + Muted records log-looking footage.
+- Test 3 verify (releases/test3-full/VERIFY.log): all functional checks PASS (buttons, aperture, grain, bloom, WB 25, MONO 234, bundles 73). Undetected mutations (WB 3, bundles 1) are config-dependent: they need WB override / COLOR3 enabled, which the personal bundle leaves off; same code catches them on the example bundle. Cleared to flash.
