@@ -7,12 +7,12 @@ BASE = v0.14 before this fix (git show 97ccd59:releases/v0.14/edits.json). Image
   S  static: NEW differs from BASE only at the 3 sites + the code edit; code bytes were stock; loader sd_back
      0x605b7420 -> ed_trig 0x605b7340
   W  real setter site 0x607fa355 -> ex_set (manager 0x60827440 = logging stub, stock getter = stub):
-     art sector, byte changes   -> manager log == [(111, S(111), a0, a1)] + BASE log; heap/regs/stack == BASE
-     art sector, same byte      -> log, heap, regs, stack == BASE (no 111 call)
-     other sectors, ALL mode, no card table / bad heap -> == BASE (no 111 call)
-  F  fm_pre / fm_post (u_apply sites): old byte stashed at L+1832, replayed store; changed -> facade
-     GetValue(111) then SetValue(111, 0, v) once, then ed_poke with a3/sp intact; same -> straight to ed_poke;
-     GetValue failing -> no SetValue
+     art sector, byte changes   -> manager log == [(id, S-1, a0, a1)] + BASE log [(id, S, a0, a1)]: one real
+                                   change, then BASE's own call restores S; heap/regs/stack == BASE
+     art sector, same byte      -> log, heap, regs, stack == BASE (no extra call)
+     other sectors, ALL mode, no card table / bad heap -> == BASE (no extra call)
+  F  fm_pre / fm_post (u_apply sites): old byte stashed at L+1832, replayed store; changed -> manager
+     (id0(k), S-1, inner) then (id0(k), S, inner) once each, then ed_poke with a3/sp/d3 intact; same -> no call
   P  package: tools/build_package.build(NEW) decodes to the emulated NEW image; restore == stock
 """
 import argparse, importlib.util, json, struct, sys
@@ -112,7 +112,8 @@ def w_case(args):
         changed = blk[o] != wrap(val)
         if mem(p, 'heap')[o] != wrap(val):
             return tag, 'art byte not written'
-    want = ([(111, EV.s_value(111), 0x0a0a0a0a, 0x1a1a1a1a)] if changed else []) + lb
+    sv = EV.s_value(idv)
+    want = ([(idv & 0xffff, sv - 1 if sv > -5 else sv + 1, 0x0a0a0a0a, 0x1a1a1a1a)] if changed else []) + lb
     if lp != want:
         return tag, f'log {lp} != {want}'
     return tag, None
@@ -140,21 +141,17 @@ def w_cases():
 
 
 # ------------------------------------------------------------------ F
-FAC, VT, SETL, GETL, PAR = 0x18d00000, 0x18d00100, 0x18d00200, 0x18d00300, 0x18e00000
+FAC, INNER, PAR = 0x18d00000, 0x18d10000, 0x18e00000
 PBLK, LBLK = 0x18f00000, 0x19000000
 
 
 def f_case(args):
-    k, old, new, get_rc = args
-    tag = f'F k{k} old {old} new {new} get {get_rc}'
+    k, old, new = args
+    tag = f'F k{k} old {old} new {new}'
     im = G['lay']
-    rf = {kk: int(v, 16) for kk, v in G['rf']['symbols'].items()}
-    fac = asm(f' mov {FAC:#x},a0\n ret [],4\n', 0x607f9062)[0]
-    gst = asm(f' mov {GETL:#x},a0\n mov d0,(a0)\n mov a1,(4,a0)\n mov 4,d1\n mov d1,(a1)\n mov {get_rc},d0\n'
-              f' mov 0xbad0a1a1,a1\n rets\n', VT + 0x40)[0]
-    sst = asm(f' mov {SETL:#x},a0\n mov d0,(a0)\n mov d1,(4,a0)\n mov a1,(8,a0)\n mov (12,a0),d0\n inc d0\n'
-              f' mov d0,(12,a0)\n mov 0xbad0a1a1,a1\n rets\n', VT + 0x80)[0]
-    vt = struct.pack('<IIIII', VT + 0x80, 0, VT + 0x40, 0, 0)
+    fac = asm(f' mov {FAC:#x},a0\n mov 0xbad0d1d1,d1\n ret [],4\n', 0x607f9062)[0]
+    gcode, _ = asm(EV.STUB_SGET, LE.STOCK['ep7_sget'])
+    mcode, _ = asm(MGR_STUB, 0x60827440)
     P = bytearray(1024)
     P[1016:1020] = struct.pack('<I', LBLK)
     entry = 32 + 64 * k
@@ -162,13 +159,13 @@ def f_case(args):
     L = bytearray(2048)
     T = LBLK + 1752
     L[1752 + 46] = new
-    regs = [Region('fac', 0x607f9062, fac, 'rx'), Region('vt', VT, vt + bytes(0x40 - len(vt)) + gst + bytes(0x40 - len(gst)) + sst, 'rx'),
-            Region('facobj', FAC, struct.pack('<I', VT), 'r'), Region('setl', SETL, bytes(16), 'rw', True),
-            Region('getl', GETL, bytes(16), 'rw', True), Region('P', PBLK, bytes(P), 'rw', True), Region('L', LBLK, bytes(L), 'rw', True),
-            img(im, 0x601e2c3c, 0x601e2edc, 'fmui'), img(im, RB.CODE_AT, RB.CODE_END, 'rf'),
-            img(im, 0x61242a00, 0x61242a10, 'poke')]
-    # 1) fm_pre from its site: d0 = entry, a1 = T
-    r1 = run(regs, {'pc': 0x601e2e35, 'd0': PBLK + entry, 'a0': 0x0a0a0a0a, 'a1': T}, 0x601e2e3b)
+    common = [Region('fac', 0x607f9062, fac, 'rx'), Region('facobj', FAC, struct.pack('<II', 0, INNER), 'r'),
+              Region('sget', LE.STOCK['ep7_sget'], gcode, 'rx'), Region('mgr', 0x60827440, mcode, 'rx'),
+              Region('log', LOG, bytes(4 + 16 * 8), 'rw', True),
+              img(im, 0x601e2c3c, 0x601e2edc, 'fmui'), img(im, RB.CODE_AT, RB.CODE_END, 'rf'),
+              img(im, 0x61242a00, 0x61242a10, 'poke')]
+    r1 = run(common + [Region('P', PBLK, bytes(P), 'rw', True), Region('L', LBLK, bytes(L), 'rw', True)],
+             {'pc': 0x601e2e35, 'd0': PBLK + entry, 'a0': 0x0a0a0a0a, 'a1': T}, 0x601e2e3b)
     if r1['fault'] or r1['registers']['pc'] != 0x601e2e3b:
         return tag, f'pre run {r1["fault"]}'
     q = r1['registers']
@@ -178,36 +175,27 @@ def f_case(args):
         return tag, 'pre: stash/replay/registers wrong'
     if bytes(pm[:entry + 31]) != bytes(P[:entry + 31]) or bytes(lm[:1832]) != bytes(L[:1832]):
         return tag, 'pre: stray store'
-    # 2) the copy writes the new byte; fm_post from the final jmp site
     P2 = bytearray(pm)
-    P2[entry + 46] = new
-    regs2 = [x for x in regs if x.name not in ('P', 'L')] + [Region('P', PBLK, bytes(P2), 'rw', True), Region('L', LBLK, bytes(lm), 'rw', True)]
-    r2 = run(regs2, {'pc': 0x601e2e93, 'a2': PBLK, 'd3': k, 'a3': PAR, 'd0': 1}, 0x61242a00)
+    P2[entry + 46] = new                               # the copy loop writes the new entry
+    r2 = run(common + [Region('P', PBLK, bytes(P2), 'rw', True), Region('L', LBLK, bytes(lm), 'rw', True)],
+             {'pc': 0x601e2e93, 'a2': PBLK, 'd3': k, 'a3': PAR, 'd0': 1}, 0x61242a00)
     if r2['fault'] or r2['registers']['pc'] != 0x61242a00:
         return tag, f'post run {r2["fault"]} pc {r2["registers"]["pc"]:#x}'
     q = r2['registers']
     if q['a3'] != PAR or q['sp'] != EV.SP0 or q['d3'] != k:
         return tag, 'post: a3/sp/d3 not intact'
-    g, s = mem(r2, 'getl'), mem(r2, 'setl')
-    gid = struct.unpack_from('<I', g, 0)[0]
-    sid, sv1, sval, scount = struct.unpack_from('<IIII', s, 0)
-    if old == new:
-        if gid or scount:
-            return tag, 'same byte but facade called'
-    else:
-        if gid != 111:
-            return tag, 'changed but no GetValue(111)'
-        if get_rc == 0 and (scount != 1 or sid != 111 or sv1 != 0 or sval != 4):
-            return tag, f'SetValue {sid} {sv1} {sval} x{scount}'
-        if get_rc != 0 and scount:
-            return tag, 'GetValue failed but SetValue called'
+    idv = (927, 939, 951, 1655)[k]
+    sv = EV.s_value(idv)
+    want = [] if old == new else [(idv, sv - 1, INNER, 0), (idv, sv, INNER, 0)]
+    if log_of(r2) != want:
+        return tag, f'log {log_of(r2)} != {want}'
     if mem(r2, 'P') != bytes(P2) or mem(r2, 'L') != bytes(lm):
         return tag, 'post: heap store'
     return tag, None
 
 
 def f_cases():
-    return [(k, o, n, rc) for k in range(4) for o in (0, 3, 5) for n in (0, 3, 5) for rc in (0, 1)]
+    return [(k, o, n) for k in range(4) for o in (0, 3, 5) for n in (0, 3, 5)]
 
 
 # ------------------------------------------------------------------ S / P

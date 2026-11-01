@@ -45,12 +45,25 @@ def jmp(site, target, n):
     return b'\xdc' + struct.pack('<i', target - site) + b'\xcb' * (n - 5)
 
 
+def strip(spec):
+    if 'lv_art_refresh' in spec:                      # replace an earlier version: sites back, code edit out
+        old = spec.pop('lv_art_refresh')
+        spec['edits'] = [e for e in spec['edits'] if e.get('source') != 'patches/lv_art_refresh']
+        for name, (site, want, lab) in SITES.items():
+            e = next(e for e in spec['edits'] if int(e['addr'], 16) <= site < int(e['addr'], 16) + len(e['new']) // 2)
+            new = bytearray.fromhex(e['new'])
+            o = site - int(e['addr'], 16)
+            new[o:o + len(want)] = want
+            e['new'] = new.hex()
+            e['why'] = e['why'].split(' [v0.14 LV art refresh')[0]
+    return spec
+
+
 def apply(spec):
     code, sy = assemble()
     if CODE_AT + len(code) > CODE_END:
         raise SystemExit(f'code {len(code)} B does not fit')
-    if 'lv_art_refresh' in spec:
-        raise SystemExit('already applied')
+    strip(spec)
     stock = STOCK.read_bytes()
     for e in spec['edits']:
         a, n = int(e['addr'], 16), len(e['new']) // 2
@@ -70,7 +83,7 @@ def apply(spec):
         e['why'] += f' [v0.14 LV art refresh: {name} site {site:#x} -> {lab}]'
     exp = stock[CODE_AT - BASE:CODE_AT - BASE + len(code)]
     spec['edits'].append(dict(kind='0x100', addr=hex(CODE_AT), expect=exp.hex(), new=code.hex(),
-                              why='v0.14 LV art refresh: ex_art / fm_pre / fm_post (stock id-111 set after an art-byte change), '
+                              why='v0.14 LV art refresh: ex_art / fm_pre / fm_post (real S change + undo via the settings manager after an art-byte change), '
                                   'tail of the look_extras EVF claim', source='patches/lv_art_refresh'))
     spec['lv_art_refresh'] = dict(code_at=hex(CODE_AT), code_len=len(code), sites={k: hex(v[0]) for k, v in SITES.items()},
                                   symbols={k: hex(v) for k, v in sy.items() if not k.startswith(('_', '.'))},
@@ -82,7 +95,10 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('spec', type=Path)
     ap.add_argument('--out', type=Path, help='default: rewrite spec in place')
+    ap.add_argument('--strip', action='store_true', help='only remove an earlier application (verifier base)')
     a = ap.parse_args()
-    spec = apply(json.loads(a.spec.read_text()))
+    spec = json.loads(a.spec.read_text())
+    spec = strip(spec) if a.strip else apply(spec)
     (a.out or a.spec).write_text(json.dumps(spec, indent=1))
-    print(json.dumps(spec['lv_art_refresh'], indent=1))
+    if not a.strip:
+        print(json.dumps(spec['lv_art_refresh'], indent=1))

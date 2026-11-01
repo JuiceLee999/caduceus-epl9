@@ -1,24 +1,35 @@
-/* E-P7 1.1 v0.14: live-view refresh after an Art Effect change (ep7-firmware, our own code). docs/LV_ART_PREVIEW.md.
+/* E-P7 1.1 v0.14/v0.15: live-view refresh after an Art Effect change (ep7-firmware, our own code).
  *
  * Bug: lv_art ORs the slot's Art Effect flag (slot +46) into the LV job only when the record task builds a new LV
- * development job, so an Art-field edit showed only after the next capture. Stock reconfigures LV after a
- * picture-mode set: the GUI setter -> settings manager 0x60827440 with id 111 runs the picture-mode latch
- * 0x602ccfcb / 0x602cd045 around the set, the id-111 descriptor callback 0x602b4f81 (effective parameters) and the
- * listeners. This module runs that same id-111 path, with the unchanged picture-mode value, from the same GUI task,
- * only when a slot's art byte really changed:
+ * development job (constructor hook 0x60353c6f). Stock rebuilds it (a) after a capture: the RECVIEW sequencer sets
+ * 0x6266a354 = 1 (0x60332799) and the record's settings apply 0x6032b2d9 -> 0x6031d189 then reissues the LV
+ * request (0x6032b997 -> 0x6032ba6d(65): effect bits recomputed, posted by 0x6031c883 -> IPCR 0x60321d3b ->
+ * constructor); (b) after a REAL colour-parameter change (a COLOR S edit shows in LV at once on the camera).
+ * An unchanged-value set does not (v0.14f camera: the id-111 same-value set left LV stale).
+ * So, only when a slot's art byte really changed, this module makes one real S change of that profile's sector
+ * and undoes it at once, through the stock settings manager 0x60827440 from the GUI task:
+ *     manager(id, S' = S-1, or S+1 at S <= -5), then manager(id, S) -> the stored value ends unchanged.
  *
- *   ex_art  <- ex_set's art write ({ex_art_site}: movbu d1,(78,a2); bra s_dirty). old != new -> manager(111, S(111),
- *              a0/a1 as given to ex_set) -> s_dirty. Equal -> s_dirty only (stock-identical flow).
- *   fm_pre  <- fm_ui u_apply ({fm_pre_site}: mov d0,a0; clr d0; movbu d0,(31,a0)): stash the slot's old art byte
- *              at L+1832 (the 80-B staging T = L+1752 ends there; L is a 2048-B heap block).
- *   fm_post <- fm_ui's final `jmp ed_poke` ({fm_post_site}): old != new -> facade GetValue(111) / SetValue(111, 0, v)
- *              (the stock GUI path, as ed_poke does for the cursor id), then ed_poke.
- * Profile switch: that IS a stock id-111 set (the same path), so nothing is added for it.
- * Stores: heap P (the art byte ex_set already wrote), L+1832, the stack. No absolute stores.
+ *   ex_art  <- ex_set's art write ({ex_art_site}): id = the Extras sector id being edited; the restoring
+ *              manager(id, S) is ex_set's own s_refresh.
+ *   fm_pre  <- fm_ui u_apply ({fm_pre_site}): stash the slot's old art byte at L+1832 (staging T = L+1752 ends there).
+ *   fm_post <- fm_ui's final `jmp ed_poke` ({fm_post_site}): id = sector 0 of slot k (927/939/951/1655);
+ *              manager(id, S'), manager(id, S) with a0 = the facade's inner object (as the GUI setter passes), then ed_poke.
+ * Stores: heap P (the art byte ex_set already wrote), L+1832, the stack. No absolute stores, no mul/div.
  */
  .am33_2
  .text
  .global _start
+ .macro BUMP                      /* d0 = id -> d1 = S' ; keeps d2/d3/a2/a3 (stock getter); (0,sp) scratch */
+ call ep7_sget,[],4
+ mov d0,d1
+ add -1,d1
+ cmp -5,d0
+ bgt 91f
+ mov d0,d1
+ inc d1
+91:
+ .endm
 _start:
 ex_art:                           /* d1 = new art 0..5, a2 = P + 64*slot, d0 = id, a0/a1 = ex_set args */
  movbu (78,a2),d2
@@ -32,13 +43,12 @@ ex_art:                           /* d1 = new art 0..5, a2 = P + 64*slot, d0 = i
  mov a1,(16,sp)
  mov mdr,d0
  mov d0,(20,sp)
- mov 111,d0
- call ep7_sget,[],4               /* d0 = picture mode (stock getter, keeps d2/d3/a2/a3) */
- mov d0,d1
- mov 111,d0
+ mov (4,sp),d0
+ BUMP
+ mov (4,sp),d0
  mov (12,sp),a0
  mov (16,sp),a1
- call ep7_manager,[d2,d3,a2],16   /* the stock picture-mode set path, unchanged value */
+ call ep7_manager,[d2,d3,a2],16   /* the real change; ex_set's s_refresh then sets S back */
  mov (20,sp),d0
  mov d0,mdr
  mov (4,sp),d0
@@ -67,22 +77,36 @@ fm_post:                          /* a2 = P, d3 = slot k, a3 = parent; ed_poke r
  movbu (1832,a1),d1               /* old art */
  cmp d0,d1
  beq 2f
- call ep7_facade,[],4
- mov (a0),a2
- mov (8,a2),a2                    /* GetValue(111, &out) */
- mov sp,a1
- add 4,a1
- mov 111,d0
- calls (a2)
+ mov 1655,d2                      /* id of sector 0 of slot k */
+ cmp 3,d3
+ beq 4f
+ mov 927,d2
+ mov d3,d0
+5:
  cmp 0,d0
- bne 2f
+ beq 4f
+ add 12,d2
+ add -1,d0
+ bra 5b
+4:
+ add -16,sp
+ mov d2,(4,sp)                    /* id */
  call ep7_facade,[],4
- mov (a0),a2
- mov (a2),a2                      /* SetValue(111, 0, the same value) */
- mov 111,d0
- clr d1
- mov (4,sp),a1
- calls (a2)
+ mov (4,a0),a0                    /* inner object (GUI setter: mov (4,facade),a0) */
+ mov a0,(8,sp)
+ mov (4,sp),d0
+ BUMP                             /* d0 = S, d1 = S' */
+ mov d0,(12,sp)
+ mov (4,sp),d0
+ mov (8,sp),a0
+ mov 0,a1
+ call ep7_manager,[d2,d3,a2],16   /* the real change */
+ mov (4,sp),d0
+ mov (12,sp),d1
+ mov (8,sp),a0
+ mov 0,a1
+ call ep7_manager,[d2,d3,a2],16   /* back to S */
+ add 16,sp
 2:
  jmp ed_poke
 code_end:
