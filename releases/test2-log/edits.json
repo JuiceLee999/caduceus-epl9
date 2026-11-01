@@ -1,0 +1,54 @@
+{
+ "components": [
+  "0x100"
+ ],
+ "edits": [
+  {
+   "kind": "0x100",
+   "addr": "0x60319157",
+   "expect": "cc06",
+   "new": "907e",
+   "why": "record limit 1740s -> 32400s",
+   "source": "patches/rec_limit/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6031915c",
+   "expect": "201c",
+   "new": "907e",
+   "why": "record limit 7200s -> 32400s",
+   "source": "patches/rec_limit/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030df3d",
+   "expect": "266001f172",
+   "new": "dc532df0ff",
+   "why": "movie-picture-mode derivation entry: mov 352,a2; add a0,a2 -> jmp vlog_hook",
+   "source": "patches/video_log/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210c90",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "fa406001a000c91afa004c01a001c912f84110a003c804ca098002dcbcd20f00266001f172dc8dd20f00",
+   "why": "vlog_hook (42 B, section-1 FF tail): movie && pm==3 -> +925=2 (id 2001)",
+   "source": "patches/video_log/edits.json"
+  }
+ ],
+ "sources": [
+  "patches/rec_limit/edits.json",
+  "patches/video_log/edits.json"
+ ],
+ "meta": {
+  "patches/rec_limit/edits.json": {},
+  "video_log_A": {
+   "patch": "video_log_A",
+   "trig_log": 3,
+   "trig_flat": null,
+   "code_at": "0x60210c90",
+   "code_len": 42
+  }
+ },
+ "code_at": "0x60210c90"
+}
