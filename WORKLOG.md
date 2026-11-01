@@ -217,3 +217,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - View Assist (agent): probe-VA0 + test10 built on test7b; LUT/stub in unused EVF gamma tables (section 1); no RAM stores; 58-case matrix + mutations pass. Probe first: LV contrasty, playback normal.
 - Test 8 film-sim menu (agent): BUNDLES.BIN 680 B w/ names; loader --names; 2 label hooks + 40 entries; 44,703 label sources × builders × 11 states pass; readers pass. Card: Kodachrome / Classic Neg / Warm / Portra.
 - **TEST 8 step A PASSED (camera):** stock labels without file.
+- **TEST 8 PASSED (camera):** Picture Mode shows Kodachrome / Classic Neg / Warm / Portra from card. Tagged v0.6 (= test8 + card).
