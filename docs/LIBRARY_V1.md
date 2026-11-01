@@ -152,3 +152,29 @@ Fallback order (≤20): Classic Neg, Kodachrome25, Portra 400, Kodachrome64, Gol
 Cl. Chrome, Superia 400, UltraMax 400, CineStill800, Ektachrome, Pro 400H, Vision3 500T, Fujicolor200, Nostalgic,
 Eterna, Polaroid, Cross Proc. Dropped from it: Provia (= stock), Astia, Reala Ace, Bleach Byp., Aerochrome, Cibachrome,
 Agfa Vista, CineStill50D, Vision3 250D, the mono looks.
+
+### Atrophy (inspired by GxAce), replaces Provia
+
+- **Inspiration.** "Atrophy" (GX-05) is a 20-preset Lightroom pack by [Gx]Ace (Casey Cavanaugh),
+  gxace.com/shop/p/atrophy-lightroom-preset-pack. Its published description: grades for decay, industrial spaces and
+  buildings reclaimed by nature, running from near-monochrome concrete (NULL_CHROMA, Isolation) to corroded colour
+  (Labyrinth), with heavy weathered texture and contrast (Modernity) and a cinematic mood. Its sample images have one
+  colour left standing, such as red lanterns or a red handrail. Our look is an approximation built from that description. It uses no
+  preset or LUT data, and it is not affiliated with or endorsed by GxAce. To get the real thing, buy the pack.
+- **Recipe** `lib3_atrophy` (sector order Y,O,OR,R,M,V,B,BC,C,GC,G,YG):
+  - hue `-2 -1 0 0 2 1 -2 -1 0 2 2 -1`: yellows toward ochre/rust, magenta toward red, blue toward steel-cyan,
+    greens split teal (G/GC) vs olive (YG);
+  - light `-1 0 -1 -1 -1 -1 -2 -2 -1 -2 -3 -2`: dense darks, heavy foliage, darker skies; skin is untouched;
+  - grain low (now 220, already gritty) plus **clarity 3** for the weathered texture, so the look has no bloom;
+  - WB A−1 G+1, a slight cool-green cast.
+- **Advice:**
+  - sat `-2 -1 1 1 -3 -4 -4 -4 -4 -5 -5 -5`, which keeps the near-grey base while rust and reds survive;
+  - contrast +1;
+  - highlights −1, shadows −2.
+- **Library slot.** The library was full at 32, so Atrophy took **Provia**'s place. Provia was the most redundant
+  look: it is the E-P7 profile at zero, which is the same as having no look. Atrophy is listed after Cross Proc. and
+  before the mono looks. `ep7_looks_bin.py --check` OK, 2112 B. The v0.16 working copy `releases/v0.16/card/EP7MOD/LOOKS.BIN` was rebuilt,
+  because v0.17 did not exist yet. The rebuild changed the LOOKS.BIN CRC, so the camera ignores any old SLOTS.BIN and
+  the slots must be picked again.
+- **Sim check.** Compared with Bleach Byp., Atrophy keeps rust roofs and red flowers while it greys the greens and
+  skies. Sunsets lose most of their gold.
