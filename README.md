@@ -41,19 +41,62 @@ recording.
 
 ## Install
 
-OM's licence doesn't allow sharing their firmware, so you build the update on your own computer. One command
-downloads OM's official 1.1 file, checks it, and patches it:
+You need: an E-P7 on firmware **1.1** (check *Setup › Firmware*), a **fully charged battery**, an SD card,
+and a computer with [Python 3.10+](https://www.python.org/downloads/) (Windows, macOS or Linux).
 
-**Easiest:** double-click the launcher for your system (`Build Caduceus (Windows).bat`,
-`Build Caduceus (Mac).command` or `build-caduceus-linux.sh`). It builds the latest release and offers to copy it
-to your camera's SD card. Or from a terminal:
+### 1. Get Caduceus
+
+On this page click **Code › Download ZIP** and unzip it (or `git clone` the repo).
+
+### 2. Build the update file on your computer
+
+OM's licence doesn't allow anyone to share their firmware, so the update file is made on your own computer.
+The builder downloads OM's official 1.1 firmware from OM's server, checks it, and applies the Caduceus patches.
+
+- **Easiest:** in the unzipped folder, double-click the launcher for your system:
+  - Windows: `Build Caduceus (Windows).bat`
+  - macOS: `Build Caduceus (Mac).command` (the first time: right-click › **Open**)
+  - Linux: `build-caduceus-linux.sh`
+- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.15`
+  (Windows: `py caduceus.py build --release v0.15`).
+
+It creates a folder with:
 
 ```
-python3 caduceus.py build --release v0.15        # Windows: py caduceus.py build --release v0.15
+DCOLYMP/E1429999.BIN   the patched firmware update      → goes on the SD card
+EP7MOD/                the film looks and your slots      → goes on the SD card
+restore/E1429999.BIN   the original stock firmware        → keep on your computer (to undo Caduceus)
 ```
 
-Then copy `DCOLYMP` and `EP7MOD` from `out/` to the SD card, hold **OK** and switch on to flash. Step-by-step
-instructions for Windows, macOS and Linux, including restoring stock: **[docs/INSTALL.md](docs/INSTALL.md)**.
+### 3. Copy to the SD card
+
+Put the camera's SD card in your computer and copy the **`DCOLYMP`** and **`EP7MOD`** folders to the top
+level of the card (next to the `DCIM` folder). The launcher offers to do this for you. Eject the card properly.
+
+### 4. Flash the camera
+
+1. Put the card in the camera. **Battery fully charged**, camera **off**.
+2. **Hold the OK button** and switch the camera **on**. Keep holding OK until the status light comes on.
+3. The light stays **steady** while the update is written (a few minutes). **Do not switch off, open the
+   battery door or remove the card.**
+4. When the light starts **blinking (about twice a second)**, it's finished. Switch the camera off.
+5. Switch it on normally. *Setup › Firmware* now shows **Caduceus** and the version.
+6. On a computer, delete `DCOLYMP/E1429999.BIN` from the card (keep `EP7MOD`: that's where your looks live).
+
+If the light blinks fast straight away with no steady phase, the camera rejected the file and nothing was
+written. Rebuild and copy again.
+
+### 5. Shoot
+
+Switch on, **half-press the shutter once** (that loads the looks from the card), then open a Colour Profile
+and press **INFO** to reach the Film page. See [Using it](#using-it).
+
+### Undo / go back to stock
+
+Copy `restore/E1429999.BIN` from your computer to the card as `DCOLYMP/E1429999.BIN` (replacing the patched
+one) and flash it exactly as in step 4. The camera is then completely stock 1.1 again.
+
+More detail, troubleshooting and FAQ: **[docs/INSTALL.md](docs/INSTALL.md)**.
 
 ## Using it
 
