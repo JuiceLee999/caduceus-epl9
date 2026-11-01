@@ -193,3 +193,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - Agents: SD loader v2 (boot-safe, post-boot trigger), film-sim library + menu design, log view-assist feasibility.
 - Bootloop analysis (agent, docs/BOOTLOOP_T3.md): #1 aperture ring (runs at power-on every lens request; bit 0x80 unproven; parser consumes 2 bytes unconditionally), #2 WB (4 LV-start sites), #3 MONO chroma; bundles low risk at boot. Test 4 (rec+log+bundles) cleared.
 - **TEST 4 PASSED (camera):** rec_limit + log + bundles booted fine; COLOR2/COLOR4 colours visibly changed.
+- Fuji gaps (agent, docs/FUJI_GAPS.md): Clarity likely feasible (Soft Focus + weight>1024 unsharp, effect_id 3); split toning feasible via per-channel RGB gamma setter 0x603ae7d3; LV preview partial; red halation partial (combiner 156 colour word + mask); 3D LUT infeasible; grain size infeasible; colour grain chroma gains possible.
