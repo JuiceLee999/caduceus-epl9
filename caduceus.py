@@ -27,6 +27,7 @@ import json
 import os
 import shutil
 import struct
+import subprocess
 import sys
 import tempfile
 import time
@@ -333,11 +334,203 @@ def cmd_list(a):
     return 0
 
 
+# ---------------------------------------------------------------- one-press mode
+def vkey(name):
+    try:
+        return tuple(int(x) for x in name[1:].split('.'))
+    except ValueError:
+        return (-1,)
+
+
+def latest_release():
+    rs = [r for r in releases() if r.startswith('v')]
+    if not rs:
+        raise Refuse('no releases found next to caduceus.py (is the download complete?)')
+    return max(rs, key=vkey)
+
+
+def find_stock():
+    """An already downloaded OM file next to the script, in cache/, or in Downloads."""
+    here = Path(__file__).resolve().parent
+    for p in (here / STOCK_NAME, here / 'cache' / STOCK_NAME, Path.home() / 'Downloads' / STOCK_NAME):
+        try:
+            if p.is_file() and p.stat().st_size == STOCK_SIZE:
+                return p
+        except OSError:
+            pass
+    return None
+
+
+def _scan_cards(found):
+    if os.name == 'nt':
+        import ctypes, string
+        for L in string.ascii_uppercase:
+            r = Path(f'{L}:\\')
+            try:
+                if ctypes.windll.kernel32.GetDriveTypeW(f'{L}:\\') == 2 and (r / 'DCIM').is_dir():
+                    found.append(r)
+            except OSError:
+                pass
+        return
+    user = os.environ.get('USER', '')
+    for base in (Path('/Volumes'), Path('/media') / user, Path('/run/media') / user, Path('/media')):
+        try:
+            entries = list(base.iterdir()) if base.is_dir() else []
+        except OSError:
+            continue
+        for r in entries:
+            try:
+                if r.is_dir() and (r / 'DCIM').is_dir() and r not in found:
+                    found.append(r)
+            except OSError:
+                pass
+
+
+def sd_cards(limit=10.0):
+    """Mounted cards that look like camera cards (have a DCIM folder).
+    CADUCEUS_CARD_DIRS (os.pathsep-separated) replaces the scan (for testing). The scan runs in a
+    daemon thread with a time limit so a dead network/optical mount cannot hang us."""
+    env = os.environ.get('CADUCEUS_CARD_DIRS')
+    if env is not None:
+        return [Path(x) for x in env.split(os.pathsep) if x and (Path(x) / 'DCIM').is_dir()]
+    import threading
+    found = []
+    t = threading.Thread(target=_scan_cards, args=(found,), daemon=True)
+    t.start()
+    t.join(limit)
+    if t.is_alive():
+        print('  (card search took too long; skipped slow drives)')
+    return list(found)
+
+
+def ask(q, default=True):
+    """y/n question; without an interactive terminal, answer no (never copy unasked)."""
+    try:
+        if not (sys.stdin and sys.stdin.isatty()):
+            print(f'{q} -> no terminal to ask, so: no')
+            return False
+        a = input(f'{q} [{"Y/n" if default else "y/N"}] ').strip().lower()
+    except (EOFError, OSError, RuntimeError):
+        return False
+    return default if not a else a.startswith('y')
+
+
+def pause():
+    """Keep a double-clicked window open (the launchers pause themselves and set CADUCEUS_LAUNCHER)."""
+    if os.environ.get('CADUCEUS_LAUNCHER'):
+        return
+    try:
+        if sys.stdin and sys.stdin.isatty():
+            input('\nPress Enter to close...')
+    except (EOFError, OSError, RuntimeError, KeyboardInterrupt):
+        pass
+
+
+def copy_to_card(build, card):
+    """DCOLYMP/E1429999.BIN + LOOKS.BIN always; BUNDLES.BIN only if the card has none (it holds the user's looks)."""
+    dco = card / 'DCOLYMP'
+    dco.mkdir(exist_ok=True)
+    for old in dco.glob('*.BIN'):
+        if old.name.upper() != 'E1429999.BIN':
+            print(f'  note: {old} is another update file; remove it before flashing.')
+    print('  copying the update (about 100 MB) ...')
+    shutil.copyfile(build / 'DCOLYMP' / 'E1429999.BIN', dco / 'E1429999.BIN')
+    mod = card / 'EP7MOD'
+    mod.mkdir(exist_ok=True)
+    shutil.copyfile(build / 'EP7MOD' / 'LOOKS.BIN', mod / 'LOOKS.BIN')
+    check = ['DCOLYMP/E1429999.BIN', 'EP7MOD/LOOKS.BIN']
+    if (mod / 'BUNDLES.BIN').exists():
+        print('  kept your existing EP7MOD/BUNDLES.BIN (your saved looks)')
+    else:
+        shutil.copyfile(build / 'EP7MOD' / 'BUNDLES.BIN', mod / 'BUNDLES.BIN')
+        check.append('EP7MOD/BUNDLES.BIN')
+    for rel in check:
+        if sha((card / rel).read_bytes()) != sha((build / rel).read_bytes()):
+            raise Refuse(f'copy check failed for {card / rel}; copy it again by hand. Do not flash.')
+    print(f'  copied and checked on {card}')
+
+
+def open_folder(p):
+    """Show the folder without waiting for the file manager (xdg-open can block until the window closes,
+    and a child holding our stdout pipe would keep a captured run hanging)."""
+    try:
+        if os.name == 'nt':
+            os.startfile(p)
+            return
+        cmd = ['open', str(p)] if sys.platform == 'darwin' else ['xdg-open', str(p)]
+        subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+    except OSError:
+        pass
+
+
+def build_matches(out, rel):
+    """True if out is a complete build of rel whose files match releases/<rel>/SHA256SUMS."""
+    try:
+        if (out / 'RELEASE').read_text().strip() != rel:
+            return False
+        rs = read_sums(RELEASES / rel / 'SHA256SUMS')
+        want = {OUTPUTS[n]: h for n, h in rs.items() if n in OUTPUTS}
+        want.update({n[len('card/'):]: h for n, h in rs.items() if n.startswith('card/')})
+        if read_sums(out / 'SHA256SUMS') != want:
+            return False
+        return all(sha((out / r).read_bytes()) == h for r, h in want.items())
+    except (OSError, ValueError):
+        return False
+
+
+def cmd_easy(a):
+    here = Path(__file__).resolve().parent
+    rel = latest_release()
+    print(f'Caduceus one-press build: {rel}\n')
+    out = here / f'Caduceus-{rel}'
+    old = sorted(p.name for p in here.glob('Caduceus-v*') if p.is_dir() and p != out)
+    if old:
+        print(f'(older build folders, not used: {", ".join(old)})')
+    if out.exists() and build_matches(out, rel):
+        print(f'{out.name} already exists and matches the release.')
+    else:
+        if out.exists():
+            if not (out / 'SHA256SUMS').is_file():
+                raise Refuse(f'{out} exists but is not a Caduceus build; rename or delete it and run again.')
+            n = 1
+            while (stale := out.with_name(f'{out.name}.old{n}')).exists():
+                n += 1
+            os.replace(out, stale)
+            print(f'{out.name} was out of date or incomplete; moved it to {stale.name} and rebuilding.')
+        stock = find_stock()
+        if stock is None:
+            data = fetch_stock()
+            if sha(data) == STOCK_SHA:  # keep it so a rebuild doesn't download again
+                (here / 'cache').mkdir(exist_ok=True)
+                (here / 'cache' / STOCK_NAME).write_bytes(data)
+                stock = here / 'cache' / STOCK_NAME
+        else:
+            print(f'Using the OM file already on this computer: {stock}')
+        cmd_build(argparse.Namespace(out=str(out), release=rel, stock=str(stock) if stock else None))
+    print('\nLooking for a camera SD card ...')
+    cards = sd_cards()
+    if len(cards) == 1 and ask(f'Copy the update to the SD card at {cards[0]}?'):
+        copy_to_card(out, cards[0])
+        print('\nNow eject the card, put it in the camera, then: full battery, hold OK and switch on.\n'
+              'LED steady = writing (do not switch off), ~2 Hz blink = done. See docs/INSTALL.md.')
+    else:
+        if len(cards) > 1:
+            print(f'Several camera cards found ({", ".join(map(str, cards))}); copy by hand.')
+        elif not cards:
+            print('No camera card found (a card formatted in the camera has a DCIM folder).')
+        print(f'\nCopy the DCOLYMP and EP7MOD folders from {out} to the top level of your SD card\n'
+              '(keep any EP7MOD/BUNDLES.BIN already on the card: it holds your saved looks).\n'
+              'Keep the "restore" folder on your computer. Then follow docs/INSTALL.md "Flash".')
+        open_folder(out)
+    return 0
+
+
 def main(argv=None):
     if sys.version_info < (3, 10):
         sys.exit('Python 3.10 or newer is required.')
     ap = argparse.ArgumentParser(prog='caduceus.py', description='Build Caduceus E-P7 firmware files locally.')
-    sub = ap.add_subparsers(dest='cmd', required=True)
+    sub = ap.add_subparsers(dest='cmd')
     b = sub.add_parser('build', help='download stock 1.1, apply a release, write card files')
     b.add_argument('--release', required=True, help='e.g. v0.15 (see: caduceus.py list)')
     b.add_argument('--out', default='out', help='new or empty output directory (default: out)')
@@ -348,12 +541,25 @@ def main(argv=None):
     v.set_defaults(fn=cmd_verify)
     sub.add_parser('list', help='list available releases').set_defaults(fn=cmd_list)
     a = ap.parse_args(argv)
+    for f in (sys.stdout, sys.stderr):  # progress shows up at once, even through a pipe
+        try:
+            f.reconfigure(line_buffering=True)
+        except (AttributeError, ValueError):
+            pass
+    easy = a.cmd is None  # double-click / no arguments: one-press mode
+    if easy:
+        a.fn = cmd_easy
     try:
         return a.fn(a)
     except Refuse as e:
-        sys.exit(f'refused: {e}')
+        print(f'refused: {e}', file=sys.stderr)
+        return 1
     except KeyboardInterrupt:
-        sys.exit('interrupted; nothing written.')
+        print('interrupted.', file=sys.stderr)
+        return 130
+    finally:
+        if easy:
+            pause()
 
 
 if __name__ == '__main__':

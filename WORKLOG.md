@@ -308,3 +308,8 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   A213/L210/B30/V12/N32, UI R634/G1237/S204/P48/U190/L12/T9/K48, mp verify PASS; decode == stock+edits, restore == stock.
   LV/movie of a colour MONO slot stay B&W. Not camera-tested.
 - Project renamed **Caduceus** (was EP7 Unlocked; briefly Zeus). Firmware version screen to show "Caduceus vX.YY" from v0.15.
+- v0.15 Firmware screen fix (camera: `Body Caduceus` clipped, `: 1.1`): label back to stock "Body"; the view 0x60d7f0a4's
+  two Body value setter calls (0x60d7f271 +940, 0x60d7f2cd +300) go to `fw_val` (0x601e1c40, dead EVF step-10 B), which
+  appends " Caduceus v0.15" to the stock field ("1.1 Caduceus v0.15"); the setter 0x60d4c9df heap-copies any length.
+  Builder/sprintf/updater/EXIF byte-identical. E 8/8 builder + 16/16 view, S, P PASS; 280 edits, rebuilt in place.
+  Value widget width not known: the text may clip on camera.

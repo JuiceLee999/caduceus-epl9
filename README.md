@@ -44,6 +44,10 @@ recording.
 OM's licence doesn't allow sharing their firmware, so you build the update on your own computer. One command
 downloads OM's official 1.1 file, checks it, and patches it:
 
+**Easiest:** double-click the launcher for your system (`Build Caduceus (Windows).bat`,
+`Build Caduceus (Mac).command` or `build-caduceus-linux.sh`). It builds the latest release and offers to copy it
+to your camera's SD card. Or from a terminal:
+
 ```
 python3 caduceus.py build --release v0.15        # Windows: py caduceus.py build --release v0.15
 ```

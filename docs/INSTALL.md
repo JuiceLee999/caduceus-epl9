@@ -11,13 +11,28 @@ You do this at your own risk.
 
 ## Quick version
 
-It really is mostly drag and drop. The only extra step is a one-command build on your computer, because OM's
+It really is mostly drag and drop. The only extra step is a one-click build on your computer, because OM's
 licence doesn't allow us to share a ready-made firmware file:
 
-1. **Build:** run `caduceus.py` once (below). It downloads OM's official 1.1 file and makes the update.
-2. **Drag and drop:** copy the `DCOLYMP` and `EP7MOD` folders from `out/` to the root of the SD card.
-3. **Flash:** hold **OK**, switch on, wait for the blinking LED.
-4. **Shoot:** half-press once, and the film looks load from the card.
+1. **Get Python 3.10+** once: Windows/macOS from [python.org/downloads](https://www.python.org/downloads/)
+   (Windows: tick **Add python.exe to PATH**; macOS: afterwards run **Install Certificates.command** in the
+   Python folder); Linux: usually already installed, else `sudo apt install python3` (or your distro's package).
+2. **Build:** in the unzipped Caduceus folder, double-click the launcher for your OS:
+   - Windows: `Build Caduceus (Windows).bat`
+   - macOS: `Build Caduceus (Mac).command`. The first time, **right-click › Open** (then **Open** again),
+     because macOS blocks downloaded scripts on a plain double-click.
+   - Linux: `build-caduceus-linux.sh` ("Run in Terminal", or `./build-caduceus-linux.sh`).
+
+   It downloads OM's official 1.1 file, builds the latest release into `Caduceus-<version>/` and checks every
+   hash. If exactly one camera SD card (one with a `DCIM` folder) is plugged in, it offers to copy the update
+   onto it (an existing `EP7MOD/BUNDLES.BIN`, your saved looks, is never overwritten); otherwise it opens the
+   output folder. The window stays open until you press Enter.
+3. **Drag and drop** (if it didn't copy for you): copy the `DCOLYMP` and `EP7MOD` folders from
+   `Caduceus-<version>/` to the root of the SD card. Keep `restore/` on your computer.
+4. **Flash:** hold **OK**, switch on, wait for the blinking LED.
+5. **Shoot:** half-press once, and the film looks load from the card.
+
+The command-line route (`caduceus.py build --release ...`, below) still works if you prefer it.
 
 ## Requirements
 
@@ -101,7 +116,7 @@ properly before removing it (Windows "Eject", macOS eject button, Linux "Unmount
 3. The LED stays **steady** while it writes (a few minutes). **Do not switch off, open the battery door or
    remove the card.**
 4. When the LED **blinks at about 2 Hz**, it is done. Switch off.
-5. Switch on normally. Setup > Firmware shows `Body Caduceus v0.15`.
+5. Switch on normally. Setup > Firmware shows `Body` with `1.1 Caduceus v0.15`.
 6. Delete `DCOLYMP/E1429999.BIN` from the card on a computer (formatting the card would also erase `EP7MOD`).
 
 If the LED blinks fast right away, without a long steady phase, the camera rejected the file and wrote nothing.
