@@ -185,3 +185,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - **CAMERA PROOF (user):** OSD probe flashed via SD (OK+power) → Setup shows 'FIRMWARE'. ⇒ SD updater writes; ~2 Hz blink after solid = SUCCESS (code-derived fast=fail was wrong). Earlier stock main-only restore + official full reinstall therefore also succeeded (camera fine on 1.1). REVIEW_v04 B1 resolved: install + recovery path proven.
 - v0.5 = v0.4 + buttons + aperture ring: 152 edits / 3,233 B; all 7 verifiers PASS (background run).
 - **TEST 1 PASSED (camera):** rec_limit flashed via SD; movie remaining time now ~1 h (card-limited) vs stock 29-min cap; stock OSD restored.
+- **TEST 2 PASSED (camera):** movie + Muted records log-looking footage.
