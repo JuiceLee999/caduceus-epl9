@@ -249,3 +249,49 @@ A single test catches 'profile bound 4→5', 'value check 15→16' and 'marker r
 - Grain, WB, effect and vignette consumers of the table. The WB stub must read `BUNDLE_TABLE`
   0x60210900 from `layout.json`.
 - Editable bundles, in-camera editing and persistence.
+
+## Extended H/L (v0.17)
+
+**What limited the shift.** The limit was ours, in two places: the readers' range check (`add 7; cmp 15` →
+anything outside −7..7 renders stock) and the 15-entry LUTs (`hue = −1000·ui`, max |7000|). The loader / film-menu range
+tables (`sd_lo/sd_span`, `fm_lo/fm_span`, from `patches/sd_bundles` RANGES) and the desktop tools enforced the same
+−7..7. The hardware field is not the limit: the output hue is an s16 coefficient, and the stock art-filter COLOR table
+0x605167e4 writes **hue −15000** (record 0) in the same field. No colour-matrix route is needed.
+
+**Scale (evidence, not camera-measured).** The COLOR table's sector centres are 0..32767 = 0..360°, and the stock
+art-filter table 0x6051d258 (centres 5461 apart) rotates records 0 and 6 by exactly −5461 = one 60° sector spacing. That
+points to 32768 = 360°, i.e. **11° per 1000** (±7 = ±77°, ±15 = ±165°). `sim/` keeps its conservative 5.5°/1000 default;
+`ColorEngine(hue_deg_per_1000=…)` (film.py `_hue_deg_per_1000`) renders the other scale. The camera test of v0.16 (greens
++7 → teal) fits either.
+
+**Mapping (UI −15..15, s8 in the same table bytes).** −7..7 are the old LUT entries, byte for byte, so existing looks
+render identically (emulator: output, job, context, stack and registers equal v0.16 for the v0.16 table and a dense −7..7
+table, capture and live view).
+
+| UI | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+|---|---|---|---|---|---|---|---|---|
+| hue native (−) | 8000 | 9000 | 10000 | 11000 | 12000 | 13000 | 14000 | 15000 (= stock max) |
+| light native | 350 | 400 | 500 | 600 | 700 | 800 | 900 | 1000 |
+
+Light beyond ±300 has no stock precedent (every stock table has L = 0). The risk is image-only (if the ISP field were
+narrower than s11, a large L could wrap); it cannot fault the CPU code.
+
+**Firmware changes (patches/hl_ext/build.py rewrites a merged spec in place; one edit added):**
+- `hl` (0x60210900 blob, `--hl-ext`) and `lv` (0x601e0e3c): `add 15; cmp 31` and `add 15` indexing, LUT bases → the new
+  LUTs. Same size, same labels; the table, the old LUTs and perm are unchanged.
+- **0x601e123c–0x601e12b8**: hue[31] + light[31] in the dead EVF gamma step-13 G table (only reference: step-table word
+  0x601e3d54, build-checked with an abs32 scan). The section-1 tail had no room (vlog_hook 0x20 after the reader).
+- Loader v3 `sd_lo/sd_span` and film menu `fm_lo/fm_span`: hue/light −15..15 (data only; sd_back stays `jmp 0x605b7340`).
+- Tools: `patches/sd_bundles` RANGES (RANGES_LEGACY keeps the old table), `patches/bundles` accepts −15..15 (a table with
+  |v| > 7 is refused without `--hl-ext`). LOOKS.BIN / BUNDLES.BIN with extended values are **rejected whole by v0.16 and
+  older** (range rule); v0.17 accepts every old file.
+- Editor: unchanged. It shows and edits ±5 (reads clamp to ±5, writes outside ±5 are refused), so an extended sector
+  shows ±5 and stays extended until edited; any edit writes a normal ±5 value. Extended values come from LOOKS.BIN /
+  BUNDLES.BIN only. MONO-colour (`patches/mono_colour`, not in v0.17) still validates −7..7 (extended → stock).
+
+**Checks** (`tools/ep7_verify_hl_ext.py releases/v0.17/edits.json --base releases/v0.16/edits.json --card
+releases/v0.16/card`): 53/53. Capture rows == extended LUTs for COLOR1–4 (everything else == stock run); old values
+identical to v0.16 (capture + live view); live view == capture with extended values; ±16 / 127 / −128 → stock (both
+paths); range tables in the image == RANGES; v0.16 card files still pass; sim LUTs == firmware LUTs; package == stock +
+edits per component, restore == stock; reader labels unchanged. Controls: v0.16 renders the extended table stock; a
+corrupted LUT entry is caught.

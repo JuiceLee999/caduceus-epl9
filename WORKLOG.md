@@ -313,3 +313,10 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   appends " Caduceus v0.15" to the stock field ("1.1 Caduceus v0.15"); the setter 0x60d4c9df heap-copies any length.
   Builder/sprintf/updater/EXIF byte-identical. E 8/8 builder + 16/16 view, S, P PASS; 280 edits, rebuilt in place.
   Value widget width not known: the text may clip on camera.
+- **v0.17 extended hue/light** (docs/V02_BUNDLES.md "Extended H/L"): the ±7 limit was our reader check + 15-entry LUTs (and the
+  loader / film-menu / tool range tables), not hardware: the stock art-filter COLOR table writes hue −15000. UI −15..15, old
+  −7..7 entries unchanged; hue −1000/step to 15000, light to ±1000. LUTs at 0x601e123c (dead EVF step-13 G); hl/lv/loader/
+  fm_core changed in place (same sizes and labels, sd_back → 0x605b7340). Table geometry suggests 11°/1000 (sim default stays
+  5.5). Aerochrome retuned as lib3_aerochrome (green −10 → crimson foliage, red +6 → orange, blue light −15). v0.17 = v0.16 +
+  hl_ext + fw "0.17" (286 edits); card LOOKS.BIN from library_v3 (Atrophy + Aerochrome). tools/ep7_verify_hl_ext.py 53/53;
+  caduceus build --release v0.17 matches SHA256SUMS. Not camera-tested.

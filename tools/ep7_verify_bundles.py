@@ -77,6 +77,13 @@ def tail2(main):
     return Region('tail2', TAIL2_LO, sl(main, TAIL2_LO, TAIL2_HI), 'rx')
 
 
+HLX_LO, HLX_HI = BB.HLX_AT, BB.HLX_TABLE_END   # v0.17 extended H/L LUTs (dead EVF step-13 G table; stock data otherwise)
+
+
+def hlx(main):
+    return Region('hlx', HLX_LO, sl(main, HLX_LO, HLX_HI), 'r')
+
+
 def regs_of(r):
     return {k: r['registers'][k] for k in REGS_ALL}
 
@@ -101,7 +108,7 @@ def selector_run(main, sat, *, profile=1, mode=11, magic=BB.MAGIC, callback=PR.C
                Region('job', JOB, bytes(job), 'rw', True), Region('ctx', CONTEXT, bytes(ctx), 'rw', True),
                Region('out', OUTPUT, bytes(5212), 'rw', True),
                Region('code', PR.BUILDER, sl(main, PR.BUILDER, PR.SELECTOR_END), 'rx'), tail1(main), tail7(main),
-               tail2(main)]
+               tail2(main), hlx(main)]
     regions += PR.gain_regions(main)
     regs = {'pc': CALLER, 'sp': STACK + 0x1800, 'a0': CONTEXT, 'd0': 0xd0d0, 'd1': 0xd1d1, 'a1': 0xa1a1,
             'd2': 0x2222, 'd3': 0x3333, 'a2': 0xa2a2, 'a3': 0xa3a3}

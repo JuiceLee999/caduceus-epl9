@@ -34,6 +34,14 @@ SECTORS = ['yellow', 'orange', 'orange-red', 'red', 'magenta', 'violet',
 # Hue step: fishcu H_native = -1000*slider; if 32768 == 360 deg that is 11 deg/step.
 # Direction and true scale unverified on camera -> use half (5.5 deg/step) for previews.
 HUE_DEG_PER_STEP = 5.5
+# v0.17 extended H/L (UI -15..15; patches/bundles HUE_LUT_X / L_LUT_X; -7..7 entries unchanged). The sim works from
+# the native coefficient: hue_deg = -native / 1000 * hue_deg_per_1000. Evidence for the ISP scale (docs/V02_BUNDLES.md
+# "Extended H/L"): the COLOR table's sector centres are 0..32767 == 0..360 deg and the stock art-filter table
+# 0x6051d258 rotates by -5461 == exactly one 60-deg sector spacing, i.e. 11 deg per 1000; previews keep 5.5 unless asked.
+HL_MAX = 15
+HUE_LUT_X = [-1000 * u for u in range(-HL_MAX, HL_MAX + 1)]
+_L_EXT = [350, 400, 500, 600, 700, 800, 900, 1000]
+L_LUT_X = [-v for v in reversed(_L_EXT)] + [-300, -250, -200, -150, -100, -50, -25, 0, 25, 50, 100, 150, 200, 250, 300] + _L_EXT
 
 # Raw is 5200x3904, camera JPEG 5184x3888: assume a centred 8 px border.
 RAW_BORDER = 8
@@ -152,8 +160,8 @@ def apply_tone(linear: np.ndarray, curve: ToneCurve) -> np.ndarray:
 @dataclass
 class ColorSettings:
     sat: list[int] = field(default_factory=lambda: [0] * 12)    # stock -5..+5 (ext -7..+7)
-    hue: list[int] = field(default_factory=lambda: [0] * 12)    # HSL extension -7..+7
-    light: list[int] = field(default_factory=lambda: [0] * 12)  # HSL extension -7..+7
+    hue: list[int] = field(default_factory=lambda: [0] * 12)    # HSL extension -7..+7 (v0.17: -15..+15)
+    light: list[int] = field(default_factory=lambda: [0] * 12)  # HSL extension -7..+7 (v0.17: -15..+15)
 
 
 class ColorEngine:
@@ -167,7 +175,7 @@ class ColorEngine:
     """
 
     def __init__(self, table_json: Path = TABLE_JSON, angle_offset_deg: float = 15.0,
-                 sat_scale: float = 1.5, base_chroma: float = 1.1):
+                 sat_scale: float = 1.5, base_chroma: float = 1.1, hue_deg_per_1000: float = HUE_DEG_PER_STEP):
         t = json.loads(Path(table_json).read_text())
         recs = sorted(t['records'], key=lambda r: r['ui_index'])
         self.centre = np.array([r['words_i16'][0] / 32768 * 360 for r in recs])
@@ -177,6 +185,7 @@ class ColorEngine:
         self.angle_offset = angle_offset_deg
         self.sat_scale = sat_scale
         self.base_chroma = base_chroma   # camera base rendering vs LibRaw (calibrated)
+        self.hue_deg_per_1000 = hue_deg_per_1000
 
     def weights(self, hue_deg: np.ndarray) -> np.ndarray:
         """Per-pixel sector weights (..., 12), normalised raised-cosine."""
@@ -197,9 +206,9 @@ class ColorEngine:
         hue = np.degrees(np.arctan2(cr, cb)) % 360
         w = self.weights(hue)
         sat_mult = 1 + (w @ self.sat_coeff(cs.sat)) / 1000.0
-        hue_shift = w @ (np.asarray(cs.hue, float) * HUE_DEG_PER_STEP)
-        l_tab = np.array([-300, -250, -200, -150, -100, -50, -25, 0, 25, 50, 100, 150, 200, 250, 300], float)
-        l_native = l_tab[np.clip(np.asarray(cs.light, int), -7, 7) + 7]
+        h_native = np.array(HUE_LUT_X, float)[np.clip(np.asarray(cs.hue, int), -HL_MAX, HL_MAX) + HL_MAX]
+        hue_shift = w @ (-h_native / 1000.0 * self.hue_deg_per_1000)
+        l_native = np.array(L_LUT_X, float)[np.clip(np.asarray(cs.light, int), -HL_MAX, HL_MAX) + HL_MAX]
         chroma = np.hypot(cb, cr)
         light = (w @ l_native) / 4096.0 * np.clip(chroma / 0.25, 0, 1)
         ang = np.radians(hue + hue_shift)

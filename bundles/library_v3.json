@@ -1,11 +1,6 @@
 {
- "_comment": "Look library v3 (docs/LIBRARY_V1.md, section \"Library v3\"): library v2 + 12 classic colour looks (recipes sim/recipes/library_v3.json). 32 looks: the LOOKS.BIN form for the 32-look loader (v2 order kept, new looks after the colour looks, mono last).",
+ "_comment": "Look library v3 (docs/LIBRARY_V1.md, section \"Library v3\"): library v2 + 12 classic colour looks (recipes sim/recipes/library_v3.json). 32 looks: the LOOKS.BIN form for the 32-look loader (v2 order kept, new looks after the colour looks, mono last). Atrophy (inspired by GxAce) replaced Provia (= stock profile at zero).",
  "looks": {
-  "provia": {
-   "name": "Provia",
-   "recipe": "lib2_provia",
-   "notes": "Neutral, faithful colour reference: the E-P7 profile at zero."
-  },
   "velvia": {
    "name": "Velvia",
    "recipe": "lib2_velvia",
@@ -104,9 +99,9 @@
   },
   "aerochrome": {
    "name": "Aerochrome",
-   "recipe": "lib2_aerochrome",
+   "recipe": "lib3_aerochrome",
    "grain": "low",
-   "notes": "False-colour infrared (Kodak Aerochrome-style): golden/orange foliage, deep blue skies. Sat advice: strong (+3..+5)."
+   "notes": "False-colour infrared (Kodak Aerochrome-style, v0.17 extended hue): crimson foliage, orange reds, pale skin, near-black blues, deep skies. Needs v0.17+. Sat advice: strong (+3..+5)."
   },
   "kchrome25": {
    "name": "Kodachrome25",
@@ -190,6 +185,16 @@
    "recipe": "lib3_xpro",
    "grain": "medium",
    "notes": "E-6 slide in C-41: hard contrast, yellow-green highlights, cyan skies, yellowed skin."
+  },
+  "atrophy": {
+   "name": "Atrophy",
+   "recipe": "lib3_atrophy",
+   "grain": "low",
+   "effect": {
+    "type": "clarity",
+    "strength": 3
+   },
+   "notes": "Inspired by GxAce's Atrophy: urban-decay grade, near-grey base, muted greens/skies, rust and reds kept, gritty clarity. Sat advice: greens/blues -4..-5."
   },
   "acros": {
    "name": "Acros",

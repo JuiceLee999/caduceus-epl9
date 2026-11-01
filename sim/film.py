@@ -118,7 +118,7 @@ def render(lin, recipe, curve=None, seed=10, full_width=5184):
     ycc[..., 0] = y_new
     ycc[..., 1:] *= np.clip(ratio, 0.5, 1.5)[..., None] ** 0.5 * (1 + SAT_STEP * r.get('base_saturation', 0))
     img = np.clip(P.ycc_to_rgb(ycc), 0, 1)
-    eng = P.ColorEngine()
+    eng = P.ColorEngine(hue_deg_per_1000=r.get('_hue_deg_per_1000', P.HUE_DEG_PER_STEP))   # preview-only override
     img = eng.apply(img, P.ColorSettings(sat=r.get('sat', [0] * 12), hue=r.get('hue', [0] * 12),
                                          light=r.get('light', [0] * 12)))
     mono = r.get('mono_filter') or str(r.get('base', '')).lower().startswith('monochrome')

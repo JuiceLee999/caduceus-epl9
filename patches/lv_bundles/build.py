@@ -46,8 +46,9 @@ TBL_SLOT_FLASH = ''' mov d0,d1
  add d1,a0'''
 
 
-def source(sd_v3):
-    sub = dict(callback=hex(BB.CALLBACK), rec_off=BB.RECORDS_IN_JOB - BB.REQ_IN_JOB, n_rec=BB.N_REC,
+def source(sd_v3, hl_ext=False):
+    vb = BB.HL_MAX if hl_ext else BB.HL_MAX_LEGACY
+    sub = dict(val_bias=vb, val_n=2 * vb + 1, hue_ref='ep7_hue_lut', light_ref='ep7_light_lut',callback=hex(BB.CALLBACK), rec_off=BB.RECORDS_IN_JOB - BB.REQ_IN_JOB, n_rec=BB.N_REC,
                stride=BB.REC_STRIDE, req_in_job=BB.REQ_IN_JOB, ext_magic=BB.EXT_MAGIC, magic=hex(BB.MAGIC),
                hue_off=BB.OUT_RECORDS + 18, prop_profile=PROP_PROFILE,
                tbl_base=TBL_BASE_SDV3 if sd_v3 else TBL_BASE_FLASH,
@@ -93,7 +94,9 @@ def base_info(base):
         raise ValueError('base spec edits the lv placement or its guards')
     img = EditImage(base['edits'])
     sd_v3, acc = reader_sd_v3(base, lab, img)
-    return dict(labels=lab, sd_v3=sd_v3, tbl_idx=acc, image=img)
+    # v0.17 extended H/L: the base bundles reader was built with --hl-ext (its LUTs at BB.HLX_AT); lv follows it.
+    hl_ext = img.get(BB.HLX_AT, len(BB.hl_ext_bytes())) == BB.hl_ext_bytes()
+    return dict(labels=lab, sd_v3=sd_v3, tbl_idx=acc, image=img, hl_ext=hl_ext)
 
 
 def _meta_accessors(o, found=None):
@@ -197,6 +200,10 @@ def check_static(d, info):
     for k, v in want.items():
         if img.get(lab[k], len(v)) != v:
             raise ValueError(f'base image {k} at {lab[k]:#x} != patches/bundles {k}')
+    if info['hl_ext']:
+        hl = img.get(lab['hl'], lab['out'] - lab['hl']) if 'out' in lab else None
+        if hl is None or struct.pack('<I', BB.HLX_AT) not in hl:
+            raise ValueError('base has the extended LUTs but its bundles reader does not use them')
     return d[CODE_AT - BASE:CODE_END - BASE]
 
 
@@ -208,9 +215,11 @@ def make_spec(base_path):
     lab = info['labels']
     syms = dict(ep7_getter=GETTER, ep7_resume=RESUME, ep7_hue_lut=lab['hue_lut'], ep7_light_lut=lab['light_lut'],
                 ep7_perm=lab['perm'], ep7_table=lab['bundle_table'])
+    if info['hl_ext']:
+        syms.update(ep7_hue_lut=BB.HLX_AT, ep7_light_lut=BB.HLX_AT + 62)
     if info['sd_v3']:
         syms['ep7_tbl_idx'] = info['tbl_idx']
-    src = source(info['sd_v3'])
+    src = source(info['sd_v3'], info['hl_ext'])
     code, lst, labels = assemble(src, syms)
     if labels['lv'] != CODE_AT or CODE_AT + len(code) > CODE_END:
         raise ValueError(f'lv routine {len(code)} B does not fit {CODE_END - CODE_AT} B')
@@ -225,7 +234,7 @@ def make_spec(base_path):
     spec = dict(components=['0x100'], patch='lv_bundles', base=str(base_path),
                 lv_bundles=dict(labels={k: hex(v) for k, v in labels.items()}, code_at=hex(CODE_AT),
                                 code_len=len(code), hook=hex(HOOK), resume=hex(RESUME), getter=hex(GETTER),
-                                prop_profile=hex(PROP_PROFILE), sd_v3=info['sd_v3'],
+                                prop_profile=hex(PROP_PROFILE), sd_v3=info['sd_v3'], hl_ext=info['hl_ext'],
                                 tbl_idx=hex(info['tbl_idx']) if info['tbl_idx'] else None,
                                 syms={k: hex(v) for k, v in syms.items()}),
                 edits=edits)

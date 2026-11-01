@@ -97,9 +97,9 @@ hit:
 val:
  movbu (d2,a0),d0
  extb d0
- add 7,d0
- cmp 15,d0
- bcc out                             /* outside -7..7 -> stock */
+ add {val_bias},d0
+ cmp {val_n},d0
+ bcc out                             /* outside -{val_bias}..{val_bias} -> stock */
  inc d2
  cmp 24,d2
  bne val
@@ -111,17 +111,17 @@ rec:
  movbu (d2,a1),d1                    /* UI index w = 2*(r%6)+r/6 */
  movbu (d1,a0),d0                    /* hue_ui[w] */
  extb d0
- add 7,d0
+ add {val_bias},d0
  add d0,d0
- mov ep7_hue_lut,a1
+ mov {hue_ref},a1
  movhu (d0,a1),d3
  movhu d3,(a3)
  add 12,d1
  movbu (d1,a0),d0                    /* light_ui[w] */
  extb d0
- add 7,d0
+ add {val_bias},d0
  add d0,d0
- mov ep7_light_lut,a1
+ mov {light_ref},a1
  movhu (d0,a1),d3
  movhu d3,(4,a3)                     /* L at hue+4 */
  add 24,a3

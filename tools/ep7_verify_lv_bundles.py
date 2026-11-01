@@ -114,7 +114,7 @@ def run(main, sat, *, profile=1, magic=0, ext_profile=None, key=11, callback=PR.
                Region('job', JOB, bytes(job), 'rw', True), Region('ctx', CONTEXT, bytes(ctx), 'rw', True),
                Region('out', OUTPUT, bytes(5212), 'rw', True),
                Region('code', PR.BUILDER, sl(main, PR.BUILDER, PR.SELECTOR_END), 'rx'),
-               VB.tail1(main), VB.tail7(main), VB.tail2(main),
+               VB.tail1(main), VB.tail7(main), VB.tail2(main), VB.hlx(main),
                Region('lvcode', CODE_AT, sl(main, CODE_AT, CODE_END), 'rx'),
                Region('getter', GETTER_LO, sl(main, GETTER_LO, GETTER_HI), 'rx'),
                Region('xlate', XLATE_LO, sl(main, XLATE_LO, XLATE_HI), 'rx'),

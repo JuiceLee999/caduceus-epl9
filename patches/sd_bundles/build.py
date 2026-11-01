@@ -59,10 +59,13 @@ SHA_PREFIX = bytes.fromhex(MAIN_SHA[:8])           # decoded main SHA-256, first
 # Per-field value ranges (inclusive, as s8/u8 numbers) of the bundle-table ABI. Must cover every
 # field of patches/bundles/layout.json; bytes no field claims must be 0. These are the ranges
 # patches/bundles/build.py can emit (it rejects anything else), so every table it builds passes.
-RANGES = {'hue': (-7, 7), 'light': (-7, 7), 'grain': (0, 3), 'wb_flags': (0, 1), 'wb_ab': (-7, 7),
+# v0.17: hue/light -15..15 (extended H/L, patches/bundles --hl-ext); RANGES_LEGACY = the v0.16-and-older loaders.
+# A superset, so every old file still passes; a reader without --hl-ext renders a slot with |value| > 7 stock.
+RANGES = {'hue': (-15, 15), 'light': (-15, 15), 'grain': (0, 3), 'wb_flags': (0, 1), 'wb_ab': (-7, 7),
           'wb_gm': (-7, 7), 'effect_id': (0, 3), 'effect_strength': (0, 5), 'vignette': (-5, 5),
           'flags': (0, 3), 'colour': (0, 1), 'sat': (-5, 5), 'bloom_tint': (0, 4),
           'art_effect': (0, 5)}
+RANGES_LEGACY = dict(RANGES, hue=(-7, 7), light=(-7, 7))
 
 # Other patches' claims (docs/CODE_SPACE_MAP.md) and the SD-updater code/data (docs/SD_UPDATE.md §4):
 # never overlap them.
@@ -79,8 +82,9 @@ def layout():
     return lay
 
 
-def range_table(lay):
-    """-> (lo[64] s8, span[64] u8, per-byte field names)."""
+def range_table(lay, ranges=None):
+    """-> (lo[64] s8, span[64] u8, per-byte field names). ranges: RANGES (default) or RANGES_LEGACY."""
+    RANGES = globals()['RANGES'] if ranges is None else ranges
     lo, hi, who = [0] * 64, [0] * 64, ['(unused, must be 0)'] * 64
     fields = lay['fields']
     missing = set(fields) - set(RANGES)

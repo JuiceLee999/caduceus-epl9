@@ -58,6 +58,19 @@ CAP_PROFILE, CAP_MODE = 24083, 24053
 EXT_PROFILE, EXT_MODE, EXT_MAGIC, MAGIC = JOB_SIZE, JOB_SIZE + 1, JOB_SIZE + 2, 0xB2
 HUE_LUT = [-1000 * u for u in range(-7, 8)]
 L_LUT = [-300, -250, -200, -150, -100, -50, -25, 0, 25, 50, 100, 150, 200, 250, 300]
+# v0.17 extended H/L (--hl-ext, docs/V02_BUNDLES.md "Extended H/L"): UI -15..15. The -7..7 entries are the legacy
+# LUTs unchanged, so every old value gives the same native coefficient. Hue stays -1000/step up to the stock maximum
+# |15000| (the stock art-filter COLOR table 0x605167e4 record 0 carries hue -15000). Lightness continues the fishcu
+# curve to +-1000 (no stock table uses L != 0: magnitude beyond 300 is unproven, image-only risk).
+HL_MAX, HL_MAX_LEGACY = 15, 7
+L_EXT = [350, 400, 500, 600, 700, 800, 900, 1000]                       # |UI| 8..15
+HUE_LUT_X = [-1000 * u for u in range(-HL_MAX, HL_MAX + 1)]
+L_LUT_X = [-v for v in reversed(L_EXT)] + L_LUT + L_EXT
+assert HUE_LUT_X[8:23] == HUE_LUT and L_LUT_X[8:23] == L_LUT and len(L_LUT_X) == 31
+# Extended LUTs (31 hue + 31 light halfwords, 124 B) live in the dead EVF gamma step-13 G table 0x601e123c..0x601e133c
+# (section 1; only reference: display step-table word 0x601e3d54; same dead-EVF argument as patches/lv_bundles and
+# lv_art in step-14 / step-13 R). The section-1 tail has no room: vlog_hook sits 0x20 after the reader.
+HLX_AT, HLX_TABLE_END, HLX_REF = 0x601e123c, 0x601e133c, 0x601e3d54
 PERM = [2 * (r % 6) + r // 6 for r in range(12)]
 SLOTS = ['COLOR1', 'COLOR2', 'COLOR3', 'COLOR4', 'MONO1', 'MONO2', 'MONO3', 'MONO4']
 GRAIN = {'off': 0, 'low': 1, 'medium': 2, 'med': 2, 'high': 3}
@@ -121,8 +134,8 @@ def slot_entry(name, slot, recipes):
     hue, light = rc.get('hue', [0] * 12), rc.get('light', [0] * 12)
     if len(hue) != 12 or len(light) != 12:
         raise ValueError(f'{name}: hue/light need 12 values')
-    hue = [ival(v, -7, 7, f'{name} hue') for v in hue]
-    light = [ival(v, -7, 7, f'{name} light') for v in light]
+    hue = [ival(v, -HL_MAX, HL_MAX, f'{name} hue') for v in hue]
+    light = [ival(v, -HL_MAX, HL_MAX, f'{name} light') for v in light]
     e[0:12] = struct.pack('<12b', *hue)
     e[12:24] = struct.pack('<12b', *light)
     # Grain (consumed by patches/grain v0.4): per slot and OFF by default. Only the slot's own
@@ -197,7 +210,27 @@ def slot_entry(name, slot, recipes):
 
 
 def native_rows(hue, light):
-    return [(HUE_LUT[hue[w] + 7], L_LUT[light[w] + 7]) for w in PERM]
+    return [(HUE_LUT_X[hue[w] + HL_MAX], L_LUT_X[light[w] + HL_MAX]) for w in PERM]
+
+
+def hl_ext_bytes():
+    return struct.pack('<31h', *HUE_LUT_X) + struct.pack('<31h', *L_LUT_X)
+
+
+def check_hlx(d):
+    """The extended-LUT placement: dead EVF step-13 G table, referenced only by its step-table word."""
+    import numpy as np
+    if struct.unpack_from('<I', d, HLX_REF - BASE)[0] != HLX_AT or d[HLX_REF - 8 - BASE] != 13:
+        raise ValueError('EVF step-13 G table word does not point at the extended-LUT placement')
+    if not (SEC1_START <= HLX_AT and HLX_AT + len(hl_ext_bytes()) <= HLX_TABLE_END <= SEC1_END) or HLX_AT % 4:
+        raise ValueError('extended-LUT placement outside section 1 / table / alignment')
+    a = np.frombuffer(d, np.uint8).astype(np.int64)
+    w = a[:-3] | (a[1:-2] << 8) | (a[2:-1] << 16) | (a[3:] << 24)
+    for off in (0, 0x40000000):
+        hits = [int(h) + BASE for h in np.nonzero((w >= HLX_AT + off) & (w < HLX_TABLE_END + off))[0]]
+        if hits != ([HLX_REF] if off == 0 else []):
+            raise ValueError(f'unexpected abs32 references into the step-13 G table: {[hex(h) for h in hits]}')
+    return d[HLX_AT - BASE:HLX_AT - BASE + len(hl_ext_bytes())]
 
 
 def build_table(bundle, recipes):
@@ -233,8 +266,10 @@ TBL_HL_SDV3 = """ mov mdr,d1                          /* sd v3: keep MDR (d1 is 
  mov d1,mdr"""
 
 
-def source(table, sd_v3=False):
-    sub = dict(tbl_hl=TBL_HL_SDV3 if sd_v3 else TBL_HL_FLASH, cap_profile=CAP_PROFILE, ext_profile_p=EXT_PROFILE - 36, ext_mode_p=EXT_MODE - 36,
+def source(table, sd_v3=False, hl_ext=False):
+    sub = dict(tbl_hl=TBL_HL_SDV3 if sd_v3 else TBL_HL_FLASH,
+               val_bias=HL_MAX if hl_ext else HL_MAX_LEGACY, val_n=2 * (HL_MAX if hl_ext else HL_MAX_LEGACY) + 1,
+               hue_ref='ep7_hue_x' if hl_ext else 'hue_lut', light_ref='ep7_light_x' if hl_ext else 'light_lut', cap_profile=CAP_PROFILE, ext_profile_p=EXT_PROFILE - 36, ext_mode_p=EXT_MODE - 36,
                ext_magic_p=EXT_MAGIC - 36, ext_profile=EXT_PROFILE, ext_mode=EXT_MODE, ext_magic=EXT_MAGIC,
                magic=hex(MAGIC), callback=hex(CALLBACK), rec_off=RECORDS_IN_JOB - REQ_IN_JOB, n_rec=N_REC,
                stride=REC_STRIDE, req_in_job=REQ_IN_JOB, hue_off=OUT_RECORDS + 18,
@@ -298,18 +333,41 @@ def sdv3_accessor():
     return m.accessor_symbols()
 
 
-def make_spec(bundle_path, sd_v3=False):
+def hlx_syms():
+    return dict(ep7_hue_x=HLX_AT, ep7_light_x=HLX_AT + 62)
+
+
+def reader(table, sd_v3=False, hl_ext=False):
+    """-> (source, code, listing, labels) of the 0x60210900 blob. --hl-ext changes only immediates (add 15 / cmp 31)
+    and the two LUT base addresses (mov imm32), so size and every label equal the legacy reader's."""
+    extra = dict(hlx_syms() if hl_ext else {})
+    if sd_v3:
+        extra['ep7_tbl_idx'] = sdv3_accessor()['tbl_idx']
+    src = source(table, sd_v3, hl_ext)
+    code, lst, labels = assemble(src, extra or None)
+    if hl_ext:
+        c0, _, l0 = reader(table, sd_v3, False)[1:]
+        if len(c0) != len(code) or l0 != labels:
+            raise ValueError('--hl-ext must not change the reader size or any label')
+        diff = [i for i in range(len(code)) if code[i] != c0[i]]
+        if not diff or min(diff) < labels['code_start'] - CODE_AT:
+            raise ValueError('--hl-ext changed table/LUT bytes')
+    return src, code, lst, labels
+
+
+def make_spec(bundle_path, sd_v3=False, hl_ext=False):
     import hashlib
     d = MAIN.read_bytes()
     if hashlib.sha256(d).hexdigest() != MAIN_SHA:
         raise ValueError('decoded main hash mismatch')
     bundle = json.loads(Path(bundle_path).read_text())
     table, meta = build_table(bundle, load_recipes())
-    src = source(table, sd_v3)
+    if not hl_ext and any(abs(v) > HL_MAX_LEGACY for m in meta if m['enabled'] for v in m['hue_ui'] + m['light_ui']):
+        raise ValueError(f'hue/light beyond +-{HL_MAX_LEGACY} need --hl-ext (the legacy reader renders them stock)')
+    src, code, lst, labels = reader(table, sd_v3, hl_ext)
     acc = sdv3_accessor() if sd_v3 else {}
-    code, lst, labels = assemble(src, {'ep7_tbl_idx': acc['tbl_idx']} if sd_v3 else None)
     if sd_v3:
-        c0, _, l0 = assemble(source(table))
+        c0, _, l0 = assemble(source(table, False, hl_ext), hlx_syms() if hl_ext else None)
         if len(c0) != len(code) or l0 != labels:
             raise ValueError('--sd-v3 must not change the routine size or any label')
         if d[RESUME - BASE:RESUME - BASE + 3] != bytes.fromhex('f8023c'):
@@ -349,6 +407,11 @@ def make_spec(bundle_path, sd_v3=False):
         dict(kind='0x100', addr=hex(CODE_AT), expect=tail.hex(), new=code.hex(),
              why=f'v0.2 code + LUTs + 8x64 bundle table ({len(code)} B) in section-1 FF tail'),
     ]
+    if hl_ext:
+        stock_x = check_hlx(d)
+        edits.append(dict(kind='0x100', addr=hex(HLX_AT), expect=stock_x.hex(), new=hl_ext_bytes().hex(),
+                          why='v0.17 extended H/L LUTs: hue[31] (-1000/step, |max| 15000) + light[31] for UI -15..15 '
+                              '(dead EVF step-13 G gamma table, section 1)'))
     reserved = RESERVED + wb_reserved()
     for e in edits:
         a = int(e['addr'], 16)
@@ -357,12 +420,14 @@ def make_spec(bundle_path, sd_v3=False):
             if a < hi and lo < a + n:
                 raise ValueError(f'edit {e["addr"]} overlaps reserved {lo:#x}..{hi:#x}')
     bp = Path(bundle_path).resolve()
-    spec = dict(components=['0x100'], patch='bundles-v0.2-sdv3' if sd_v3 else 'bundles-v0.2',
+    spec = dict(components=['0x100'], patch=('bundles-v0.2-sdv3' if sd_v3 else 'bundles-v0.2') + ('-hlx' if hl_ext else ''),
                 bundle=str(bp.relative_to(ROOT)) if bp.is_relative_to(ROOT) else str(bp),
                 labels={k: hex(v) for k, v in labels.items()},
                 layout=dict(job_size=new_size, ext_profile=EXT_PROFILE, ext_mode=EXT_MODE, ext_magic=EXT_MAGIC,
                             magic=MAGIC, entry_bytes=ENTRY, slots=SLOTS),
                 slots=meta, table_hex=table.hex(), edits=edits)
+    if hl_ext:
+        spec['hl_ext'] = dict(hue_lut=hex(HLX_AT), light_lut=hex(HLX_AT + 62), ui_max=HL_MAX)
     if sd_v3:
         spec['sd_v3'] = dict(accessor={k: hex(v) for k, v in acc.items()}, requires='sd_bundles_v3 (accessor edit)')
     return spec, src, lst, code
@@ -373,9 +438,10 @@ def main():
     ap.add_argument('bundle', type=Path)
     ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--sd-v3', action='store_true', help='read the table through the SD loader v3 accessor')
+    ap.add_argument('--hl-ext', action='store_true', help='v0.17 extended hue/light -15..15 (LUTs at 0x601e123c)')
     a = ap.parse_args()
     try:
-        spec, src, lst, code = make_spec(a.bundle, a.sd_v3)
+        spec, src, lst, code = make_spec(a.bundle, a.sd_v3, a.hl_ext)
     except ValueError as e:
         sys.exit(f'error: {e}')
     a.out.mkdir(parents=True, exist_ok=False)
