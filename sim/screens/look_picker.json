@@ -1,0 +1,35 @@
+{
+ "name": "look_picker",
+ "canvas": [720, 480],
+ "background": {"type": "image", "path": "generated/film/PA211062/velvia.jpg"},
+ "notes": [
+  "MOCK, phase 3 look picker (docs/LOOK_PICKER.md): the stock 'Recording Volume' item (setting 652, 21 values +10..-10) with a",
+  "valid LIBRARY.BIN on the card. Title (string 1456) and the 21 value labels are drawn by the extended label hook from the heap:",
+  "entry j = look j (19 looks in library_v1), j = 20 ('-10') = Stock. No card / no library -> stock 'Recording Volume' +10..-10.",
+  "The pick is applied to the ACTIVE slot (here COLOR2) and saved to EP7MOD/SLOTS.BIN on the next half-press. Layout guessed."
+ ],
+ "elements": [
+  {"type": "rect", "box": [0, 0, 300, 480], "fill": "#F0121418"},
+  {"type": "text", "text": "Film Sim", "x": 18, "y": 14, "scale": 0.9},
+  {"type": "bitmap", "id": 4351, "x": 20, "y": 66},
+  {"type": "text", "text": "active slot", "x": 84, "y": 70, "scale": 0.7},
+  {"type": "text", "text": "Velvia", "x": 20, "y": 118, "scale": 0.85, "fg": 1},
+  {"type": "text", "text": "applies + saves", "x": 20, "y": 330, "scale": 0.6},
+  {"type": "text", "text": "on half-press", "x": 20, "y": 358, "scale": 0.6},
+  {"type": "rect", "box": [300, 0, 300, 480], "fill": "#E0181c22"},
+  {"type": "bitmap", "id": 4794, "x": 436, "y": 8},
+  {"type": "text", "text": "Provia", "x": 330, "y": 40, "scale": 0.85},
+  {"type": "rect", "box": [310, 90, 280, 50], "fill": "#FF1f5fa8", "outline": "#FFFFFFFF", "width": 2},
+  {"type": "text", "text": "Velvia", "x": 330, "y": 96, "scale": 0.85},
+  {"type": "text", "text": "Astia", "x": 330, "y": 152, "scale": 0.85},
+  {"type": "text", "text": "Cl. Chrome", "x": 330, "y": 208, "scale": 0.85},
+  {"type": "text", "text": "Classic Neg", "x": 330, "y": 264, "scale": 0.85},
+  {"type": "text", "text": "Nostalgic", "x": 330, "y": 320, "scale": 0.85},
+  {"type": "text", "text": "Reala Ace", "x": 330, "y": 376, "scale": 0.85},
+  {"type": "bitmap", "id": 4795, "x": 436, "y": 436},
+  {"type": "text", "text": "2/21", "x": 704, "y": 12, "scale": 0.6, "anchor": "tr"},
+  {"type": "rect", "box": [600, 430, 120, 50], "fill": "#99000000"},
+  {"type": "bitmap", "id": 1387, "x": 610, "y": 428},
+  {"type": "watermark", "text": "MOCK", "x": 660, "y": 200}
+ ]
+}
