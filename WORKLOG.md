@@ -285,3 +285,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - v0.14 (was test13): the red mask probe garbled frames (salmon ~65 px tile grid; mask port does not read the 0x0305 reduce
   buffer as a per-pixel mask). Reverted in place: 273 edits, bloom edits == pre-probe build, log probe kept. Halation
   F/W/D pass; decode == stock+edits, restore == stock; SHA256SUMS regenerated. HALATION_RED §10b.
+- **v0.14 LOG FIXED (camera):** log hook now keys on the movie picture mode (stills pm ≠ movie pm broke it since 12e) and View Assist removed (its display LUT was baked into recordings, cancelling log). PB021401: p1 13 / p50 88 vs p1 1 before, visibly flat. View Assist must not come back in that form.

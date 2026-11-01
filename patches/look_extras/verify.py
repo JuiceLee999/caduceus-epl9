@@ -89,14 +89,16 @@ def model_get(blk, slot, sec):
         return 0
     if sec in (2, 3):
         return clamp(s8(b[24 + sec]), -5, 5) if b[25] & 0x81 == 1 else 0
-    if sec == 4:                                  # test13b bloom colour +45 (effect 2 with 0 shows red)
+    if sec == 4:                                  # v0.14 art effect +46 (0..5)
+        return b[46] if b[46] <= 5 else 0
+    if sec == 5:                                  # test13b bloom colour +45 (effect 2 with 0 shows red); sector 6 from v0.14
         return b[45] if 1 <= b[45] <= 4 else (1 if b[45] == 0 and b[28] == 2 else 0)
     return 0
 
 
 def model_set(blk, slot, sec, v, all_on):
     e = bytearray(blk)
-    if all_on or sec >= 5:
+    if all_on or sec >= 6:
         return e
     o = 32 + 64 * slot
     v = clamp(v, -5, 5)
@@ -107,6 +109,8 @@ def model_set(blk, slot, sec, v, all_on):
             e[o + 45] = 1
         e[o + 28], e[o + 29] = (0, 0) if v == 0 else ((3, v) if v > 0 else (1, -v))
     elif sec == 4:
+        e[o + 46] = clamp(v, 0, 5)
+    elif sec == 5:
         e[o + 45] = clamp(v, 0, 4)
     else:
         if e[o + 25] & 0x81 != 1:
@@ -123,6 +127,7 @@ FIELDS2 = [(4, 3, 6, 1, 0x7f, 0x80), (0xff, 0, 0, 0xff, 0xff, 0xff), (0, 1, 5, 1
 
 
 TINTS = {id(FIELDS): (0, 3, 0, 9), id(FIELDS2): (4, 0xff, 1, 0)}   # bloom colour +45 per slot
+ARTS = {id(FIELDS): (1, 5, 0, 6), id(FIELDS2): (0xff, 3, 2, 4)}    # art effect +46 per slot (6 / 0xff: out of range)
 
 
 def xblock(axis, fields=FIELDS, marker=True):
@@ -131,6 +136,7 @@ def xblock(axis, fields=FIELDS, marker=True):
         o = 32 + 64 * k
         b[o + 24], b[o + 25], b[o + 26], b[o + 27], b[o + 28], b[o + 29] = gr, fl, ab, gm, eid, st
         b[o + 45] = TINTS.get(id(fields), (0, 0, 0, 0))[k]
+        b[o + 46] = ARTS.get(id(fields), (0, 0, 0, 0))[k]
     return b
 
 
@@ -150,7 +156,8 @@ def heap_states(quick=False):
 
 IDS = [(927, 0, 0), (928, 0, 1), (929, 0, 2), (930, 0, 3), (931, 0, 4), (938, 0, 11), (939, 1, 0), (940, 1, 1),
        (941, 1, 2), (942, 1, 3), (950, 1, 11), (951, 2, 0), (952, 2, 1), (953, 2, 2), (954, 2, 3), (962, 2, 11),
-       (1655, 3, 0), (1656, 3, 1), (1657, 3, 2), (1658, 3, 3), (1666, 3, 11)]
+       (1655, 3, 0), (1656, 3, 1), (1657, 3, 2), (1658, 3, 3), (1666, 3, 11),
+       (932, 0, 5), (944, 1, 5), (956, 2, 5), (1660, 3, 5), (1659, 3, 4), (943, 1, 4), (955, 2, 4), (933, 0, 6)]  # v0.14: art 4, tint 5, 6 unused
 IDS_MISS = [926, 963, 1654, 1667, 111, 1091, 1686, 0, 0xffff, 0x103a3]
 IDS_ALL = [(927 + 12 * k + c if k < 3 else 1655 + c, k, c) for k in range(4) for c in range(12)]
 
@@ -271,7 +278,8 @@ VALS = [-0x80000000, -128, -7, -6, -5, -3, -1, 0, 1, 2, 3, 4, 5, 6, 127, 0x7ffff
 
 def w_cases(quick=False):
     ids = [927, 940, 952, 953, 955, 1658, 931, 926, 111] if quick else [927, 928, 929, 930, 931, 938, 939, 940, 941, 942, 952, 953,
-                                                              954, 1655, 1656, 1657, 1658, 1666, 926, 963, 111]
+                                                              954, 1655, 1656, 1657, 1658, 1666, 926, 963, 111,
+                                                              932, 943, 944, 956, 1659, 1660, 933]  # v0.14: art (4), tint (5), 6
     vals = [-6, -1, 0, 4] if quick else VALS
     out = []
     for lab, h, blk, x in heap_states(quick):
@@ -379,8 +387,9 @@ s_get:
 """
 # 12d: stock shows 2755 with ALL off and 2756 with ALL on; the X text is cut at 16 characters together with the
 # editor's key-probe code (EV.probe_suffix, '' when the editor is built without the probe).
-TXT = {'o': 'Extras: 1-5 only', 'all': 'Extras: no All'}
-TINT_TXT = ['5 Bloom Neutral', '5 Bloom Red', '5 Bloom Amber', '5 Bloom Warm', '5 Bloom Cool']
+TXT = {'o': 'Extras: 1-6 only', 'all': 'Extras: no All'}
+TINT_TXT = ['6 Bloom Neutral', '6 Bloom Red', '6 Bloom Amber', '6 Bloom Warm', '6 Bloom Cool']
+ART_TXT = ['5 Art Off', '5 Art Star Light', '5 Art Pin Hole', '5 Art Blur', '5 Art White Edge', '5 Art Frame']
 GRAIN = ['1 Grain Off', '1 Grain Low', '1 Grain Medium', '1 Grain High']
 SIGNED = {1: ('2 Glow ', '2 Clarity/Glow 0', '2 Clarity +'), 2: ('3 WB Blue ', '3 WB Amber/Blue', '3 WB Amber '),
           3: ('4 WB Magenta ', '4 WB Green/Mag.', '4 WB Green ')}
@@ -393,6 +402,8 @@ def x_text(blk, mode, sec):
     if sec == 0:
         return GRAIN[v]
     if sec == 4:
+        return ART_TXT[v]
+    if sec == 5:
         return TINT_TXT[v]
     neg, zero, pos = SIGNED[sec]
     return zero if v == 0 else (pos + str(v)) if v > 0 else (neg + str(-v))
@@ -436,7 +447,7 @@ def guide_case(args):
     if is_x and kind == 4 and gid == 2756:
         txt = TXT['all']
     elif is_x and kind == 4 and gid == 2755 and mode in (54, 55, 56, 64):
-        txt = x_text(blk, mode, cursor - 1) if 1 <= cursor <= 5 else TXT['o']
+        txt = x_text(blk, mode, cursor - 1) if 1 <= cursor <= 6 else TXT['o']
     if txt:
         if len(txt) > 16:
             return tag, f'label {txt!r} > 16'

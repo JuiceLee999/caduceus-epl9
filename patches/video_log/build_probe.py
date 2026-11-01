@@ -5,7 +5,7 @@ Sources: video_log_probe.s.in (vlog_hook + vlog_txt, dead EVF step-8 R/G/B 0x601
 words 0x601e3d00/04/08 only; two unaligned hits 0x6002084b/0x606d9029 are call instructions), vlog_dump.s.in (dead EVF step-7 R/G/B 0x601e233c..0x601e263c; refs: step-table words
 0x601e3cf0/f4/f8 only). Edits applied to a merged spec (idempotent):
   0x6030df3d  jmp vlog_hook (the old 0x60210c90 stub edit is dropped -> FF)
-  0x601e323c  look_extras blob: `mov ex_t_other,a2` at 0x601e3551 -> `calls vlog_txt` (label on Extras 6-12)
+  0x601e323c  look_extras blob: `mov ex_t_other,a2` at 0x601e3571 -> `calls vlog_txt` (label on Extras 7-12, v0.14)
   0x605b7400  loader blob: sd_back 0x605b7420 `jmp ed_trig` -> `jmp vlog_dump` (which ends in `jmp ed_trig`)
 
   python3 -I patches/video_log/build_probe.py SPEC [--write]
@@ -32,7 +32,7 @@ FN_END = 0x6030df6c
 OLD_AT = 0x60210c90
 CODE_AT, CODE_END = 0x601e203c, 0x601e233c
 DUMP_AT, DUMP_END = 0x601e233c, 0x601e263c
-EX_BLOB, EX_MOV, EX_T_OTHER = 0x601e323c, 0x601e3551, 0x601e3736
+EX_BLOB, EX_MOV, EX_T_OTHER = 0x601e323c, 0x601e3571, 0x601e37dc   # v0.14: Extras with Art (5) + Bloom colour (6)
 LD_BLOB, SD_BACK, ED_TRIG = 0x605b7400, 0x605b7420, 0x605b7340
 LIB = dict(ep7_malloc=0x60022782, ep7_free=0x600227b4, ep7_fopen=0x60634fbc, ep7_fclose=0x60634fc5,
            ep7_fwrite=0x60635041, ep7_ed_trig=ED_TRIG, ep7_stock_body=0x6030df42, ep7_store_ret=0x6030df67)
@@ -74,11 +74,11 @@ def apply(spec, stock, trig):
     ex = next(e for e in edits if e['addr'] == hex(EX_BLOB))
     blob = bytearray.fromhex(ex['new'])
     o = EX_MOV - EX_BLOB
-    assert blob[EX_T_OTHER - EX_BLOB:EX_T_OTHER - EX_BLOB + 16] == b'Extras: 1-5 only'
+    assert blob[EX_T_OTHER - EX_BLOB:EX_T_OTHER - EX_BLOB + 16] == b'Extras: 1-6 only'
     assert blob[o:o + 6] == b'\xfc\xde' + struct.pack('<I', EX_T_OTHER) or blob[o:o + 2] == b'\xfc\xff'
     blob[o:o + 6] = b'\xfc\xff' + struct.pack('<i', syms['vlog_txt'] - EX_MOV)
     why = ex['why'].split(' + video_log probe')[0]
-    edits[edits.index(ex)] = dict(ex, new=blob.hex(), why=why + ' + video_log probe: Extras 6-12 -> calls vlog_txt')
+    edits[edits.index(ex)] = dict(ex, new=blob.hex(), why=why + ' + video_log probe: Extras 7-12 -> calls vlog_txt')
     ld = next(e for e in edits if e['addr'] == hex(LD_BLOB))
     lb = bytearray.fromhex(ld['new'])
     o = SD_BACK - LD_BLOB
