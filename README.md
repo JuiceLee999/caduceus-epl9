@@ -116,7 +116,7 @@ Mock-ups drawn with the camera's own fonts and icons, extracted from its firmwar
 
 ```bash
 git clone --recurse-submodules <repo>
-cd ep7-firmware
+cd caduceus-ep7
 tools/fetch_stock.sh          # downloads OLY_E_142_1100_0000_0000.BIN from OM and checks its hash
 tools/setup_toolchain.sh      # GNU binutils for mn10300
 tools/decode_stock.sh
@@ -132,5 +132,11 @@ Per-patch build and verify commands are in each `patches/*/` folder and in `WORK
 - LightSnowDev, Altsoph/mx3 (CHDK forum), the DVXuser and Personal View Olympus threads, and iKenndac for
   earlier Olympus firmware research.
 - Film-look references are listed in `docs/FILM_SIMS.md` and `docs/FILM_LOOK.md`.
+
+## License
+
+Caduceus patch code, tools and docs are released under the [GNU GPL v3](LICENSE). The OM firmware itself is
+not included or redistributed: the builder downloads it from OM's own server on your machine.
+Community film recipes are credited to their authors in `docs/LIBRARY_V1.md`.
 
 Not affiliated with OM Digital Solutions or Fujifilm. "Olympus", "PEN" and film names are trademarks of their owners.
