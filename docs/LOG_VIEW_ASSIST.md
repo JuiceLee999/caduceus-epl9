@@ -14,8 +14,8 @@ below. They all pass (`python3 -I tools/ep7_view_assist_probe.py [--json r.json]
 ## Verdict
 
 **Feasible, using the display engine and not the ISP. Nothing is built yet. The trigger site is now
-chosen (T-D below), but the build is stopped: no verified playback signal exists to switch the LUT off
-in playback.**
+chosen (T-D below) and the playback signal is traced (`0xa272c418` bit 0, through image on the TFT).
+The playback meaning is still inference, so the next steps are the build and probe P-VA0.**
 
 The live-view gamma cannot be split from the recorded gamma inside the ISP. There is one development
 per frame and one gamma for it. The display controller ("VSC") has its own hardware LUT, though:
@@ -143,8 +143,8 @@ from the per-channel EVF colour-temperature tables [I strong].
 
 ### Trigger (code, about 60–90 B; this is the open part)
 
-The programmer must run inside the display task, because it takes display locks
-(`0x60175cdf`/`0x60175c01`) and the registers are owned by that task. Two candidates:
+The programmer must run inside the display task, because it toggles the through-image flag
+(`0x60175cdf`/`0x60175c01`, see "Trigger measurement") and the registers are owned by that task. Two candidates:
 
 - **T-A (preferred): a reconcile hook in the display task.** Add a stub on a display-task command path
   that runs whenever live view (re)starts, such as the UPD_IMG handler `0x60174a92` or the end of the
@@ -233,28 +233,52 @@ T-D stub (designed, not built):
 3. `cur = (0x9c000204) != 0`. If they differ, call `0x60187439(d0 = 1, a0 = &step17 or &step16)`.
    Save and restore d1/a0/a1 around the call.
 
-**Blocking item: the playback signal.** The display task does not track playback. NOTIFY_PLY (id 41,
-`0x60175006`) is a no-op, and no stock code sends it. Record +925 keeps its last value in playback.
-Candidates that were looked at and are **not** usable without a camera trace:
-- `through_permit` in the screen/layer packets (strings `0x601d7cd8`, `0x601d8158`);
-- the img_hd source;
-- the ISP descriptor gamma pointer;
-- appevent states.
+**Playback signal (traced 2026-11-01, follow-up): use the display's "through image" mask `0xa272c418`,
+bit 0 = TFT.**
 
-Without this signal, T-D would leave the VA curve on playback stills after a log session. That is
-cosmetic, not a brick risk, but it fails the acceptance rule. So no stub, no edits and no
-`releases/test10-viewassist/` were produced.
+What the code shows [V]:
+- `0x60175cdf(mask)` returns `(0xa272c418 & mask) != 0`. `0x60175c01(mask, flag 0/1)` sets or clears the
+  bits. Both run under semaphore `0x10190010`. These are the through-image flag getter and setter. Earlier
+  versions of this doc called them display "locks"; that was wrong.
+- The display debug dump labels the getter's value "last through flg" (`0x6017920a` → string
+  `0x601d74a3`). The packet field that feeds the setter is `through_permit`: UPD_IMG packet +22
+  (`0x601850b3`) and UPD_SCRN/layer packet +34 (`0x60184bbb`, `0x601856b1`).
+- Other setters call it directly from app tasks, not through the display mailbox:
+  - the through/live-view display module `0x602ac141…0x602ad64c` (1 at `0x602ac3c2`, `0x602acc4d`,
+    `0x602acff0`; 0 at `0x602ad34a`, `0x602ad64c`; device mask from `0x602acf12`, which reads
+    output-device setting `0x6223e7d6`);
+  - `0x6054c34e` (called from `0x6028df95` with 0 and from `0x6028e035` with 1).
+- The mask is cleared at display init (`0x60041834`), per device on close (`0x601761fa`), and bit 0
+  is cleared on a TFT→EVF switch (`0x601757f8`).
+- The programmer `0x60187439` saves the TFT bit, clears it while it loads the banks, and sets it again
+  afterwards (`0x601874d7`/`0x601874e6` … `0x60187612`). So a VA load leaves the flag as it found it.
+- None of the CBC/CBS/EV play-key name tables (`0x60a6af10`, `0x60a6cd2c`, `0x60a6ef30`) has a code
+  reader. They are debug name lists and lead to no state variable.
 
-Next step options:
-1. Find a playback/live-view flag in RAM. Statically: trace the CBS_*PLAY* or EV_PRESS_PLAY_KEY
-   consumers to a global. Or use a read-only camera probe.
-2. Accept "+925 only" and build T-D, documenting that playback looks graded after a log session until
-   the next picture-mode change away from the trigger mode.
+Inference [I]: playback shows a decoded still, not the through image, so bit 0 is clear in playback.
+It is set while movie live view or recording is on screen. It may also clear in full-screen menus;
+that is harmless, because the LUT then goes to bypass.
+
+**T-D condition, final:** `(0xa272c40c & 1) && (0xa272c418 & 1) && record[(0xa273104c)].+925 == 2`
+→ step 17; otherwise step 16 (only when the mode register is non-zero).
+
+Caveat: the app-side setters change the flag without sending a display command, so T-D reacts at the
+next display command. Entering playback redraws the screen and OSD (display commands), so the expected
+lag is one command. That is [I].
+
+**Camera confirmation (designed, not built).** P-VA0 is the T-D stub with the +925 test removed:
+`want = (0xa272c40c & 1) && (0xa272c418 & 1)`.
+- It writes no RAM, only the VSC LUT and mode registers through the stock programmer.
+- Expected result: the LCD looks contrasty or "graded" in every live view (stills and movie). Playback,
+  and the menus if they drop through, look stock. HDMI is unaffected.
+- A pass confirms the signal and the reaction lag in one flash. The full build (+925 added) then needs no
+  separate probe.
+- Recovery: the stock restore package. The worst case is cosmetic (wrong tone on the LCD).
 
 ## Open items before building
 
 1. Done: see "Trigger measurement". T-D chosen; the send (T-B) is synchronous with no timeout.
-   **Still open: a verified playback signal (blocks the build).**
+   Playback signal: `0xa272c418` bit 0 (traced; playback meaning [I], confirm with P-VA0).
 2. Whether the VSC gamma applies before or after OSD mixing. On the camera this shows directly.
 3. The first camera test of `patches/video_log` must confirm that live view is in fact log (Q1
    inference).
