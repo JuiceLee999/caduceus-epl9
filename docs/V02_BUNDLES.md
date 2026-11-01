@@ -295,3 +295,14 @@ identical to v0.16 (capture + live view); live view == capture with extended val
 paths); range tables in the image == RANGES; v0.16 card files still pass; sim LUTs == firmware LUTs; package == stock +
 edits per component, restore == stock; reader labels unchanged. Controls: v0.16 renders the extended table stock; a
 corrupted LUT entry is caught.
+
+**Guide-label fix (v0.17, camera report: Hue page label blank).** Cause: the stock guide writer 0x60decbfc blanks the
+ALL-off guide (writes id/text 0 at view+48 and leaves the kind, 0x60decf7d) when the page's values reach both −5 and +5
+(helpers 0x60e230e0 / 0x60e231e0, which read through GetValue). `ed_get` shows extended values clamped to ±5, so
+Aerochrome's Hue page (−10..+6) hits both limits. Its Light page (−15..+3) only reaches −5. `ed_guide` relabelled only
+ids 2755/2756, so the blank stayed. It was not caused by the 0x601e123c LUTs or the range tables. Fix (ed_view, sec 5,
+496 → 516 B inside its 0x60b9dff0 claim; only its entry 0x60b9dd10 is referenced from outside): id 0 with kind 4 or 5
+is treated as ALL off, and the page label is written. `tools/ep7_verify_hl_ext.py` G: real chain from the guide word
+(ex_guide → ed_guide → stock stand-in). S, S·All, Hue, Hue·All, Light, Light·All, Film, Extras and Extras·All are
+byte-identical to v0.16, other stock labels are unchanged, and the blanked case now shows the page name (73/73).
+Extras keeps the stock rule: ex_guide still needs 2755/2756.

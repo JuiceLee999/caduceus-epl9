@@ -76,12 +76,21 @@ ed_guide:                         /* CALLS entry, a0 = view */
  mov d0,(4,sp)                    /* 13: no '*' unless the Film page finds the slot modified */
  calls ep7_guide                  /* the stock part, a0 = view */
  mov d0,(8,sp)                    /* its result, returned unchanged */
+ movhu (48,a3),d0
+ mov ed_t_nul,a1
+ cmp 0,d0                         /* v0.17: the stock part blanks the ALL-off guide (id/text 0, kind left as it */
+ bne 3f                           /* was: 4, or our 5) when the page's values reach both -5 and +5 (0x60decf7d) */
+ movhu (44,a3),d0
+ add -4,d0
+ cmp 2,d0
+ bcs 1f                           /* kind 4 or 5: ALL off, write the page label anyway */
+ bra g_out
+3:
  movhu (44,a3),d0
  cmp 4,d0
  bne g_out                        /* not a string-id label */
  movhu (48,a3),d0
- mov ed_t_nul,a1                  /* 2755 (stock "All colors[INFO]"): ALL is off */
- cmp 2755,d0
+ cmp 2755,d0                      /* 2755 (stock "All colors[INFO]"): ALL is off */
  beq 1f
  mov ed_t_all,a1                  /* 2756 (stock "Single color[INFO]"): ALL is on */
  cmp 2756,d0

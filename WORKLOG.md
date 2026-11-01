@@ -320,3 +320,6 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   5.5). Aerochrome retuned as lib3_aerochrome (green −10 → crimson foliage, red +6 → orange, blue light −15). v0.17 = v0.16 +
   hl_ext + fw "0.17" (286 edits); card LOOKS.BIN from library_v3 (Atrophy + Aerochrome). tools/ep7_verify_hl_ext.py 53/53;
   caduceus build --release v0.17 matches SHA256SUMS. Not camera-tested.
+- v0.17 fix (camera: Hue page guide label blank): stock guide 0x60decbfc blanks the ALL-off label when the page's (±5-clamped)
+  values hit both −5 and +5 (Aerochrome hue); ed_guide now labels id 0 too (ed_view 516 B). Guide S/S·All/Hue/Light/Film/Extras
+  == v0.16 byte for byte in the emulator; hl_ext verify 73/73; v0.17 rebuilt in place, caduceus reproduces it.

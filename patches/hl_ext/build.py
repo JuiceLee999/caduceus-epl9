@@ -29,6 +29,8 @@ def _load(name, path):
 
 LV = _load('ep7_lv_bundles_build', ROOT / 'patches/lv_bundles/build.py')
 SB = _load('ep7_sd_bundles_build', ROOT / 'patches/sd_bundles/build.py')
+LE = _load('ep7_look_editor_build', ROOT / 'patches/look_editor/build.py')
+VIEW_V016 = ROOT / 'patches/look_editor/ed_view_v016.s.in'    # the v0.16 source, for the base-equality check
 LOADER_AT, SD_BACK, SD_BACK_JMP = 0x605b7400, 0x605b7420, 'dc20ffffff'      # jmp ed_trig 0x605b7340 (must stay)
 
 
@@ -108,6 +110,27 @@ def make(base):
     blob = swap_once(blob, b8(sp0[:45]), b8(sp1[:45]), 'fm_span')
     fm[0]['new'] = blob.hex()
     fm[0]['why'] += ' [v0.17: hue/light ranges -15..15]'
+    # 5. editor guide label (v0.17 camera bug): with extended values the clamped (+-5) page can sit at both -5 and +5;
+    #    the stock guide part then blanks the ALL-off label (id 0) and ed_guide used to leave it blank. ed_view is
+    #    rebuilt with the fix; only its entry ed_guide (0x60b9dd10) is referenced from outside (checked).
+    ve = edit_at(spec, LE.VIEW[0])
+    sy = spec['look_editor']['symbols']
+    extra = dict(LE.STOCK, ed_poke=int(sy['ed_poke'], 16), ed_cfg_fm=int(sy['ed_cfg_fm'], 16))
+    v_old = LE.B3.assemble(LE.B3.subst(VIEW_V016.read_text(), LE.sub(False)), LE.VIEW[0], extra)[0]
+    if v_old.hex() != ve['new']:
+        raise ValueError('base ed_view != the v0.16 source rebuild')
+    v_new, _, vs, _ = LE.B3.assemble(LE.source('ed_view.s.in', False), LE.VIEW[0], extra)
+    if vs['ed_guide'] != LE.VIEW[0] or LE.VIEW[0] + len(v_new) > LE.VIEW[1]:
+        raise ValueError('fixed ed_view does not fit')
+    for x in spec['edits']:
+        a, b = int(x['addr'], 16), bytes.fromhex(x['new'])
+        if a != LE.VIEW[0] and any(LE.VIEW[0] < w < LE.VIEW[1] for w in
+                                   (int.from_bytes(b[i:i + 4], 'little') for i in range(len(b) - 3))):
+            raise ValueError(f'edit {x["addr"]} references inside ed_view')
+    ve['expect'] = BB.MAIN.read_bytes()[LE.VIEW[0] - BB.BASE:LE.VIEW[0] - BB.BASE + len(v_new)].hex()
+    ve['new'] = v_new.hex()
+    ve['why'] += ' [v0.17: ed_guide labels the page when the stock part blanked the ALL-off guide]'
+    spec['look_editor']['symbols'].update({k: hex(v) for k, v in vs.items() if k in sy})
     spec['hl_ext'] = dict(hue_lut=hex(BB.HLX_AT), light_lut=hex(BB.HLX_AT + 62), ui_max=BB.HL_MAX,
                           hue_lut_x=BB.HUE_LUT_X, light_lut_x=BB.L_LUT_X, sd_v3=sd_v3, film_menu_edit=fm[0]['addr'],
                           built_by='patches/hl_ext/build.py')

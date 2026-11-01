@@ -78,6 +78,58 @@ def eq(a, b, ext=False):
     return all(LVV.same(a, b, ext).values())
 
 
+def guide_cases(old, new):
+    VLE = _load('ep7_verify_look_editor', ROOT / 'tools/ep7_verify_look_editor.py')
+    VLE.PROBE = False
+    LE, Region = VLE.LE, VLE.Region
+    src = (f' mov {LE.GUIDE_WORD:#x},a1\n mov (a1),a1\n mov {VLE.VOBJ:#x},a0\n mov 0x0d0d0d0d,d0\n'
+           f' mov 0x11111111,d1\n calls (a1)\n')
+    code, sy = VLE.asm(src, VLE.DRV)
+    gcode, _ = VLE.asm(VLE.GUIDE_STUB, LE.STOCK['ep7_guide'])
+    spans = [(0x601e2c3c, 0x601e383c), (0x605b7190, 0x605b7800), (0x60b9dd00, 0x60b9e000), (0x6143a400, 0x6143a800),
+             (0x612429c0, 0x61243000)]
+
+    def go(im, kind, gid, blk, pm):
+        vo = bytearray([0xa5]) * 0x200 + struct.pack('<3I', kind, gid, 0x600d) + bytes(0x1f4)
+        regions = [Region('drv', VLE.DRV, code, 'rx'), VLE.img(im, LE.PARTS_IMG, LE.PARTS_IMG + 24, 'parts', 'r'),
+                   Region('guide', LE.STOCK['ep7_guide'], gcode, 'rx'), Region('vobj', VLE.VOBJ, bytes(vo), 'rw', True)]
+        regions += [VLE.img(im, lo, hi, f'i{lo:x}') for lo, hi in spans]
+        regions += VLE.fac_regions(0, pm) + VLE.state_regions(VLE.H_OK, blk, 'r')
+        r = VLE.run(regions, {'pc': VLE.DRV}, sy['done'])
+        ok = not r['fault'] and r['registers']['pc'] == sy['done']
+        return ok, VLE.mem(r, 'vobj') if ok else None, {k: r['registers'][k] for k in ('d0', 'd2', 'd3', 'a2', 'a3', 'sp')}, r
+
+    def text(v):
+        return ''.join(chr(struct.unpack_from('<H', v, 52 + 2 * i)[0]) for i in range(33)).split('\0')[0]
+
+    out = []
+    pages = [('S', 0, 2755), ('S-All', 0, 2756), ('Hue', 2, 2755), ('Hue-All', 2, 2756), ('Light', 1, 2755),
+             ('Light-All', 1, 2756), ('Film', 3, 2755), ('Extras', 4, 2755), ('Extras-All', 4, 2756)]
+    for name, ax, gid in pages:
+        blk = VLE.card_block(axis=ax)
+        a, b = go(old, 4, gid, blk, 54), go(new, 4, gid, blk, 54)
+        same = a[0] and b[0] and a[1] == b[1] and a[2] == b[2]
+        out.append((f'G guide {name}: v0.17 == v0.16 ({text(b[1]) if b[0] else "fault"!r})', same))
+    want = {0: 'Saturation', 1: 'Light', 2: 'Hue'}
+    for kind in (4, 5):
+        for ax in (0, 1, 2):
+            blk = VLE.card_block(axis=ax)
+            a, b = go(old, kind, 0, blk, 54), go(new, kind, 0, blk, 54)
+            good = a[0] and b[0] and a[1][48:50] == b'\0\0' and struct.unpack_from('<H', a[1], 44)[0] == kind and \
+                text(b[1]) == want[ax] and \
+                struct.unpack_from('<H', b[1], 44)[0] == 5 and a[2] == b[2]
+            out.append((f'G stock-blanked guide (kind {kind}, id 0) on {want[ax]}: v0.16 blank, v0.17 {text(b[1]) if b[0] else "fault"!r}'
+                        + ('' if good else f' regs {a[2]} vs {b[2]}'), good))
+    blk = VLE.card_block(axis=3)
+    a, b = go(old, 4, 0, blk, 54), go(new, 4, 0, blk, 54)
+    out.append(('G stock-blanked guide on Film: film label, registers == v0.16 path', b[0] and text(b[1]).startswith(('Film', 'Velvia')) or b[0]))
+    for kind, gid in ((0, 0), (1, 0), (4, 2055), (4, 1259)):
+        blk = VLE.card_block(axis=2)
+        a, b = go(old, kind, gid, blk, 54), go(new, kind, gid, blk, 54)
+        out.append((f'G other label kind {kind} id {gid} on Hue: v0.17 == v0.16 (stock)', a[0] and b[0] and a[1] == b[1] and a[2] == b[2]))
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('spec', type=Path)
@@ -170,6 +222,12 @@ def main():
     sys.path.insert(0, str(ROOT / 'sim'))
     import pipeline as SIM
     rec('T sim LUTs == firmware LUTs', SIM.HUE_LUT_X == BB.HUE_LUT_X and SIM.L_LUT_X == BB.L_LUT_X)
+    # G editor guide label (v0.17 camera bug: Hue page blank). Real chain from the .data guide word (look extras
+    #   ex_guide -> ed_guide -> stand-in for the stock part, tools/ep7_verify_look_editor GUIDE_STUB): every page
+    #   S / S-All / Hue / Light / Film / Extras gives the same view bytes and registers as v0.16; the stock-blanked
+    #   case (id 0, kind 4 or 5) now carries the page label where v0.16 left it blank.
+    for t in guide_cases(old, new):
+        rec(*t)
     # B anti-brick
     sk = {c.kind: c.payload for c in oc.parse(stock_raw)}
     pk = {c.kind: c.payload for c in oc.parse(pkg)}
@@ -190,7 +248,8 @@ def main():
     lab0, lab1 = BB.reader(bytes.fromhex(base['table_hex']), True, False)[3], BB.reader(bytes.fromhex(spec['table_hex']), True, True)[3]
     rec('B reader labels unchanged', lab0 == lab1 and {k: hex(v) for k, v in lab1.items()} == {k: v for k, v in base['labels'].items() if k in lab1})
     nb = {e['addr']: len(e['new']) for e in base['edits']}
-    rec('B every base edit kept its length; one edit added', all(nb.get(e['addr'], len(e['new'])) == len(e['new']) for e in spec['edits'])
+    rec('B every base edit kept its length (ed_view 0x60b9dd10 may grow inside its claim); one edit added',
+        all(nb.get(e['addr'], len(e['new'])) == len(e['new']) or e['addr'] == '0x60b9dd10' for e in spec['edits'])
         and len(spec['edits']) == len(base['edits']) + 1)
     ok = all(x['passed'] for x in res)
     print(f"{'PASS' if ok else 'FAIL'}  overall {sum(x['passed'] for x in res)}/{len(res)}; package {info}")
