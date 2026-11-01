@@ -1,0 +1,1804 @@
+{
+ "components": [
+  "0x100"
+ ],
+ "edits": [
+  {
+   "kind": "0x100",
+   "addr": "0x60319157",
+   "expect": "cc06",
+   "new": "907e",
+   "why": "record limit 1740s -> 32400s",
+   "source": "patches/rec_limit/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6031915c",
+   "expect": "201c",
+   "new": "907e",
+   "why": "record limit 7200s -> 32400s",
+   "source": "patches/rec_limit/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030df3d",
+   "expect": "266001f172",
+   "new": "dc532df0ff",
+   "why": "movie-picture-mode derivation entry: mov 352,a2; add a0,a2 -> jmp vlog_hook",
+   "source": "patches/video_log/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210c90",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "fa406001a000c91afa004c01a001c912f84110a003c804ca098002dcbcd20f00266001f172dc8dd20f00",
+   "why": "vlog_hook (42 B, section-1 FF tail): movie && pm==3 -> +925=2 (id 2001)",
+   "source": "patches/video_log/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603537f0",
+   "expect": "2c803c",
+   "new": "2c983c",
+   "why": "job allocation 15488 -> 15512 (+24-byte bundle extension at job+15488)",
+   "source": "generated/bundles-lachlan3/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6035390c",
+   "expect": "8510",
+   "new": "8528",
+   "why": "tail memset job+15472: 16 -> 40 bytes (zeroes the extension)",
+   "source": "generated/bundles-lachlan3/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603b02d9",
+   "expect": "cd8ffdf060",
+   "new": "dcc008e6ff",
+   "why": "COLOR builder call -> jmp v0.2 bundle H/L routine (replaces v0.1)",
+   "source": "generated/bundles-lachlan3/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603e66ab",
+   "expect": "f043a00cc926",
+   "new": "dc9da4e2ffcb",
+   "why": "converter 0x603e62d1: copy capture profile/mode into job extension",
+   "source": "generated/bundles-lachlan3/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603e91f0",
+   "expect": "5c24f040a00c",
+   "new": "dc8179e2ffcb",
+   "why": "converter 0x603e8af1: copy capture profile/mode into job extension",
+   "source": "generated/bundles-lachlan3/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210900",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ff00000706fefd06070502fcfcfdfeff020203fffdfbfb0100000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000010000000202010101000000ff00000000000001020001020002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000581b70178813a00fb80bd007e803000018fc30f848f460f078ec90e8a8e4d4fe06ff38ff6aff9cffceffe7ff00001900320064009600c800fa002c0100020406080a01030507090b5c14fa40135ef1ecfa505c3cf043fa505d3c2cb200fa505e3cf043a00cc907dc4a5b1d00dc695b1d005c18fa40135e5c14fa505c3c5c24f0405c14fa505d3c2cb200fa505e3c5c24f040a00cdc62861d00ddcff41900f060f8fee4420046044a084e0c431047144f18f8260471fcc8d45f3560c805cc9c00f8010494fad08c0c8a10f190c80b20382affc9f8cc85007494fad09cd3f191c97afa40823cfac8b200c970fa40813ca00bc968fa40803c28ffa004c65ef8c006fcdc00092160f160f8401ff8ec02c84b08f408102807a00fc64148aa18c9f4f82e0cfad3c20208fcdd3c0b2160f419f404102807e0fcdd000b2160f4b1f07f290cf404102807e0fcdd1e0b2160f4b1f87f04231848aa0cc9d0580059045a085b0c5c105d145f18f8fe1cdc74f6190000",
+   "why": "v0.2 code + LUTs + 8x64 bundle table (880 B) in section-1 FF tail",
+   "source": "generated/bundles-lachlan3/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6035749f",
+   "expect": "aa0cc605cc0604",
+   "new": "dc4198ebffcbcb",
+   "why": "work-list builder: key<12 branch -> jmp wl_hook (key 11: stock job-type gate + bundle slot grain)",
+   "source": "generated/v04/grain/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603b5249",
+   "expect": "aa0cc605cc5201",
+   "new": "dc28bbe5ffcbcb",
+   "why": "combiner selector: key<12 branch -> jmp sel_hook (key 11 + stage 0x0902 -> 32)",
+   "source": "generated/v04/grain/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210ce0",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "aa0cc405cc8300aa0bc805cc8100f862102df000f201a510c874a520c870a540c86cfae0000ffac80001c8629820fcfa40823cfac8b200c955fa40813ca00bc94dfa40803c28ffa004c643f8c006fcdc18092160f40028ffa003c63228019cfcdd7b6d3560fccdc66c35608001dd51661400f0109cfcdd9a0d2160dd786614003008dc5b6b1400dc3f671400dc3d6b1400aa0cc61daa0bc91ef006f84110a000c915f8610cfac80209c90c8020dfa00cdcc0441a00dc0a461a00f84110a000c93bfa40823cfac8b200c931fa40813ca00bc929fa40803c28ffa004c61ff8c006fcdc18092160f40028ffa003c60e2801fa5124072c0209f8710c00de0000",
+   "why": "per-profile COLOR-grain hooks + modifier (254 B) in section-1 FF tail",
+   "source": "generated/v04/grain/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x603eabd7",
+   "expect": "fa43f65da000",
+   "new": "dc3962e2ffcb",
+   "why": "art-effect flag converter 0x603eab39: key 11 + slot effect bloom -> job flag 0x80 (Soft Focus pipeline)",
+   "source": "generated/v04/bloom/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6039fee8",
+   "expect": "f824342c5802",
+   "new": "dc730fe7ffcb",
+   "why": "Soft Focus mix-weight getter 0x6039fee8: key 11 -> w from the job's slot strength (else 600)",
+   "source": "generated/v04/bloom/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60210e10",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "f862fea00bc93bf862fca000c934fa43f55da00bc92cfa43135e28ffa004c622f8c006fcdc00092160f160f8401ca001c910f8401d28ffa005c60772f8e48062fa43f65da000dc879d1d00f82434b50bc977f8240471fcc8d45f3560c965f8010494fad08c0c8510f190c80a203829ffc9f8ca4f7494fad09cd3f191c945fa40823cfac8b200c93bfa40813ca00bc933fa40803c28ffa004c629f8c006fcdc00092160f160f8401ca001c917f8401d28ffa005c60ee0fcdce00e2160f480de00002c5802de00002c5802dc14f0180000ae0371033303ec029a02",
+   "why": "per-profile COLOR-bloom stubs (218 B) in section-1 FF tail",
+   "source": "generated/v04/bloom/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302c47",
+   "expect": "2bbdd5ff",
+   "new": "baba2500",
+   "why": "getter call 0x60302c46 (key 0x84f9 idx 0) rel32 -> wb_get (capture: preset / cat 1)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302c61",
+   "expect": "11bdd5ff",
+   "new": "a0ba2500",
+   "why": "getter call 0x60302c60 (key 0x9679 idx 0) rel32 -> wb_get (capture: preset / cat 1)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302da4",
+   "expect": "cebbd5ff",
+   "new": "5db92500",
+   "why": "getter call 0x60302da3 (key 0x84f9 idx 15) rel32 -> wb_get (capture: Flash)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302db9",
+   "expect": "b9bbd5ff",
+   "new": "48b92500",
+   "why": "getter call 0x60302db8 (key 0x9679 idx 15) rel32 -> wb_get (capture: Flash)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302e36",
+   "expect": "3cbbd5ff",
+   "new": "cbb82500",
+   "why": "getter call 0x60302e35 (key 0x84f9 idx 0) rel32 -> wb_get (capture: one-touch)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302e4c",
+   "expect": "26bbd5ff",
+   "new": "b5b82500",
+   "why": "getter call 0x60302e4b (key 0x9679 idx 0) rel32 -> wb_get (capture: one-touch)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302f24",
+   "expect": "4ebad5ff",
+   "new": "ddb72500",
+   "why": "getter call 0x60302f23 (key 0x84f9 idx 0) rel32 -> wb_get (capture: cat 4)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302f3c",
+   "expect": "36bad5ff",
+   "new": "c5b72500",
+   "why": "getter call 0x60302f3b (key 0x9679 idx 0) rel32 -> wb_get (capture: cat 4)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302f90",
+   "expect": "e2b9d5ff",
+   "new": "71b72500",
+   "why": "getter call 0x60302f8f (key 0x84f9 idx 1) rel32 -> wb_get (capture: Auto)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x60302fa9",
+   "expect": "c9b9d5ff",
+   "new": "58b72500",
+   "why": "getter call 0x60302fa8 (key 0x9679 idx 1) rel32 -> wb_get (capture: Auto)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030bb5c",
+   "expect": "162ed5ff",
+   "new": "a52b2500",
+   "why": "getter call 0x6030bb5b (key 0x84f9 idx 0) rel32 -> wb_get (compact ring slot +97 (live-view candidate))",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030bb6f",
+   "expect": "032ed5ff",
+   "new": "922b2500",
+   "why": "getter call 0x6030bb6e (key 0x9679 idx 0) rel32 -> wb_get (compact ring slot +99 (live-view candidate))",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030eb62",
+   "expect": "10fed4ff",
+   "new": "9ffb2400",
+   "why": "getter call 0x6030eb61 (key 0x84f9 idx 0) rel32 -> wb_get (params builder 0x6030e9d1 -> params+5520)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6030eb78",
+   "expect": "fafdd4ff",
+   "new": "89fb2400",
+   "why": "getter call 0x6030eb77 (key 0x9679 idx 0) rel32 -> wb_get (params builder 0x6030e9d1 -> params+5521)",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x6055e700",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "821a87facaf984c808faca7996c97f2c2181cd84000004a003c8732c8194cd78000004a006c90a2c119dcd6c000004a00bc818a00cc9572c31f7cd5c00000428ffa004c6492804ca102cb1f6cd4a00000428ffa004c637545454fcdc00092160f160f84019f8e081a001c922f8401a280714a00fc618f8441b290715a50fc60ef8ee80c9038428f98ddfc00c881c8d9000dce001b0ff1c049000ddd701b0ffc00cdf0004",
+   "why": "per-profile WB stub wb_get (164 B) in section-2 FF tail",
+   "source": "generated/wb/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x602c805f",
+   "expect": "cd2d01f024",
+   "new": "dca1f32e00",
+   "why": "appevent TRIG tracker call 0x602c805f (call 0x602c818c,[d2,d3,a2,a3],36) -> jmp sd_hook",
+   "source": "generated/sd_probe/P1/edits.json"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x605b7400",
+   "expect": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "new": "dd8c0dd1fff0245810fcc800010002c911fca892765b60a000c807cd0a00f024dc440cd1fffca420e472a2fae0ff01fac8ff01c9573c200cdd74a3a7ff2004a000c949fcadc0bc2c62a500c83ffaed0080c939f8bc0ca4c933fccd00f00000fca4b88ffa61a4c81dfca4c08ffa61a4c814fca4c88ffa61a4c80bfca4d08ffa61a4c90900fc8292765b60dff024",
+   "why": "SD-crash probe P1 (141 B) in section-3 FF tail: the section-3 RAM byte store that v2 makes at 0x605b7484 (to 0x605b7692)",
+   "source": "generated/sd_probe/P1/edits.json"
+  }
+ ],
+ "sources": [
+  "releases/test6-wb/edits.json",
+  "generated/sd_probe/P1/edits.json"
+ ],
+ "meta": {
+  "releases/test6-wb/edits.json": {
+   "sources": [
+    "patches/rec_limit/edits.json",
+    "patches/video_log/edits.json",
+    "generated/bundles-lachlan3/edits.json",
+    "generated/v04/grain/edits.json",
+    "generated/v04/bloom/edits.json",
+    "generated/wb/edits.json"
+   ],
+   "meta": {
+    "patches/rec_limit/edits.json": {},
+    "video_log_A": {
+     "patch": "video_log_A",
+     "trig_log": 3,
+     "trig_flat": null,
+     "code_at": "0x60210c90",
+     "code_len": 42
+    },
+    "bundles-v0.2": {
+     "patch": "bundles-v0.2",
+     "bundle": "bundles/lachlan_v3.json",
+     "labels": {
+      "__bss_start": "0x60210c70",
+      "bundle_table": "0x60210900",
+      "bundle_table_end": "0x60210b00",
+      "code_end": "0x60210c6f",
+      "code_start": "0x60210b48",
+      "conv1": "0x60210b48",
+      "conv2": "0x60210b71",
+      "___ctors": "0x60210c70",
+      "___ctors_end": "0x60210c70",
+      "___dtors": "0x60210c70",
+      "___dtors_end": "0x60210c70",
+      "_edata": "0x60210c70",
+      "_end": "0x60210c70",
+      "hit": "0x60210bd7",
+      "hl": "0x60210b99",
+      "hue_lut": "0x60210b00",
+      ".L0\u0001_0": "0x60210bc0",
+      ".L1\u00021": "0x60210b6c",
+      "light_lut": "0x60210b1e",
+      "out": "0x60210c59",
+      "perm": "0x60210b3c",
+      "rec": "0x60210c27",
+      "scan": "0x60210bca",
+      "_stack": "0x80000",
+      "_start": "0x60210900",
+      "val": "0x60210c11"
+     },
+     "layout": {
+      "job_size": 15512,
+      "ext_profile": 15488,
+      "ext_mode": 15489,
+      "ext_magic": 15490,
+      "magic": 178,
+      "entry_bytes": 64,
+      "slots": [
+       "COLOR1",
+       "COLOR2",
+       "COLOR3",
+       "COLOR4",
+       "MONO1",
+       "MONO2",
+       "MONO3",
+       "MONO4"
+      ]
+     },
+     "slots": [
+      {
+       "slot": "COLOR1",
+       "enabled": false
+      },
+      {
+       "slot": "COLOR2",
+       "enabled": true,
+       "recipe": "classic_neg",
+       "recipe_file": "fuji_like.json",
+       "hue_ui": [
+        0,
+        -1,
+        0,
+        0,
+        7,
+        6,
+        -2,
+        -3,
+        6,
+        7,
+        5,
+        2
+       ],
+       "light_ui": [
+        -4,
+        -4,
+        -3,
+        -2,
+        -1,
+        2,
+        2,
+        3,
+        -1,
+        -3,
+        -5,
+        -5
+       ],
+       "grain": 1,
+       "wb_override": false,
+       "wb_source": null,
+       "wb": [
+        0,
+        0
+       ],
+       "effect": [
+        0,
+        0
+       ],
+       "vignette": 0,
+       "flags": 2,
+       "advice_sat_ui": [
+        -3,
+        -2,
+        -2,
+        0,
+        -1,
+        -5,
+        -5,
+        -3,
+        -1,
+        -4,
+        -4,
+        -4
+       ],
+       "advice_grain": "off",
+       "colour": 0,
+       "sat_ui": null,
+       "native_rows": [
+        [
+         0,
+         -150
+        ],
+        [
+         0,
+         -100
+        ],
+        [
+         -7000,
+         -25
+        ],
+        [
+         2000,
+         50
+        ],
+        [
+         -6000,
+         -25
+        ],
+        [
+         -5000,
+         -200
+        ],
+        [
+         1000,
+         -150
+        ],
+        [
+         0,
+         -50
+        ],
+        [
+         -6000,
+         50
+        ],
+        [
+         3000,
+         100
+        ],
+        [
+         -7000,
+         -100
+        ],
+        [
+         -2000,
+         -200
+        ]
+       ]
+      },
+      {
+       "slot": "COLOR3",
+       "enabled": false
+      },
+      {
+       "slot": "COLOR4",
+       "enabled": true,
+       "recipe": "portra_400_bloom",
+       "recipe_file": "film_look.json",
+       "hue_ui": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        2,
+        2
+       ],
+       "light_ui": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "grain": 0,
+       "wb_override": true,
+       "wb_source": "slot",
+       "wb": [
+        2,
+        0
+       ],
+       "effect": [
+        1,
+        2
+       ],
+       "vignette": 0,
+       "flags": 2,
+       "advice_sat_ui": [
+        -1,
+        0,
+        0,
+        -1,
+        -1,
+        -2,
+        -2,
+        -2,
+        -2,
+        -3,
+        -3,
+        -3
+       ],
+       "advice_grain": null,
+       "colour": 0,
+       "sat_ui": null,
+       "native_rows": [
+        [
+         -1000,
+         25
+        ],
+        [
+         0,
+         25
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         -1000,
+         -25
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         -2000,
+         0
+        ],
+        [
+         -1000,
+         25
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         0,
+         0
+        ],
+        [
+         -2000,
+         0
+        ]
+       ]
+      },
+      {
+       "slot": "MONO1",
+       "enabled": false
+      },
+      {
+       "slot": "MONO2",
+       "enabled": false
+      },
+      {
+       "slot": "MONO3",
+       "enabled": false
+      },
+      {
+       "slot": "MONO4",
+       "enabled": false
+      }
+     ],
+     "table_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ff00000706fefd06070502fcfcfdfeff020203fffdfbfb0100000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000010000000202010101000000ff00000000000001020001020002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "color_grain": {
+     "patch": "color_grain",
+     "level": "bundle",
+     "code_at": "0x60210ce0",
+     "requires": [
+      "bundles-v0.2"
+     ],
+     "grain_gate": "type&0xf0 in {0x10,0x20,0x40} or type&0xf00 == 0x100 -> no grain (stock 0x6035778b)",
+     "grain_layout": {
+      "table": "0x60210900",
+      "slot_bytes": 64,
+      "field": 24,
+      "ext_profile": 15488,
+      "ext_mode": 15489,
+      "ext_magic": 15490,
+      "magic": 178
+     },
+     "symbols": {
+      "grain_mod": "0x60210d9a",
+      "sel_hook": "0x60210d71",
+      "wl_hook": "0x60210ce0"
+     }
+    },
+    "color_bloom": {
+     "patch": "color_bloom",
+     "requires": [
+      "bundles-v0.2"
+     ],
+     "bloom": {
+      "mode": "bundle",
+      "strength_w": [
+       942,
+       881,
+       819,
+       748,
+       666
+      ],
+      "effect_id": 1,
+      "code_at": "0x60210e10",
+      "table": "0x60210900",
+      "f_effect": 28,
+      "f_strength": 29,
+      "ext": {
+       "profile": 15488,
+       "mode": 15489,
+       "marker": 15490,
+       "magic": 178
+      },
+      "cap": {
+       "profile": 24083,
+       "mode": 24053
+      },
+      "guard": {
+       "callback": "0x60355fd4",
+       "req_in_job": 11364,
+       "records": 14576,
+       "stride": 56,
+       "n": 16
+      },
+      "symbols": {
+       "bloom_flag": "0x60210e10",
+       "bloom_w": "0x60210e5b",
+       "w_lut": "0x60210ee0"
+      }
+     }
+    },
+    "wb_profile": {
+     "patch": "wb_profile",
+     "wb": {
+      "code_at": "0x6055e700",
+      "code_len": 164,
+      "getter": "0x6005e971",
+      "sites": [
+       {
+        "site": "0x60302c46",
+        "key": 34041,
+        "idx": 0,
+        "role": "capture: preset / cat 1"
+       },
+       {
+        "site": "0x60302c60",
+        "key": 38521,
+        "idx": 0,
+        "role": "capture: preset / cat 1"
+       },
+       {
+        "site": "0x60302da3",
+        "key": 34041,
+        "idx": 15,
+        "role": "capture: Flash"
+       },
+       {
+        "site": "0x60302db8",
+        "key": 38521,
+        "idx": 15,
+        "role": "capture: Flash"
+       },
+       {
+        "site": "0x60302e35",
+        "key": 34041,
+        "idx": 0,
+        "role": "capture: one-touch"
+       },
+       {
+        "site": "0x60302e4b",
+        "key": 38521,
+        "idx": 0,
+        "role": "capture: one-touch"
+       },
+       {
+        "site": "0x60302f23",
+        "key": 34041,
+        "idx": 0,
+        "role": "capture: cat 4"
+       },
+       {
+        "site": "0x60302f3b",
+        "key": 38521,
+        "idx": 0,
+        "role": "capture: cat 4"
+       },
+       {
+        "site": "0x60302f8f",
+        "key": 34041,
+        "idx": 1,
+        "role": "capture: Auto"
+       },
+       {
+        "site": "0x60302fa8",
+        "key": 38521,
+        "idx": 1,
+        "role": "capture: Auto"
+       },
+       {
+        "site": "0x6030bb5b",
+        "key": 34041,
+        "idx": 0,
+        "role": "compact ring slot +97 (live-view candidate)"
+       },
+       {
+        "site": "0x6030bb6e",
+        "key": 38521,
+        "idx": 0,
+        "role": "compact ring slot +99 (live-view candidate)"
+       },
+       {
+        "site": "0x6030eb61",
+        "key": 34041,
+        "idx": 0,
+        "role": "params builder 0x6030e9d1 -> params+5520"
+       },
+       {
+        "site": "0x6030eb77",
+        "key": 38521,
+        "idx": 0,
+        "role": "params builder 0x6030e9d1 -> params+5521"
+       }
+      ],
+      "raw_sites_stock": [
+       "0x60c68a45",
+       "0x60c68a59"
+      ],
+      "keys": {
+       "a_b": 34041,
+       "g_m": 38521,
+       "wb_category": 33057,
+       "cwb": 3,
+       "picture_mode": 38017,
+       "picture_mode6": 40209,
+       "color_profile": 63153,
+       "mono_profile": 63281
+      },
+      "layout": {
+       "bundle_table": "0x60210900",
+       "slot_bytes": 64,
+       "wb_flags": 25,
+       "wb_ab": 26,
+       "wb_gm": 27
+      },
+      "symbols": {
+       "__bss_start": "0x6055e7a4",
+       "___ctors": "0x6055e7a4",
+       "___ctors_end": "0x6055e7a4",
+       "___dtors": "0x6055e7a4",
+       "___dtors_end": "0x6055e7a4",
+       "_edata": "0x6055e7a4",
+       "_end": "0x6055e7a4",
+       "_stack": "0x80000",
+       "_start": "0x6055e700",
+       "wb_color": "0x6055e749",
+       "wb_get": "0x6055e700",
+       "wb_key": "0x6055e70f",
+       "wb_mode": "0x6055e72f",
+       "wb_pass": "0x6055e78c",
+       "wb_prop": "0x6055e796",
+       "wb_ret": "0x6055e786",
+       "wb_slot": "0x6055e757"
+      },
+      "requires": "bundles-v0.2 table at bundle_table (merge with patches/bundles/build.py output)"
+     }
+    }
+   },
+   "code_at": "0x60210c90",
+   "bundle": "bundles/lachlan_v3.json",
+   "labels": {
+    "__bss_start": "0x60210c70",
+    "bundle_table": "0x60210900",
+    "bundle_table_end": "0x60210b00",
+    "code_end": "0x60210c6f",
+    "code_start": "0x60210b48",
+    "conv1": "0x60210b48",
+    "conv2": "0x60210b71",
+    "___ctors": "0x60210c70",
+    "___ctors_end": "0x60210c70",
+    "___dtors": "0x60210c70",
+    "___dtors_end": "0x60210c70",
+    "_edata": "0x60210c70",
+    "_end": "0x60210c70",
+    "hit": "0x60210bd7",
+    "hl": "0x60210b99",
+    "hue_lut": "0x60210b00",
+    ".L0\u0001_0": "0x60210bc0",
+    ".L1\u00021": "0x60210b6c",
+    "light_lut": "0x60210b1e",
+    "out": "0x60210c59",
+    "perm": "0x60210b3c",
+    "rec": "0x60210c27",
+    "scan": "0x60210bca",
+    "_stack": "0x80000",
+    "_start": "0x60210900",
+    "val": "0x60210c11"
+   },
+   "table_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ff00000706fefd06070502fcfcfdfeff020203fffdfbfb0100000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000010000000202010101000000ff00000000000001020001020002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+   "slots": [
+    {
+     "slot": "COLOR1",
+     "enabled": false
+    },
+    {
+     "slot": "COLOR2",
+     "enabled": true,
+     "recipe": "classic_neg",
+     "recipe_file": "fuji_like.json",
+     "hue_ui": [
+      0,
+      -1,
+      0,
+      0,
+      7,
+      6,
+      -2,
+      -3,
+      6,
+      7,
+      5,
+      2
+     ],
+     "light_ui": [
+      -4,
+      -4,
+      -3,
+      -2,
+      -1,
+      2,
+      2,
+      3,
+      -1,
+      -3,
+      -5,
+      -5
+     ],
+     "grain": 1,
+     "wb_override": false,
+     "wb_source": null,
+     "wb": [
+      0,
+      0
+     ],
+     "effect": [
+      0,
+      0
+     ],
+     "vignette": 0,
+     "flags": 2,
+     "advice_sat_ui": [
+      -3,
+      -2,
+      -2,
+      0,
+      -1,
+      -5,
+      -5,
+      -3,
+      -1,
+      -4,
+      -4,
+      -4
+     ],
+     "advice_grain": "off",
+     "colour": 0,
+     "sat_ui": null,
+     "native_rows": [
+      [
+       0,
+       -150
+      ],
+      [
+       0,
+       -100
+      ],
+      [
+       -7000,
+       -25
+      ],
+      [
+       2000,
+       50
+      ],
+      [
+       -6000,
+       -25
+      ],
+      [
+       -5000,
+       -200
+      ],
+      [
+       1000,
+       -150
+      ],
+      [
+       0,
+       -50
+      ],
+      [
+       -6000,
+       50
+      ],
+      [
+       3000,
+       100
+      ],
+      [
+       -7000,
+       -100
+      ],
+      [
+       -2000,
+       -200
+      ]
+     ]
+    },
+    {
+     "slot": "COLOR3",
+     "enabled": false
+    },
+    {
+     "slot": "COLOR4",
+     "enabled": true,
+     "recipe": "portra_400_bloom",
+     "recipe_file": "film_look.json",
+     "hue_ui": [
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      2,
+      2
+     ],
+     "light_ui": [
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      -1,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "grain": 0,
+     "wb_override": true,
+     "wb_source": "slot",
+     "wb": [
+      2,
+      0
+     ],
+     "effect": [
+      1,
+      2
+     ],
+     "vignette": 0,
+     "flags": 2,
+     "advice_sat_ui": [
+      -1,
+      0,
+      0,
+      -1,
+      -1,
+      -2,
+      -2,
+      -2,
+      -2,
+      -3,
+      -3,
+      -3
+     ],
+     "advice_grain": null,
+     "colour": 0,
+     "sat_ui": null,
+     "native_rows": [
+      [
+       -1000,
+       25
+      ],
+      [
+       0,
+       25
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       -1000,
+       -25
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       -2000,
+       0
+      ],
+      [
+       -1000,
+       25
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       -2000,
+       0
+      ]
+     ]
+    },
+    {
+     "slot": "MONO1",
+     "enabled": false
+    },
+    {
+     "slot": "MONO2",
+     "enabled": false
+    },
+    {
+     "slot": "MONO3",
+     "enabled": false
+    },
+    {
+     "slot": "MONO4",
+     "enabled": false
+    }
+   ],
+   "layout": {
+    "job_size": 15512,
+    "ext_profile": 15488,
+    "ext_mode": 15489,
+    "ext_magic": 15490,
+    "magic": 178,
+    "entry_bytes": 64,
+    "slots": [
+     "COLOR1",
+     "COLOR2",
+     "COLOR3",
+     "COLOR4",
+     "MONO1",
+     "MONO2",
+     "MONO3",
+     "MONO4"
+    ]
+   },
+   "symbols": {
+    "grain_mod": "0x60210d9a",
+    "sel_hook": "0x60210d71",
+    "wl_hook": "0x60210ce0"
+   },
+   "level": "bundle",
+   "bloom": {
+    "mode": "bundle",
+    "strength_w": [
+     942,
+     881,
+     819,
+     748,
+     666
+    ],
+    "effect_id": 1,
+    "code_at": "0x60210e10",
+    "table": "0x60210900",
+    "f_effect": 28,
+    "f_strength": 29,
+    "ext": {
+     "profile": 15488,
+     "mode": 15489,
+     "marker": 15490,
+     "magic": 178
+    },
+    "cap": {
+     "profile": 24083,
+     "mode": 24053
+    },
+    "guard": {
+     "callback": "0x60355fd4",
+     "req_in_job": 11364,
+     "records": 14576,
+     "stride": 56,
+     "n": 16
+    },
+    "symbols": {
+     "bloom_flag": "0x60210e10",
+     "bloom_w": "0x60210e5b",
+     "w_lut": "0x60210ee0"
+    }
+   },
+   "wb": {
+    "code_at": "0x6055e700",
+    "code_len": 164,
+    "getter": "0x6005e971",
+    "sites": [
+     {
+      "site": "0x60302c46",
+      "key": 34041,
+      "idx": 0,
+      "role": "capture: preset / cat 1"
+     },
+     {
+      "site": "0x60302c60",
+      "key": 38521,
+      "idx": 0,
+      "role": "capture: preset / cat 1"
+     },
+     {
+      "site": "0x60302da3",
+      "key": 34041,
+      "idx": 15,
+      "role": "capture: Flash"
+     },
+     {
+      "site": "0x60302db8",
+      "key": 38521,
+      "idx": 15,
+      "role": "capture: Flash"
+     },
+     {
+      "site": "0x60302e35",
+      "key": 34041,
+      "idx": 0,
+      "role": "capture: one-touch"
+     },
+     {
+      "site": "0x60302e4b",
+      "key": 38521,
+      "idx": 0,
+      "role": "capture: one-touch"
+     },
+     {
+      "site": "0x60302f23",
+      "key": 34041,
+      "idx": 0,
+      "role": "capture: cat 4"
+     },
+     {
+      "site": "0x60302f3b",
+      "key": 38521,
+      "idx": 0,
+      "role": "capture: cat 4"
+     },
+     {
+      "site": "0x60302f8f",
+      "key": 34041,
+      "idx": 1,
+      "role": "capture: Auto"
+     },
+     {
+      "site": "0x60302fa8",
+      "key": 38521,
+      "idx": 1,
+      "role": "capture: Auto"
+     },
+     {
+      "site": "0x6030bb5b",
+      "key": 34041,
+      "idx": 0,
+      "role": "compact ring slot +97 (live-view candidate)"
+     },
+     {
+      "site": "0x6030bb6e",
+      "key": 38521,
+      "idx": 0,
+      "role": "compact ring slot +99 (live-view candidate)"
+     },
+     {
+      "site": "0x6030eb61",
+      "key": 34041,
+      "idx": 0,
+      "role": "params builder 0x6030e9d1 -> params+5520"
+     },
+     {
+      "site": "0x6030eb77",
+      "key": 38521,
+      "idx": 0,
+      "role": "params builder 0x6030e9d1 -> params+5521"
+     }
+    ],
+    "raw_sites_stock": [
+     "0x60c68a45",
+     "0x60c68a59"
+    ],
+    "keys": {
+     "a_b": 34041,
+     "g_m": 38521,
+     "wb_category": 33057,
+     "cwb": 3,
+     "picture_mode": 38017,
+     "picture_mode6": 40209,
+     "color_profile": 63153,
+     "mono_profile": 63281
+    },
+    "layout": {
+     "bundle_table": "0x60210900",
+     "slot_bytes": 64,
+     "wb_flags": 25,
+     "wb_ab": 26,
+     "wb_gm": 27
+    },
+    "symbols": {
+     "__bss_start": "0x6055e7a4",
+     "___ctors": "0x6055e7a4",
+     "___ctors_end": "0x6055e7a4",
+     "___dtors": "0x6055e7a4",
+     "___dtors_end": "0x6055e7a4",
+     "_edata": "0x6055e7a4",
+     "_end": "0x6055e7a4",
+     "_stack": "0x80000",
+     "_start": "0x6055e700",
+     "wb_color": "0x6055e749",
+     "wb_get": "0x6055e700",
+     "wb_key": "0x6055e70f",
+     "wb_mode": "0x6055e72f",
+     "wb_pass": "0x6055e78c",
+     "wb_prop": "0x6055e796",
+     "wb_ret": "0x6055e786",
+     "wb_slot": "0x6055e757"
+    },
+    "requires": "bundles-v0.2 table at bundle_table (merge with patches/bundles/build.py output)"
+   }
+  },
+  "sd_probe_P1": {
+   "patch": "sd_probe_P1",
+   "sd_probe": {
+    "probe": "P1",
+    "tests": "the section-3 RAM byte store that v2 makes at 0x605b7484 (to 0x605b7692)",
+    "code_at": "0x605b7400",
+    "code_len": 141,
+    "site": "0x602c805f",
+    "site_ret": "0x602c8064",
+    "trig": "0x602c818c",
+    "ev_press": "0x2000100",
+    "state": "0x605b7692",
+    "state_width": 1,
+    "state_init": 255,
+    "store_value": 0,
+    "services": {
+     "ep7_trig": "0x602c818c",
+     "ep7_trig_ret": "0x602c8064",
+     "ep7_get_tid": "0x600317ac",
+     "ep7_secbits": "0xa272e420",
+     "ep7_hls_tid": "0x622cbcc0",
+     "ep7_ms_a": "0x61fa8fb8",
+     "ep7_ms_b": "0x61fa8fc0",
+     "ep7_ms_c": "0x61fa8fc8",
+     "ep7_ms_d": "0x61fa8fd0"
+    },
+    "symbols": {
+     "__bss_start": "0x605b748d",
+     "___ctors": "0x605b748d",
+     "___ctors_end": "0x605b748d",
+     "___dtors": "0x605b748d",
+     "___dtors_end": "0x605b748d",
+     "_edata": "0x605b748d",
+     "_end": "0x605b7490",
+     "sd_back": "0x605b7420",
+     "sd_gate": "0x605b7425",
+     "sd_go": "0x605b7483",
+     "sd_gout": "0x605b748a",
+     "sd_hook": "0x605b7400",
+     "_stack": "0x80000",
+     "_start": "0x605b7400"
+    },
+    "conflicts": "sd_bundles (v1), sd_bundles_v2, other sd_probe builds"
+   }
+  }
+ },
+ "bundle": "bundles/lachlan_v3.json",
+ "labels": {
+  "__bss_start": "0x60210c70",
+  "bundle_table": "0x60210900",
+  "bundle_table_end": "0x60210b00",
+  "code_end": "0x60210c6f",
+  "code_start": "0x60210b48",
+  "conv1": "0x60210b48",
+  "conv2": "0x60210b71",
+  "___ctors": "0x60210c70",
+  "___ctors_end": "0x60210c70",
+  "___dtors": "0x60210c70",
+  "___dtors_end": "0x60210c70",
+  "_edata": "0x60210c70",
+  "_end": "0x60210c70",
+  "hit": "0x60210bd7",
+  "hl": "0x60210b99",
+  "hue_lut": "0x60210b00",
+  ".L0\u0001_0": "0x60210bc0",
+  ".L1\u00021": "0x60210b6c",
+  "light_lut": "0x60210b1e",
+  "out": "0x60210c59",
+  "perm": "0x60210b3c",
+  "rec": "0x60210c27",
+  "scan": "0x60210bca",
+  "_stack": "0x80000",
+  "_start": "0x60210900",
+  "val": "0x60210c11"
+ },
+ "table_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ff00000706fefd06070502fcfcfdfeff020203fffdfbfb0100000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000010000000202010101000000ff00000000000001020001020002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+ "slots": [
+  {
+   "slot": "COLOR1",
+   "enabled": false
+  },
+  {
+   "slot": "COLOR2",
+   "enabled": true,
+   "recipe": "classic_neg",
+   "recipe_file": "fuji_like.json",
+   "hue_ui": [
+    0,
+    -1,
+    0,
+    0,
+    7,
+    6,
+    -2,
+    -3,
+    6,
+    7,
+    5,
+    2
+   ],
+   "light_ui": [
+    -4,
+    -4,
+    -3,
+    -2,
+    -1,
+    2,
+    2,
+    3,
+    -1,
+    -3,
+    -5,
+    -5
+   ],
+   "grain": 1,
+   "wb_override": false,
+   "wb_source": null,
+   "wb": [
+    0,
+    0
+   ],
+   "effect": [
+    0,
+    0
+   ],
+   "vignette": 0,
+   "flags": 2,
+   "advice_sat_ui": [
+    -3,
+    -2,
+    -2,
+    0,
+    -1,
+    -5,
+    -5,
+    -3,
+    -1,
+    -4,
+    -4,
+    -4
+   ],
+   "advice_grain": "off",
+   "colour": 0,
+   "sat_ui": null,
+   "native_rows": [
+    [
+     0,
+     -150
+    ],
+    [
+     0,
+     -100
+    ],
+    [
+     -7000,
+     -25
+    ],
+    [
+     2000,
+     50
+    ],
+    [
+     -6000,
+     -25
+    ],
+    [
+     -5000,
+     -200
+    ],
+    [
+     1000,
+     -150
+    ],
+    [
+     0,
+     -50
+    ],
+    [
+     -6000,
+     50
+    ],
+    [
+     3000,
+     100
+    ],
+    [
+     -7000,
+     -100
+    ],
+    [
+     -2000,
+     -200
+    ]
+   ]
+  },
+  {
+   "slot": "COLOR3",
+   "enabled": false
+  },
+  {
+   "slot": "COLOR4",
+   "enabled": true,
+   "recipe": "portra_400_bloom",
+   "recipe_file": "film_look.json",
+   "hue_ui": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    2,
+    2
+   ],
+   "light_ui": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    -1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "grain": 0,
+   "wb_override": true,
+   "wb_source": "slot",
+   "wb": [
+    2,
+    0
+   ],
+   "effect": [
+    1,
+    2
+   ],
+   "vignette": 0,
+   "flags": 2,
+   "advice_sat_ui": [
+    -1,
+    0,
+    0,
+    -1,
+    -1,
+    -2,
+    -2,
+    -2,
+    -2,
+    -3,
+    -3,
+    -3
+   ],
+   "advice_grain": null,
+   "colour": 0,
+   "sat_ui": null,
+   "native_rows": [
+    [
+     -1000,
+     25
+    ],
+    [
+     0,
+     25
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     -1000,
+     -25
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     -2000,
+     0
+    ],
+    [
+     -1000,
+     25
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     -2000,
+     0
+    ]
+   ]
+  },
+  {
+   "slot": "MONO1",
+   "enabled": false
+  },
+  {
+   "slot": "MONO2",
+   "enabled": false
+  },
+  {
+   "slot": "MONO3",
+   "enabled": false
+  },
+  {
+   "slot": "MONO4",
+   "enabled": false
+  }
+ ],
+ "layout": {
+  "job_size": 15512,
+  "ext_profile": 15488,
+  "ext_mode": 15489,
+  "ext_magic": 15490,
+  "magic": 178,
+  "entry_bytes": 64,
+  "slots": [
+   "COLOR1",
+   "COLOR2",
+   "COLOR3",
+   "COLOR4",
+   "MONO1",
+   "MONO2",
+   "MONO3",
+   "MONO4"
+  ]
+ },
+ "symbols": {
+  "grain_mod": "0x60210d9a",
+  "sel_hook": "0x60210d71",
+  "wl_hook": "0x60210ce0"
+ },
+ "level": "bundle",
+ "code_at": "0x60210c90",
+ "bloom": {
+  "mode": "bundle",
+  "strength_w": [
+   942,
+   881,
+   819,
+   748,
+   666
+  ],
+  "effect_id": 1,
+  "code_at": "0x60210e10",
+  "table": "0x60210900",
+  "f_effect": 28,
+  "f_strength": 29,
+  "ext": {
+   "profile": 15488,
+   "mode": 15489,
+   "marker": 15490,
+   "magic": 178
+  },
+  "cap": {
+   "profile": 24083,
+   "mode": 24053
+  },
+  "guard": {
+   "callback": "0x60355fd4",
+   "req_in_job": 11364,
+   "records": 14576,
+   "stride": 56,
+   "n": 16
+  },
+  "symbols": {
+   "bloom_flag": "0x60210e10",
+   "bloom_w": "0x60210e5b",
+   "w_lut": "0x60210ee0"
+  }
+ },
+ "wb": {
+  "code_at": "0x6055e700",
+  "code_len": 164,
+  "getter": "0x6005e971",
+  "sites": [
+   {
+    "site": "0x60302c46",
+    "key": 34041,
+    "idx": 0,
+    "role": "capture: preset / cat 1"
+   },
+   {
+    "site": "0x60302c60",
+    "key": 38521,
+    "idx": 0,
+    "role": "capture: preset / cat 1"
+   },
+   {
+    "site": "0x60302da3",
+    "key": 34041,
+    "idx": 15,
+    "role": "capture: Flash"
+   },
+   {
+    "site": "0x60302db8",
+    "key": 38521,
+    "idx": 15,
+    "role": "capture: Flash"
+   },
+   {
+    "site": "0x60302e35",
+    "key": 34041,
+    "idx": 0,
+    "role": "capture: one-touch"
+   },
+   {
+    "site": "0x60302e4b",
+    "key": 38521,
+    "idx": 0,
+    "role": "capture: one-touch"
+   },
+   {
+    "site": "0x60302f23",
+    "key": 34041,
+    "idx": 0,
+    "role": "capture: cat 4"
+   },
+   {
+    "site": "0x60302f3b",
+    "key": 38521,
+    "idx": 0,
+    "role": "capture: cat 4"
+   },
+   {
+    "site": "0x60302f8f",
+    "key": 34041,
+    "idx": 1,
+    "role": "capture: Auto"
+   },
+   {
+    "site": "0x60302fa8",
+    "key": 38521,
+    "idx": 1,
+    "role": "capture: Auto"
+   },
+   {
+    "site": "0x6030bb5b",
+    "key": 34041,
+    "idx": 0,
+    "role": "compact ring slot +97 (live-view candidate)"
+   },
+   {
+    "site": "0x6030bb6e",
+    "key": 38521,
+    "idx": 0,
+    "role": "compact ring slot +99 (live-view candidate)"
+   },
+   {
+    "site": "0x6030eb61",
+    "key": 34041,
+    "idx": 0,
+    "role": "params builder 0x6030e9d1 -> params+5520"
+   },
+   {
+    "site": "0x6030eb77",
+    "key": 38521,
+    "idx": 0,
+    "role": "params builder 0x6030e9d1 -> params+5521"
+   }
+  ],
+  "raw_sites_stock": [
+   "0x60c68a45",
+   "0x60c68a59"
+  ],
+  "keys": {
+   "a_b": 34041,
+   "g_m": 38521,
+   "wb_category": 33057,
+   "cwb": 3,
+   "picture_mode": 38017,
+   "picture_mode6": 40209,
+   "color_profile": 63153,
+   "mono_profile": 63281
+  },
+  "layout": {
+   "bundle_table": "0x60210900",
+   "slot_bytes": 64,
+   "wb_flags": 25,
+   "wb_ab": 26,
+   "wb_gm": 27
+  },
+  "symbols": {
+   "__bss_start": "0x6055e7a4",
+   "___ctors": "0x6055e7a4",
+   "___ctors_end": "0x6055e7a4",
+   "___dtors": "0x6055e7a4",
+   "___dtors_end": "0x6055e7a4",
+   "_edata": "0x6055e7a4",
+   "_end": "0x6055e7a4",
+   "_stack": "0x80000",
+   "_start": "0x6055e700",
+   "wb_color": "0x6055e749",
+   "wb_get": "0x6055e700",
+   "wb_key": "0x6055e70f",
+   "wb_mode": "0x6055e72f",
+   "wb_pass": "0x6055e78c",
+   "wb_prop": "0x6055e796",
+   "wb_ret": "0x6055e786",
+   "wb_slot": "0x6055e757"
+  },
+  "requires": "bundles-v0.2 table at bundle_table (merge with patches/bundles/build.py output)"
+ }
+}
