@@ -1,0 +1,2 @@
+{"COLOR2": {"recipe": "classic_neg", "wb": null, "grain": "low"},
+ "COLOR4": {"recipe": "portra_400_bloom", "wb": {"a_b": 2, "g_m": 0}, "effect": {"type": "bloom", "strength": 2}}}
