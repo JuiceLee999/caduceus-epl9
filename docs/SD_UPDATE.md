@@ -225,7 +225,7 @@ success, not a byte comparison.
   0xa01/0xa02 through 0x60c64bd2) runs only in mode 4, which is the USB/app path.
 - LED sequence [V for the mode numbers, I for how they look]:
   - during work: mode 1 (code 255), probably steady;
-  - success: mode 2 (code 250), a longer blink period;
+  - success: mode 2 (code 250) — **ON CAMERA: ~2 Hz blink after the solid phase = SUCCESS (proven 2026-11-01 by OSD probe)**;
   - failure: mode 3 (code 100), a shorter blink period.
   - The period is derived as 15686/(1000/code)/4 at 0x601e7440–0x601e7456.
 - Then it waits for the power switch to go off and powers off ("Power OFF"). There is no auto-reboot
