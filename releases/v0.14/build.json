@@ -2,12 +2,12 @@
   "components": [
     "0x100"
   ],
-  "edits": 274,
-  "changed_payload_bytes": 12445,
-  "spec": "releases/test13/edits.json",
-  "spec_sha256": "d399cf66e1e2d4ac8b2af0b41bfbb25892bf4ecaf4fea53749f7b2bdf343a01e",
+  "edits": 273,
+  "changed_payload_bytes": 12182,
+  "spec": "releases/v0.14/edits.json",
+  "spec_sha256": "d3e9a34381f6d073082102308efe230b7058014acd6abfc38221d9272f000ea0",
   "stock_sha256": "9d1610124ad98f6edae4540182205f06c9c703d9033ef0c4f19847193f95eaeb",
-  "patched_sha256": "d511bb1191784db2eae52a2d43d8aa2da6857bc1cedea9c85328c1cd33da512f",
+  "patched_sha256": "c078021d2f0909b86a5faeb50dce6f2cd8f29deb562bbe881228d447bf92f026",
   "restore_sha256": "245b9c8fcf247a0271121238b09769b5d90f682924e3086aacc4762211b82612",
   "bytes": 26214400,
   "camera_contacted": false,

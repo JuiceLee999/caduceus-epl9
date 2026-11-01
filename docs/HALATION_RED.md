@@ -257,3 +257,30 @@ User go-ahead after §9: route 2, red tint only.
   - A stall is possible on the hardware side only. The CPU side always falls back.
 - Verified: `tools/ep7_red_probe_verify.py` S 110 / B 66; halation F/D pass, and W differs only in the (sp) call scratch
   word. Anti-brick: decode == stock + edits, restore == stock.
+
+### 10b. Camera result (PB021392–1394, testdata/camera_v014): garbled frames, probe reverted in releases/v0.14
+The red slots came out as a salmon/brown frame with a regular grid of about 65 px tiles (about 80 × 60 across 5184 × 3888).
+Each tile is either the flat colour or the image showing through a dark, rounded blob. Mono and plain shots (1391, 1395) were fine.
+
+What this tells us:
+- **Proven:**
+  - The capture did not stall.
+  - Mode 0x1002 does lerp(image, colour word, mask): where the "mask" is low, the image survives, including sharp text.
+  - The colour word's byte 2 drives Cr: the hue is red/salmon, not blue.
+  - So the bank shape, port +148 and the colour path work.
+- **Inferred [I]:**
+  - The mask port does not read the 0x0305 (4 B/px, 160 × 120) reduce buffer as one value per pixel. The grid is half of
+    160 × 120 per axis. Each tile is interpolated on its own, so blobs are not continuous across tiles.
+  - That points to the port expecting the shading mask's own format: probably 1 B/px or a block-grid / tile layout
+    with its own stride.
+  - It read our YCbCr bytes as that layout. The wrong stride and format give quasi-random, mostly saturated values, so
+    most tiles hit full colour.
+- **For a retry:**
+  - Trace the shading mask's format, size and stride where it is built (0x6036b635 → 0x6036cec0) and copy that descriptor
+    shape.
+  - Feed the port a buffer in that format, e.g. a reduce pass that writes Y only. Do not feed it the 0x1060 image buffer.
+  - A threshold or scale on the mask is still needed: bright flat areas would otherwise tint.
+
+The release is back to the §8 chroma-spread bank for red slots: 273 edits, bloom edits identical to the pre-probe build,
+the log probe kept, and the card unchanged (COLOR1 = bloom 4 red). `--red-probe` stays in patches/bloom/build.py for a
+future retry, off by default.

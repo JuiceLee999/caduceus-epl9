@@ -282,3 +282,6 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
   - Card: COLOR1 = bloom 4 Red, other slots kept from the 13c card.
   - Checks: probe S 110 / B 66, halation F 24 / D 112 (W: (sp) scratch word only). Decode == emulated image, restore == stock.
     No mutations. Not camera-tested. docs/HALATION_RED.md §10.
+- v0.14 (was test13): the red mask probe garbled frames (salmon ~65 px tile grid; mask port does not read the 0x0305 reduce
+  buffer as a per-pixel mask). Reverted in place: 273 edits, bloom edits == pre-probe build, log probe kept. Halation
+  F/W/D pass; decode == stock+edits, restore == stock; SHA256SUMS regenerated. HALATION_RED §10b.
