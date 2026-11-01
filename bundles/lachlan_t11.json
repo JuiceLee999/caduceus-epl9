@@ -1,0 +1,31 @@
+{
+ "_comment": "test11: lachlan_v3_names + COLOR2 clarity 3",
+ "COLOR1": {
+  "name": "Kodachrome"
+ },
+ "COLOR2": {
+  "recipe": "classic_neg",
+  "wb": null,
+  "grain": "low",
+  "name": "Classic Neg",
+  "effect": {
+   "type": "clarity",
+   "strength": 3
+  }
+ },
+ "COLOR3": {
+  "name": "Warm"
+ },
+ "COLOR4": {
+  "recipe": "portra_400_bloom",
+  "wb": {
+   "a_b": 2,
+   "g_m": 0
+  },
+  "effect": {
+   "type": "bloom",
+   "strength": 2
+  },
+  "name": "Portra"
+ }
+}

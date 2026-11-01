@@ -218,3 +218,4 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - Test 8 film-sim menu (agent): BUNDLES.BIN 680 B w/ names; loader --names; 2 label hooks + 40 entries; 44,703 label sources × builders × 11 states pass; readers pass. Card: Kodachrome / Classic Neg / Warm / Portra.
 - **TEST 8 step A PASSED (camera):** stock labels without file.
 - **TEST 8 PASSED (camera):** Picture Mode shows Kodachrome / Classic Neg / Warm / Portra from card. Tagged v0.6 (= test8 + card).
+- Test 11 = v0.6 + clarity + view assist (83 edits): clarity 21/21, menu S/X/M, bloom, view assist S/P/M pass; loader byte-identical to test8. Card: lachlan names + COLOR2 clarity 3.
