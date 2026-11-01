@@ -1,0 +1,184 @@
+/* E-P7 1.1 look editor, phase 1 core (ep7-firmware, our own code). docs/LOOK_EDITOR.md.
+ * Section 3 (loads before section 5, where the hooked vtable words and the setter site live).
+ *
+ *   ed_get     <- facade vtable word 0x60acb0e4 (GetValue, stock 0x607f9549; CALLS, d0 id, a1 out)
+ *   ed_default <- facade vtable word 0x60acb174 (GetDefault, stock 0x607f964a; same convention)
+ *   ed_set     <- 0x607fa355 `call 0x60827440,[d2,d3,a2],16` (GUI setter; d0 id, d1 value, a0 inner)
+ *
+ * The H/L path is taken only when ALL hold (macro WHERE):
+ *   id is a COLOR saturation sector: 927..962 (COLOR1-3) or 1655..1666 (COLOR4);
+ *   h = u16 {state}: 1 <= h <= {lim}, (h-1) % 4 == 0; P = {pool} + h - 1 holds 'EP7B';
+ *   P+{emark} holds 'EP7E' and the axis byte P+{axis} is 1 (Light) or 2 (Hue).
+ * Otherwise every register, the stack and MDR are exactly as at entry and we jump to the stock routine.
+ * Values: table byte P + 32 + 64*slot + sector (+12 for Light), UI -7..7; phase 1 shows and accepts -5..5
+ * (the stock saturation lists): reads clamp to -5..5, writes outside -5..5 are refused.
+ * Stores (H/L path only): the table byte, the slot flags byte P+32+64*slot+31 (bit 1, after the value), the
+ * dirty byte P+{dirty}; plus stack. No calls, no mul/div, no setlb/Lcc.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+/* in d0 = id; out (hit): a2 = P, d2 = 64*slot + sector, d3 = 0 Light / 1 Hue. Uses d2, d3, a2 only. */
+ .macro WHERE miss
+ mov d0,d2
+ exthu d2
+ add -927,d2
+ cmp 12,d2
+ bcs 1f
+ add -12,d2
+ cmp 12,d2
+ bcs 2f
+ add -12,d2
+ cmp 12,d2
+ bcs 3f
+ add -704,d2                      /* id - 1655 */
+ cmp 12,d2
+ bcc \miss
+ add 64,d2
+3:
+ add 64,d2
+2:
+ add 64,d2
+1:
+ movhu ({state}),d3
+ add -1,d3
+ cmp {lim},d3
+ bcc \miss
+ btst 3,d3
+ bne \miss
+ mov d3,a2
+ add {pool},a2
+ mov (a2),d3
+ cmp {bmagic},d3
+ bne \miss
+ mov ({emark},a2),d3
+ cmp {emagic},d3
+ bne \miss
+ movbu ({axis},a2),d3
+ add -1,d3
+ cmp 2,d3
+ bcc \miss
+ .endm
+
+ed_get:                           /* CALLS entry: (sp) = return address */
+ cmp 0,a1
+ beq g_stock
+ movm [d2,d3,a2],(sp)
+ WHERE g_miss
+ add d2,a2
+ cmp 0,d3
+ bne 4f
+ add 12,a2                        /* Light */
+4:
+ movbu (32,a2),d0
+ extb d0
+ cmp -5,d0
+ bge 5f
+ mov -5,d0
+5:
+ cmp 5,d0
+ ble 6f
+ mov 5,d0
+6:
+ mov d0,(a1)
+ movm (sp),[d2,d3,a2]
+ clr d0
+ rets
+g_miss:
+ movm (sp),[d2,d3,a2]
+g_stock:
+ jmp ep7_get
+
+ed_default:
+ cmp 0,a1
+ beq d_stock
+ movm [d2,d3,a2],(sp)
+ WHERE d_miss
+ clr d0
+ mov d0,(a1)                      /* H/L default is neutral */
+ movm (sp),[d2,d3,a2]
+ rets
+d_miss:
+ movm (sp),[d2,d3,a2]
+d_stock:
+ jmp ep7_default
+
+ed_set:                           /* entered by call ...,[d2,d3,a2],16 exactly like 0x60827440: d2/d3/a2 free */
+ WHERE s_stock
+ cmp -5,d1
+ blt s_bad
+ cmp 5,d1
+ bgt s_bad
+ mov a2,a0
+ add d2,a0
+ cmp 0,d3
+ bne 7f
+ add 12,a0
+7:
+ movbu d1,(32,a0)                 /* the value first ... */
+ mov d2,d0
+ and 0xc0,d0
+ add a2,d0
+ mov d0,a0
+ movbu (63,a0),d1
+ or 2,d1
+ movbu d1,(63,a0)                 /* ... then the slot's H/L enable bit ... */
+ mov 1,d0
+ movbu d0,({dirty},a2)            /* ... then dirty (saved to the card on the next half-press) */
+ ret [d2,d3,a2],16                /* d0 = 1: success, no settings write */
+s_bad:
+ clr d0
+ ret [d2,d3,a2],16
+s_stock:
+ jmp ep7_manager
+
+/* P validation: out a2 = P; uses d3, a2. */
+ .macro PVAL miss
+ movhu ({state}),d3
+ add -1,d3
+ cmp {lim},d3
+ bcc \miss
+ btst 3,d3
+ bne \miss
+ mov d3,a2
+ add {pool},a2
+ mov (a2),d3
+ cmp {bmagic},d3
+ bne \miss
+ .endm
+/* ed_trig <- loader v3 sd_back `jmp 0x602c8064` (0x605b7420), HLS_EVENT, after the loader on every TRIG event.
+ * Half-press + valid block + EP7E + dirty == 1: dirty = 0, one ed_save (section 6), status byte = result. */
+ed_trig:                          /* jmp from sd_back; frame = 0x602c7f5a's: event at (16,sp) */
+ add -16,sp
+ mov d0,(0,sp)
+ mov d1,(4,sp)
+ mov a0,(8,sp)
+ mov a1,(12,sp)
+ mov (32,sp),d0
+ cmp {ev_press},d0
+ bne t_out
+ movm [d2,d3,a2,a3],(sp)
+ PVAL t_back
+ mov ({emark},a2),d0
+ cmp {emagic},d0
+ bne t_back
+ movbu ({dirty},a2),d0
+ cmp 1,d0
+ bne t_back
+ clr d0
+ movbu d0,({dirty},a2)            /* one attempt per batch of edits, whatever happens */
+ call ed_save,[d2,d3,a2,a3],24
+ movbu d0,({status},a2)
+t_back:
+ movm (sp),[d2,d3,a2,a3]
+t_out:
+ mov (0,sp),d0
+ mov (4,sp),d1
+ mov (8,sp),a0
+ mov (12,sp),a1
+ add 16,sp
+ jmp ep7_trig_ret
+
+ed_core_end:
