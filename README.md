@@ -2,13 +2,15 @@
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-cakelesscoder-FFDD00?logo=buymeacoffee&logoColor=000)](https://buymeacoffee.com/cakelesscoder)
 
-**Caduceus** is a set of open-source firmware patches for the **Olympus PEN E-P7** (firmware 1.1). Film simulations you can pick
-and edit in the camera, per-profile HSL, grain, bloom, clarity and Art Effects, B&W film presets, true log video,
-XPan and 21:9 stills, and longer video recording.
+**Caduceus** is a set of open-source firmware patches for the **Olympus PEN E-P7** (firmware 1.1). It adds
+film simulations you pick and edit in the camera, per-colour hue and lightness, grain, bloom, clarity and Art
+Effects on your colour profiles, B&W film presets, true log video, XPan and 21:9 stills, and longer video
+recording.
 
 *Named after the caduceus, the staff of Hermes: messenger between gods and mortals and guide of travellers.*
 
-Current release: **v0.15** (`releases/v0.15`). **Install: [docs/INSTALL.md](docs/INSTALL.md)** (`python3 caduceus.py build --release v0.15`). The camera's firmware screen shows the Caduceus version.
+**Latest release: [v0.15](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.15)** ·
+**[Install guide](docs/INSTALL.md)** · The camera's Setup › Firmware screen shows the Caduceus version.
 
 > [!WARNING]
 > **Early development, use at your own risk.** Caduceus is unofficial, experimental firmware modification.
@@ -21,94 +23,103 @@ Current release: **v0.15** (`releases/v0.15`). **Install: [docs/INSTALL.md](docs
 > restore path is proven on a real E-P7 (including recovery from a bootloop), and features marked
 > **camera-tested** below have run on a real camera. Read [Safety](#safety) before flashing.
 
-![XPan crop with a Classic Chrome-style look](docs/img/xpan_classic_chrome.jpg)
+![Film looks on four scenes](docs/img/film_looks_v3.jpg)
 
 ## Features
 
 | Feature | What you get | Status |
 |---|---|---|
-| **Film simulations** | 17+ colour film looks (library v2, incl. an Aerochrome-style false-colour IR look) in `EP7MOD/LOOKS.BIN`. Pick one per Colour Profile slot on the camera; its name shows in Picture Mode. | Camera-tested |
-| **On-camera look editor** | The stock Colour Profile wheel gains pages: Saturation, Hue, Light, Film and Extras (INFO cycles). The wheel follows the page. Modified looks are marked `*`. | Camera-tested |
-| **Profile bundles** | Each Colour Profile slot (COLOR1–4) carries its own full look: per-colour hue and lightness on top of the stock saturation and tone. | Camera-tested |
+| **Film simulations** | 29 colour looks in `EP7MOD/LOOKS.BIN`: Provia, Velvia, Astia, Classic Chrome, Classic Neg, Nostalgic, Reala Ace, Eterna, Bleach Bypass, Kodachrome 25 and 64, Portra 160 and 400, Ektar 100, Gold 200, Ektachrome, UltraMax 400, CineStill 50D and 800T, Vision3 250D and 500T, Pro 400H, Fujicolor 200, Superia 400, Agfa Vista, Cibachrome, Polaroid, Cross Process and an Aerochrome-style false-colour IR look. Pick one per Colour Profile slot; its name shows in Picture Mode. | Camera-tested |
+| **On-camera look editor** | The stock Colour Profile wheel gains pages: Saturation, Hue, Light, Film and Extras (INFO cycles). The wheel follows the page; modified looks are marked `*`. | Camera-tested |
 | **Looks on the SD card** | Looks load from `EP7MOD/BUNDLES.BIN` on the first half-press. Edits made in the camera save back to the card (with a `.BAK` of the previous file). | Camera-tested |
-| **Per-profile WB shift** | Each slot carries its own A/B and G/M fine-tune. | Camera-tested |
-| **Colour film grain** | The E-P7's grain hardware, previously Monochrome-only, on colour profiles. | Camera-tested |
-| **Bloom and clarity** | The Soft Focus engine as a subtle Pro-Mist glow, or inverted as clarity (one Extras slider, glow ← 0 → clarity). | Camera-tested |
-| **Art Effects on colour profiles** | Star Light, Pin Hole or Blur per slot (Extras sector 5), using the camera's own Art Effect stages. | Camera-tested (live-view preview partial) |
-| **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profile slots (INFO in the mono filter/shading editor), built from OM's own mono settings. Label `Film: <name>`, `*` when modified. | Camera-tested |
-| **Live-view preview** | Hue/light and bloom shown in live view, not only in the saved photo. | Camera-tested |
-| **True log video** | A hidden OM-Log-style curve already present in the firmware (~12.4% output per stop), unlocked by setting the **movie** picture mode to Muted. Live view shows the flat log image. | Camera-tested |
-| **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel, with matching live view and playback framing and `XPAN`/`UW` size labels. Boots back to 4:3 each power-on for safety. | Camera-tested |
+| **Extras per profile** | Colour film grain (the E-P7's mono grain hardware, on colour), bloom ↔ clarity (one slider), WB amber/blue and green/magenta shift, and Art Effects (Star Light, Pin Hole, Blur). | Camera-tested |
+| **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profiles, built from OM's own mono settings. Label `Film: <name>`, `*` when modified. | Camera-tested |
+| **Live-view preview** | Hue, lightness and bloom show in live view, not only in the saved photo. | Camera-tested |
+| **True log video** | A log curve Olympus left hidden in the firmware, switched on with the **movie** picture mode set to Muted. | Camera-tested |
+| **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel, with matching live view and playback framing and `XPAN`/`UW` size labels. Boots back to 4:3 each power-on, for safety. | Camera-tested |
 | **Recording limit** | 29-minute and 2-hour caps raised to 9 hours (file, chapter and heat limits still apply). | Camera-tested |
+
+## Install
+
+OM's licence doesn't allow sharing their firmware, so you build the update on your own computer. One command
+downloads OM's official 1.1 file, checks it, and patches it:
+
+```
+python3 caduceus.py build --release v0.15        # Windows: py caduceus.py build --release v0.15
+```
+
+Then copy `DCOLYMP` and `EP7MOD` from `out/` to the SD card, hold **OK** and switch on to flash. Step-by-step
+instructions for Windows, macOS and Linux, including restoring stock: **[docs/INSTALL.md](docs/INSTALL.md)**.
 
 ## Using it
 
-Card layout (copy the `card/EP7MOD` folder from a release to the card root):
-
 ```
-EP7MOD/BUNDLES.BIN   your four slots: looks, names, edits (written by the camera; .NEW/.BAK alongside)
+EP7MOD/BUNDLES.BIN   your four Colour Profile slots: looks, names, edits (the camera rewrites it; .NEW/.BAK alongside)
 EP7MOD/LOOKS.BIN     the film library the Film page picks from
 ```
 
-- Switch on and **half-press once**: the card looks load (nothing is read at boot). Without the folder the
-  camera behaves as stock.
+- Switch on and **half-press once**: the looks load from the card (nothing is read at boot).
 - Open a Colour Profile's colour wheel. **INFO** steps: Saturation → Saturation · All → Hue → Light →
   Film → Extras. Turn the dial to change the value; on Film it steps through the library.
 - Extras (sectors 1–5): grain, glow/clarity, WB amber/blue, WB green/magenta, Art Effect.
-- Monochrome Profile editor (filter or shading): **INFO** steps through the mono film presets (`Film: <name>`).
+- Monochrome Profile editor (filter or shading): **INFO** steps through the mono film presets.
 - Leave the editor and half-press: changes are saved to `BUNDLES.BIN`. The previous file is kept as `.BAK`.
 - Picking a film look replaces that slot's hue, light and extras (saturation stays yours). Tweak on top
   after picking; the label shows `*` once the slot differs from the look.
+- **Log video:** set the movie picture mode to **Muted**. Live view shows the flat log image.
+
+### On-camera UI
+
+The images below are **mock-ups made on a computer to preview the features**. On the camera nothing new is
+drawn: Caduceus reuses the camera's own screens, fonts and icons, so everything looks exactly like the
+stock E-P7 UI. The colour wheel gets extra pages and its guide line shows the page or look name.
+
+| Stock Colour Profile editor | Look editor (mock-up) |
+|---|---|
+| ![](docs/img/ui_colour_profile_stock.jpg) | ![](docs/img/ui_look_editor_mock.jpg) |
+| **Image Aspect menu (mock-up)** | **XPan framing (mock-up)** |
+| ![](docs/img/ui_aspect_menu.jpg) | ![](docs/img/ui_xpan_framing.jpg) |
 
 ### Film looks
 
-Recipes inspired by Fujifilm film simulations, built only from controls the patched camera has.
-Desktop previews from E-P7 RAW files:
-
-![Ten film looks on one scene](docs/img/film_sims_contact.jpg)
-
-Halation and bloom in the desktop simulator (bloom also runs in-camera; halation is desktop-only for now):
-
-![Halation and bloom test chart](docs/img/halation_bloom_chart.jpg)
+Recipes built only from controls the patched camera has. The previews above are from the desktop simulator
+on E-P7 RAW files, so the camera's JPEGs can differ slightly. Several looks are converted from community
+Olympus recipes (GarethB's Kodachrome 25 on mu-43.com, and om-recipes.com); sources and credits are in
+[docs/LIBRARY_V1.md](docs/LIBRARY_V1.md).
 
 ### Log video
 
-Left: the camera's standard curve. Right: the hidden log curve, rendered with the firmware's own tone table.
+The E-P7 firmware already contains a proper log curve (about 12.4 % of output per stop) and a Flat curve:
+the same kind of profiles Olympus ships as OM-Log400 and Flat on other TruePic VIII bodies. On the E-P7 they
+are simply hidden: no menu can select them. Caduceus switches the log curve on when the movie picture mode is
+Muted. Left: the standard curve. Right: the hidden log curve, rendered with the firmware's own tone table.
 
 ![Standard vs log](docs/img/log_vs_standard.jpg)
-
-### UI
-
-Mock-ups drawn with the camera's own fonts and icons, extracted from its firmware.
-
-| Stock Colour Profile editor | HSL editor (early mock-up) |
-|---|---|
-| ![](docs/img/ui_colour_profile_stock.jpg) | ![](docs/img/ui_hsl_editor_mock.jpg) |
-| **Image Aspect menu with XPan / 21:9** | **XPan framing** |
-| ![](docs/img/ui_aspect_menu.jpg) | ![](docs/img/ui_xpan_framing.jpg) |
 
 ## Roadmap
 
 - More film looks, and a cross-platform web app to build and share `LOOKS.BIN` files.
 - Art Effect live-view preview that updates immediately.
-- Parked: colour looks on MONO slots / extra profile slots; a list-style menu instead of the wheel.
 - Tinted halation (red glow around white lights), probably via a mask built from the exposure meter grid.
+- Parked: colour looks on Monochrome slots or extra profile slots; a list-style menu instead of the wheel;
+  4:3 "open gate" video.
 
 ## How it works
 
-- The stock firmware is downloaded from OM's own update server by `tools/fetch_stock.sh` and checked by hash.
-  **This repository contains no OM firmware.**
+- **This repository contains no OM firmware.** The builder downloads OM's official file from OM's own update
+  server and checks its hash.
 - Patches are small MN103 assembly routines and data edits. Each one has a build script that checks every
   stock byte it replaces, places code only in verified free space (`docs/CODE_SPACE_MAP.md`), and emits an
   edit list.
-- `tools/build_package.py` turns edit lists into an update file for the camera's own SD updater, plus a
-  matching stock-restore file. It refuses overlapping edits or unexpected stock bytes.
+- `caduceus.py` (and `tools/build_package.py` for developers) turns an edit list into an update file for the
+  camera's own SD updater, plus a matching stock-restore file. It refuses unexpected stock bytes, and every
+  output must match the release's published hashes.
 - Every patch has an emulator test that runs the real camera code, patched against stock, and checks that
   only the intended values change. Every package is checked to decode to exactly the emulated image, and its
   restore file to exactly stock.
 - Runtime state lives only in heap memory the loader allocates; patches never write into the firmware image
   in RAM.
-- A desktop colour pipeline (`sim/`), calibrated against the camera's own JPEGs, previews looks on your RAW files.
+- A desktop colour pipeline (`sim/`), calibrated against the camera's own JPEGs, previews looks on RAW files.
 
 ## Safety
 
@@ -121,20 +132,19 @@ Mock-ups drawn with the camera's own fonts and icons, extracted from its firmwar
 - A full battery and an uninterrupted write are essential. A failed write can leave the camera unbootable.
 - Keep the stock restore file the builder makes (`restore/E1429999.BIN`). Flashing it returns the camera
   completely to stock 1.1.
-- **No `EP7MOD` folder on the card = almost stock.** All film looks, the look editor pages, per-profile
-  WB/grain/bloom/clarity/Art Effects and mono presets only run when `EP7MOD/BUNDLES.BIN` is on the card, and
-  nothing is read from the card until the first half-press. Without the folder (or with no card in) only these
-  small, always-on changes remain:
+- **No `EP7MOD` folder on the card = almost stock.** All film looks, the look editor pages, Extras and mono
+  presets only run when `EP7MOD/BUNDLES.BIN` is on the card, and nothing is read from the card until the
+  first half-press. Without the folder (or with no card in) only these small, always-on changes remain:
   - log video when the **movie** picture mode is Muted;
   - the extra Panorama / Wide aspect options (the camera always boots back to 4:3);
   - the longer recording limit;
-  - "Caduceus vX.YY" on the Setup › Firmware screen.
+  - the Caduceus version on the Setup › Firmware screen.
 - If something misbehaves: remove the `EP7MOD` folder first. If that doesn't help, flash the restore file.
 
-## Build
+## For developers
 
 ```bash
-git clone --recurse-submodules <repo>
+git clone --recurse-submodules https://github.com/cakelesscoder/caduceus-ep7
 cd caduceus-ep7
 tools/fetch_stock.sh          # downloads OLY_E_142_1100_0000_0000.BIN from OM and checks its hash
 tools/setup_toolchain.sh      # GNU binutils for mn10300
@@ -142,25 +152,28 @@ tools/decode_stock.sh
 python3 -m venv .venv && .venv/bin/pip install rawpy numpy pillow
 ```
 
-Per-patch build and verify commands are in each `patches/*/` folder and in `WORKLOG.md`.
-
-## Credits
-
-- [fishcu/oly_fw_analysis](https://github.com/fishcu/oly_fw_analysis): PEN-F firmware research, container
-  codec and MN103 emulator harness this project builds on (used as a submodule).
-- LightSnowDev, Altsoph/mx3 (CHDK forum), the DVXuser and Personal View Olympus threads, and iKenndac for
-  earlier Olympus firmware research.
-- Film-look references are listed in `docs/FILM_SIMS.md` and `docs/FILM_LOOK.md`.
+Per-patch build and verify commands are in each `patches/*/` folder and in `WORKLOG.md`. Design notes are in
+`docs/`.
 
 ## Support
 
 Caduceus is free and open source. If it brings your E-P7 to life and you'd like to say thanks, you can
-[buy me a coffee](https://buymeacoffee.com/cakelesscoder). Bug reports and camera test results are just as welcome.
+[buy me a coffee](https://buymeacoffee.com/cakelesscoder). Bug reports and camera test results are just as
+welcome: please open an issue.
+
+## Credits
+
+- [fishcu/oly_fw_analysis](https://github.com/fishcu/oly_fw_analysis): PEN-F firmware research and the MN103
+  emulator harness this project builds on (used as a submodule).
+- LightSnowDev, Altsoph/mx3 (CHDK forum), the DVXuser and Personal View Olympus threads, and iKenndac for
+  earlier Olympus firmware research.
+- Community film recipes: GarethB (Kodachrome 25, mu-43.com), om-recipes.com contributors; see
+  `docs/LIBRARY_V1.md`. Film-look references: `docs/FILM_SIMS.md` and `docs/FILM_LOOK.md`.
 
 ## License
 
 Caduceus patch code, tools and docs are released under the [GNU GPL v3](LICENSE). The OM firmware itself is
 not included or redistributed: the builder downloads it from OM's own server on your machine.
-Community film recipes are credited to their authors in `docs/LIBRARY_V1.md`.
 
-Not affiliated with OM Digital Solutions or Fujifilm. "Olympus", "PEN" and film names are trademarks of their owners.
+Not affiliated with OM Digital Solutions or Fujifilm. "Olympus", "PEN" and film names are trademarks of their
+owners.
