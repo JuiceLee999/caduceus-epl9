@@ -11,3 +11,7 @@ __pycache__/
 *.pyc
 .venv/
 testdata/
+
+# User-side builder output; card files of releases are our own data (not OM firmware)
+out/
+!releases/v*/card/EP7MOD/*.BIN

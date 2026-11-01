@@ -1,0 +1,720 @@
+{
+ "schema": "ep7-look-library/1",
+ "_comment": "Look library v3 additions (docs/LIBRARY_V1.md, section \"Library v3\"). Same schema and camera-feasible controls as library_v2.json; WB values are camera steps (~4.4 %/step). Sources per recipe in \"source\" and in the doc.",
+ "sector_order": [
+  "yellow",
+  "orange",
+  "orange_red",
+  "red",
+  "magenta",
+  "violet",
+  "blue",
+  "blue_cyan",
+  "cyan",
+  "green_cyan",
+  "green",
+  "yellow_green"
+ ],
+ "recipes": {
+  "lib3_kchrome25": {
+   "name": "Kodachrome25",
+   "description": "Kodachrome 25 slide: dense, cool-neutral, rich reds, muted cyans/greens, deep shadows.",
+   "base": "Color Profile",
+   "sat": [
+    -2,
+    1,
+    1,
+    -1,
+    -1,
+    2,
+    -3,
+    -2,
+    -4,
+    -4,
+    -4,
+    -5
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    -1,
+    -1
+   ],
+   "light": [
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    -1,
+    -1
+   ],
+   "tone": {
+    "highlights": -2,
+    "shadows": -5,
+    "midtones": 3
+   },
+   "contrast": 2,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": 0,
+    "g_m": 1
+   },
+   "source": "GarethB, mu-43.com \"My Kodachrome / Classic Chrome Pen-F settings\" (2017): colour profile, contrast +2, H-2 M+3 S-5, WB A-2 G+2 (bundle uses A0 G+1: the source WB rendered too cold in the sim). H/L added here."
+  },
+  "lib3_fuji200": {
+   "name": "Fujicolor200",
+   "description": "Fujicolor C200 consumer negative: warm yellows, fresh greens, punchy but soft-contrast.",
+   "base": "Color Profile",
+   "sat": [
+    3,
+    3,
+    3,
+    1,
+    -1,
+    -1,
+    1,
+    1,
+    0,
+    0,
+    2,
+    2
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1
+   ],
+   "light": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": 0,
+    "shadows": -3,
+    "midtones": 1
+   },
+   "contrast": -1,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": 2,
+    "g_m": 1
+   },
+   "source": "James Bloomer, om-recipes.com \"OM-3 Fujicolor 200\" (2026): contrast -1, H0 M+1 S-3, Auto WB (Keep Warm off) A2 G1. H/L added here."
+  },
+  "lib3_cibachrome": {
+   "name": "Cibachrome",
+   "description": "Ilfochrome/Cibachrome print: glossy, saturated magenta-reds, deep blues, rich darks.",
+   "base": "Color Profile",
+   "sat": [
+    1,
+    3,
+    4,
+    3,
+    4,
+    2,
+    2,
+    4,
+    3,
+    0,
+    2,
+    -1
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    -1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "light": [
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    -1,
+    -1,
+    -1,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": -3,
+    "shadows": -2,
+    "midtones": 1
+   },
+   "contrast": 1,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": 1,
+    "g_m": -1
+   },
+   "source": "Jay, om-recipes.com \"Cibachrome Print\": contrast +1, H-3 M+1 S-2, 5300K A1 G-1. H/L added here."
+  },
+  "lib3_portra160": {
+   "name": "Portra 160",
+   "description": "Fine-grain portrait negative: natural, slightly cool skin, quiet greens, soft contrast.",
+   "base": "Color Profile",
+   "sat": [
+    -2,
+    1,
+    -1,
+    -1,
+    -2,
+    -3,
+    -1,
+    -2,
+    -2,
+    -2,
+    -3,
+    -2
+   ],
+   "hue": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    -1,
+    -1
+   ],
+   "light": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": -1,
+    "shadows": 1,
+    "midtones": 0
+   },
+   "contrast": -1,
+   "grain": "off",
+   "source": "Isaac Mitropoulos, om-recipes.com \"Portra 160\": contrast -1, H-1 M0 S+1, 5300K A0 G0. H/L added here."
+  },
+  "lib3_ultramax": {
+   "name": "UltraMax 400",
+   "description": "Kodak consumer negative: warm, punchy reds and yellows, olive greens, visible grain.",
+   "base": "Color Profile",
+   "sat": [
+    3,
+    2,
+    2,
+    2,
+    0,
+    -1,
+    0,
+    0,
+    -1,
+    -1,
+    1,
+    2
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    -2,
+    -2
+   ],
+   "light": [
+    1,
+    0,
+    0,
+    -1,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    -1,
+    0
+   ],
+   "tone": {
+    "highlights": 0,
+    "shadows": -1,
+    "midtones": 0
+   },
+   "contrast": 1,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": 1,
+    "g_m": 0
+   },
+   "source": "Own design from the stock's published character (no Olympus/OM recipe with numbers found)."
+  },
+  "lib3_superia": {
+   "name": "Superia 400",
+   "description": "Fuji consumer negative: green-leaning, cyan skies, warm-ish base, lively mids.",
+   "base": "Color Profile",
+   "sat": [
+    1,
+    1,
+    2,
+    1,
+    0,
+    1,
+    0,
+    2,
+    3,
+    0,
+    2,
+    1
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    -1,
+    0,
+    0,
+    -1,
+    -1,
+    1,
+    2,
+    2,
+    1
+   ],
+   "light": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    -1,
+    -1
+   ],
+   "tone": {
+    "highlights": 1,
+    "shadows": 0,
+    "midtones": 1
+   },
+   "contrast": -1,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": 3,
+    "g_m": 1
+   },
+   "source": "James Bloomer, om-recipes.com \"Fujicolor Superia Premium 400\" (2026): contrast -1, H+1 M+1 S0, Auto WB (Keep Warm off) A3 G1. H/L added here."
+  },
+  "lib3_agfa": {
+   "name": "Agfa Vista",
+   "description": "Agfa Vista 200: vivid, slightly magenta reds, deep blues, cool cheap-film punch.",
+   "base": "Color Profile",
+   "sat": [
+    1,
+    1,
+    3,
+    4,
+    2,
+    0,
+    1,
+    1,
+    0,
+    -1,
+    0,
+    0
+   ],
+   "hue": [
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0
+   ],
+   "light": [
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": 0,
+    "shadows": -1,
+    "midtones": 0
+   },
+   "contrast": 1,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": 0,
+    "g_m": -1
+   },
+   "source": "Own design from the stock's published character (no Olympus/OM recipe with numbers found)."
+  },
+  "lib3_cs50d": {
+   "name": "CineStill50D",
+   "description": "Daylight cinema stock: clean, slightly cool, rich blues, soft highlights, faint red glow.",
+   "base": "Color Profile",
+   "sat": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    2,
+    1,
+    -1,
+    -1,
+    -1
+   ],
+   "hue": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    1,
+    1,
+    0
+   ],
+   "light": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": -2,
+    "shadows": 2,
+    "midtones": 0
+   },
+   "contrast": -1,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": -1,
+    "g_m": 0
+   },
+   "source": "Own design from the stock's published character (no Olympus/OM recipe with numbers found)."
+  },
+  "lib3_v250d": {
+   "name": "Vision3 250D",
+   "description": "Kodak daylight cinema negative: flat, wide latitude, gentle teal/orange separation.",
+   "base": "Color Profile",
+   "sat": [
+    -1,
+    0,
+    0,
+    -1,
+    -2,
+    -2,
+    -1,
+    -1,
+    -1,
+    -2,
+    -2,
+    -2
+   ],
+   "hue": [
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -2,
+    -1,
+    1,
+    1,
+    0
+   ],
+   "light": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    -1,
+    -1
+   ],
+   "tone": {
+    "highlights": -3,
+    "shadows": 3,
+    "midtones": 0
+   },
+   "contrast": -2,
+   "grain": "off",
+   "source": "Own design from the stock's published character (no Olympus/OM recipe with numbers found)."
+  },
+  "lib3_v500t": {
+   "name": "Vision3 500T",
+   "description": "Kodak tungsten cinema negative used in daylight: cool teal cast, warm lights, open shadows.",
+   "base": "Color Profile",
+   "sat": [
+    -1,
+    0,
+    1,
+    1,
+    -1,
+    -1,
+    1,
+    1,
+    1,
+    -1,
+    -2,
+    -2
+   ],
+   "hue": [
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -2,
+    -2,
+    1,
+    2,
+    0
+   ],
+   "light": [
+    0,
+    1,
+    1,
+    0,
+    0,
+    0,
+    -1,
+    0,
+    0,
+    0,
+    -1,
+    -1
+   ],
+   "tone": {
+    "highlights": -2,
+    "shadows": 3,
+    "midtones": 0
+   },
+   "contrast": -1,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": -2,
+    "g_m": 0
+   },
+   "source": "Own design from the stock's published character (no Olympus/OM recipe with numbers found)."
+  },
+  "lib3_polaroid": {
+   "name": "Polaroid",
+   "description": "Integral instant film: faded, low contrast, warm highlights, cyan-green shadows, muted blues.",
+   "base": "Color Profile",
+   "sat": [
+    -1,
+    -1,
+    -2,
+    -2,
+    -2,
+    -2,
+    -3,
+    -3,
+    -2,
+    -1,
+    -2,
+    -1
+   ],
+   "hue": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    0,
+    1,
+    2,
+    1
+   ],
+   "light": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    0,
+    0
+   ],
+   "tone": {
+    "highlights": -3,
+    "shadows": 4,
+    "midtones": 1
+   },
+   "contrast": -2,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": 1,
+    "g_m": 1
+   },
+   "source": "Own design from the stock's published character (no Olympus/OM recipe with numbers found)."
+  },
+  "lib3_xpro": {
+   "name": "Cross Proc.",
+   "description": "E-6 slide in C-41: hard contrast, yellow-green highlights, cyan skies, yellowed skin.",
+   "base": "Color Profile",
+   "sat": [
+    3,
+    2,
+    2,
+    3,
+    1,
+    0,
+    2,
+    3,
+    3,
+    2,
+    3,
+    4
+   ],
+   "hue": [
+    -2,
+    0,
+    0,
+    -1,
+    -2,
+    -1,
+    -2,
+    -3,
+    -2,
+    -3,
+    -3,
+    -3
+   ],
+   "light": [
+    2,
+    1,
+    0,
+    -1,
+    -1,
+    0,
+    -1,
+    -1,
+    0,
+    0,
+    0,
+    1
+   ],
+   "tone": {
+    "highlights": 2,
+    "shadows": -3,
+    "midtones": 0
+   },
+   "contrast": 2,
+   "grain": "off",
+   "wb_shift": {
+    "a_b": 1,
+    "g_m": 2
+   },
+   "source": "Own design from the stock's published character (no Olympus/OM recipe with numbers found)."
+  }
+ }
+}

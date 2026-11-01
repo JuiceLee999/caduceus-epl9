@@ -1,0 +1,223 @@
+{
+ "_comment": "Look library v3 (docs/LIBRARY_V1.md, section \"Library v3\"): library v2 + 12 classic colour looks (recipes sim/recipes/library_v3.json). 32 looks: the LOOKS.BIN form for the 32-look loader (v2 order kept, new looks after the colour looks, mono last).",
+ "looks": {
+  "provia": {
+   "name": "Provia",
+   "recipe": "lib2_provia",
+   "notes": "Neutral, faithful colour reference: the E-P7 profile at zero."
+  },
+  "velvia": {
+   "name": "Velvia",
+   "recipe": "lib2_velvia",
+   "notes": "Saturated landscape slide film: deep skies, dense greens, crushed shadows."
+  },
+  "astia": {
+   "name": "Astia",
+   "recipe": "lib2_astia",
+   "notes": "Soft slide film: gentle contrast, clean skin, slightly richer skies."
+  },
+  "cl_chrome": {
+   "name": "Cl. Chrome",
+   "recipe": "lib2_cl_chrome",
+   "notes": "Documentary look: muted greens and yellows, cyan skies, hard shadows."
+  },
+  "cl_neg": {
+   "name": "Classic Neg",
+   "recipe": "lib2_cl_neg",
+   "grain": "low",
+   "notes": "Superia-style negative: teal-green cast, punchy mids, light skies."
+  },
+  "nostalgic": {
+   "name": "Nostalgic",
+   "recipe": "lib2_nostalgic",
+   "grain": "low",
+   "notes": "Amber 1970s print: warm highlights, soft tones, faded blues."
+  },
+  "reala": {
+   "name": "Reala Ace",
+   "recipe": "lib2_reala",
+   "notes": "Accurate, crisp modern negative: true hues, restrained greens."
+  },
+  "eterna": {
+   "name": "Eterna",
+   "recipe": "lib2_eterna",
+   "notes": "Cinema negative: flat, open shadows, quiet teal-leaning colour."
+  },
+  "bleach": {
+   "name": "Bleach Byp.",
+   "recipe": "lib2_bleach",
+   "grain": "low",
+   "notes": "Silver-retained cinema look: near-monochrome, harsh contrast."
+  },
+  "kchrome": {
+   "name": "Kodachrome64",
+   "recipe": "lib2_kchrome",
+   "grain": "low",
+   "notes": "Rich deep reds, golden yellows, dense cyan-blue skies, olive greens."
+  },
+  "portra": {
+   "name": "Portra 400",
+   "recipe": "lib2_portra",
+   "grain": "low",
+   "effect": {
+    "type": "bloom",
+    "strength": 1
+   },
+   "notes": "Warm pastel portrait negative: glowing skin, soft contrast."
+  },
+  "ektar": {
+   "name": "Ektar 100",
+   "recipe": "lib2_ektar",
+   "notes": "Ultra-vivid fine-grain negative: saturated reds and blues."
+  },
+  "gold": {
+   "name": "Gold 200",
+   "recipe": "lib2_gold",
+   "grain": "low",
+   "notes": "Golden consumer negative: sunny yellows, muted cyan skies."
+  },
+  "ektachrome": {
+   "name": "Ektachrome",
+   "recipe": "lib2_ektachrome",
+   "notes": "Clean, cool slide film: neutral skin, bright saturated blues."
+  },
+  "cinestill": {
+   "name": "CineStill800",
+   "recipe": "lib2_cinestill",
+   "grain": "medium",
+   "effect": {
+    "type": "bloom",
+    "strength": 4,
+    "tint": "red"
+   },
+   "notes": "Tungsten cinema film: cool cast, red bloom (bloom + bloom_tint red: the glow's Cr spreads far more than its luma, docs/HALATION_RED.md section 8) plus red/orange light."
+  },
+  "pro400h": {
+   "name": "Pro 400H",
+   "recipe": "lib2_pro400h",
+   "grain": "low",
+   "effect": {
+    "type": "bloom",
+    "strength": 1
+   },
+   "notes": "Airy pastel negative: minty greens, light cyan skies."
+  },
+  "aerochrome": {
+   "name": "Aerochrome",
+   "recipe": "lib2_aerochrome",
+   "grain": "low",
+   "notes": "False-colour infrared (Kodak Aerochrome-style): golden/orange foliage, deep blue skies. Sat advice: strong (+3..+5)."
+  },
+  "kchrome25": {
+   "name": "Kodachrome25",
+   "recipe": "lib3_kchrome25",
+   "notes": "Kodachrome 25 slide (GarethB, mu-43): dense, rich reds, muted cyan/green, deep shadows. Advice: contrast +2, H-2 M+3 S-5."
+  },
+  "portra160": {
+   "name": "Portra 160",
+   "recipe": "lib3_portra160",
+   "notes": "Fine-grain portrait negative (I. Mitropoulos, om-recipes): natural skin, quiet greens, soft contrast."
+  },
+  "fuji200": {
+   "name": "Fujicolor200",
+   "recipe": "lib3_fuji200",
+   "grain": "low",
+   "notes": "Fujicolor C200 (J. Bloomer, om-recipes): warm yellows, fresh greens, soft contrast."
+  },
+  "superia": {
+   "name": "Superia 400",
+   "recipe": "lib3_superia",
+   "grain": "medium",
+   "notes": "Fuji Superia 400 (J. Bloomer, om-recipes): green-leaning negative, cyan skies, lively mids."
+  },
+  "cibachrome": {
+   "name": "Cibachrome",
+   "recipe": "lib3_cibachrome",
+   "notes": "Cibachrome print (Jay, om-recipes): glossy magenta-reds, deep blues, rich darks."
+  },
+  "ultramax": {
+   "name": "UltraMax 400",
+   "recipe": "lib3_ultramax",
+   "grain": "medium",
+   "notes": "Kodak consumer negative: warm, punchy reds/yellows, olive greens, visible grain."
+  },
+  "agfa": {
+   "name": "Agfa Vista",
+   "recipe": "lib3_agfa",
+   "grain": "low",
+   "notes": "Agfa Vista 200: vivid magenta-leaning reds, deep blues, cool cheap-film punch."
+  },
+  "cs50d": {
+   "name": "CineStill50D",
+   "recipe": "lib3_cs50d",
+   "grain": "low",
+   "effect": {
+    "type": "bloom",
+    "strength": 2,
+    "tint": "red"
+   },
+   "notes": "Daylight cinema stock: clean, slightly cool, rich blues, soft highlights, faint red glow."
+  },
+  "v250d": {
+   "name": "Vision3 250D",
+   "recipe": "lib3_v250d",
+   "grain": "low",
+   "notes": "Kodak daylight cinema negative: flat, wide latitude, gentle teal/orange separation."
+  },
+  "v500t": {
+   "name": "Vision3 500T",
+   "recipe": "lib3_v500t",
+   "grain": "medium",
+   "effect": {
+    "type": "bloom",
+    "strength": 1,
+    "tint": "red"
+   },
+   "notes": "Tungsten cinema negative in daylight: cool teal cast, warm lights, open shadows."
+  },
+  "polaroid": {
+   "name": "Polaroid",
+   "recipe": "lib3_polaroid",
+   "grain": "low",
+   "effect": {
+    "type": "bloom",
+    "strength": 2
+   },
+   "notes": "Integral instant film: faded, low contrast, warm highlights, cyan-green shadows."
+  },
+  "xpro": {
+   "name": "Cross Proc.",
+   "recipe": "lib3_xpro",
+   "grain": "medium",
+   "notes": "E-6 slide in C-41: hard contrast, yellow-green highlights, cyan skies, yellowed skin."
+  },
+  "acros": {
+   "name": "Acros",
+   "recipe": "lib2_acros",
+   "grain": "low",
+   "notes": "Fine-grain mono: deep blacks, smooth tones, darker reds."
+  },
+  "trix": {
+   "name": "Tri-X 400",
+   "recipe": "lib2_trix",
+   "grain": "medium",
+   "notes": "Classic gritty reportage mono: punchy contrast, darker skies."
+  },
+  "hp5": {
+   "name": "HP5 Plus",
+   "recipe": "lib2_hp5",
+   "grain": "high",
+   "notes": "Soft, grainy mono with wide latitude and open shadows."
+  }
+ },
+ "slots": {
+  "COLOR1": "cl_neg",
+  "COLOR2": "kchrome25",
+  "COLOR3": "portra",
+  "COLOR4": "velvia",
+  "MONO1": "acros",
+  "MONO2": "trix",
+  "MONO3": "hp5",
+  "MONO4": "cinestill"
+ }
+}

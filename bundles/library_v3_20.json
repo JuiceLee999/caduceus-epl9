@@ -1,0 +1,146 @@
+{
+ "_comment": "Look library v3 (docs/LIBRARY_V1.md, section \"Library v3\"): library v2 + 12 classic colour looks (recipes sim/recipes/library_v3.json). Fallback for the 20-look loader: the best 20 colour looks, best first (mono uses its own presets).",
+ "looks": {
+  "cl_neg": {
+   "name": "Classic Neg",
+   "recipe": "lib2_cl_neg",
+   "grain": "low",
+   "notes": "Superia-style negative: teal-green cast, punchy mids, light skies."
+  },
+  "kchrome25": {
+   "name": "Kodachrome25",
+   "recipe": "lib3_kchrome25",
+   "notes": "Kodachrome 25 slide (GarethB, mu-43): dense, rich reds, muted cyan/green, deep shadows. Advice: contrast +2, H-2 M+3 S-5."
+  },
+  "portra": {
+   "name": "Portra 400",
+   "recipe": "lib2_portra",
+   "grain": "low",
+   "effect": {
+    "type": "bloom",
+    "strength": 1
+   },
+   "notes": "Warm pastel portrait negative: glowing skin, soft contrast."
+  },
+  "kchrome": {
+   "name": "Kodachrome64",
+   "recipe": "lib2_kchrome",
+   "grain": "low",
+   "notes": "Rich deep reds, golden yellows, dense cyan-blue skies, olive greens."
+  },
+  "gold": {
+   "name": "Gold 200",
+   "recipe": "lib2_gold",
+   "grain": "low",
+   "notes": "Golden consumer negative: sunny yellows, muted cyan skies."
+  },
+  "portra160": {
+   "name": "Portra 160",
+   "recipe": "lib3_portra160",
+   "notes": "Fine-grain portrait negative (I. Mitropoulos, om-recipes): natural skin, quiet greens, soft contrast."
+  },
+  "ektar": {
+   "name": "Ektar 100",
+   "recipe": "lib2_ektar",
+   "notes": "Ultra-vivid fine-grain negative: saturated reds and blues."
+  },
+  "velvia": {
+   "name": "Velvia",
+   "recipe": "lib2_velvia",
+   "notes": "Saturated landscape slide film: deep skies, dense greens, crushed shadows."
+  },
+  "cl_chrome": {
+   "name": "Cl. Chrome",
+   "recipe": "lib2_cl_chrome",
+   "notes": "Documentary look: muted greens and yellows, cyan skies, hard shadows."
+  },
+  "superia": {
+   "name": "Superia 400",
+   "recipe": "lib3_superia",
+   "grain": "medium",
+   "notes": "Fuji Superia 400 (J. Bloomer, om-recipes): green-leaning negative, cyan skies, lively mids."
+  },
+  "ultramax": {
+   "name": "UltraMax 400",
+   "recipe": "lib3_ultramax",
+   "grain": "medium",
+   "notes": "Kodak consumer negative: warm, punchy reds/yellows, olive greens, visible grain."
+  },
+  "cinestill": {
+   "name": "CineStill800",
+   "recipe": "lib2_cinestill",
+   "grain": "medium",
+   "effect": {
+    "type": "bloom",
+    "strength": 4,
+    "tint": "red"
+   },
+   "notes": "Tungsten cinema film: cool cast, red bloom (bloom + bloom_tint red: the glow's Cr spreads far more than its luma, docs/HALATION_RED.md section 8) plus red/orange light."
+  },
+  "ektachrome": {
+   "name": "Ektachrome",
+   "recipe": "lib2_ektachrome",
+   "notes": "Clean, cool slide film: neutral skin, bright saturated blues."
+  },
+  "pro400h": {
+   "name": "Pro 400H",
+   "recipe": "lib2_pro400h",
+   "grain": "low",
+   "effect": {
+    "type": "bloom",
+    "strength": 1
+   },
+   "notes": "Airy pastel negative: minty greens, light cyan skies."
+  },
+  "v500t": {
+   "name": "Vision3 500T",
+   "recipe": "lib3_v500t",
+   "grain": "medium",
+   "effect": {
+    "type": "bloom",
+    "strength": 1,
+    "tint": "red"
+   },
+   "notes": "Tungsten cinema negative in daylight: cool teal cast, warm lights, open shadows."
+  },
+  "fuji200": {
+   "name": "Fujicolor200",
+   "recipe": "lib3_fuji200",
+   "grain": "low",
+   "notes": "Fujicolor C200 (J. Bloomer, om-recipes): warm yellows, fresh greens, soft contrast."
+  },
+  "nostalgic": {
+   "name": "Nostalgic",
+   "recipe": "lib2_nostalgic",
+   "grain": "low",
+   "notes": "Amber 1970s print: warm highlights, soft tones, faded blues."
+  },
+  "eterna": {
+   "name": "Eterna",
+   "recipe": "lib2_eterna",
+   "notes": "Cinema negative: flat, open shadows, quiet teal-leaning colour."
+  },
+  "polaroid": {
+   "name": "Polaroid",
+   "recipe": "lib3_polaroid",
+   "grain": "low",
+   "effect": {
+    "type": "bloom",
+    "strength": 2
+   },
+   "notes": "Integral instant film: faded, low contrast, warm highlights, cyan-green shadows."
+  },
+  "xpro": {
+   "name": "Cross Proc.",
+   "recipe": "lib3_xpro",
+   "grain": "medium",
+   "notes": "E-6 slide in C-41: hard contrast, yellow-green highlights, cyan skies, yellowed skin."
+  }
+ },
+ "slots": {
+  "COLOR1": "cl_neg",
+  "COLOR2": "kchrome25",
+  "COLOR3": "portra",
+  "COLOR4": "velvia"
+ }
+}

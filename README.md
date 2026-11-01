@@ -6,7 +6,7 @@ XPan and 21:9 stills, and longer video recording.
 
 *Named after the caduceus, the staff of Hermes: messenger between gods and mortals and guide of travellers.*
 
-Current release: **v0.15** (`releases/v0.15`). The camera's firmware screen shows the Caduceus version.
+Current release: **v0.15** (`releases/v0.15`). **Install: [docs/INSTALL.md](docs/INSTALL.md)** (`python3 caduceus.py build --release v0.15`). The camera's firmware screen shows the Caduceus version.
 
 > **Status: pre-release testing.** Every patch is verified in an emulator of the camera's CPU before it goes
 > on a camera. The SD update and recovery path is proven on a real E-P7 (including recovery from a bootloop),

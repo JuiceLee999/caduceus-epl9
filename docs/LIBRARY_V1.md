@@ -116,3 +116,42 @@ Overview, one row per look: portrait, roof, sunset, valley (PA211089), flower:
 
 Slots already saved with a v1 look keep the v1 values. To get v2, step the slot off the look and back on in
 the Film page.
+
+## Library v3 (12 more classic colour looks)
+
+- Files: recipes `sim/recipes/library_v3.json` (keys `lib3_*`, each with a `source` field, registered in
+  `patches/bundles/build.py` RECIPE_FILES); libraries `bundles/library_v3.json` (32 looks: v2's 17 colour, the 12
+  new, then the 3 mono) and `bundles/library_v3_20.json` (≤20 fallback: best 20 colour looks, best first, no mono —
+  mono uses its own presets).
+- `releases/v0.15/card/EP7MOD/LOOKS.BIN` holds the **20-look** fallback until the 32-look loader is confirmed on the
+  camera; then build `bundles/library_v3.json` with `tools/ep7_looks_bin.py` (2112 B, `--check` OK at MAX_LOOKS 32).
+- Converting OM recipes: OM Color Profile 12-sector saturation = our sat advice, value for value (same order
+  Y,O,OR,R,M,V,B,BC,C,GC,G,YG); contrast and highlight/mid/shadow are kept as advice; WB A/G fine-tune = our
+  `wb_shift` a_b/g_m in camera steps. OM recipes have no per-sector hue/lightness, so small H/L moves are added here
+  so the bundle itself carries part of the look (sat is advice only).
+
+| Look | Grain / bloom | Intent | Source |
+|---|---|---|---|
+| Kodachrome25 | – | Dense slide: rich reds, muted cyan/green, deep shadows | GarethB, mu-43.com thread 92950 (2017) "My Kodachrome / Classic Chrome Pen-F settings". Sat verbatim; advice contrast +2, H−2 M+3 S−5. Source WB A−2 G+2 rendered too cold, bundle uses A0 G+1 |
+| Portra 160 | – | Fine-grain portrait neg: natural skin, quiet greens | Isaac Mitropoulos, om-recipes.com/recipes/isaac-mitropoulos_portra-160 (5300K, A0 G0) |
+| Fujicolor200 | low | Fuji C200: warm yellows, fresh greens | James Bloomer, om-recipes.com "OM-3 Fujicolor 200" (A2 G1) |
+| Superia 400 | medium | Green-leaning consumer neg, cyan skies | James Bloomer, om-recipes.com "Fujicolor Superia Premium 400" (A3 G1) |
+| Cibachrome | – | Glossy print: magenta-reds, deep blues | Jay, om-recipes.com "Cibachrome Print" (A1 G−1) |
+| UltraMax 400 | medium | Warm punchy Kodak consumer neg | own design |
+| Agfa Vista | low | Vivid magenta-leaning reds, cool punch | own design |
+| CineStill50D | low / bloom 2 red | Clean daylight cinema, rich blues, faint glow | own design |
+| Vision3 250D | low | Flat cinema neg, gentle teal/orange | own design |
+| Vision3 500T | medium / bloom 1 red | Tungsten neg in daylight: cool teal, warm lights | own design |
+| Polaroid | low / bloom 2 | Faded instant film, warm highs, cyan shadows | own design |
+| Cross Proc. | medium | E-6 in C-41: hard, yellow-green highs, cyan skies | own design |
+
+Credits: om-recipes.com is Ian Will's (mu-43 `ian_co`) collection of OM System Color Profile recipes (84 at the time,
+launched Feb 2026); no AI/Claude authorship could be confirmed. Bloomer's recipes originate on
+studioarchitecturecom.wordpress.com. Other Kodachrome 25 variants found but not used: Siegfried "VideoPic"
+(myolympusomd.blogspot.com, PEN-F colour profiles page), BushmanOrig (same mu-43 thread, p.6). No Olympus recipes with
+numbers were found for CineStill, Vision3, Agfa, Polaroid, Ektar or cross-processing, hence the own designs.
+
+Fallback order (≤20): Classic Neg, Kodachrome25, Portra 400, Kodachrome64, Gold 200, Portra 160, Ektar 100, Velvia,
+Cl. Chrome, Superia 400, UltraMax 400, CineStill800, Ektachrome, Pro 400H, Vision3 500T, Fujicolor200, Nostalgic,
+Eterna, Polaroid, Cross Proc. Dropped from it: Provia (= stock), Astia, Reala Ace, Bleach Byp., Aerochrome, Cibachrome,
+Agfa Vista, CineStill50D, Vision3 250D, the mono looks.
