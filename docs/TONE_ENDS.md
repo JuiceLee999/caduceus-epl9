@@ -232,3 +232,20 @@ values touch both −5 and +5) is labelled like id 2755 on the Extras page (the 
 
 Card: BUNDLES.BIN = v0.18's with the library Blacks/Whites in its COLOR slots (CineStill800 0/−1 ×2, Cuban Neg
 0/−2, Cl. Chrome −1/0); LOOKS.BIN unchanged (v3).
+
+## 8. Tone-screen third page: mapping notes (not built; v0.19 ships Extras 6/7)
+
+Mapped statically for a later build [V]:
+- Event dispatcher `0x60defafe` (frame 232 + 16; (16,sp) = object, a2 = the profile's reset table, a3 = result,
+  exit `0x60defe91`). Hash table 0x61159e28 (16 × {event, handler}); INFO's case `0x60defcd8` is entered by
+  `jmp (a0)` inside that frame, so a data redirect of word 0x61159e74 gives a case-level hook.
+- **Screen identity:** obj+236 (first constructor halfword) is 383 or 893 on the tone screen; the INFO case already
+  tests it, and the other `Direct_Actuator` takes the generic N-page loop at 0x60defd82 (obj+220 count, availability
+  via 0x607b3c32 on row+28·page+20/+24).
+- Dials: 0x60def75a (0x9032) steps obj+208 (Shadows id), 0x60def91e (0x9031) steps obj+212 (Highlights id), both
+  via facade SetValue(id, 1/2 = step, 0). 0x60defe96 fills obj+208/212/160/164/168 from row+28·obj+222, so obj+222 = 2
+  would read the next profile's row: a B/W page must keep obj+222 ≤ 1 and hold its own page flag (heap P).
+- View page writer 0x60e27639: page from setting 1088 (384/383 → page 0, else Midtone); guide label at view+186 or
+  +260 (by view+404) as {kind 4, id 2778/2779, 2}. A kind-5 text label there is the cheapest B/W readout.
+Remaining for a build: dial/arrow case hooks, a redraw poke (re-write 1088), the label hook, and an emulator harness
+for this object (none exists yet).
