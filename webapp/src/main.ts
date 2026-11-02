@@ -1,9 +1,9 @@
 import './style.css';
 import libraryJson from './data/library.json';
-import { encodeBundlesBin, encodeLooksBin, nameProblem, PackError, validatePack, type Problem } from './format';
+import { decodeLooksBin, encodeBundlesBin, encodeLooksBin, nameProblem, PackError, validatePack, type Problem } from './format';
 import {
-  ARTS, MAX_LOOKS, MONO_FILTERS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SECTORS, SLOT_NAMES, TINTS, blankLook, cloneLook,
-  exportable, parsePack, type Look, type Pack, type SlotName,
+  ARTS, MAX_LOOKS, MONO_FILTERS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SECTORS, SLOT_NAMES, TINTS, TONE_KEYS, blankLook, cloneLook,
+  exportable, parsePack, toneIsZero, toneLimit, type Look, type Pack, type SlotName, type Tone,
 } from './pack';
 import { History } from './history';
 import { libraryOrigin, resetLook, standardPack } from './reset';
@@ -163,7 +163,7 @@ function shell() {
       h('span', {}, 'Caduceus is an unofficial, community firmware mod. Files are made in your browser; nothing is uploaded.'),
       h('a', { href: './samples/CREDITS.md', target: '_blank', rel: 'noopener' }, 'Image credits (CC0)')),
     h('div', { id: 'toast', class: 'toast', role: 'status', 'aria-live': 'polite' }),
-    h('input', { type: 'file', id: 'file', accept: '.json,application/json', hidden: true, onchange: onFile }),
+    h('input', { type: 'file', id: 'file', accept: '.json,application/json,.bin,.BIN', hidden: true, onchange: onFile }),
     h('input', { type: 'file', id: 'photo', accept: 'image/*', hidden: true, onchange: onPhoto }));
   buildPreview();
 }
@@ -341,6 +341,7 @@ function renderEditor() {
       renderList(); renderEditor(); changed();
     }),
     l.kind === 'colour' ? sectorPanel(l, changed) : monoPanel(l, changed),
+    tonePanel(l, changed),
     h('div', { class: 'group' },
       seg('Grain', [['off', 'Off'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']], l.grain, (v) => { l.grain = v as Look['grain']; renderEditor(); changed(); })),
     effectPanel(l, changed),
@@ -408,6 +409,33 @@ function sectorPanel(l: Look, changed: () => void): HTMLElement {
         ? 'Saturation is advice: set it in the camera\'s own colour-profile saturation. It is stored for MONO colour slots.'
         : `±${lim} per sector (v0.17 firmware). Double-click a slider to zero it.`),
       h('button', { class: 'link', onclick: () => { arr.fill(0); renderEditor(); changed(); } }, 'Reset')));
+}
+
+const TONE_LABEL: Record<keyof Tone, string> = { highlights: 'Highlights', shadows: 'Shadows', midtones: 'Midtones', blacks: 'Blacks', whites: 'Whites' };
+function tonePanel(l: Look, changed: () => void): HTMLElement {
+  const rows = TONE_KEYS.map((k) => {
+    const lim = toneLimit(k);
+    const { inp, out } = slider(-lim, lim, l.tone[k], (v) => { l.tone[k] = v; changed(); }, undefined, TONE_LABEL[k]);
+    return h('div', { class: 'srow plain' }, h('span', { class: 'sname' }, TONE_LABEL[k]), inp, out);
+  });
+  const rec = l.advice.tone;
+  const recTone = rec && (rec.highlights || rec.shadows || rec.midtones)
+    && (rec.highlights !== l.tone.highlights || rec.shadows !== l.tone.shadows || rec.midtones !== l.tone.midtones) ? rec : null;
+  const sg = (v: number) => (v > 0 ? `+${v}` : String(v));
+  return h('div', { class: 'group' },
+    h('div', { class: 'tone-head' }, h('span', { class: 'lbl' }, 'Tone'),
+      !toneIsZero(l.tone) ? h('button', { class: 'link', onclick: () => { for (const k of TONE_KEYS) l.tone[k] = 0; renderEditor(); changed(); } }, 'Reset') : null),
+    ...rows.slice(0, 3),
+    h('div', { class: 'tone-sep' }),
+    ...rows.slice(3),
+    h('p', { class: 'help' },
+      'Highlights / Shadows / Midtones (±7): picking the look sets the profile\'s own tone settings to these. ',
+      'Blacks / Whites (±5) move the ends of the tone curve (+Blacks lifts to a matte black, −Whites rolls the white point off); ',
+      'they act in COLOR slots only. Needs Caduceus v0.19 or later.'),
+    recTone ? h('button', {
+      class: 'link', title: 'The tone the recipe suggested for the camera\'s own settings (older packs)',
+      onclick: () => { l.tone.highlights = recTone.highlights; l.tone.shadows = recTone.shadows; l.tone.midtones = recTone.midtones; renderEditor(); changed(); },
+    }, `Use the recipe's tone (H ${sg(recTone.highlights)}, S ${sg(recTone.shadows)}, M ${sg(recTone.midtones)})`) : null);
 }
 
 function monoPanel(l: Look, changed: () => void): HTMLElement {
@@ -501,7 +529,7 @@ function buildPreview() {
     thumbs,
     h('div', { class: 'pv-opts' },
       h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: S.advice, onchange: (e: Event) => { S.advice = (e.target as HTMLInputElement).checked; schedulePreview(); } }),
-        h('span', {}, 'Include advice (saturation, tone, contrast)')),
+        h('span', {}, 'Include advice (saturation, contrast)')),
       h('button', { class: 'link', onclick: () => $<HTMLInputElement>('#photo').click() }, 'Use your own photo…')),
     h('p', { class: 'help' }, 'A rough desktop-sim port running on JPEGs, not the camera\'s pipeline: use it for direction and strength, then check on the camera. Your own photo never leaves this browser.'));
   pickImage(S.image);
@@ -564,10 +592,18 @@ async function onFile(e: Event) {
   const f = (e.target as HTMLInputElement).files?.[0];
   (e.target as HTMLInputElement).value = '';
   if (!f) return;
+  const bytes = new Uint8Array(await f.arrayBuffer());
+  if (bytes.length >= 4 && String.fromCharCode(...bytes.subarray(0, 4)) === 'EP7B') {   // a card LOOKS.BIN (v3 or v4)
+    try {
+      const p = decodeLooksBin(bytes, f.name.replace(/\.bin$/i, '') || 'LOOKS.BIN');
+      replacePack(p, `Opened ${f.name} (${p.looks.length} looks; LOOKS.BIN has no notes or Art Effects)`);
+    } catch (err) { toast((err as Error).message, 'err'); }
+    return;
+  }
   try {
-    const p = parsePack(JSON.parse(await f.text()));
+    const p = parsePack(JSON.parse(new TextDecoder().decode(bytes)));
     replacePack(p, `Opened "${p.name}" (${p.looks.length} looks)`);
-  } catch (err) { toast(`Not a pack file: ${(err as Error).message}`, 'err'); }
+  } catch (err) { toast(`Not a pack file or LOOKS.BIN: ${(err as Error).message}`, 'err'); }
 }
 
 function replacePack(p: Pack, msg: string) {
@@ -588,7 +624,7 @@ function shareLook(l: Look) {
     h('div', { class: 'code-box' }, h('code', {}, grouped), h('button', { onclick: () => copy(code, 'Code copied') }, 'Copy code')),
     h('div', { class: 'code-box link' }, h('input', { type: 'text', readonly: true, value: link, onfocus: (e: Event) => (e.target as HTMLInputElement).select() }),
       h('button', { onclick: () => copy(link, 'Link copied') }, 'Copy link')),
-    h('p', { class: 'help' }, `${code.length} characters. Carries the card values, name, Art Effect and mono filter; notes stay out (use a pack link for those). Dashes and case don't matter when pasting.`)));
+    h('p', { class: 'help' }, `${code.length} characters. Carries the card values (incl. tone), name, Art Effect and mono filter; notes stay out (use a pack link for those). Dashes and case don't matter when pasting.`)));
 }
 
 async function sharePack() {
@@ -699,9 +735,9 @@ function exportDialog() {
     probs.length
       ? h('div', { class: 'problems-box' }, h('b', {}, `${probs.length} problem(s) block LOOKS.BIN:`),
         h('ul', { class: 'problems' }, ...probs.slice(0, 12).map((p) => h('li', {}, fmtProblem(p)))))
-      : h('p', { class: 'ok' }, `✓ ${S.pack.looks.length} looks pass the camera's LOOKS.BIN checks (v0.17 firmware).`),
+      : h('p', { class: 'ok' }, `✓ ${S.pack.looks.length} looks pass the camera's LOOKS.BIN checks (v0.19 firmware).`),
     h('div', { class: 'ex-row' },
-      h('div', {}, h('b', {}, 'LOOKS.BIN'), h('p', { class: 'help' }, 'The look list the camera\'s picker reads. Goes in EP7MOD/ on the card.')),
+      h('div', {}, h('b', {}, 'LOOKS.BIN'), h('p', { class: 'help' }, 'The look list the camera\'s picker reads (v4, with tone: Caduceus v0.19 or later). Goes in EP7MOD/ on the card.')),
       h('button', { class: 'primary', disabled: probs.length > 0, onclick: () => { const b = looksBin(); if (b) download('LOOKS.BIN', b); } }, 'Download')),
     h('div', { class: 'ex-row' },
       h('div', {}, h('b', {}, 'Pack file (.json)'), h('p', { class: 'help' }, 'Everything, including notes and advice. Open it here later or send it to someone.')),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { lookRecord } from '../src/format';
-import { blankLook, parsePack, type Look } from '../src/pack';
+import { TONE_KEYS, blankLook, parsePack, toneLimit, zeroTone, type Look } from '../src/pack';
 import {
   ALPHABET, crc15, crc15Bits, decodeLookCode, decodePackCode, encodeLookCode, encodePackCode, isPackCode, normaliseLookCode,
 } from '../src/sharecode';
@@ -8,7 +8,7 @@ import library from '../src/data/library.json';
 
 const pack = parsePack(library);
 const hex = (b: Uint8Array) => Buffer.from(b).toString('hex');
-// What a look code carries: the card bytes (incl. name), the Art Effect and the mono-filter advice.
+// What a look code carries: the card bytes (v4 record: incl. name and tone), the Art Effect and the mono-filter advice.
 const essence = (l: Look) => [hex(lookRecord(l)), l.art_effect, JSON.stringify(l.advice.mono_filter ?? null)];
 
 describe('look codes', () => {
@@ -17,7 +17,8 @@ describe('look codes', () => {
     for (const l of pack.looks) {
       const code = encodeLookCode(l);
       lens.push(code.length);
-      expect(code).toMatch(/^1[0-9A-HJKMNP-TV-Z]+$/);
+      expect(code).toMatch(/^[12][0-9A-HJKMNP-TV-Z]+$/);
+      expect(code[0]).toBe(l.tone && Object.values(l.tone).some((v) => v !== 0) ? '2' : '1');
       expect(essence(decodeLookCode(code))).toEqual(essence(l));
     }
     const avg = lens.reduce((a, b) => a + b, 0) / lens.length;
@@ -68,14 +69,72 @@ describe('look codes', () => {
     }
   });
 
-  it('version prefix: v1 decodes, newer versions say so, junk is refused', () => {
-    const code = encodeLookCode(pack.looks[1]);
+  it('version prefix: v1/v2 decode, newer versions say so, junk is refused', () => {
+    const code = encodeLookCode({ ...pack.looks[1], tone: zeroTone() });
     expect(code[0]).toBe('1');
-    const v2 = '2' + code.slice(1);
-    expect(() => decodeLookCode(v2)).toThrow(/newer/);
+    expect(() => decodeLookCode('2' + code.slice(1))).toThrow(/Check failed/);
+    expect(() => decodeLookCode('3' + code.slice(1))).toThrow(/newer/);
     expect(() => decodeLookCode('X' + code.slice(1))).toThrow(/not a Caduceus/);
     expect(() => decodeLookCode('1U23456')).toThrow(/not a code character/);
     expect(() => decodeLookCode('12')).toThrow(/too short/);
+  });
+
+  it('old (v0.18 app) v1 codes still decode, with tone 0', () => {
+    // made by the v0.18 web app (commit 14e67e1) from the built-in library; the README's CineStill800 example
+    const OLD: Record<string, string> = {
+      Velvia: '1162ZKTXN0WRYEQ5BBWBAQ3P9MZKTTW01YHBNYJFDT',
+      'Reala Ace': '1YHMTVJYVTRMA7PA8P9NP9FZPVVGCYKYB00ATJ02YB4',
+      'Gold 200': '11VPNYPEPG80R01YC878VQ47M19DG9FPT02WVY',
+      Cibachrome: '1D3MHQR46HJVQ07E6AW55EEEAJBB61P8GA5901JCSW',
+      'HP5 Plus': '15PXTJK0F0AGHWGNRS3P18',
+      Acros: '176RJFTCQNXMNDQK5Z',
+      CineStill800: '1BM9Y-B0K8X-PVAC8-KB9ND-BFVKG-0YAYT-SC59H-5W548-8TYZ0',
+    };
+    for (const [name, code] of Object.entries(OLD)) {
+      const want = pack.looks.find((l) => l.name === name)!;
+      const got = decodeLookCode(code);
+      expect(got.tone).toEqual(zeroTone());
+      expect(essence(got), name).toEqual(essence({ ...want, tone: zeroTone() }));
+      // a look without tone still gets the same v1 code, so older apps read what this one makes
+      expect(encodeLookCode({ ...want, tone: zeroTone() }), name).toBe(code.replace(/-/g, ''));
+    }
+  });
+
+  it('tone: v2 codes round-trip every tone field at every value, and stay short', () => {
+    const base = pack.looks[3];
+    const v1 = encodeLookCode({ ...base, tone: zeroTone() });
+    for (const k of TONE_KEYS) {
+      const L = toneLimit(k);
+      for (let v = -L; v <= L; v++) {
+        const l = { ...base, tone: { ...zeroTone(), [k]: v } };
+        const code = encodeLookCode(l);
+        expect(code[0]).toBe(v === 0 ? '1' : '2');
+        expect(decodeLookCode(code).tone).toEqual(l.tone);
+        expect(essence(decodeLookCode(code))).toEqual(essence(l));
+        expect(code.length - v1.length).toBeLessThanOrEqual(2);       // one tone value costs at most 2 symbols
+      }
+    }
+    const full = { ...base, tone: { highlights: -7, shadows: 7, midtones: -1, blacks: 5, whites: -5 } };
+    const code = encodeLookCode(full, true);
+    expect(decodeLookCode(code).tone).toEqual(full.tone);
+    expect(code.replace(/-/g, '').length - v1.length).toBeLessThanOrEqual(5);
+    const m = { ...blankLook('mono', 'Mono T'), tone: { ...zeroTone(), shadows: -3, whites: 2 } };
+    expect(essence(decodeLookCode(encodeLookCode(m)))).toEqual(essence(m));
+  });
+
+  it('tone: v2 codes catch typos and swaps; out-of-range tone is refused', () => {
+    const l = { ...pack.looks[0], tone: { highlights: 2, shadows: -4, midtones: 0, blacks: 1, whites: -1 } };
+    const code = encodeLookCode(l);
+    for (let i = 0; i < code.length; i++) {
+      for (const ch of ALPHABET) {
+        if (ch === code[i]) continue;
+        expect(() => decodeLookCode(code.slice(0, i) + ch + code.slice(i + 1))).toThrow();
+      }
+      if (i + 1 < code.length && code[i] !== code[i + 1])
+        expect(() => decodeLookCode(code.slice(0, i) + code[i + 1] + code[i] + code.slice(i + 2))).toThrow();
+    }
+    for (const [k, v] of [['highlights', 8], ['blacks', -6], ['whites', 6], ['midtones', 0.5]] as const)
+      expect(() => encodeLookCode({ ...l, tone: { ...l.tone, [k]: v } })).toThrow(/tone/);
   });
 
   it('CRC-15/CAN check value', () => {

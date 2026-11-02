@@ -16,11 +16,12 @@ function mangle(p: ReturnType<typeof standardPack>, i: number) {
   const l = p.looks[i];
   l.hue = l.hue.map((v) => (v + 3) % 7); l.light[0] = -4; l.sat[5] = 2; l.grain = 'high';
   l.wb = { a_b: 3, g_m: -2 }; l.effect = { type: 'clarity', strength: 4 }; l.notes = 'changed';
+  l.tone = { highlights: 2, shadows: -3, midtones: 1, blacks: 2, whites: -1 };
 }
 
 describe('reset', () => {
   it('standard pack encodes to the shipped LOOKS.BIN', () => {
-    expect(hex(encodeLooksBin(standardPack(LIB)))).toBe(hex(new Uint8Array(readFileSync(RELEASE_LOOKS))));
+    expect(hex(encodeLooksBin(standardPack(LIB), 3))).toBe(hex(new Uint8Array(readFileSync(RELEASE_LOOKS))));
   });
 
   it('resetting every edited library look gives byte-identical LOOKS.BIN', () => {
@@ -53,6 +54,7 @@ describe('reset', () => {
     expect(r.kind).toBe(imported.kind);
     expect([...r.hue, ...r.light, ...r.sat].every((v) => v === 0)).toBe(true);
     expect([r.grain, r.wb, r.effect, r.vignette]).toEqual(['off', null, null, 0]);
+    expect(r.tone).toEqual({ highlights: 0, shadows: 0, midtones: 0, blacks: 0, whites: 0 });
   });
 
   it('origin stays out of exported files and share codes', () => {

@@ -2,7 +2,11 @@
 // (sim/pipeline.py ColorEngine + grain, sim/film.py WB / tone levels / mono, sim/library_preview.py bloom), applied to
 // already-rendered JPEGs instead of raw files, so it is an approximation of an approximation: good for direction
 // and relative strength, not for exact colour. Vignette and Art Effects are not previewed.
-import type { Look } from './pack';
+// The look's tone (H/S/M/B/W, card data) is a luminance LUT in the display domain after the base curve (src/tone.ts);
+// the contrast advice bends the input to it first. The old recipe tone advice (advice.tone) is not previewed: on
+// v0.19 the Film pick sets the profile's H/S/M from the look's own tone.
+import { toneIsZero, type Look } from './pack';
+import { previewToneLut } from './tone';
 
 // Firmware COLOR table (generated/color/ep7_color_table.json, UI order): sector centre / width (0..32767 = 360 deg)
 // and the positive/negative saturation gains.
@@ -12,7 +16,7 @@ const GAIN_POS = [240, 240, 240, 256, 369, 328, 382, 382, 300, 615, 400, 656];
 const GAIN_NEG = [385, 385, 395, 493, 513, 395, 385, 385, 395, 395, 395, 395];
 const ANGLE_OFFSET = 15, SAT_SCALE = 1.5, HUE_DEG_PER_STEP = 5.5;
 const L_LUT = [-300, -250, -200, -150, -100, -50, -25, 0, 25, 50, 100, 150, 200, 250, 300];
-const WB_STEP = 0.015, TONE_STEP = 0.01, CONTRAST_STEP = 0.035;
+const WB_STEP = 0.015, CONTRAST_STEP = 0.035;
 const BLOOM_SHARE = [0.08, 0.14, 0.2, 0.27, 0.35];
 const COLOUR_GRAIN = [0, 50, 75, 100], MONO_GRAIN = [0, 110, 300, 600];
 const CLARITY = [0.12, 0.22, 0.32, 0.42, 0.52];
@@ -67,18 +71,7 @@ function sectorLut(hue: number[], light: number[], sat: number[]) {
   return { satMul, shift, lsum };
 }
 
-function toneLut(hl: number, sh: number, mid: number, contrast: number): Float32Array {
-  const t = new Float32Array(1025);
-  for (let i = 0; i <= 1024; i++) {
-    let y = i / 1024;
-    const bh = Math.pow(clamp01((y - 0.55) / 0.45), 1.5), bs = Math.pow(clamp01((0.45 - y) / 0.45), 1.5);
-    const bm = Math.exp(-(((y - 0.5) / 0.2) ** 2));
-    y += TONE_STEP * (hl * bh * 2.2 + sh * bs * 2.2 + mid * bm * 1.5);
-    if (contrast) y += 0.5 * CONTRAST_STEP * contrast * Math.sin(2 * Math.PI * (y - 0.5));
-    t[i] = clamp01(y);
-  }
-  return t;
-}
+const contrastCurve = (contrast: number) => (y: number) => clamp01(y + 0.5 * CONTRAST_STEP * contrast * Math.sin(2 * Math.PI * (y - 0.5)));
 
 /** Box-downsample to ~sw px wide, blur, and bilinear-upsample back: the Soft Focus "blurred copy". */
 function blurredCopy(src: Float32Array, w: number, h: number, sw: number, sigma: number): Float32Array {
@@ -148,10 +141,9 @@ export function renderLook(src: ImageData, dst: ImageData, look: Look, opt: Prev
       img[q] = s[p] / 255; img[q + 1] = s[p + 1] / 255; img[q + 2] = s[p + 2] / 255;
     }
   }
-  // 2. tone levels / contrast advice, 3. 12-sector colour engine, 4. mono
-  const adv = opt.advice ? look.advice : {};
-  const tone = adv.tone, con = adv.contrast ?? 0;
-  const tl = tone || con ? toneLut(tone?.highlights ?? 0, tone?.shadows ?? 0, tone?.midtones ?? 0, con) : null;
+  // 2. contrast advice + the look's tone (luminance), 3. 12-sector colour engine, 4. mono
+  const con = opt.advice ? look.advice.contrast ?? 0 : 0;
+  const tl = !toneIsZero(look.tone) || con ? previewToneLut(look.tone, 1024, con ? contrastCurve(con) : undefined) : null;
   const lut = sectorLut(look.hue, look.light, opt.advice && !mono ? look.sat : new Array(12).fill(0));
   const mf = look.advice.mono_filter;
   let mw: [number, number, number] = MONO_W.none;
@@ -167,12 +159,7 @@ export function renderLook(src: ImageData, dst: ImageData, look: Look, opt: Prev
     let y = 0.299 * r + 0.587 * g + 0.114 * b;
     let cb = -0.168736 * r - 0.331264 * g + 0.5 * b;
     let cr = 0.5 * r - 0.418688 * g - 0.081312 * b;
-    if (tl) {
-      const yn = tl[Math.max(0, Math.min(1024, (y * 1024 + 0.5) | 0))];
-      const ratio = y > 1e-3 ? Math.max(0.5, Math.min(1.5, yn / y)) : 1;
-      const k = Math.sqrt(ratio);
-      cb *= k; cr *= k; y = yn;
-    }
+    if (tl) y = tl[Math.max(0, Math.min(1024, (y * 1024 + 0.5) | 0))];   // luminance only: Cb/Cr untouched
     const chroma = Math.hypot(cb, cr);
     if (chroma > 1e-5) {
       let hd = (Math.atan2(cr, cb) * 180) / Math.PI;

@@ -7,14 +7,18 @@ and no photo or pack is ever uploaded.
 - Start from the built-in library (the repo's `bundles/library_v3.json`) or an empty pack. Add, remove, reorder
   (drag, the arrows, or Alt+↑/↓) and rename looks (max 32, names ≤ 12 characters).
 - Per-look editor: 12-sector hue / lightness (±7) and saturation advice (±5), grain, glow ↔ clarity (+ glow colour),
-  WB A–B / G–M, Art Effect, notes. Mono looks get the Monochrome filter advice instead of the colour sliders.
+  WB A–B / G–M, Art Effect, notes, and **Tone**: Highlights / Shadows / Midtones (±7) and Blacks / Whites (±5).
+  Mono looks get the Monochrome filter advice instead of the colour sliders.
 - Live **approximate** preview on four CC0 sample photos or your own photo (decoded locally, never sent anywhere).
+- Open a pack file or a card `LOOKS.BIN` (v3 or v4; v3 looks get tone 0).
 - Export `LOOKS.BIN`, a pack file (`*.caduceus.json`, which can be imported again), or a card zip with the
   `EP7MOD/` folder. The same validation as the desktop tools runs first.
 - Share a look as a short code, or a whole pack as a link (see [Share codes](#share-codes)).
 
-The output targets the **released v0.17 firmware** (= v0.16 firmware: hue/light ±7). It is byte-compatible with
-`tools/ep7_looks_bin.py` / `tools/ep7_bundles_bin.py` as of commit `e477637`. The tests check this.
+The output targets **Caduceus v0.19** (hue/light ±7, LOOKS.BIN v4 with the per-look tone; docs/TONE_ENDS.md §5).
+The v3 records are byte-compatible with `tools/ep7_looks_bin.py` / `tools/ep7_bundles_bin.py` as of commit `e477637`
+(the v0.17/v0.18 card format), and the v4 files with the repo's current tools once they write v4. The tests check
+both (the v4 cross-check is skipped while the repo's tools still write v3).
 
 ## Why plain TypeScript + Vite
 
@@ -28,6 +32,7 @@ weight without helping with that. The build output is ~60 kB of JS/CSS plus the 
 | `src/pack.ts` | Pack model (`caduceus-pack/1`), parsing of pack files |
 | `src/sharecode.ts` | Look codes and pack links |
 | `src/preview.ts` | Approximate preview (Canvas 2D, a rough port of `sim/pipeline.py` + `sim/film.py`) |
+| `src/tone.ts` | Tone LUT for the preview: bit-exact ports of `tools/ep7_tone_model.py` (H/S/M) and `tools/ep7_tone.py` (B/W) |
 | `src/main.ts`, `src/style.css` | UI |
 | `scripts/library.mjs`, `scripts/gen-library.mjs` | Resolve the repo library + recipes into `src/data/library.json` |
 | `tests/` | Encoder tests (byte-identical vs the release file and the Python tools), validation rejects, share codes |
@@ -87,7 +92,7 @@ a new version prefix. It never changes the meaning of an old one.
 ### Look code (v1)
 
 Example: `1BM9Y-B0K8X-PVAC8-KB9ND-BFVKG-0YAYT-SC59H-5W548-8TYZ0` (CineStill800). Codes for the built-in looks are
-18–52 characters (about 43 on average). The name takes about a third of that.
+21–56 characters (about 47 on average, most with a v2 tone block). The name takes about a third of that.
 
 - **Alphabet**: Crockford base32, `0123456789ABCDEFGHJKMNPQRSTVWXYZ`. On input, case is ignored, spaces, `-`, `_`
   and `.` are dropped, `O` reads as `0`, and `I`/`L` read as `1`. Anything up to a `#` is dropped, so a whole link
@@ -125,14 +130,27 @@ Example: `1BM9Y-B0K8X-PVAC8-KB9ND-BFVKG-0YAYT-SC59H-5W548-8TYZ0` (CineStill800).
   - 2 = dense: 12 digits `v+L`, radix `R`.
 
   The encoder picks the shorter of sparse and dense.
-- **Not in a look code**: notes and the tone/contrast advice. Use a pack link to share those.
+- **Not in a look code**: notes and the contrast / recipe-tone advice. Use a pack link to share those.
+
+### Look code (v2: with tone)
+
+A look whose tone is all zero keeps its v1 code, so older apps still read it. Otherwise the code starts with `2`
+and the body is the v1 field list with a **tone block** between field 10 (mono filter) and field 11 (name length):
+
+- mask digit, radix 31: the 5-bit mask of the non-zero tone fields minus 1 (bit 0 highlights, 1 shadows,
+  2 midtones, 3 blacks, 4 whites; never 0 in a v2 code);
+- then each non-zero value in that order, radix `2L` (L = 7 for H/S/M, 5 for B/W), coded `v+L` if `v<0`, else
+  `v+L−1`.
+
+One tone value adds at most 2 symbols. Everything else (alphabet, check, clean-up) is as in v1. Apps that only
+know v1 report a `2` code as made by a newer app.
 
 ### Pack link (v1)
 
 `pk1_` + base64url without padding (`-`, `_`) of the zlib stream (RFC 1950, `CompressionStream('deflate')`) of
 the UTF-8 JSON pack file. The JSON is the same `caduceus-pack/1` object as the downloadable `.caduceus.json`, with
 keys `schema`, `name`, `looks`, `slots`. zlib's Adler-32 catches damage. Pack links are case-sensitive, so they are
-meant for links, not for typing. The built-in 32-look library makes a link of about 3.9 kB, which every current
+meant for links, not for typing. The built-in 32-look library makes a link of about 4.1 kB, which every current
 browser handles in a URL fragment. The fragment (`#...`) is never sent to the server.
 
 Opening `https://<host>/<path>/#<code>` imports the code automatically. A look is added to the pack. If the pack
@@ -147,23 +165,30 @@ are editing.
                "hue": [0,0,0,-1,-1,-1,1,2,2,-2,0,0], "light": [...12], "sat": [...12],
                "grain": "off", "wb": null, "effect": { "type": "bloom", "strength": 2, "tint": "red" },
                "vignette": 0, "art_effect": "off",
+               "tone": { "highlights": 1, "shadows": -2, "midtones": 0, "blacks": 2, "whites": -1 },
                "advice": { "tone": { "highlights": 1, "shadows": -4, "midtones": 0 }, "contrast": 2,
                            "mono_filter": { "colour": "yellow", "strength": 2 } } } ] }
 ```
 
 The values use the vocabulary of the repo's bundle JSON (`patches/bundles/build.py`). The sector order is yellow,
 orange, orange-red, red, magenta, violet, blue, blue-cyan, cyan, green-cyan, green, yellow-green. `slots` maps
-`COLOR1–4` / `MONO1–4` to look indexes for the starter BUNDLES.BIN. Mono looks only go in MONO slots. `advice` is
-only used by the preview.
+`COLOR1–4` / `MONO1–4` to look indexes for the starter BUNDLES.BIN. Mono looks only go in MONO slots. `tone` is
+optional (missing fields = 0). `advice` is only used by the preview (its `tone` is the old recipe advice, which the
+editor offers to copy into the look's tone).
 
 ## What goes into the card files
 
 - **LOOKS.BIN** record per look: hue, light, grain, WB override, effect + strength, vignette (stored, not rendered
   by v0.17), the H/L flag, sat (colour looks, used when one is placed in a MONO slot), class, slot mask, bloom
-  tint and the name. Colour looks always carry sat, so they can go in COLOR and MONO slots.
+  tint and the name (the v3 record, 64 bytes), then the v4 tone tail: +64 Blacks, +65 Whites (−5..5), +66
+  Highlights, +67 Shadows, +68 Midtones (−7..7), +69..79 zero. Header version 4, record length 80. Colour looks
+  always carry sat, so they can go in COLOR and MONO slots.
+- **Tone on the camera**: picking a look writes its Highlights / Shadows / Midtones to the profile's own tone
+  settings. Blacks / Whites go into the slot (BUNDLES.BIN +47 / +48, COLOR slots only; MONO slots keep 0) and move
+  the two ends of the luminance tone curve.
 - **The Art Effect** has no field in LOOKS.BIN. It lives in the slot. The app keeps it in the pack file and share
   codes, and writes it into the COLOR slots of the starter BUNDLES.BIN.
-- **Saturation, tone and contrast** are advice: they are the camera's own picture settings. The camera renders a
+- **Saturation and contrast** are advice: they are the camera's own picture settings. The camera renders a
   look with whatever you have set there.
 
 ## Limits of the preview
@@ -171,4 +196,7 @@ only used by the preview.
 The preview is a rough port of the desktop simulator, applied to finished JPEGs instead of RAW files. Use it for
 the direction and relative strength of a look. Exact colours will differ from the camera. The grain is drawn a
 little stronger than the full-size grain would look when scaled down, so you can still see it. Vignette and Art
-Effects are not previewed.
+Effects are not previewed. The tone is applied to luminance only, as a display-domain LUT after the base curve:
+each display value goes through the camera's contrast-0 LUT -> the same LUT with the look's tone, which is a
+bit-exact port of the firmware model (`tools/ep7_tone_model.py` for H/S/M, `tools/ep7_tone.py` for Blacks/Whites;
+`npm run gen-library` copies its data to `src/data/tone_hsm.json`).

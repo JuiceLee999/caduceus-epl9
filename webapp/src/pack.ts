@@ -28,6 +28,15 @@ export interface Advice {
   contrast?: number;
   mono_filter?: { colour: MonoFilter; strength: number };
 }
+/** Per-look tone (LOOKS.BIN v4 tail). H/S/M -7..7: the Film pick writes them to the profile's stock tone settings.
+ *  Blacks/Whites -5..5: the two curve ends, placed into COLOR slots of BUNDLES.BIN (+47/+48). 0 = stock. */
+export interface Tone { highlights: number; shadows: number; midtones: number; blacks: number; whites: number }
+export const TONE_KEYS = ['highlights', 'shadows', 'midtones', 'blacks', 'whites'] as const;
+export const TONE_HSM_MAX = 7, TONE_BW_MAX = 5;
+export const toneLimit = (k: keyof Tone) => (k === 'blacks' || k === 'whites' ? TONE_BW_MAX : TONE_HSM_MAX);
+export const zeroTone = (): Tone => ({ highlights: 0, shadows: 0, midtones: 0, blacks: 0, whites: 0 });
+export const toneIsZero = (t: Tone) => TONE_KEYS.every((k) => t[k] === 0);
+
 export interface Look {
   name: string;
   notes: string;
@@ -40,6 +49,7 @@ export interface Look {
   effect: Effect | null;
   vignette: number;    // -5..5 (stored only)
   art_effect: Art;     // COLOR slots of BUNDLES.BIN only: LOOKS.BIN has no field for it
+  tone: Tone;          // LOOKS.BIN v4 tail (H/S/M/B/W); B/W also go into COLOR slots of BUNDLES.BIN
   advice: Advice;      // camera settings the look recommends (preview only; not in any card file)
   origin?: string;     // app-only: the built-in library look this one came from (for Reset look); not exported
 }
@@ -55,7 +65,7 @@ export const zeros12 = () => new Array<number>(12).fill(0);
 export function blankLook(kind: 'colour' | 'mono' = 'colour', name = kind === 'mono' ? 'New Mono' : 'New Look'): Look {
   return {
     name, notes: '', kind, hue: zeros12(), light: zeros12(), sat: zeros12(), grain: 'off', wb: null, effect: null,
-    vignette: 0, art_effect: 'off', advice: kind === 'mono' ? { mono_filter: { colour: 'none', strength: 1 } } : {},
+    vignette: 0, art_effect: 'off', tone: zeroTone(), advice: kind === 'mono' ? { mono_filter: { colour: 'none', strength: 1 } } : {},
   };
 }
 
@@ -99,6 +109,12 @@ export function parseLook(v: unknown, what = 'look'): Look {
       if (v.effect.tint !== undefined) effect.tint = oneOf(v.effect.tint, TINTS, `${what} effect tint`, 'neutral');
     }
   }
+  const tone = zeroTone();
+  if (v.tone !== undefined && v.tone !== null) {
+    if (!isObj(v.tone)) throw new Error(`${what}: tone must be {"highlights", "shadows", "midtones", "blacks", "whites"}`);
+    for (const k of Object.keys(v.tone)) if (!(TONE_KEYS as readonly string[]).includes(k)) throw new Error(`${what}: unknown tone field ${k}`);
+    for (const k of TONE_KEYS) tone[k] = int(v.tone[k], `${what} tone ${k}`);
+  }
   const adv: Advice = {};
   if (isObj(v.advice)) {
     const a = v.advice;
@@ -118,6 +134,7 @@ export function parseLook(v: unknown, what = 'look'): Look {
     effect,
     vignette: int(v.vignette, `${what} vignette`),
     art_effect: oneOf(v.art_effect, ARTS, `${what} art_effect`, 'off'),
+    tone,
     advice: adv,
     ...(typeof v.origin === 'string' ? { origin: v.origin } : {}),
   };

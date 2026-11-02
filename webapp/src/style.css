@@ -177,6 +177,8 @@ canvas.pv { width: 100%; height: auto; display: block; max-height: 70vh; object-
 .sw { width: 14px; height: 14px; border-radius: 4px; }
 .sname { font-size: 13px; }
 .end { font-size: 12px; color: var(--muted); }
+.tone-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.tone-sep { height: 1px; background: var(--line); margin: 6px 0 6px 96px; opacity: .6; }
 .tab-foot { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-top: 6px; }
 .problems { margin: 6px 0 0; padding-left: 18px; color: var(--err); font-size: 13px; }
 .problems-box { border: 1px solid var(--err); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; }

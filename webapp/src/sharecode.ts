@@ -3,12 +3,19 @@
 // Look code v1:  "1" + body + check      (Crockford base32: 0-9 A-Z without I L O U; case-insensitive)
 //   body  = one mixed-radix integer (BigInt) holding the look's fields, most significant digit first
 //   check = CRC-15/CAN (poly 0x4599) over the 5-bit symbols of "1" + body, as 3 symbols
+// Look code v2:  "2" + body + check      the v1 fields with a tone block (H/S/M/B/W) before the name. Only made
+//   when the look's tone is not all zero, so a look without tone keeps its v1 code (older apps read it).
 // Pack code v1:  "pk1_" + base64url(zlib-deflate(UTF-8 JSON of the pack file, schema caduceus-pack/1))
 //   (zlib's Adler-32 catches corruption; base64url is case-sensitive, so pack codes are for links, not typing)
-import { ARTS, EFFECTS, GRAINS, MONO_FILTERS, TINTS, exportable, parsePack, type Effect, type Look, type Pack } from './pack';
+import {
+  ARTS, EFFECTS, GRAINS, MONO_FILTERS, TINTS, TONE_KEYS, exportable, parsePack, toneIsZero, toneLimit, zeroTone,
+  type Effect, type Look, type Pack, type Tone,
+} from './pack';
 
 export const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-export const LOOK_VERSION = '1';
+export const LOOK_VERSION = '1';        // codes without tone
+export const LOOK_VERSION_TONE = '2';   // codes with a tone block
+const KNOWN_VERSIONS = [LOOK_VERSION, LOOK_VERSION_TONE];
 export const PACK_PREFIX = 'pk1_';
 const NAME_CHARS = (() => {
   let s = '';
@@ -105,8 +112,29 @@ function effectFrom(i: number): Effect | null {
   throw new Error('share code: damaged (bad effect)');
 }
 
-/** Pack one look into a mixed-radix integer (v1 field order; never reorder: it is the code format). */
-function lookToBigInt(l: Look): bigint {
+// Tone block (v2): mask digit (radix 31, = 5-bit mask of the non-zero fields in TONE_KEYS order, minus 1; never 0),
+// then each non-zero value in that order, radix 2L (L = 7 for H/S/M, 5 for B/W), coded v+L if v<0 else v+L-1.
+function putTone(w: Writer, t: Tone) {
+  let mask = 0;
+  TONE_KEYS.forEach((k, i) => { if (t[k] !== 0) mask |= 1 << i; });
+  w.put(mask - 1, 31);
+  for (const k of TONE_KEYS) {
+    const v = t[k], L = toneLimit(k);
+    if (v !== 0) w.put(v < 0 ? v + L : v + L - 1, 2 * L);
+  }
+}
+function getTone(r: Reader): Tone {
+  const mask = r.get(31) + 1, t = zeroTone();
+  TONE_KEYS.forEach((k, i) => {
+    if (!(mask & (1 << i))) return;
+    const L = toneLimit(k), x = r.get(2 * L) - L;
+    t[k] = x < 0 ? x : x + 1;
+  });
+  return t;
+}
+
+/** Pack one look into a mixed-radix integer (v1/v2 field order; never reorder: it is the code format). */
+function lookToBigInt(l: Look, withTone: boolean): bigint {
   const w = new Writer();
   w.put(l.kind === 'mono' ? 1 : 0, 2);
   putVec(w, l.hue, 7);
@@ -119,13 +147,14 @@ function lookToBigInt(l: Look): bigint {
   w.put(ARTS.indexOf(l.art_effect), ARTS.length);
   const mf = l.advice.mono_filter;
   w.put(mf ? 1 + MONO_FILTERS.indexOf(mf.colour) * 3 + (Math.min(3, Math.max(1, mf.strength)) - 1) : 0, 19);
+  if (withTone) putTone(w, l.tone);
   const name = [...l.name];
   w.put(name.length - 1, 12);
   for (const c of name) w.put(NAME_CHARS.indexOf(c), NAME_CHARS.length);
   return w.toBigInt();
 }
 
-function lookFromBigInt(n: bigint): Look {
+function lookFromBigInt(n: bigint, withTone: boolean): Look {
   const r = new Reader(n);
   const kind = r.get(2) ? 'mono' : 'colour';
   const hue = getVec(r, 7), light = getVec(r, 7), sat = getVec(r, 5);
@@ -136,12 +165,13 @@ function lookFromBigInt(n: bigint): Look {
   const vignette = r.get(11) - 5;
   const art = r.get(ARTS.length);
   const mfi = r.get(19);
+  const tone = withTone ? getTone(r) : zeroTone();
   const len = r.get(12) + 1;
   let name = '';
   for (let i = 0; i < len; i++) name += NAME_CHARS[r.get(NAME_CHARS.length)];
   if (r.n !== 0n) throw new Error('share code: damaged (extra data)');
   return {
-    name, notes: '', kind, hue, light, sat, grain, wb, effect, vignette, art_effect: ARTS[art],
+    name, notes: '', kind, hue, light, sat, grain, wb, effect, vignette, art_effect: ARTS[art], tone,
     advice: mfi ? { mono_filter: { colour: MONO_FILTERS[Math.floor((mfi - 1) / 3)], strength: ((mfi - 1) % 3) + 1 } } : {},
   };
 }
@@ -156,7 +186,12 @@ function toSymbols(n: bigint): number[] {
 export function encodeLookCode(l: Look, group = false): string {
   if ([...l.name].some((c) => !NAME_CHARS.includes(c)) || l.name.length < 1 || l.name.length > 12)
     throw new Error('share code: the name must be 1-12 printable ASCII characters without "@"');
-  const syms = [ALPHABET.indexOf(LOOK_VERSION), ...toSymbols(lookToBigInt(l))];
+  for (const k of TONE_KEYS) {
+    const v = l.tone?.[k] ?? 0, L = toneLimit(k);
+    if (!Number.isInteger(v) || Math.abs(v) > L) throw new Error(`share code: tone ${k} must be a whole number in -${L}..${L}`);
+  }
+  const withTone = !!l.tone && !toneIsZero(l.tone);
+  const syms = [ALPHABET.indexOf(withTone ? LOOK_VERSION_TONE : LOOK_VERSION), ...toSymbols(lookToBigInt(l, withTone))];
   const c = crc15(syms);
   syms.push((c >> 10) & 31, (c >> 5) & 31, c & 31);
   const s = syms.map((v) => ALPHABET[v]).join('');
@@ -176,8 +211,8 @@ export function decodeLookCode(input: string): Look {
   const syms = [...s].map((ch) => ALPHABET.indexOf(ch));
   const bad = syms.indexOf(-1);
   if (bad >= 0) throw new Error(`"${s[bad]}" is not a code character.`);
-  if (s[0] !== LOOK_VERSION) {
-    if (/[2-9]/.test(s[0])) throw new Error(`This is a version-${s[0]} code from a newer Caduceus app. Update the app (or ask for a pack link).`);
+  if (!KNOWN_VERSIONS.includes(s[0])) {
+    if (/[3-9]/.test(s[0])) throw new Error(`This is a version-${s[0]} code from a newer Caduceus app. Update the app (or ask for a pack link).`);
     throw new Error('This is not a Caduceus look code.');
   }
   const body = syms.slice(0, -3), chk = syms.slice(-3);
@@ -186,7 +221,7 @@ export function decodeLookCode(input: string): Look {
     throw new Error('Check failed: the code has a typo (or is incomplete).');
   let n = 0n;
   for (const v of body.slice(1)) n = (n << 5n) | BigInt(v);
-  return lookFromBigInt(n);
+  return lookFromBigInt(n, s[0] === LOOK_VERSION_TONE);
 }
 
 // ---- pack codes

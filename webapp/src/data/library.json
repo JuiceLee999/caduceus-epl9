@@ -14,6 +14,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 1,
+    "shadows": -4,
+    "midtones": 0,
+    "blacks": -2,
+    "whites": 1
+   },
    "advice": {
     "tone": {
      "highlights": 1,
@@ -35,6 +42,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -2,
+    "shadows": 1,
+    "midtones": 0,
+    "blacks": 0,
+    "whites": 0
+   },
    "advice": {
     "tone": {
      "highlights": -2,
@@ -56,6 +70,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 0,
+    "shadows": -3,
+    "midtones": 0,
+    "blacks": -1,
+    "whites": 0
+   },
    "advice": {
     "tone": {
      "highlights": 0,
@@ -77,6 +98,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 4,
+    "shadows": -2,
+    "midtones": 1,
+    "blacks": 0,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": 4,
@@ -101,6 +129,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -2,
+    "shadows": 1,
+    "midtones": 1,
+    "blacks": 1,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": -2,
@@ -122,6 +157,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 3,
+    "shadows": 1,
+    "midtones": 0,
+    "blacks": 0,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": 3,
@@ -143,6 +185,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -2,
+    "shadows": 4,
+    "midtones": 0,
+    "blacks": 1,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": -2,
@@ -164,6 +213,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 4,
+    "shadows": -3,
+    "midtones": 0,
+    "blacks": -2,
+    "whites": 1
+   },
    "advice": {
     "tone": {
      "highlights": 4,
@@ -188,6 +244,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -1,
+    "shadows": -2,
+    "midtones": 0,
+    "blacks": -1,
+    "whites": 1
+   },
    "advice": {
     "tone": {
      "highlights": -1,
@@ -215,6 +278,13 @@
    },
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -2,
+    "shadows": 2,
+    "midtones": 1,
+    "blacks": 0,
+    "whites": -2
+   },
    "advice": {
     "tone": {
      "highlights": -2,
@@ -236,6 +306,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 0,
+    "shadows": -1,
+    "midtones": 0,
+    "blacks": 0,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": 0,
@@ -260,6 +337,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -1,
+    "shadows": 0,
+    "midtones": 1,
+    "blacks": 0,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": -1,
@@ -283,6 +367,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 0,
+    "shadows": -2,
+    "midtones": 0,
+    "blacks": -1,
+    "whites": 1
+   },
    "advice": {
     "tone": {
      "highlights": 0,
@@ -311,6 +402,13 @@
    },
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -1,
+    "shadows": 2,
+    "midtones": 0,
+    "blacks": 0,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": -1,
@@ -337,6 +435,13 @@
    },
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -2,
+    "shadows": 3,
+    "midtones": 2,
+    "blacks": 1,
+    "whites": -2
+   },
    "advice": {
     "tone": {
      "highlights": -2,
@@ -358,6 +463,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 1,
+    "shadows": -2,
+    "midtones": 0,
+    "blacks": -1,
+    "whites": 0
+   },
    "advice": {
     "tone": {
      "highlights": 1,
@@ -382,6 +494,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -2,
+    "shadows": -5,
+    "midtones": 3,
+    "blacks": -1,
+    "whites": 0
+   },
    "advice": {
     "tone": {
      "highlights": -2,
@@ -403,6 +522,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -1,
+    "shadows": 1,
+    "midtones": 0,
+    "blacks": 0,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": -1,
@@ -427,6 +553,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 0,
+    "shadows": -3,
+    "midtones": 1,
+    "blacks": 0,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": 0,
@@ -454,6 +587,13 @@
    },
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 1,
+    "shadows": -3,
+    "midtones": 1,
+    "blacks": 0,
+    "whites": -2
+   },
    "advice": {
     "tone": {
      "highlights": 1,
@@ -478,6 +618,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -3,
+    "shadows": -2,
+    "midtones": 1,
+    "blacks": -1,
+    "whites": 1
+   },
    "advice": {
     "tone": {
      "highlights": -3,
@@ -502,6 +649,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 0,
+    "shadows": -1,
+    "midtones": 0,
+    "blacks": 0,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": 0,
@@ -526,6 +680,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 0,
+    "shadows": -1,
+    "midtones": 0,
+    "blacks": 0,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": 0,
@@ -554,6 +715,13 @@
    },
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -2,
+    "shadows": 2,
+    "midtones": 0,
+    "blacks": 0,
+    "whites": -2
+   },
    "advice": {
     "tone": {
      "highlights": -2,
@@ -575,6 +743,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -3,
+    "shadows": 3,
+    "midtones": 0,
+    "blacks": 1,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": -3,
@@ -603,6 +778,13 @@
    },
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -2,
+    "shadows": 3,
+    "midtones": 0,
+    "blacks": 1,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": -2,
@@ -630,6 +812,13 @@
    },
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -3,
+    "shadows": 4,
+    "midtones": 1,
+    "blacks": 3,
+    "whites": -2
+   },
    "advice": {
     "tone": {
      "highlights": -3,
@@ -654,6 +843,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": 2,
+    "shadows": -3,
+    "midtones": 0,
+    "blacks": -1,
+    "whites": 1
+   },
    "advice": {
     "tone": {
      "highlights": 2,
@@ -681,6 +877,13 @@
    },
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -1,
+    "shadows": -2,
+    "midtones": 0,
+    "blacks": 3,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": -1,
@@ -702,6 +905,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -1,
+    "shadows": -2,
+    "midtones": 0,
+    "blacks": -1,
+    "whites": 0
+   },
    "advice": {
     "tone": {
      "highlights": -1,
@@ -727,6 +937,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -1,
+    "shadows": -3,
+    "midtones": 0,
+    "blacks": -1,
+    "whites": 1
+   },
    "advice": {
     "tone": {
      "highlights": -1,
@@ -752,6 +969,13 @@
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
+   "tone": {
+    "highlights": -2,
+    "shadows": 1,
+    "midtones": 0,
+    "blacks": 0,
+    "whites": -1
+   },
    "advice": {
     "tone": {
      "highlights": -2,

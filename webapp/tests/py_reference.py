@@ -2,8 +2,10 @@
 """Reference encoder for the web-app tests: runs the repo's own Python tools on packs the tests generate.
 
   python3 -I tests/py_reference.py <tools root> < cases.json  ->  JSON list of {looks, bundles, looks_check, bundles_check}
+  python3 -I tests/py_reference.py <tools root> --info        ->  {"looks_version": n}
 
-<tools root> is a checkout of the v0.16-era tools (git archive of commit e477637: tools/, patches/, sim/recipes/).
+<tools root> is a checkout of the v0.16-era tools (git archive of commit e477637: tools/, patches/, sim/recipes/),
+or the repo itself (the current tools: LOOKS.BIN v4 with the tone tail; looks may carry "tone").
 Each case: {"recipes": {...}, "library": {...}, "slots": {"COLOR1": key, ...}, "art": {"COLOR1": n, ...}}.
 LOOKS.BIN comes from tools/ep7_looks_bin.compile_looks (recipes injected); BUNDLES.BIN from LIB.place per slot,
 the Art Effect byte (+46, COLOR slots), SB.make_file and ep7_bundles_bin.name_section.
@@ -24,6 +26,9 @@ def load(name, rel):
 LB = load('ep7_looks_bin', 'tools/ep7_looks_bin.py')
 BBIN = load('ep7_bundles_bin', 'tools/ep7_bundles_bin.py')
 LIB, SB = LB.LIB, LB.SB
+if sys.argv[2:] == ['--info']:
+    print(json.dumps({'looks_version': LB.VERSION}))
+    sys.exit(0)
 out = []
 for case in json.loads(sys.stdin.read()):
     recipes = {k: dict(v, _file='webapp-test') for k, v in case['recipes'].items()}

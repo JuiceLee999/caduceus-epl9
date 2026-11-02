@@ -1,11 +1,17 @@
-// Card-file encoders: EP7MOD/LOOKS.BIN (v3, the 32-look picker file) and EP7MOD/BUNDLES.BIN (v1 + name section).
+// Card-file encoders: EP7MOD/LOOKS.BIN (v4 = v3 + 16-byte tone tail per record; v3 still decodes) and EP7MOD/BUNDLES.BIN (v1 + name section).
 // Byte-for-byte ports of the v0.16-era desktop tools (commit e477637; the format v0.17 cards use):
 //   tools/ep7_looks_bin.py   header / record / make_file / check_file
 //   tools/ep7_library.py     look_record (canonical bundle), place (look -> slot entry), name rules
 //   patches/bundles/build.py slot_entry (field encoding), patches/sd_bundles/build.py RANGES_LEGACY + header
 //   tools/ep7_bundles_bin.py name_section / check_names
+// v0.19 tone contract (docs/TONE_ENDS.md §5): LOOKS.BIN v4 header version 4, record length 80 (+26, payload 80 n),
+// record = v3 record + tail +64 blacks, +65 whites (s8 -5..5), +66 highlights, +67 shadows, +68 midtones (s8 -7..7),
+// +69..79 = 0. BUNDLES.BIN slot +47 blacks, +48 whites (COLOR slots only; MONO slots keep 0).
 // tests/encoder.test.ts checks the output against the Python tools and the released card files.
-import { ARTS, EFFECTS, GRAINS, MAX_LOOKS, NAME_MAX, NOTE_MAX, SLOT_NAMES, TINTS, type Look, type Pack } from './pack';
+import {
+  ARTS, EFFECTS, GRAINS, MAX_LOOKS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SLOT_NAMES, TINTS, TONE_BW_MAX, TONE_KEYS,
+  blankLook, toneLimit, zeroTone, type Look, type Pack,
+} from './pack';
 
 // ---- CRC-32 (zlib)
 const CRC_TABLE = (() => {
@@ -30,7 +36,12 @@ const SHA_PREFIX = [0x5d, 0xd9, 0xaf, 0x16];            // SB.SHA_PREFIX: decode
 export const LAYOUT_CRC = 0x68068776;                   // ep7_library.layout_crc() of patches/bundles/layout.json
 export const HL_MAX = 7;                                // v0.16 firmware: hue/light -7..7 (RANGES_LEGACY)
 export const SAT_MAX = 5, WB_MAX = 7, VIG_MAX = 5, STRENGTH_MAX = 5;
-const LOOKS_VERSION = 3, HDR_LEN = 64, REC_LEN = 64;
+export const LOOKS_VERSION = 4;
+const HDR_LEN = 64, REC_V3 = 64, REC_V4 = 80;
+const recLen = (version: number) => (version === 3 ? REC_V3 : REC_V4);
+// v4 tone tail: record offsets of blacks, whites, highlights, shadows, midtones
+const TONE_OFF = { blacks: 64, whites: 65, highlights: 66, shadows: 67, midtones: 68 } as const;
+const B_BLACKS = 47, B_WHITES = 48;
 const BUNDLE_USED = 45, CLASS_OFF = 45, MASK_OFF = 46, TINT_OFF = 47, NAME_OFF = 48;
 const B_TINT = 45, B_ART = 46, B_COLOUR = 32, B_SAT = 33, B_FLAGS = 31;
 const FLAG_RENDER_COLOUR = 1, FLAG_HL = 2;
@@ -42,7 +53,8 @@ export const SLOT_NAME_MAX = 15;
 const FIELDS: [number, number, number, number][] = [   // off, len, lo, hi
   [0, 12, -HL_MAX, HL_MAX], [12, 12, -HL_MAX, HL_MAX], [24, 1, 0, 3], [25, 1, 0, 1], [26, 1, -WB_MAX, WB_MAX],
   [27, 1, -WB_MAX, WB_MAX], [28, 1, 0, 3], [29, 1, 0, 5], [30, 1, -VIG_MAX, VIG_MAX], [31, 1, 0, 3], [32, 1, 0, 1],
-  [33, 12, -SAT_MAX, SAT_MAX], [45, 1, 0, 4], [46, 1, 0, 5]];
+  [33, 12, -SAT_MAX, SAT_MAX], [45, 1, 0, 4], [46, 1, 0, 5],
+  [B_BLACKS, 1, -TONE_BW_MAX, TONE_BW_MAX], [B_WHITES, 1, -TONE_BW_MAX, TONE_BW_MAX]];
 export const RANGE_LO = new Int8Array(64), RANGE_HI = new Int8Array(64);   // unclaimed bytes: 0..0
 for (const [off, n, lo, hi] of FIELDS) for (let k = off; k < off + n; k++) { RANGE_LO[k] = lo; RANGE_HI[k] = hi; }
 const s8 = (b: number) => (b >= 128 ? b - 256 : b);
@@ -86,6 +98,11 @@ export function validateLook(l: Look, i?: number): Problem[] {
       add('effect', 'Glow colour only goes with bloom or halation.');
   }
   if (!intIn(l.vignette, -VIG_MAX, VIG_MAX)) add('vignette', `Vignette: -${VIG_MAX}..${VIG_MAX}.`);
+  if (!l.tone || typeof l.tone !== 'object') add('tone', 'Tone: missing.');
+  else for (const k of TONE_KEYS) {
+    const lim = toneLimit(k);
+    if (!intIn(l.tone[k], -lim, lim)) add('tone', `Tone ${k}: a whole number in -${lim}..${lim}.`);
+  }
   if (!ARTS.includes(l.art_effect)) add('art_effect', 'Unknown Art Effect.');
   else if (l.art_effect !== 'off' && l.kind === 'mono') add('art_effect', 'Art Effects are for colour looks (COLOR slots).');
   return p;
@@ -113,9 +130,10 @@ export function validatePack(pack: Pack): Problem[] {
 }
 
 // ---- LOOKS.BIN
-/** The look's 64-byte LOOKS.BIN record (bundle bytes 0..44, class, slot mask, bloom tint, name[16]). */
-export function lookRecord(l: Look): Uint8Array {
-  const r = new Uint8Array(REC_LEN);
+/** The look's LOOKS.BIN record: v3 64 bytes (bundle bytes 0..44, class, slot mask, bloom tint, name[16]);
+ *  v4 (default) adds the 16-byte tone tail. */
+export function lookRecord(l: Look, version = LOOKS_VERSION): Uint8Array {
+  const r = new Uint8Array(recLen(version));
   for (let k = 0; k < 12; k++) { r[k] = u8(l.hue[k]); r[12 + k] = u8(l.light[k]); }
   r[24] = GRAINS.indexOf(l.grain);
   if (l.wb) { r[25] = 1; r[26] = u8(l.wb.a_b); r[27] = u8(l.wb.g_m); }
@@ -132,17 +150,19 @@ export function lookRecord(l: Look): Uint8Array {
   r[MASK_OFF] = mono ? 2 : 3;          // colour looks always carry sat (-5..5), so they may also go in MONO slots
   const nm = new TextEncoder().encode(l.name);
   r.set(nm.subarray(0, 15), NAME_OFF);
+  if (version !== 3) for (const k of TONE_KEYS) r[TONE_OFF[k]] = u8(l.tone[k]);
   return r;
 }
 
-function looksHeader(n: number, crc: number): Uint8Array {
+function looksHeader(n: number, crc: number, version: number): Uint8Array {
   const h = new Uint8Array(HDR_LEN);
   const v = new DataView(h.buffer);
+  const rl = recLen(version);
   h.set(MAGIC, 0);
-  v.setUint16(4, LOOKS_VERSION, true); v.setUint16(6, HDR_LEN, true);
-  v.setUint32(8, FW_BUILD, true); v.setUint32(12, REC_LEN * n, true); v.setUint32(16, crc, true);
+  v.setUint16(4, version, true); v.setUint16(6, HDR_LEN, true);
+  v.setUint32(8, FW_BUILD, true); v.setUint32(12, rl * n, true); v.setUint32(16, crc, true);
   h.set(SHA_PREFIX, 20);
-  v.setUint16(24, n, true); v.setUint16(26, REC_LEN, true); v.setUint32(28, LAYOUT_CRC, true);
+  v.setUint16(24, n, true); v.setUint16(26, rl, true); v.setUint32(28, LAYOUT_CRC, true);
   return h;
 }
 
@@ -150,14 +170,15 @@ export class PackError extends Error {
   constructor(public problems: Problem[]) { super(problems.map((p) => (p.look !== undefined ? `look ${p.look + 1}: ` : '') + p.message).join('\n')); }
 }
 
-/** Validated LOOKS.BIN bytes for the pack (throws PackError). */
-export function encodeLooksBin(pack: Pack): Uint8Array {
+/** Validated LOOKS.BIN bytes for the pack (throws PackError). The app always exports v4; `version` 3 exists for
+ *  the tests (byte identity with the v3-era tools and release files; the tone is dropped). */
+export function encodeLooksBin(pack: Pack, version = LOOKS_VERSION): Uint8Array {
   const probs = validatePack({ ...pack, slots: {} });
   if (probs.length) throw new PackError(probs);
-  const n = pack.looks.length;
-  const out = new Uint8Array(HDR_LEN + REC_LEN * n);
-  pack.looks.forEach((l, j) => out.set(lookRecord(l), HDR_LEN + REC_LEN * j));
-  out.set(looksHeader(n, 0), 0);
+  const n = pack.looks.length, rl = recLen(version);
+  const out = new Uint8Array(HDR_LEN + rl * n);
+  pack.looks.forEach((l, j) => out.set(lookRecord(l, version), HDR_LEN + rl * j));
+  out.set(looksHeader(n, 0, version), 0);
   const crc = crc32(out.subarray(0, 16), out.subarray(20));
   new DataView(out.buffer).setUint32(16, crc, true);
   const chk = checkLooksBin(out);
@@ -175,18 +196,24 @@ function nameOk(nm: Uint8Array): boolean {     // camera rule (_name_ok): 1..15 
   return true;
 }
 
-/** Mirror of the camera's pk_check (tools/ep7_looks_bin.py check_file, legacy ranges): [] = accepted. */
+/** The version field of a LOOKS.BIN (3 or 4 are known), or 0 when it is too short to tell. */
+export const looksBinVersion = (d: Uint8Array) => (d.length >= 6 ? d[4] | (d[5] << 8) : 0);
+
+/** Mirror of the camera's pk_check (tools/ep7_looks_bin.py check_file, legacy ranges) for v3 and v4: [] = accepted. */
 export function checkLooksBin(d: Uint8Array): string[] {
   const p: string[] = [];
   const size = d.length;
-  if (size < HDR_LEN + REC_LEN || size > HDR_LEN + REC_LEN * MAX_LOOKS || size % REC_LEN) return [`size ${size}`];
-  const n = (size - HDR_LEN) / REC_LEN;
-  const want = looksHeader(n, 0);
+  const version = looksBinVersion(d);
+  if (version !== 3 && version !== 4) return size < 6 ? [`size ${size}`] : [`version ${version}`];
+  const rl = recLen(version);
+  if (size < HDR_LEN + rl || size > HDR_LEN + rl * MAX_LOOKS || (size - HDR_LEN) % rl) return [`size ${size}`];
+  const n = (size - HDR_LEN) / rl;
+  const want = looksHeader(n, 0, version);
   for (let i = 0; i < HDR_LEN; i++) if ((i < 16 || i >= 20) && d[i] !== want[i]) { p.push('header'); break; }
   const crc = new DataView(d.buffer, d.byteOffset, d.byteLength).getUint32(16, true);
   if (crc32(d.subarray(0, 16), d.subarray(20)) !== crc) p.push('crc');
   for (let j = 0; j < n; j++) {
-    const r = d.subarray(HDR_LEN + REC_LEN * j, HDR_LEN + REC_LEN * (j + 1));
+    const r = d.subarray(HDR_LEN + rl * j, HDR_LEN + rl * (j + 1));
     for (let k = 0; k < BUNDLE_USED; k++) {
       const v = s8(r[k]);
       if (v < RANGE_LO[k] || v > RANGE_HI[k]) { p.push(`look ${j} byte ${k} = ${v} out of range`); break; }
@@ -195,12 +222,45 @@ export function checkLooksBin(d: Uint8Array): string[] {
     if (!((cls === 0 && (mask === 1 || mask === 3)) || (cls === 1 && mask === 2)) || r[TINT_OFF] > 4)
       p.push(`look ${j} class/mask/tint ${cls}/${mask}/${r[TINT_OFF]}`);
     if (!nameOk(r.subarray(NAME_OFF, NAME_OFF + 16))) p.push(`look ${j} name`);
+    if (version === 4) {
+      const bad = TONE_KEYS.find((k) => Math.abs(s8(r[TONE_OFF[k]])) > toneLimit(k));
+      if (bad) p.push(`look ${j} tone ${bad} = ${s8(r[TONE_OFF[bad]])} out of range`);
+      else if (r.subarray(69, REC_V4).some((b) => b !== 0)) p.push(`look ${j} tone tail`);
+    }
   }
   return p;
 }
 
+/** LOOKS.BIN (v3 or v4, checked like the camera) -> pack. v3 looks get tone 0. LOOKS.BIN has no notes, Art Effect
+ *  or advice; mono looks get the "no filter" advice. Throws with a readable message. */
+export function decodeLooksBin(d: Uint8Array, name = 'Imported LOOKS.BIN'): Pack {
+  const probs = checkLooksBin(d);
+  if (probs.length) throw new Error(`LOOKS.BIN rejected (${probs.slice(0, 3).join('; ')})`);
+  const version = looksBinVersion(d), rl = recLen(version), n = (d.length - HDR_LEN) / rl;
+  const looks: Look[] = [];
+  for (let j = 0; j < n; j++) {
+    const r = d.subarray(HDR_LEN + rl * j, HDR_LEN + rl * (j + 1));
+    const mono = r[CLASS_OFF] === 1;
+    const nm = r.subarray(NAME_OFF, NAME_OFF + 16);
+    const l = blankLook(mono ? 'mono' : 'colour', String.fromCharCode(...nm.subarray(0, nm.indexOf(0))));
+    for (let k = 0; k < 12; k++) { l.hue[k] = s8(r[k]); l.light[k] = s8(r[12 + k]); if (!mono) l.sat[k] = s8(r[B_SAT + k]); }
+    l.grain = GRAINS[r[24]];
+    if (r[25]) l.wb = { a_b: s8(r[26]), g_m: s8(r[27]) };
+    if (r[28]) {
+      l.effect = { type: EFFECTS[r[28]] as Exclude<(typeof EFFECTS)[number], 'none'>, strength: r[29] };
+      if (r[TINT_OFF]) l.effect.tint = TINTS[r[TINT_OFF]];
+    }
+    l.vignette = s8(r[30]);
+    l.tone = zeroTone();
+    if (version === 4) for (const k of TONE_KEYS) l.tone[k] = s8(r[TONE_OFF[k]]);
+    looks.push(l);
+  }
+  return { schema: PACK_SCHEMA, name, looks, slots: {} };
+}
+
 // ---- BUNDLES.BIN (starter slot file)
-/** P(look, slot): the 64-byte table entry a slot gets (tools/ep7_library.place) + the COLOR-slot Art Effect. */
+/** P(look, slot): the 64-byte table entry a slot gets (tools/ep7_library.place) + the COLOR-slot Art Effect and
+ *  Blacks/Whites (+47/+48; MONO slots keep 0). */
 export function placeLook(l: Look, slot: string): Uint8Array {
   const rec = lookRecord(l);
   const b = new Uint8Array(64);
@@ -212,6 +272,8 @@ export function placeLook(l: Look, slot: string): Uint8Array {
     b[B_COLOUR] = 0;
     b[B_FLAGS] = FLAG_HL;
     b[B_ART] = ARTS.indexOf(l.art_effect);
+    b[B_BLACKS] = u8(l.tone.blacks);
+    b[B_WHITES] = u8(l.tone.whites);
   } else if (l.kind === 'colour') {
     b[B_COLOUR] = 1;
     b[B_FLAGS] = FLAG_HL | FLAG_RENDER_COLOUR;

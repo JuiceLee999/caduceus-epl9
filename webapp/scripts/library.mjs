@@ -1,6 +1,7 @@
 // Resolve a look-library JSON (bundles/library_v3.json, the tools/ep7_looks_bin.py input) plus the recipe files it
 // names (sim/recipes/*.json) into the web app's flat pack form. A port of tools/ep7_library.py look_record() and
-// patches/bundles/build.py slot_entry() as of the v0.16-era tools (commit e477637): hue/light -7..7, sat -5..5.
+// patches/bundles/build.py slot_entry() as of the v0.16-era tools (commit e477637): hue/light -7..7, sat -5..5;
+// plus the v0.19 per-look "tone" {highlights, shadows, midtones, blacks, whites} (missing = 0).
 //
 // Used by scripts/gen-library.mjs (writes src/data/library.json at build time) and by the tests.
 import { readFileSync } from 'node:fs';
@@ -48,6 +49,8 @@ export function resolveLook(key, look, recipes) {
     sat = [...s];
   }
   const advice = {};
+  const tone = { highlights: 0, shadows: 0, midtones: 0, blacks: 0, whites: 0 };
+  for (const k of Object.keys(tone)) tone[k] = look.tone?.[k] ?? 0;
   if (rc.tone) advice.tone = { highlights: rc.tone.highlights ?? 0, shadows: rc.tone.shadows ?? 0, midtones: rc.tone.midtones ?? 0 };
   if (rc.contrast) advice.contrast = rc.contrast;
   if (rc.mono_filter) advice.mono_filter = { colour: rc.mono_filter.colour ?? 'none', strength: rc.mono_filter.strength ?? 1 };
@@ -63,6 +66,7 @@ export function resolveLook(key, look, recipes) {
     effect: eff && eff.type !== 'none' ? { type: eff.type, strength: eff.strength, ...(eff.tint ? { tint: eff.tint } : {}) } : null,
     vignette: look.vignette ?? rc.vignette ?? 0,
     art_effect: 'off',
+    tone,
     advice,
   };
 }
@@ -93,4 +97,11 @@ export function resolveLibrary(lib, recipes, name = 'Caduceus library') {
 export function resolveRepoLibrary(root, file = 'bundles/library_v3.json') {
   const lib = JSON.parse(readFileSync(join(root, file), 'utf8'));
   return resolveLibrary(lib, loadRecipes(root));
+}
+
+/** tools/data/tone_hsm.json reduced to what src/tone.ts reads (the H/S/M model of tools/ep7_tone_model.py). */
+export function toneModelData(root) {
+  const d = JSON.parse(readFileSync(join(root, 'tools/data/tone_hsm.json'), 'utf8'));
+  const keep = ['base_lut', 'gains', 'samples_k', 'curve_a_x', 'curve_b_x', 'curve_c_x', 'test_vectors'];
+  return Object.fromEntries(keep.map((k) => [k, d[k]]));
 }
