@@ -7,7 +7,7 @@ services:
     container_name: caduceus-looks
     restart: unless-stopped
     ports:
-      - "8080:8080"          # drop this if only the tunnel below should reach it
+      - "${CADUCEUS_PORT:-8080}:8080"   # drop this if only the tunnel below should reach it
     read_only: true
     tmpfs:
       - /tmp
@@ -15,6 +15,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    mem_limit: 128m
+    pids_limit: 64
 
   # Optional: publish through Cloudflare Tunnel (no open ports on the NAS). Create a tunnel in the Cloudflare
   # dashboard (Zero Trust > Networks > Tunnels), add a public hostname, e.g. example.com path caduceus*
