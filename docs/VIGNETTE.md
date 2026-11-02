@@ -1,4 +1,4 @@
-# Vignette as Extras sector 6: plan (not built)
+# Vignette as an Extras sector (8; 6/7 are Blacks/Whites since v0.19): plan (not built)
 
 Status: **not built** in v0.17. It is not a small, clearly safe change: COLOR stills have no shading stage today, and
 turning one on means new work-list entries and a stock mask buffer whose key-11 behaviour has not been traced. That
@@ -32,7 +32,7 @@ turn off after camera use. Offline findings so far are marked [V] (read from the
 3. Finer steps (−5..+5): scale the level gain request+680 at the shading request (one store after 0x6035b0f8 /
    0x603553ea, 1024 × k/n). This changes no buffer. Avoid writing our own 128 × 128 mask: buffer size and timing are
    stock-owned.
-4. Extras sector 6 `6 Vignette -3` in ex_ui. Live view: later (lv_art can set the same flag).
+4. Extras sector 8 `8 Vignette -3` in ex_ui. Live view: later (lv_art can set the same flag).
 
 ## Questions to answer before building (offline, emulator)
 

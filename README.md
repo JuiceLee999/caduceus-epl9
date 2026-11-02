@@ -173,8 +173,10 @@ Muted. Left: the standard curve. Right: the hidden log curve, rendered with the 
 - More film looks, and a cross-platform web app to build and share `LOOKS.BIN` files.
 - Art Effect live-view preview that updates immediately.
 - Tinted halation (red glow around white lights), probably via a mask built from the exposure meter grid.
-- Vignette on colour profiles as Extras sector 6 (−5..+5, finer than stock), using the stock shading stage
+- Vignette on colour profiles as Extras sector 8 (−5..+5, finer than stock), using the stock shading stage
   (plan: `docs/VIGNETTE.md`).
+- Per-look tone on the Film page (LOOKS.BIN v4: a pick applies the look's Highlight/Shadow/Midtone and
+  Blacks/Whites), and a Blacks/Whites page on the tone-curve screen (plan: `docs/TONE_ENDS.md`).
 - Far future (Ricoh GR-style): **highlight-weighted metering** (meter the whole frame but protect highlights) and
   **snap focus** (a preset focus distance used when the shutter is pressed straight through).
 - Maybe: use the ART position on the mode dial as a quick "silent shutter" switch.

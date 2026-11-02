@@ -1,0 +1,121 @@
+/* E-P7 1.1 v0.19: Extras sectors 6 "Blacks" and 7 "Whites" (ep7-firmware, our own code). docs/TONE_ENDS.md §7.
+ * An in-place extension of the v0.18 look-extras layer (patches/look_extras ex_core / ex_ui, bytes as released):
+ * four same-size redirects in that layer jump here; every other path returns to the layer's own code.
+ *
+ *   xg  <- ex_get   {xg_site}  `cmp 4,d3; beq art; bcc g_zero` (6 B)     sector 5/6 -> slot +47/+48 (s8, -5..5)
+ *   xs  <- ex_set   {xs_site}  `cmp 5,d3; bcs +5; jmp s_refresh` (7 B)    sector 5/6 -> clamp -5..5, store, dirty
+ *   xq  <- ex_guide {xq_site}  `movhu (44,a3),d0; cmp 4,d0` (5 B)         stock-blanked guide (id 0) -> labelled
+ *   xu  <- ex_guide {xu_site}  `mov ex_t_other,a2; cmp 5,d3; bcc q_put0`   sectors 6/7 labels, 8-12 "1-7 only"
+ *
+ * The slot byte n of slot k is at (32 + 64k + n, P); the layer's a2 = P + 64k, so +47 = (79,a2), +48 = (80,a2).
+ * The label rule is the layer's own: neg/zero/pos text, the magnitude digit appended by q_put.
+ * Label blanking (v0.17 lesson): the stock guide part blanks the ALL-off label (id 0) when the page's values touch
+ * both -5 and +5 (e.g. Blacks -5 and Whites +5). On the Extras page (already validated by ex_guide: P, 'EP7E',
+ * axis X) xq treats id 0 as the stock 2755, so the sector label is written as usual.
+ * Stores: only through the layer's own paths (slot byte via a2, dirty in s_dirty). No absolute stores.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+xg:                               /* d3 = sector (2..11 here), a2 = P + 64*slot, a1 = out */
+ cmp 4,d3
+ beq g_art
+ bcs g_wb                         /* 2, 3: WB */
+ cmp 7,d3
+ bcc g_zero
+ add d3,a2
+ movbu (74,a2),d0                 /* sector 5: +47 blacks, sector 6: +48 whites */
+ extb d0
+ cmp -5,d0
+ blt g_zero                       /* out of range reads 0 (the tone hook ignores it too) */
+ cmp 5,d0
+ bgt g_zero
+ jmp {g_val}
+g_art:
+ jmp {g_art}
+g_wb:
+ jmp {g_wb}
+g_zero:
+ jmp {g_zero}
+
+xs:                               /* d3 = sector, d1 = value, a2 = P + 64*slot */
+ cmp 5,d3
+ bcs s_cont
+ cmp 7,d3
+ bcc s_refresh                    /* 7..11: nothing written */
+ cmp -5,d1
+ bge 3f
+ mov -5,d1
+3:
+ cmp 5,d1
+ ble 4f
+ mov 5,d1
+4:
+ add d3,a2
+ movbu d1,(74,a2)
+ jmp {s_dirty}
+s_cont:
+ jmp {s_cont}                     /* 0..4: the layer's own paths */
+s_refresh:
+ jmp {s_refresh}
+
+xq:                               /* a3 = view; replaces movhu (44,a3),d0; cmp 4,d0 (then: beq ok / jmp q_out) */
+ movhu (48,a3),d0
+ cmp 0,d0
+ bne 1f
+ jmp {q_label}                    /* blanked by the stock part: label the sector (as 2755) */
+1:
+ movhu (44,a3),d0
+ cmp 4,d0
+ bne q_out
+ jmp {q_cont}
+
+xu:                               /* d3 = sector (cursor - 1); the site's mov ex_t_other,a2 is replayed */
+ mov {t_other},a2                 /* "Extras: 1-7 only" (the layer's string, edited in place) */
+ cmp 5,d3
+ bcs u_cont
+ cmp 7,d3
+ bcc q_put0
+ mov (8,sp),d0                    /* the sector's value through ex_get (as the wheel number) */
+ add d3,d0
+ mov sp,a1
+ add 4,a1
+ calls {ex_get}
+ cmp 0,d0
+ bne q_out
+ mov (4,sp),d1
+ mov xt_b,a2                      /* 3 texts of 11 B each: neg, zero, pos; Whites 33 B on */
+ cmp 5,d3
+ beq 4f
+ add 33,a2
+4:
+ cmp 0,d1
+ bne 5f
+ add 11,a2
+ bra q_put0
+5:
+ blt 6f
+ add 22,a2
+ bra q_put
+6:
+ not d1
+ inc d1
+q_put:
+ jmp {q_put}
+q_put0:
+ jmp {q_put0}
+q_out:
+ jmp {q_out}
+u_cont:
+ jmp {u_cont}                     /* 0..4: the layer's own labels */
+
+xt_b:
+ .ascii "6 Blacks -\0"
+ .ascii "6 Blacks 0\0"
+ .ascii "6 Blacks +\0"
+ .ascii "7 Whites -\0"
+ .ascii "7 Whites 0\0"
+ .ascii "7 Whites +\0"
+tone_x_end:

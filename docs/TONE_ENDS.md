@@ -8,10 +8,11 @@ Asked for: per-slot **Blacks** and **Whites** (−5..+5, moving the two ends of 
 Highlight/Shadow never moves), per-look **Highlight/Shadow/Midtone offsets** on top of the user's global tone,
 edited on the stock tone-control screen as a third INFO page.
 
-**Verdict:** the curve side is feasible, and it is a clean per-job hook (§1–§3). **Update: T1 is now built and emulator-verified (§6).** It was **not built in this
-pass.** The rest of the scope (UI page, card and LOOKS.BIN format bump, per-look H/S/M at the stock job-setup
-stage, web app, library values) needs more mapping and its own emulator verification before it meets the
-"high confidence, anti-brick" bar (§5). §6 is the build plan.
+**Status (v0.19, emulator-verified, camera test pending):** built as `releases/v0.19` (§6, §7): the per-slot
+Blacks/Whites curve hook, the SD loader accepting slot +47/+48, and Extras sectors 6 "Blacks" / 7 "Whites" in the
+colour editor. **Deferred:** the tone-screen third INFO page (moderately risky, §4), LOOKS.BIN v4 and a Film pick
+that applies a look's tone (H/S/M settings + B/W); until then a Film pick zeroes the slot's Blacks/Whites (the
+v3 placement writes bytes 32..63 = 0), and the card's BUNDLES.BIN carries the library B/W for its COLOR slots.
 
 ## 1. How the stock tone curve is made
 
@@ -137,9 +138,10 @@ once per still, and once per LV re-development (setting changes), not per pixel.
 ## 5. Decisions for v0.19
 
 - Blacks/Whites: slot +47/+48 (s8 −5..5, COLOR slots), applied by the post-builder hook (§3).
-- H/S/M per look: LOOKS.BIN v4 carries them; a Film pick writes the profile's stock settings (§1.3).
-- LOOKS.BIN v4: version 4, record length 80 = v3 record + tail (+64 B, +65 W, +66 H, +67 S, +68 M, rest 0);
-  v3 files still load (tone untouched). BUNDLES.BIN: +47/+48 accepted, old files unchanged.
+- H/S/M per look (deferred): LOOKS.BIN v4 carries them; a Film pick writes the profile's stock settings (§1.3).
+- LOOKS.BIN v4 (deferred; tools/web app drafts only): version 4, record length 80 = v3 record + tail (+64 B, +65 W,
+  +66 H, +67 S, +68 M, rest 0); v3 files still load (tone untouched). BUNDLES.BIN: +47/+48 accepted (v0.19
+  loader), old files unchanged; v0.18 firmware rejects a BUNDLES.BIN with non-zero Blacks/Whites.
 - UI: Extras sectors 6/7 (labels `6 Blacks +2`, `7 Whites -1`); Vignette's planned sector moves to 8.
 
 ## 6. T1 built: curve hook (stage 1 of v0.19)
@@ -207,3 +209,26 @@ tone-control bender, the hook, tone, real 0x603b0c66), real getter on a fixture 
 
 Not covered: camera behaviour; whether the register writer needs anything beyond O+2608 and O+4 bit 8 (stock's
 own tone step does exactly these); the ISP look of the remap.
+
+## 7. v0.19 release spec (patches/v019/build.py)
+
+`releases/v0.19/edits.json` = v0.18 + tone_ends (§6) + loader ranges + tone_x + fw label 0.19. Edits that differ
+from v0.18: 0x601e103c / 0x601e133c (tone pieces A/B), 0x603b14ff (hook), 0x605b7400 (loader: 4 data bytes,
+sd_lo/sd_span[47..48] at 0x605b7710/11 and 0x605b7750/51 → −5..5), 0x601e323c (look extras: four same-size
+redirects + "Extras: 1-7 only"), 0x601e123c (tone_x, 255 B, dead EVF step-13 G table, only ref 0x601e3d54),
+0x601e1c40 (label 0.19). Component 0x101 is byte-identical to v0.18.
+
+Extras (tone_x): sector 6 = slot +47 Blacks, 7 = +48 Whites, −5..+5 (out-of-range bytes read 0), ALL mode writes
+nothing, writes set the editor's dirty byte so the card is saved as for the other extras; labels `6 Blacks -3`,
+`6 Blacks 0`, `7 Whites +2`; sectors 8–12 `Extras: 1-7 only`. A stock-blanked guide (id 0, when the page's
+values touch both −5 and +5) is labelled like id 2755 on the Extras page (the v0.17 lesson).
+
+| Check | Tool | Result |
+|---|---|---|
+| Curve hook on the final spec | `tools/ep7_verify_tone_ends.py releases/v0.19/edits.json --jobs 16` | N 27/27, A 238/238, L 17/17, S pass (P's "base == v0.18" is false by design: the base now carries the loader/extras/label edits) |
+| Loader | `tools/ep7_verify_v019_loader.py releases/v0.19/edits.json --part E,A,R` | E 179/179 (incl. +47/+48 = −6/−5/5/6, +49..63 = 1), A, R pass; the same driver on v0.18 rejects the tone boundary tables |
+| Extras | `tools/ep7_verify_v019_extras.py --editor releases/v0.18/edits.json --layered releases/v0.19/edits.json --part G,W,V --jobs 16` | G 936/936, V 1296/1296 (labels, blank restore), W 6064/6160: every sector-5/6 write passes; the 96 misses are the art sector (4) only, whose v0.14 ex_art path (0x601e1b3c) the old harness does not map (that path is unchanged: tone_x passes sector 4 straight back) |
+| Package | build_package + decode | patched main == stock + edits, restore == stock, 13036 changed bytes all inside edit spans, `caduceus.py build --release v0.19` reproduces SHA256SUMS |
+
+Card: BUNDLES.BIN = v0.18's with the library Blacks/Whites in its COLOR slots (CineStill800 0/−1 ×2, Cuban Neg
+0/−2, Cl. Chrome −1/0); LOOKS.BIN unchanged (v3).

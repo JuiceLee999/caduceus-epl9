@@ -3,6 +3,16 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). All releases are early-development
 pre-releases: use at your own risk (see the README).
 
+## v0.19 — 2026-11-02 (camera test pending)
+
+- **Blacks and Whites per Colour Profile:** two new tone controls that move the ends of the tone curve, which
+  the stock Highlight/Shadow controls never touch. Blacks + lifts the black point (matte, faded), − deepens the
+  shadows; Whites − rolls the white point off, + pushes the brightest tones. Set them on the colour editor's
+  Extras page, sectors 6 and 7 (−5..+5). Live view shows them.
+- The card's looks carry their library Blacks/Whites. Picking a look on the Film page resets them to 0 for now.
+- Needs v0.19 firmware: v0.18 rejects a BUNDLES.BIN that uses Blacks/Whites.
+- Firmware screen shows `Caduceus: 0.19`.
+
 ## v0.18 — 2026-11-02
 
 - **Cleaner look names on camera:** the Film page and the mono preset picker show just the look's name
