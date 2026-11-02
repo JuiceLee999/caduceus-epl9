@@ -116,3 +116,20 @@ describe('library migration (saved pack -> newer built-in library)', () => {
     expect(JSON.stringify(exportable(standardPack(LIB)))).not.toMatch(/"origin"|"lib"/);
   });
 });
+
+describe('migration of packs saved before tone', () => {
+  it('a library look with a stale (pre-tone) fingerprint and zero tone takes the library tone', () => {
+    const old = standardPack(LIB);
+    for (const l of old.looks) { l.tone = zeroTone(); l.lib = 'deadbeef'; }   // fingerprint from an older app version
+    const m = migratePack(old, LIB);
+    const portra = m.pack.looks.find((l) => l.origin === 'Portra 400')!;
+    expect(toneIsZero(portra.tone)).toBe(false);
+    expect(m.pack.looks.every((l, i) => JSON.stringify(l.tone) === JSON.stringify(LIB.looks[i].tone))).toBe(true);
+  });
+  it('a look the user edited (hue changed) keeps its values', () => {
+    const old = standardPack(LIB);
+    old.looks[0].hue[0] += 1; old.looks[0].tone = zeroTone(); old.looks[0].lib = 'deadbeef';
+    const m = migratePack(old, LIB);
+    expect(m.pack.looks[0].hue[0]).toBe(LIB.looks[0].hue[0] + 1);
+  });
+});

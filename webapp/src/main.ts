@@ -15,7 +15,8 @@ import { previewToneLut } from './tone';
 // ---------------------------------------------------------------- state
 const LIBRARY = parsePack(libraryJson);
 const STORE = 'caduceus.pack.v2', STORE_V1 = 'caduceus.pack.v1', STORE_LIB = 'caduceus.library';
-const LIB_VERSION: string = (libraryJson as { version?: string }).version ?? 'dev';
+// '+m2': forces one more migration pass for packs saved before tone fingerprints were handled
+const LIB_VERSION: string = ((libraryJson as { version?: string }).version ?? 'dev') + '+m2';
 const SAMPLES = [
   { id: 'market', label: 'Market' }, { id: 'portrait', label: 'Portrait' },
   { id: 'lake', label: 'Lake' }, { id: 'sunset', label: 'Sunset' },
@@ -471,10 +472,6 @@ function tonePanel(l: Look, changed: () => void): HTMLElement {
     return h('div', { class: 'srow plain' }, h('span', { class: 'sname' }, TONE_LABEL[k]), inp, out);
   });
   const { svg, draw: drawCurve } = toneCurve(l.tone);
-  const rec = l.advice.tone;
-  const recTone = rec && (rec.highlights || rec.shadows || rec.midtones)
-    && (rec.highlights !== l.tone.highlights || rec.shadows !== l.tone.shadows || rec.midtones !== l.tone.midtones) ? rec : null;
-  const sg = (v: number) => (v > 0 ? `+${v}` : String(v));
   return h('div', { class: 'group' },
     h('div', { class: 'tone-head' }, h('span', { class: 'lbl' }, 'Tone'),
       !toneIsZero(l.tone) ? h('button', { class: 'link', onclick: () => { for (const k of TONE_KEYS) l.tone[k] = 0; renderEditor(); changed(); } }, 'Reset') : null),
@@ -487,10 +484,7 @@ function tonePanel(l: Look, changed: () => void): HTMLElement {
       'Blacks / Whites (±5) move the ends of the tone curve (+Blacks lifts to a matte black, −Whites rolls the white point off); ',
       'they act in COLOR slots, and a look with a tone is COLOR-only (it cannot go in a MONO slot). Needs Caduceus v0.19 or later. ',
       'The graph shows stock → this look (camera tone LUT model); dots mark the Blacks and Whites ends.'),
-    recTone ? h('button', {
-      class: 'link', title: 'The tone the recipe suggested for the camera\'s own settings (older packs)',
-      onclick: () => { l.tone.highlights = recTone.highlights; l.tone.shadows = recTone.shadows; l.tone.midtones = recTone.midtones; renderEditor(); changed(); },
-    }, `Use the recipe's tone (H ${sg(recTone.highlights)}, S ${sg(recTone.shadows)}, M ${sg(recTone.midtones)})`) : null);
+  );
 }
 
 function monoPanel(l: Look, changed: () => void): HTMLElement {

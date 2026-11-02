@@ -24,7 +24,9 @@ export function standardPack(library: Pack): Pack {
 /** Did the user leave this library look as it was copied? Looks saved before Look.lib existed count as unmodified
  *  when they equal the current library look, or equal it except for a still-zero tone (pre-v0.19 libraries had none). */
 export function unmodified(l: Look, src: Look): boolean {
-  if (l.lib !== undefined) return lookFingerprint(l) === l.lib;
+  if (l.lib !== undefined && lookFingerprint(l) === l.lib) return true;
+  // Fingerprints saved by older app versions don't cover tone, so also accept a look that still equals the library
+  // look apart from notes and a still-zero (pre-tone) tone.
   const card = (x: Look) => lookFingerprint({ ...x, notes: '' }, false);
   return card(l) === card(src) && (toneIsZero(l.tone) || lookFingerprint(l) === lookFingerprint(src));
 }
