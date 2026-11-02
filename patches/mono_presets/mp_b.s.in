@@ -13,7 +13,7 @@
  *              GetValue(111) -> m and the same text into view+20 (operand (8,sp) = 0 marks this route).
  * 0x60e26789 is `mov (84,a1),d0; retf`, replayed at the end. With a card table and a MONO picture mode (view+400
  * 57/58/59/65 -> m) the slot becomes kind-5 text:
- *   Film page (P+{mmark} 'EP7M' and P+{mpage} == 1):  "Film: <name>[*]"  or "Film: Custom" (no preset name)
+ *   Film page (P+{mmark} 'EP7M' and P+{mpage} == 1):  "<name>[*]" (v0.18; was "Film: <name>[*]")
  *   stock page:                                         "<name>[*][INFO]" or "Film[INFO]"
  * <name> = the preset whose 16-byte name equals the MONO slot name P+608+16m (needs 'EP7N'). '*' = one of the
  * preset's {nf} settings now reads (facade GetValue, low byte) different from the preset value.
@@ -250,8 +250,9 @@ l_put:
 1:
  retf [],0
 
-mp_t_film:
- .asciz "Film: "
+mp_t_film:                        /* v0.18: no prefix, the name alone (size kept: was "Film: ") */
+ .asciz ""
+ .space 6
 mp_t_cust:
  .asciz "Custom"
 mp_t_star:

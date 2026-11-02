@@ -67,13 +67,15 @@ IMG_LO, IMG_HI = 0x60020020, 0x6191ffe0
 # ------------------------------------------------------------------ images
 PROBE = True                                    # key probe built in (spec look_editor.probe); set by images()
 SYMS = {}                                       # the editor's symbols (spec look_editor.symbols)
+FILM_NAME_ONLY = False                          # v0.18: Film guide = the name alone (spec look_editor.film_label 'name')
 
 
 def images(spec):
-    global PROBE, SYMS
+    global PROBE, SYMS, FILM_NAME_ONLY
     m = spec.get('look_editor') or spec.get('meta', {}).get('look_editor') or {}
     if m:
         PROBE, SYMS = bool(m.get('probe', False)), m['symbols']
+        FILM_NAME_ONLY = m.get('film_label') == 'name'
     stock = bytearray(B3.MAIN.read_bytes())
     patched = bytearray(stock)
     for e in spec['edits']:
@@ -894,7 +896,7 @@ def film_text(blk, k, star=False):
     else:
         nm = 'Stock' if blk[32 + 64 * k + 31] == 0 else 'Custom'
     ln = len(nm) + (1 if star else 0)                  # 13: '*' = the slot differs from its picked look
-    pre = 'Film: ' if ln <= 10 else 'Film ' if ln == 11 else ''
+    pre = '' if FILM_NAME_ONLY else 'Film: ' if ln <= 10 else 'Film ' if ln == 11 else ''
     return (pre + nm)[:16 - (1 if star else 0)] + ('*' if star else '')
 
 

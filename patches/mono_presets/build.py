@@ -197,7 +197,7 @@ def audit(code, at, data_at, what):
 def label_texts(ps):
     out = ['Film[INFO]']
     for p in ps:
-        out += [f'Film: {p["name"]}*']
+        out += [f'{p["name"]}*']                     # v0.18: no "Film: " prefix
     return out
 
 

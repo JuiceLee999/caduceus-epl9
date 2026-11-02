@@ -273,6 +273,8 @@ def main():
     spec = json.loads(Path(a.spec).read_text())
     stock, patched = EV.images(spec)
     meta = spec['mono_presets']
+    global FP
+    FP = '' if meta.get('film_label') == 'name' else 'Film: '      # v0.18: the Film page label is the name alone
     syms = meta['symbols']
     recs = {int(k, 16): int(v, 16) for k, v in meta['records'].items()}
     ps = meta['presets']
@@ -426,26 +428,26 @@ def main():
                 pre = ps[j]
                 nm = pre['name']
                 named = blk_with(mono_names={m: nm})
-                L = [('preset', named, vals_for(m, pre), f'Film: {nm}'),
-                     ('preset (byte values)', named, vals_for(m, pre, mode='u8'), f'Film: {nm}'),
-                     ('stale page byte 1 + EP7M', blk_with(mono_names={m: nm}, page=1, mmark=True), vals_for(m, pre), f'Film: {nm}'),
+                L = [('preset', named, vals_for(m, pre), f'{FP}{nm}'),
+                     ('preset (byte values)', named, vals_for(m, pre, mode='u8'), f'{FP}{nm}'),
+                     ('stale page byte 1 + EP7M', blk_with(mono_names={m: nm}, page=1, mmark=True), vals_for(m, pre), f'{FP}{nm}'),
                      ('no preset', blk_with(mono_names={m: 'Something'}), {}, 'Film[INFO]'),
                      ('no names', blk_with(names=False), {}, 'Film[INFO]')]
                 for f in range(8):
-                    L.append((f'field {f} changed', named, vals_for(m, pre, f), f'Film: {nm}*'))
+                    L.append((f'field {f} changed', named, vals_for(m, pre, f), f'{FP}{nm}*'))
                 for lab, b, vals, want in L:
                     r, v0 = label_run(patched, syms, site, pm_of[m], slot404, b, H_OK, vals)
                     check('L', f'm{m} site {site} slot {slot} {lab}', l_err(r, v0, slot, want))
                 # getter failure: no '*'
                 r, v0 = label_run(patched, syms, site, pm_of[m], slot404, named, H_OK, vals_for(m, pre, 0), getret=1)
-                check('L', f'm{m} site {site} slot {slot} getter fails', l_err(r, v0, slot, f'Film: {nm}'))
+                check('L', f'm{m} site {site} slot {slot} getter fails', l_err(r, v0, slot, f'{FP}{nm}'))
     # v0.15c SCP colour-filter view: mp_lbl3 behind part 0 (the stock filter-name label)
     for m in range(4):
         pre = ps[(m * 5 + 2) % n]
         nm = pre['name']
         named = blk_with(mono_names={m: nm})
-        for lab, b, vals, want in (('preset', named, vals_for(m, pre), f'Film: {nm}'),
-                                   ('field 3 changed', named, vals_for(m, pre, 3), f'Film: {nm}*'),
+        for lab, b, vals, want in (('preset', named, vals_for(m, pre), f'{FP}{nm}'),
+                                   ('field 3 changed', named, vals_for(m, pre, 3), f'{FP}{nm}*'),
                                    ('no preset', blk_with(mono_names={m: 'Something'}), {}, 'Film[INFO]')):
             r, v0 = label_run3(patched, syms, pm_of[m], b, H_OK, vals)
             check('L', f'SCP m{m} {lab}', l3_err(r, v0, want))

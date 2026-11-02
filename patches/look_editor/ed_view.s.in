@@ -22,8 +22,8 @@
  *   ed_guide <- .data init image word 0x6025aa98 (stock 0x60decbfc, the guide writer, view part 3).
  *               Stock writes id 2755 "All colors[INFO]" when ALL is off and 2756 when ALL is on. With a card
  *               table the label becomes kind 5 plain text for the current page (at most 16 characters):
- *               "Saturation", "Saturation - All", "Hue", "Light", "Film: <name>" ("Film <name>" for an
- *               11-character name, the name alone above that; "Stock" for an empty slot, "Custom" for a slot
+ *               "Saturation", "Saturation - All", "Hue", "Light", "<name>" (v0.18; until v0.17 "Film: <name>",
+ *               "Film <name>" for an 11-character name, the name alone above that; "Stock" for an empty slot, "Custom" for a slot
  *               without a name). Page >= 4: the stock label (the extras layer relabels Extras itself).
  *               13: on Film a '*' follows the name when the film layer's fm_mod (word ed_cfg_fm) says the slot
  *               entry differs from the picked library look ("Film: Velvia*"); the name is cut to keep 16.
@@ -277,10 +277,12 @@ ed_t_ax:                          /* 16-byte slots: page 0 Saturation, 1 Light, 
  .ascii "Saturation\0\0\0\0\0\0Light\0\0\0\0\0\0\0\0\0\0\0Hue\0\0\0\0\0\0\0\0\0\0\0\0\0"
 ed_t_all:
  .asciz " - All"
-ed_t_film:
- .asciz "Film: "
+ed_t_film:                        /* v0.18: no prefix, the name alone (sizes kept: was "Film: " / "Film ") */
+ .asciz ""
+ .space 6
 ed_t_film2:
- .asciz "Film "
+ .asciz ""
+ .space 5
 ed_t_stock:
  .asciz "Stock"
 ed_t_custom:
