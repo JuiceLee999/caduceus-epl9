@@ -5,7 +5,7 @@
 //   check = CRC-15/CAN (poly 0x4599) over the 5-bit symbols of "1" + body, as 3 symbols
 // Pack code v1:  "pk1_" + base64url(zlib-deflate(UTF-8 JSON of the pack file, schema caduceus-pack/1))
 //   (zlib's Adler-32 catches corruption; base64url is case-sensitive, so pack codes are for links, not typing)
-import { ARTS, EFFECTS, GRAINS, MONO_FILTERS, TINTS, parsePack, type Effect, type Look, type Pack } from './pack';
+import { ARTS, EFFECTS, GRAINS, MONO_FILTERS, TINTS, exportable, parsePack, type Effect, type Look, type Pack } from './pack';
 
 export const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 export const LOOK_VERSION = '1';
@@ -206,7 +206,7 @@ async function pipe(data: Uint8Array, stream: CompressionStream | DecompressionS
 }
 
 export async function encodePackCode(pack: Pack): Promise<string> {
-  const json = JSON.stringify({ schema: pack.schema, name: pack.name, looks: pack.looks, slots: pack.slots });
+  const json = JSON.stringify({ schema: pack.schema, name: pack.name, looks: exportable(pack).looks, slots: pack.slots });
   return PACK_PREFIX + b64url(await pipe(new TextEncoder().encode(json), new CompressionStream('deflate')));
 }
 

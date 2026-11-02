@@ -41,6 +41,7 @@ export interface Look {
   vignette: number;    // -5..5 (stored only)
   art_effect: Art;     // COLOR slots of BUNDLES.BIN only: LOOKS.BIN has no field for it
   advice: Advice;      // camera settings the look recommends (preview only; not in any card file)
+  origin?: string;     // app-only: the built-in library look this one came from (for Reset look); not exported
 }
 export interface Pack {
   schema: typeof PACK_SCHEMA;
@@ -118,8 +119,12 @@ export function parseLook(v: unknown, what = 'look'): Look {
     vignette: int(v.vignette, `${what} vignette`),
     art_effect: oneOf(v.art_effect, ARTS, `${what} art_effect`, 'off'),
     advice: adv,
+    ...(typeof v.origin === 'string' ? { origin: v.origin } : {}),
   };
 }
+
+/** The pack without app-only bookkeeping (Look.origin), for files and share links. */
+export const exportable = (p: Pack): Pack => ({ ...p, looks: p.looks.map(({ origin: _o, ...l }) => l) });
 
 /** Structural parse of a pack file (JSON object). Throws with a readable message. */
 export function parsePack(v: unknown): Pack {

@@ -66,6 +66,8 @@ input[type="checkbox"] { accent-color: var(--accent); }
 .brand .word { font-weight: 700; font-size: 18px; letter-spacing: .02em; }
 .brand .sub { color: var(--muted); }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.undo-btns { display: inline-flex; gap: 2px; margin-right: 4px; }
+.undo-btns button.icon { font-size: 18px; line-height: 30px; padding: 0 9px; }
 
 .menu { position: relative; }
 .menu > summary {
@@ -157,7 +159,7 @@ canvas.pv { width: 100%; height: auto; display: block; max-height: 70vh; object-
 /* editor */
 .ed-head { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
 .ed-head input { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 15px; }
-.share-btn { margin-top: 21px; }
+.ed-btns { display: flex; gap: 6px; margin-top: 21px; }
 .group { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 4px; margin-bottom: 12px; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; align-self: flex-start; }
 .seg button { border: 0; border-radius: 0; padding: 5px 12px; background: var(--panel); }

@@ -3,15 +3,17 @@ import libraryJson from './data/library.json';
 import { encodeBundlesBin, encodeLooksBin, nameProblem, PackError, validatePack, type Problem } from './format';
 import {
   ARTS, MAX_LOOKS, MONO_FILTERS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SECTORS, SLOT_NAMES, TINTS, blankLook, cloneLook,
-  parsePack, type Look, type Pack, type SlotName,
+  exportable, parsePack, type Look, type Pack, type SlotName,
 } from './pack';
+import { History } from './history';
+import { libraryOrigin, resetLook, standardPack } from './reset';
 import { renderLook } from './preview';
 import { decodeLookCode, decodePackCode, encodeLookCode, encodePackCode, isPackCode } from './sharecode';
 import { makeZip } from './zip';
 
 // ---------------------------------------------------------------- state
 const LIBRARY = parsePack(libraryJson);
-const STORE = 'caduceus.pack.v1';
+const STORE = 'caduceus.pack.v2', STORE_V1 = 'caduceus.pack.v1';
 const SAMPLES = [
   { id: 'market', label: 'Market' }, { id: 'portrait', label: 'Portrait' },
   { id: 'lake', label: 'Lake' }, { id: 'sunset', label: 'Sunset' },
@@ -21,7 +23,7 @@ const SWATCH = ['#e3c22f', '#e8932e', '#e0602a', '#d03434', '#c43c92', '#8a52c6'
 type Tab = 'hue' | 'light' | 'sat';
 
 const S = {
-  pack: loadStored() ?? cloneDeep(LIBRARY),
+  pack: loadStored() ?? standardPack(LIBRARY),
   sel: 0,
   tab: 'hue' as Tab,
   image: 'market',
@@ -29,18 +31,57 @@ const S = {
   compare: false,
 };
 
-function cloneDeep<T>(v: T): T { return JSON.parse(JSON.stringify(v)); }
 function loadStored(): Pack | null {
   try {
     const s = localStorage.getItem(STORE);
-    return s ? parsePack(JSON.parse(s)) : null;
+    if (s) return parsePack(JSON.parse(s));
+    // v1 storage predates Look.origin: looks named like a library look are taken to be that look (for Reset look).
+    const old = localStorage.getItem(STORE_V1);
+    if (!old) return null;
+    const p = parsePack(JSON.parse(old));
+    for (const l of p.looks) if (LIBRARY.looks.some((o) => o.name === l.name)) l.origin = l.name;
+    return p;
   } catch { return null; }
 }
 let saveTimer = 0;
-function save() {
-  clearTimeout(saveTimer);
-  saveTimer = window.setTimeout(() => { try { localStorage.setItem(STORE, JSON.stringify(S.pack)); } catch { /* private mode */ } }, 250);
+function flush() { clearTimeout(saveTimer); try { localStorage.setItem(STORE, JSON.stringify(S.pack)); } catch { /* private mode */ } }
+function persist() { clearTimeout(saveTimer); saveTimer = window.setTimeout(flush, 250); }
+window.addEventListener('pagehide', flush);
+
+// ---------------------------------------------------------------- undo / redo
+// Every edit calls save(). Continuous edits (slider drags, typing) run inside draft(): they are saved but only become
+// an undo step at the end of the gesture (the input's change event: pointer-up, blur or Enter) via checkpoint().
+const hist = new History(JSON.stringify(S.pack), 200);
+let drafting = false;
+function save() { persist(); if (!drafting) checkpoint(); }
+function draft(f: () => void) { drafting = true; try { f(); } finally { drafting = false; } }
+function checkpoint() { hist.commit(JSON.stringify(S.pack)); undoUi(); }
+function undoUi() {
+  const u = document.getElementById('undo') as HTMLButtonElement | null, r = document.getElementById('redo') as HTMLButtonElement | null;
+  if (u) u.disabled = !hist.canUndo;
+  if (r) r.disabled = !hist.canRedo;
 }
+function step(dir: 'undo' | 'redo') {
+  checkpoint();
+  const s = dir === 'undo' ? hist.undo() : hist.redo();
+  if (s === null) return;
+  const prev = S.pack;
+  S.pack = parsePack(JSON.parse(s));
+  const n = S.pack.looks.length;
+  const k = S.pack.looks.findIndex((l, i) => JSON.stringify(l) !== JSON.stringify(prev.looks[i]));
+  S.sel = Math.max(0, Math.min(k >= 0 ? k : S.sel, n - 1));
+  persist(); renderAll(); undoUi();
+}
+const isTextField = (t: EventTarget | null) => t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable) ||
+  (t instanceof HTMLInputElement && !['range', 'checkbox', 'radio', 'button', 'submit', 'reset', 'color', 'file'].includes(t.type));
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || isTextField(e.target) || document.querySelector('dialog[open]')) return;
+  const k = e.key.toLowerCase();
+  if (k === 'z') step(e.shiftKey ? 'redo' : 'undo');
+  else if (k === 'y' && !e.shiftKey) step('redo');
+  else return;
+  e.preventDefault();
+});
 const cur = (): Look | undefined => S.pack.looks[S.sel];
 
 // ---------------------------------------------------------------- DOM helpers
@@ -103,8 +144,11 @@ function shell() {
       h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }, '☤'), h('span', { class: 'word' }, 'Caduceus'),
         h('span', { class: 'sub' }, 'control panel')),
       h('nav', { class: 'actions' },
+        h('span', { class: 'undo-btns' },
+          h('button', { id: 'undo', class: 'icon', title: 'Undo (Ctrl+Z)', 'aria-label': 'Undo', disabled: true, onclick: () => step('undo') }, '↶'),
+          h('button', { id: 'redo', class: 'icon', title: 'Redo (Ctrl+Shift+Z)', 'aria-label': 'Redo', disabled: true, onclick: () => step('redo') }, '↷')),
         menu('New', [
-          ['Built-in library', () => newPack('library')],
+          ['Reset pack to standard', () => newPack('library')],
           ['Empty pack', () => newPack('empty')],
         ]),
         h('button', { onclick: openFile }, 'Open…'),
@@ -147,7 +191,7 @@ function renderList() {
   const n = p.looks.length;
   el.replaceChildren(
     h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Pack name'),
-      h('input', { type: 'text', value: p.name, maxlength: 60, oninput: (e: Event) => { p.name = (e.target as HTMLInputElement).value; save(); } })),
+      h('input', { type: 'text', value: p.name, maxlength: 60, oninput: (e: Event) => draft(() => { p.name = (e.target as HTMLInputElement).value; save(); }), onchange: checkpoint, onkeydown: enterCommits })),
     h('div', { class: 'list-head' }, h('span', {}, 'Looks'), h('span', { class: n > MAX_LOOKS ? 'count over' : 'count' }, `${n} / ${MAX_LOOKS}`)),
     h('ol', { class: 'looks' }, ...p.looks.map((l, i) => {
       const li = h('li', {
@@ -185,6 +229,7 @@ function renderList() {
         ['Paste a look code…', pasteDialog],
       ])));
 }
+function enterCommits(e: KeyboardEvent) { if (e.key === 'Enter') checkpoint(); }
 function focusSel() { ($('#list li.sel') as HTMLElement | null)?.focus(); }
 
 function uniqueName(base: string): string {
@@ -234,16 +279,26 @@ function remapSlots(f: (k: number) => number | undefined) {
 }
 
 function newPack(kind: 'library' | 'empty') {
-  if (!confirm(kind === 'library' ? 'Replace the current pack with the built-in library?' : 'Start an empty pack? The current pack is replaced.')) return;
-  S.pack = kind === 'library' ? cloneDeep(LIBRARY) : { schema: PACK_SCHEMA, name: 'My pack', looks: [blankLook('colour', 'My Look')], slots: {} };
+  if (!confirm(kind === 'library' ? 'Reset the pack to the standard built-in library? Your current pack is replaced (Undo brings it back).'
+    : 'Start an empty pack? The current pack is replaced (Undo brings it back).')) return;
+  S.pack = kind === 'library' ? standardPack(LIBRARY) : { schema: PACK_SCHEMA, name: 'My pack', looks: [blankLook('colour', 'My Look')], slots: {} };
   S.sel = 0;
   save(); renderAll();
+  toast(kind === 'library' ? 'Pack reset to the built-in library' : 'Started an empty pack');
+}
+
+function resetSelected() {
+  const i = S.sel, l = cur();
+  if (!l) return;
+  S.pack.looks[i] = resetLook(l, LIBRARY, S.pack.looks.filter((_, k) => k !== i).map((o) => o.name));
+  save(); renderAll();
+  toast(libraryOrigin(l, LIBRARY) ? `"${S.pack.looks[i].name}" restored to the built-in values` : `"${l.name}" reset to neutral`);
 }
 
 function libraryPicker() {
   const have = new Set(S.pack.looks.map((l) => l.name.toLowerCase()));
   const list = h('div', { class: 'pick-list' }, ...LIBRARY.looks.map((l) => h('button', {
-    class: 'pick', onclick: () => { if (addLook({ ...cloneLook(l), name: uniqueName(l.name) })) dlg.close(); },
+    class: 'pick', onclick: () => { if (addLook({ ...cloneLook(l), name: uniqueName(l.name), origin: l.name })) dlg.close(); },
   }, h('b', {}, l.name), have.has(l.name.toLowerCase()) ? h('span', { class: 'tag' }, 'in pack') : null, h('small', {}, l.notes))));
   const dlg = modal('Add from the built-in library', list);
 }
@@ -258,7 +313,8 @@ function renderEditor() {
   const np = nameProblem(l.name);
   const nameInput = h('input', {
     type: 'text', value: l.name, maxlength: NAME_MAX, spellcheck: 'false', autocomplete: 'off', 'aria-describedby': 'name-help',
-    oninput: (e: Event) => {
+    onchange: checkpoint, onkeydown: enterCommits,
+    oninput: (e: Event) => draft(() => {
       l.name = (e.target as HTMLInputElement).value;
       const p = nameProblem(l.name) ?? dupName(l, i);
       $('#name-help').textContent = p ?? `${l.name.length} / ${NAME_MAX}`;
@@ -266,14 +322,19 @@ function renderEditor() {
       const row = document.querySelectorAll('#list li .nm')[i];
       if (row) row.textContent = l.name || '(no name)';
       changed();
-    },
+    }),
   });
   const notesBytes = () => new TextEncoder().encode(l.notes).length;
   el.replaceChildren(
     h('div', { class: 'ed-head' },
       h('label', { class: 'field grow' }, h('span', { class: 'lbl' }, 'Name'), nameInput,
         h('span', { id: 'name-help', class: np || dupName(l, i) ? 'help err' : 'help' }, np ?? dupName(l, i) ?? `${l.name.length} / ${NAME_MAX}`)),
-      h('button', { class: 'share-btn', onclick: () => shareLook(l), title: 'Share this look as a short code' }, 'Share')),
+      h('div', { class: 'ed-btns' },
+        h('button', {
+          class: 'share-btn', onclick: resetSelected,
+          title: libraryOrigin(l, LIBRARY) ? `Restore the built-in "${libraryOrigin(l, LIBRARY)!.name}" values` : 'Set every value to neutral',
+        }, 'Reset look'),
+        h('button', { class: 'share-btn', onclick: () => shareLook(l), title: 'Share this look as a short code' }, 'Share'))),
     seg('Type', [['colour', 'Colour'], ['mono', 'Monochrome']], l.kind, (v) => {
       l.kind = v as Look['kind'];
       if (l.kind === 'mono') { l.art_effect = 'off'; l.advice.mono_filter ??= { colour: 'none', strength: 1 }; }
@@ -291,14 +352,14 @@ function renderEditor() {
       h('span', { class: 'help' }, 'Kept in the pack file, share codes and the starter BUNDLES.BIN (COLOR slots). LOOKS.BIN has no Art Effect field. Not shown in the preview.'))] : []),
     h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Notes'),
       h('textarea', {
-        rows: 3, maxlength: 400, placeholder: 'What the look is for, settings advice…',
-        oninput: (e: Event) => {
+        rows: 3, maxlength: 400, placeholder: 'What the look is for, settings advice…', onchange: checkpoint,
+        oninput: (e: Event) => draft(() => {
           l.notes = (e.target as HTMLTextAreaElement).value;
           const b = notesBytes();
           $('#notes-help').textContent = `${b} / ${NOTE_MAX} bytes · kept in the pack file (not on the card)`;
           $('#notes-help').className = b > NOTE_MAX ? 'help err' : 'help';
           changed();
-        },
+        }),
       }, l.notes),
       h('span', { id: 'notes-help', class: notesBytes() > NOTE_MAX ? 'help err' : 'help' }, `${notesBytes()} / ${NOTE_MAX} bytes · kept in the pack file (not on the card)`)),
     h('div', { id: 'problems' }));
@@ -321,7 +382,8 @@ function slider(min: number, max: number, value: number, on: (v: number) => void
   const out = h('output', {}, fmt(value));
   const inp = h('input', {
     type: 'range', min, max, step: 1, value, 'aria-label': aria,
-    oninput: (e: Event) => { const v = Number((e.target as HTMLInputElement).value); out.textContent = fmt(v); on(v); },
+    oninput: (e: Event) => { const v = Number((e.target as HTMLInputElement).value); out.textContent = fmt(v); draft(() => on(v)); },
+    onchange: checkpoint,
     ondblclick: () => { inp.value = '0'; out.textContent = fmt(0); on(0); },
   });
   return { inp, out };
@@ -632,7 +694,7 @@ function exportDialog() {
   const looksBin = () => {
     try { return encodeLooksBin(S.pack); } catch (e) { toast(e instanceof PackError ? 'Fix the problems listed first' : (e as Error).message, 'err'); return null; }
   };
-  const packJson = () => JSON.stringify({ ...S.pack, schema: PACK_SCHEMA }, null, 1) + '\n';
+  const packJson = () => JSON.stringify({ ...exportable(S.pack), schema: PACK_SCHEMA }, null, 1) + '\n';
   const body = h('div', { class: 'export' },
     probs.length
       ? h('div', { class: 'problems-box' }, h('b', {}, `${probs.length} problem(s) block LOOKS.BIN:`),
@@ -680,5 +742,6 @@ async function handleHash() {
 
 shell();
 renderAll();
+undoUi();
 handleHash();
 window.addEventListener('hashchange', handleHash);
