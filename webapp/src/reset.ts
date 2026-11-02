@@ -49,13 +49,6 @@ export function migratePack(saved: Pack, library: Pack, previousNames?: string[]
     if (lookFingerprint(n) !== lookFingerprint(l) || JSON.stringify(n.advice) !== JSON.stringify(l.advice)) updated++;
     return n;
   });
-  // Tone never existed before v0.19: any colour look still at zero tone whose name matches a library look gets
-  // that look's tone (whatever else the user changed).
-  for (const l of pack.looks) {
-    if (l.kind !== 'colour' || !toneIsZero(l.tone)) continue;
-    const src = libraryOrigin(l, library) ?? library.looks.find((o) => o.name.toLowerCase() === l.name.toLowerCase());
-    if (src && !toneIsZero(src.tone)) { l.tone = { ...src.tone }; updated++; }
-  }
   if (pack.looks.length && pack.looks.every((l) => l.origin !== undefined)) {
     const have = new Set(pack.looks.map((l) => l.origin));
     const names = new Set(pack.looks.map((l) => l.name.toLowerCase()));

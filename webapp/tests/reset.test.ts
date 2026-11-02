@@ -133,14 +133,3 @@ describe('migration of packs saved before tone', () => {
     expect(m.pack.looks[0].hue[0]).toBe(LIB.looks[0].hue[0] + 1);
   });
 });
-
-describe('tone backfill', () => {
-  it('an edited library look (or one without origin) at zero tone gets the library tone by name', () => {
-    const old = standardPack(LIB);
-    for (const l of old.looks) { l.tone = zeroTone(); delete l.origin; delete l.lib; l.hue[0] += 1; }
-    const m = migratePack(old, LIB);
-    const p = m.pack.looks.find((l) => l.name === 'Portra 400')!;
-    expect(p.tone).toEqual(LIB.looks.find((l) => l.name === 'Portra 400')!.tone);
-    expect(p.hue[0]).toBe(LIB.looks.find((l) => l.name === 'Portra 400')!.hue[0] + 1);
-  });
-});
