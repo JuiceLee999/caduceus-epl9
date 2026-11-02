@@ -3,7 +3,7 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). All releases are early-development
 pre-releases: use at your own risk (see the README).
 
-## v0.19 — 2026-11-02 (camera test pending)
+## v0.19 — 2026-11-02
 
 - **Blacks and Whites per Colour Profile:** two new tone controls that move the ends of the tone curve, which
   the stock Highlight/Shadow controls never touch. Blacks + lifts the black point (matte, faded), − deepens the
@@ -16,7 +16,11 @@ pre-releases: use at your own risk (see the README).
   Stock picks leave tone as before. The card LOOKS.BIN carries each colour look's tone (same v3 format; old
   LOOKS.BIN files still load, without tone).
 - Needs v0.19 firmware: v0.18 rejects a BUNDLES.BIN that uses Blacks/Whites.
+- Look tweaks: Polaroid is punchier (narrow dynamic range), Atrophy's faded blacks toned down (+1), Cuban Neg
+  bloom 3.
 - Firmware screen shows `Caduceus: 0.19`.
+- Caduceus Control Panel: tone sliders (Highlights/Midtones/Shadows/Blacks/Whites), tone in share codes, exports
+  the v0.19 `LOOKS.BIN`.
 
 ## v0.18 — 2026-11-02
 

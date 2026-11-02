@@ -9,7 +9,7 @@ recording.
 
 *Named after the caduceus, the staff of Hermes: messenger between gods and mortals and guide of travellers.*
 
-**Latest release: [v0.18](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.18)** ·
+**Latest release: [v0.19](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.19)** ·
 **[Install guide](docs/INSTALL.md)** · **[Changelog](CHANGELOG.md)** · **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** (make and share looks in your browser) · The camera's Setup › Firmware screen shows the Caduceus version.
 
 > [!WARNING]
@@ -32,6 +32,7 @@ recording.
 | **Film simulations** | 29 colour looks in `EP7MOD/LOOKS.BIN`: Velvia, Astia, Classic Chrome, Classic Neg, Nostalgic, Reala Ace, Eterna, Bleach Bypass, Kodachrome 25 and 64, Portra 160 and 400, Ektar 100, Gold 200, Ektachrome, UltraMax 400, CineStill 50D and 800T, Vision3 250D and 500T, Pro 400H, Fujicolor 200, Cuban Neg (inspired by Osan's Classic Cuban Neg), Agfa Vista, Cibachrome, Polaroid, Cross Process, Atrophy (inspired by [Gx]Ace) and Faux IR (an infrared-inspired false-colour look). Pick one per Colour Profile slot; its name shows in Picture Mode. | Camera-tested |
 | **On-camera look editor** | The stock Colour Profile wheel gains pages: Saturation, Hue, Light, Film and Extras (INFO cycles). The wheel follows the page; modified looks are marked `*`. | Camera-tested |
 | **Looks on the SD card** | Looks load from `EP7MOD/BUNDLES.BIN` on the first half-press. Edits made in the camera save back to the card (with a `.BAK` of the previous file). | Camera-tested |
+| **Tone per look** | Every film look carries its own tone curve: Highlights, Midtones and Shadows (applied through the camera's own tone control) plus new **Blacks** and **Whites** that move the very ends of the curve (crushed slide-film blacks, faded instant-film blacks, rolled-off negative highlights). Picking a look applies it; Blacks/Whites are also adjustable per profile (Extras 6/7). Shown in live view too. | New in v0.19 |
 | **Extras per profile** | Colour film grain (the E-P7's mono grain hardware, on colour), bloom ↔ clarity (one slider), WB amber/blue and green/magenta shift, and Art Effects (Star Light, Pin Hole, Blur). | Camera-tested |
 | **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profiles, built from OM's own mono settings. Label `Film: <name>`, `*` when modified. | Camera-tested |
 | **Live-view preview** | Hue, lightness and bloom show in live view, not only in the saved photo. | Camera-tested |
@@ -57,8 +58,8 @@ The builder downloads OM's official 1.1 firmware from OM's server, checks it, an
   - Windows: `Build Caduceus (Windows).bat`
   - macOS: `Build Caduceus (Mac).command` (the first time: right-click › **Open**)
   - Linux: `build-caduceus-linux.sh`
-- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.18`
-  (Windows: `py caduceus.py build --release v0.18`).
+- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.19`
+  (Windows: `py caduceus.py build --release v0.19`).
 
 It creates a folder with:
 
@@ -120,7 +121,7 @@ EP7MOD/LOOKS.BIN     the film library the Film page picks from
 - Switch on and **half-press once**: the looks load from the card (nothing is read at boot).
 - Open a Colour Profile's colour wheel. **INFO** steps: Saturation → Saturation · All → Hue → Light →
   Film → Extras. Turn the dial to change the value; on Film it steps through the library.
-- Extras (sectors 1–5): grain, glow/clarity, WB amber/blue, WB green/magenta, Art Effect.
+- Extras (sectors 1–7): grain, glow/clarity, WB amber/blue, WB green/magenta, Art Effect, Blacks, Whites.
 - Monochrome Profile editor (filter or shading): **INFO** steps through the mono film presets.
 - Leave the editor and half-press: changes are saved to `BUNDLES.BIN`. The previous file is kept as `.BAK`.
 - Picking a film look replaces that slot's hue, light and extras (saturation stays yours). Tweak on top
