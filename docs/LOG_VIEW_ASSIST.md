@@ -93,6 +93,9 @@ Inferred:
   mask 2, step = colour temperature.
 - TFT brightness and colour temperature go to the panel over SPI instead, using a 15×15×26-byte register
   table at `0x61f9d31e` (`0x60184235` → `0x60184360`).
+  Layout (v0.20, `patches/lcd_tint`): .data, init image = address − 0x1d67d40; row = brightness·390 +
+  colourtemp·26; words 0–3 → panel cmd 0xd9 [mode 0x80/0x91, R, G, B], words 4–7 → cmd 0x91 (word 7 =
+  brightness). G is below R/B at every step (the stock pink); v0.20 scales G by +8 %.
 - **So on the E-P7 the TFT runs with the VSC gamma bypassed, and the LUT hardware and its loader are
   dormant [V static, I that no computed-id sender exists].**
 - HDMI is VSC channel 1. The programmer never addresses it, so HDMI output has no display gamma [V].

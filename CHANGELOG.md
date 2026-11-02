@@ -3,6 +3,16 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). All releases are early-development
 pre-releases: use at your own risk (see the README).
 
+## v0.20 — 2026-11-02
+
+- **Rear LCD less pink:** the stock LCD shows a slight magenta cast at every Monitor Adjust colour-temperature
+  step. v0.20 raises the panel's green gain by 8 % (about two WB green fine-tune steps) in all 225
+  brightness × colour-temperature settings and the panel power-on sequences. This is a data-only change to the
+  LCD panel's own SPI registers: photos, movies, HDMI out and the View Assist / log paths are byte-identical to
+  v0.19. Monitor Adjust still works as before, on top of the trim. Size set at build time
+  (`patches/lcd_tint/build.py --green-pct`).
+- Firmware screen shows `Caduceus: 0.20`.
+
 ## v0.19 — 2026-11-02
 
 - **Blacks and Whites per Colour Profile:** two new tone controls that move the ends of the tone curve, which
