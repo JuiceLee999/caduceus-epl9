@@ -87,9 +87,12 @@ def names_of(data):
             for k in range(NAME_SLOTS)]
 
 
-def check_file(data):
+def check_file(data, tone=False, mono_rule=True):
     """-> list of problems with the looks (empty = the loader would accept the table). A 680-byte file is
-    checked on its first 544 bytes here; check_names() decides whether its names are shown."""
+    checked on its first 544 bytes here; check_names() decides whether its names are shown.
+    tone=True: the v0.19 loader rule (+47 blacks / +48 whites accept -5..5); tone=False: v0.18 and older (must be 0;
+    such firmware rejects a file with Blacks/Whites). mono_rule: the desktop-only rule that MONO slots keep them 0
+    (the v0.19 camera loader accepts them there and never reads them)."""
     p = []
     if len(data) == FILE_LEN_N:
         data = data[:SB.FILE_LEN]
@@ -103,8 +106,12 @@ def check_file(data):
     crc = zlib.crc32(data[:16] + data[20:]) & 0xffffffff
     if struct.unpack_from('<I', data, 16)[0] != crc:
         p.append(f'crc32 {struct.unpack_from("<I", data, 16)[0]:#010x} != {crc:#010x}')
-    lo, span, who = SB.range_table(SB.layout())
+    lo, span, who = SB.range_table(SB.layout(), tone=tone)
     tab = data[SB.HDR_LEN:]
+    if tone and mono_rule:
+        bad = [(k, o) for k in range(4, 8) for o in SB.mono_tone_bytes() if tab[64 * k + o]]
+        if bad:
+            p.append(f'slot {bad[0][0]} byte {bad[0][1]}: Blacks/Whites are COLOR-only (MONO slots keep 0)')
     for k, b in enumerate(tab):
         v = b - 256 if b >= 128 else b
         if not 0 <= v - lo[k % 64] <= span[k % 64]:
