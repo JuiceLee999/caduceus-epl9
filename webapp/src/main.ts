@@ -16,7 +16,7 @@ import { previewToneLut } from './tone';
 const LIBRARY = parsePack(libraryJson);
 const STORE = 'caduceus.pack.v2', STORE_V1 = 'caduceus.pack.v1', STORE_LIB = 'caduceus.library';
 // '+m2': forces one more migration pass for packs saved before tone fingerprints were handled
-const LIB_VERSION: string = ((libraryJson as { version?: string }).version ?? 'dev') + '+m2';
+const LIB_VERSION: string = ((libraryJson as { version?: string }).version ?? 'dev') + '+m3';
 const SAMPLES = [
   { id: 'market', label: 'Market' }, { id: 'portrait', label: 'Portrait' },
   { id: 'lake', label: 'Lake' }, { id: 'sunset', label: 'Sunset' },
