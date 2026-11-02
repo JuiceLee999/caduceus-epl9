@@ -8,7 +8,7 @@ Asked for: per-slot **Blacks** and **Whites** (−5..+5, moving the two ends of 
 Highlight/Shadow never moves), per-look **Highlight/Shadow/Midtone offsets** on top of the user's global tone,
 edited on the stock tone-control screen as a third INFO page.
 
-**Verdict:** the curve side is feasible, and it is a clean per-job hook (§1–§3). It was **not built in this
+**Verdict:** the curve side is feasible, and it is a clean per-job hook (§1–§3). **Update: T1 is now built and emulator-verified (§6).** It was **not built in this
 pass.** The rest of the scope (UI page, card and LOOKS.BIN format bump, per-look H/S/M at the stock job-setup
 stage, web app, library values) needs more mapping and its own emulator verification before it meets the
 "high confidence, anti-brick" bar (§5). §6 is the build plan.
@@ -141,3 +141,69 @@ once per still, and once per LV re-development (setting changes), not per pixel.
 - LOOKS.BIN v4: version 4, record length 80 = v3 record + tail (+64 B, +65 W, +66 H, +67 S, +68 M, rest 0);
   v3 files still load (tone untouched). BUNDLES.BIN: +47/+48 accepted, old files unchanged.
 - UI: Extras sectors 6/7 (labels `6 Blacks +2`, `7 Whites -1`); Vignette's planned sector moves to 8.
+
+## 6. T1 built: curve hook (stage 1 of v0.19)
+
+Status: **built and emulator-verified on the v0.18 base; not released, not camera-tested.** Card files cannot carry
+the values yet: the v0.18 SD loader range table requires slot bytes 47..63 = 0, so until T3 the layer is inert
+on the camera (the flashed table is all zero there too).
+
+- Build: `.venv/bin/python -I patches/tone_ends/build.py` (default `--base releases/v0.18/edits.json --out
+  generated/tone_ends`). Byte-level layer: nothing of the base is rebuilt. The base's bundles reader is checked
+  (labels, the job-ABI constants inside its `hl` bytes, the v3 accessor `tbl_idx` = 0x6055e7b0 found from its code).
+- Verify: `.venv/bin/python -I tools/ep7_verify_tone_ends.py --jobs 8 --json generated/tone_ends/verify.json`
+  (inside `systemd-run --user --scope -p MemoryMax=12G -q`; about 25 s).
+- Reference model: `tools/ep7_tone.py` `remap(lut, B, W)` (no dependencies; for sim/ and the web app). The
+  verifier checks the camera code against it bit-exactly.
+
+### 6.1 Edits
+
+| Site | Stock | New |
+|---|---|---|
+| 0x603b14ff (7 B) | `f1ec cd65f7f048` mov d3,a0; call 0x603b0c66,[d2,d3,a2,a3],72 | `dd rel32 f048` call tone,[d2,d3,a2,a3],72 |
+| 0x601e103c (212 B) | dead EVF step-14 B gamma LUT | piece A: gate + profile resolution |
+| 0x601e133c (235 B) | dead EVF step-13 B gamma LUT | piece B: range rule, copy, remap |
+
+The hook is a d32 call with the stock register list, frame and return address, so `tone` runs inside the frame the
+stock call makes, then replays `mov d3,a0` and jumps to 0x603b0c66, which returns to 0x603b1506 itself. The return
+word, the saved registers and MDR are what stock leaves (§3 planned a jmp + re-issued call; this variant leaves
+the live stack byte-identical). 0x603b1501 is no longer an instruction start: the only brute-force hit is operand
+bytes inside the call at 0x603b150f (checked by linear disassembly). The code did not fit one 256-B table, so it
+is split over two dead EVF B tables, each referenced only by its step-table word (0x601e3d68, 0x601e3d58).
+
+### 6.2 Semantics
+
+- Gates, in order: O+2608 ≠ 0; request in a job (callback / record / parent guard, as `hl`/`lv`); request key
+  word R+8 == 0x000b0000 (key 11, COLOR; same value as the selector's composed key); capture job (marker 0xB2):
+  job+15489 == 11 and profile = job+15488 (as `hl`); otherwise (live view): some COLOR slot has byte 47 or 48
+  ≠ 0, then profile = getter 0x6005e971(0xF6B1, 0, 0) (as `lv`; never called while every COLOR slot is 0);
+  profile 1..4 → COLOR slot 0..3 via tbl_idx (SD-loaded or flashed table).
+- Slot bytes: **+47 Blacks, +48 Whites, s8 −5..5**. A value outside −5..5 counts as 0 for that field (the other
+  field still applies). B = W = 0 → no copy and no store. Bytes +49..+63 are ignored (stock H/S/M are already
+  per-COLOR-profile settings, so the hook carries no H/S/M). No flags bit is needed: the bytes alone switch it on.
+- Remap (on the active LUT, so contrast, gradation, tone control and art LUTs are kept): toe crush
+  `y −= 12|B|·cube(1023−y)` for B < 0, shoulder push `y += 12W·cube(y)` for W > 0 (cube(t) = ((t²>>10)·t>>10)>>10,
+  clamped 0..1023), then `y = lo + ((y·(hi−lo)·1025 + 0xFFFFF) >> 20)` with lo = 8B (B > 0), hi = 1023 − 10|W|
+  (W < 0), then a running max. So y[0] = 8B for B > 0 (up to 40 codes) and y[255] = 1023 − 10|W| for W < 0 (down
+  to 973); B < 0 / W > 0 keep the end points 0 / 1023 and bend the toe / shoulder (about 12 codes per step at the
+  ends, a few codes at mid-grey).
+- Like the stock tone-control step: copy the LUT to O+2612 if O+2608 points elsewhere, remap in place,
+  O+2608 = O+2612, clear O+4 bit 8.
+- Registers all restored, MDR restored. Stores: own stack frame (48 B below the callee frame), O+2612..O+3123,
+  O+2608, O+4 only. No store into 0x60020020–0x6191ffe0 (static audit; image regions read-only in the emulator).
+
+### 6.3 Verification (generated/tone_ends/verify.json): 284/284 PASS
+
+Real stage-list span 0x603b14f8 → 0x603b1506 natively (builder 0x603b0a70 with its real LUT selection and
+tone-control bender, the hook, tone, real 0x603b0c66), real getter on a fixture registry, real tbl_idx.
+
+| Part | What | Result |
+|---|---|---|
+| P | merged spec builds a package; base part == releases/v0.18 edits and reproduces its patched.pkg.bin; restore main == stock hash | PASS |
+| S | hook bytes; stock bytes; no branch into the hook interior; only the step-table words reference the placements; store audit; changed bytes only in the 3 tone edits vs v0.18 | PASS |
+| N | == v0.18 (output, job, context, live stack, all registers): B=W=0 stills/LV (registry unmapped: no getter call), only MONO slots set, out-of-range values, O+2608 = 0, keys 12 / 0x0100000b / 0x000b0000, MONO profiles 5/6/8, profile 0/255 (stills and LV), capture mode 12, wrong callback, foreign parent; SD-loaded subset | 27/27 |
+| A | all 120 non-zero B×W at contrast 0; 48 at contrast −2 and +2; 9 with a non-zero tone block; 9 with an art override LUT: LUT == remap() bit-exact, monotone, y[0]/y[255] as specified, O+2608 = O+2612, O+4 bit 8 cleared, every other byte/register == v0.18; SD-loaded subset | 238/238 |
+| L | live view (getter) == stills (marker) LUT, output, context and registers: COLOR1–4 × contrast −2/0/+2 and tone block, CPU id 1 | 17/17 |
+
+Not covered: camera behaviour; whether the register writer needs anything beyond O+2608 and O+4 bit 8 (stock's
+own tone step does exactly these); the ISP look of the remap.
