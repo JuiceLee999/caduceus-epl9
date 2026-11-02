@@ -1,6 +1,7 @@
 {
  "schema": "caduceus-pack/1",
  "name": "Caduceus library",
+ "version": "d8e67e56",
  "looks": [
   {
    "name": "Velvia",

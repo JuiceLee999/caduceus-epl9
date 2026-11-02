@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { encodeLooksBin } from '../src/format';
 import { exportable, parsePack } from '../src/pack';
 import { decodeLookCode, encodeLookCode } from '../src/sharecode';
-import { resetLook, standardPack } from '../src/reset';
+import { fromLibrary, lookFingerprint, migratePack, resetLook, standardPack } from '../src/reset';
+import { blankLook, toneIsZero, zeroTone } from '../src/pack';
 import libraryJson from '../src/data/library.json';
 
 const LIB = parsePack(libraryJson);
@@ -61,5 +62,57 @@ describe('reset', () => {
     const p = standardPack(LIB);
     expect(p.looks.every((l) => l.origin === l.name)).toBe(true);
     expect(JSON.stringify(exportable(p))).not.toContain('"origin"');
+  });
+});
+
+describe('library migration (saved pack -> newer built-in library)', () => {
+  const card = (p: { looks: Parameters<typeof lookFingerprint>[0][] }) => p.looks.map((l) => lookFingerprint(l));
+
+  it('the current standard pack is already up to date', () => {
+    const m = migratePack(standardPack(LIB), LIB, LIB.looks.map((l) => l.name));
+    expect([m.updated, m.added]).toEqual([0, 0]);
+    expect(card(m.pack)).toEqual(card(LIB));
+  });
+
+  it('a pre-tone saved pack (no Look.lib) gets the tone; edited and own looks are kept', () => {
+    const old = standardPack(LIB);
+    old.looks.forEach((l) => { delete l.lib; l.tone = zeroTone(); });     // saved before the library had tone
+    old.looks[2].hue = old.looks[2].hue.map((v) => (v === 7 ? 6 : v + 1));  // the user edited this one
+    const edited = JSON.parse(JSON.stringify(old.looks[2]));
+    const own = { ...blankLook('colour', 'My Own'), notes: 'mine' };
+    old.looks.push(own);
+    old.looks.splice(28, 1);                                                // and removed one
+    const m = migratePack(old, LIB);
+    expect(m.updated).toBe(old.looks.length - 2 - LIB.looks.filter((l) => toneIsZero(l.tone)).length);
+    expect(m.added).toBe(0);                                                // has an own look: not the standard pack
+    m.pack.looks.forEach((l) => {
+      if (l.name === 'My Own') expect(l).toEqual(own);
+      else if (l.name === edited.name) expect(l).toEqual(edited);
+      else expect(lookFingerprint(l)).toBe(lookFingerprint(LIB.looks.find((o) => o.name === l.origin)!));
+    });
+    expect(hex(encodeLooksBin(m.pack))).not.toBe(hex(encodeLooksBin(old)));
+  });
+
+  it('a standard pack from an older library: unmodified looks updated, edits kept, new library looks added', () => {
+    const oldLib = parsePack(libraryJson);
+    oldLib.looks[0].hue = oldLib.looks[0].hue.map(() => 0);
+    oldLib.looks[0].tone = zeroTone();
+    const removedName = oldLib.looks.splice(19, 1)[0].name;                 // a look the new library adds
+    const saved = standardPack(oldLib);
+    saved.looks[1].light[0] = saved.looks[1].light[0] === 3 ? 2 : 3;          // user edit (fingerprint no longer matches)
+    const edited = JSON.parse(JSON.stringify(saved.looks[1]));
+    const m = migratePack(saved, LIB, oldLib.looks.map((l) => l.name));
+    expect(m.pack.looks[0]).toEqual(fromLibrary(LIB.looks[0]));
+    expect(m.pack.looks[1]).toEqual(edited);
+    expect(m.added).toBe(1);
+    expect(m.pack.looks.at(-1)!.name).toBe(removedName);
+    expect(m.updated).toBe(1);
+    // the user had removed it themselves (it was in the old library): not re-added
+    const m2 = migratePack(saved, LIB, [...oldLib.looks.map((l) => l.name), removedName]);
+    expect(m2.added).toBe(0);
+  });
+
+  it('origin and lib stay out of exported files', () => {
+    expect(JSON.stringify(exportable(standardPack(LIB)))).not.toMatch(/"origin"|"lib"/);
   });
 });

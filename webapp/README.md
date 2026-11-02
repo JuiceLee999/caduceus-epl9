@@ -50,6 +50,13 @@ npm test           # encoder + share-code tests
 npm run build      # static site in dist/ (serve it from any web server, at / or any sub-path)
 ```
 
+The built-in library carries a version stamp (a hash of its looks, `version` in `src/data/library.json`). When a
+returning visitor's saved pack was made with another library version, the app updates every library look the user
+did not modify to the latest values, tone included (`src/reset.ts` `migratePack`, tracked through the app-only
+`origin` / `lib` fields). A pack made only of library looks also gets the looks that are new in the library.
+Edited and user-made looks stay as they are, and a short notice says what changed. The Pages workflow runs
+`npm run gen-library` before testing and building, so the deployed app always matches `bundles/library_v3.json`.
+
 If you change `bundles/library_v3.json` or `sim/recipes/*.json`, run `npm run gen-library` and commit
 `src/data/library.json`. A test fails while it is stale. The Python cross-check test needs `python3` and the git
 history. It extracts the `e477637` tools with `git archive`, and it is skipped when either is missing.

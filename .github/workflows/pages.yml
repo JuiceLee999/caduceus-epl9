@@ -3,7 +3,7 @@ name: Deploy look-pack web app to GitHub Pages
 on:
   push:
     branches: [main]
-    paths: ['webapp/**', '.github/workflows/pages.yml']
+    paths: ['webapp/**', 'bundles/library_v3.json', 'sim/recipes/**', 'tools/data/tone_hsm.json', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
@@ -29,6 +29,8 @@ jobs:
           cache: npm
           cache-dependency-path: webapp/package-lock.json
       - run: npm ci --no-audit --no-fund
+      # the deployed app always carries the repo's current film library (bundles/library_v3.json + sim/recipes)
+      - run: npm run gen-library
       - run: npm test
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3

@@ -52,6 +52,7 @@ export interface Look {
   tone: Tone;          // LOOKS.BIN tone block when non-zero (H/S/M/B/W); B/W also go into COLOR slots of BUNDLES.BIN
   advice: Advice;      // camera settings the look recommends (preview only; not in any card file)
   origin?: string;     // app-only: the built-in library look this one came from (for Reset look); not exported
+  lib?: string;        // app-only: fingerprint of the library values it was copied from (unmodified = still equal)
 }
 export interface Pack {
   schema: typeof PACK_SCHEMA;
@@ -137,11 +138,12 @@ export function parseLook(v: unknown, what = 'look'): Look {
     tone,
     advice: adv,
     ...(typeof v.origin === 'string' ? { origin: v.origin } : {}),
+    ...(typeof v.lib === 'string' ? { lib: v.lib } : {}),
   };
 }
 
-/** The pack without app-only bookkeeping (Look.origin), for files and share links. */
-export const exportable = (p: Pack): Pack => ({ ...p, looks: p.looks.map(({ origin: _o, ...l }) => l) });
+/** The pack without app-only bookkeeping (Look.origin / Look.lib), for files and share links. */
+export const exportable = (p: Pack): Pack => ({ ...p, looks: p.looks.map(({ origin: _o, lib: _l, ...l }) => l) });
 
 /** Structural parse of a pack file (JSON object). Throws with a readable message. */
 export function parsePack(v: unknown): Pack {

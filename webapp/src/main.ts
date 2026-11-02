@@ -6,7 +6,7 @@ import {
   exportable, parsePack, toneIsZero, toneLimit, type Look, type Pack, type SlotName, type Tone,
 } from './pack';
 import { History } from './history';
-import { libraryOrigin, resetLook, standardPack } from './reset';
+import { fromLibrary, libraryOrigin, migratePack, resetLook, standardPack } from './reset';
 import { renderLook } from './preview';
 import { decodeLookCode, decodePackCode, encodeLookCode, encodePackCode, isPackCode } from './sharecode';
 import { makeZip } from './zip';
@@ -14,7 +14,8 @@ import { previewToneLut } from './tone';
 
 // ---------------------------------------------------------------- state
 const LIBRARY = parsePack(libraryJson);
-const STORE = 'caduceus.pack.v2', STORE_V1 = 'caduceus.pack.v1';
+const STORE = 'caduceus.pack.v2', STORE_V1 = 'caduceus.pack.v1', STORE_LIB = 'caduceus.library';
+const LIB_VERSION: string = (libraryJson as { version?: string }).version ?? 'dev';
 const SAMPLES = [
   { id: 'market', label: 'Market' }, { id: 'portrait', label: 'Portrait' },
   { id: 'lake', label: 'Lake' }, { id: 'sunset', label: 'Sunset' },
@@ -24,13 +25,31 @@ const SWATCH = ['#e3c22f', '#e8932e', '#e0602a', '#d03434', '#c43c92', '#8a52c6'
 type Tab = 'hue' | 'light' | 'sat';
 
 const S = {
-  pack: loadStored() ?? standardPack(LIBRARY),
+  pack: startPack(),
   sel: 0,
   tab: 'hue' as Tab,
   image: 'market',
   advice: true,
   compare: false,
 };
+
+/** The saved pack brought up to the current built-in library (or the library itself for a first visit). */
+let libNotice = '';
+function startPack(): Pack {
+  const saved = loadStored();
+  let prev: { version?: string; names?: string[] } = {};
+  try { prev = JSON.parse(localStorage.getItem(STORE_LIB) ?? '{}'); } catch { /* none */ }
+  const stamp = () => { try { localStorage.setItem(STORE_LIB, JSON.stringify({ version: LIB_VERSION, names: LIBRARY.looks.map((l) => l.name) })); } catch { /* private mode */ } };
+  if (!saved) { stamp(); return standardPack(LIBRARY); }
+  if (prev.version === LIB_VERSION) return saved;
+  const m = migratePack(saved, LIBRARY, prev.names);
+  stamp();
+  if (m.updated || m.added)
+    libNotice = `Film library updated to v${LIB_VERSION}: ${m.updated} look${m.updated === 1 ? '' : 's'} refreshed` +
+      (m.added ? `, ${m.added} added` : '') + '. Your own and edited looks are unchanged.';
+  try { localStorage.setItem(STORE, JSON.stringify(m.pack)); } catch { /* private mode */ }
+  return m.pack;
+}
 
 function loadStored(): Pack | null {
   try {
@@ -299,7 +318,7 @@ function resetSelected() {
 function libraryPicker() {
   const have = new Set(S.pack.looks.map((l) => l.name.toLowerCase()));
   const list = h('div', { class: 'pick-list' }, ...LIBRARY.looks.map((l) => h('button', {
-    class: 'pick', onclick: () => { if (addLook({ ...cloneLook(l), name: uniqueName(l.name), origin: l.name })) dlg.close(); },
+    class: 'pick', onclick: () => { if (addLook({ ...fromLibrary(l), name: uniqueName(l.name) })) dlg.close(); },
   }, h('b', {}, l.name), have.has(l.name.toLowerCase()) ? h('span', { class: 'tag' }, 'in pack') : null, h('small', {}, l.notes))));
   const dlg = modal('Add from the built-in library', list);
 }
@@ -814,6 +833,7 @@ async function handleHash() {
 
 shell();
 renderAll();
+if (libNotice) toast(libNotice);
 undoUi();
 handleHash();
 window.addEventListener('hashchange', handleHash);

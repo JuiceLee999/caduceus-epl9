@@ -4,6 +4,7 @@
 // plus the v0.19 per-look "tone" {highlights, shadows, midtones, blacks, whites} (missing = 0).
 //
 // Used by scripts/gen-library.mjs (writes src/data/library.json at build time) and by the tests.
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -95,7 +96,9 @@ export function resolveLibrary(lib, recipes, name = 'Caduceus library') {
     const toned = l && l.kind === 'colour' && Object.values(l.tone).some((v) => v !== 0);
     if (i >= 0 && !(s.startsWith('MONO') && toned)) slots[s] = i;
   }
-  return { schema: 'caduceus-pack/1', name, looks, slots };
+  // build stamp: the app updates saved library looks when this changes (src/reset.ts migratePack)
+  const version = createHash('sha256').update(JSON.stringify({ looks, slots })).digest('hex').slice(0, 8);
+  return { schema: 'caduceus-pack/1', name, version, looks, slots };
 }
 
 export function resolveRepoLibrary(root, file = 'bundles/library_v3.json') {
