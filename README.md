@@ -98,6 +98,18 @@ one) and flash it exactly as in step 4. The camera is then completely stock 1.1 
 
 More detail, troubleshooting and FAQ: **[docs/INSTALL.md](docs/INSTALL.md)**.
 
+## Make your own looks: Caduceus Control Panel
+
+**[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** is where you edit the built-in looks
+and make new presets, right in your browser:
+
+- Tweak any look (per-colour hue, lightness and saturation, grain, glow/clarity, WB shift, Art Effect), or
+  start a new one, with a live preview on example photos or your own (your photo never leaves your browser).
+- **Share a look with a short code:** press *Share*, send the code or link, and anyone can paste it into the
+  Control Panel to get the same look.
+- **Export** your pack as `LOOKS.BIN`, copy it to `EP7MOD/` on your SD card, half-press, and your looks are
+  on the camera's Film page.
+
 ## Using it
 
 ```
