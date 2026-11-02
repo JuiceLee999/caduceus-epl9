@@ -59,13 +59,19 @@ SHA_PREFIX = bytes.fromhex(MAIN_SHA[:8])           # decoded main SHA-256, first
 # Per-field value ranges (inclusive, as s8/u8 numbers) of the bundle-table ABI. Must cover every
 # field of patches/bundles/layout.json; bytes no field claims must be 0. These are the ranges
 # patches/bundles/build.py can emit (it rejects anything else), so every table it builds passes.
-# v0.17: hue/light -15..15 (extended H/L, patches/bundles --hl-ext); RANGES_LEGACY = the v0.16-and-older loaders.
-# A superset, so every old file still passes; a reader without --hl-ext renders a slot with |value| > 7 stock.
-RANGES = {'hue': (-15, 15), 'light': (-15, 15), 'grain': (0, 3), 'wb_flags': (0, 1), 'wb_ab': (-7, 7),
+# RANGES = the released loaders (v0.16..v0.19 firmware: hue/light -7..7). RANGES_HLX = the reverted v0.17 extended
+# H/L experiment (-15..15, patches/hl_ext only); RANGES_LEGACY = RANGES (old name, kept for callers).
+RANGES = {'hue': (-7, 7), 'light': (-7, 7), 'grain': (0, 3), 'wb_flags': (0, 1), 'wb_ab': (-7, 7),
           'wb_gm': (-7, 7), 'effect_id': (0, 3), 'effect_strength': (0, 5), 'vignette': (-5, 5),
           'flags': (0, 3), 'colour': (0, 1), 'sat': (-5, 5), 'bloom_tint': (0, 4),
           'art_effect': (0, 5)}
-RANGES_LEGACY = dict(RANGES, hue=(-7, 7), light=(-7, 7))
+RANGES_HLX = dict(RANGES, hue=(-15, 15), light=(-15, 15))
+RANGES_LEGACY = RANGES
+# v0.19 (docs/TONE_ENDS.md): COLOR-only slot bytes (layout.json "color_fields": +47 blacks, +48 whites, s8 -5..5).
+# Kept out of layout.json "fields" so the LOOKS.BIN layout_crc stays the same. The v0.19 loader accepts them in every
+# slot's per-byte table and additionally requires them to be 0 in the MONO slots 4..7 (range_table(..., tone=True),
+# table_ok(..., tone=True)). Old files (0 there) load exactly as before.
+TONE_RANGES = {'blacks': (-5, 5), 'whites': (-5, 5)}
 
 # Other patches' claims (docs/CODE_SPACE_MAP.md) and the SD-updater code/data (docs/SD_UPDATE.md §4):
 # never overlap them.
@@ -82,11 +88,15 @@ def layout():
     return lay
 
 
-def range_table(lay, ranges=None):
-    """-> (lo[64] s8, span[64] u8, per-byte field names). ranges: RANGES (default) or RANGES_LEGACY."""
+def range_table(lay, ranges=None, tone=False):
+    """-> (lo[64] s8, span[64] u8, per-byte field names). ranges: RANGES (default) or RANGES_HLX.
+    tone=True (v0.19 loader): also the COLOR-only "color_fields" (+47 blacks, +48 whites)."""
     RANGES = globals()['RANGES'] if ranges is None else ranges
     lo, hi, who = [0] * 64, [0] * 64, ['(unused, must be 0)'] * 64
-    fields = lay['fields']
+    fields = dict(lay['fields'])
+    if tone:
+        RANGES = dict(RANGES, **TONE_RANGES)
+        fields.update(lay['color_fields'])
     missing = set(fields) - set(RANGES)
     if missing:
         raise ValueError(f'layout.json fields without a loader range: {sorted(missing)}')
@@ -102,14 +112,23 @@ def range_table(lay, ranges=None):
     return lo, span, who
 
 
-def table_ok(table, lo, span):
-    """Python mirror of sd_check's range rule (used by the desktop tool and the verifier)."""
+def mono_tone_bytes(lay=None):
+    """Slot offsets that must be 0 in the MONO slots 4..7 (v0.19: +47 blacks, +48 whites)."""
+    lay = lay or layout()
+    return sorted(k for off, n, *_ in lay['color_fields'].values() for k in range(off, off + n))
+
+
+def table_ok(table, lo, span, tone=False):
+    """Python mirror of sd_check's range rule (used by the desktop tool and the verifier).
+    tone=True: the v0.19 loader's extra rule (MONO slots keep the COLOR-only tone bytes at 0)."""
     if len(table) != PAYLOAD_LEN:
         return False
     for k, b in enumerate(table):
         v = b - 256 if b >= 128 else b
         if not 0 <= v - lo[k % 64] <= span[k % 64]:
             return False
+    if tone and any(table[64 * k + o] for k in range(4, 8) for o in mono_tone_bytes()):
+        return False
     return True
 
 

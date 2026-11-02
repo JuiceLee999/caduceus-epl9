@@ -213,7 +213,7 @@ def main():
         rec(f'R live view COLOR2 {name} -> stock', lv[0] and lv[1]['out'] == ls[1]['out'])
     # T range tables + desktop mirrors
     lay = SB.layout()
-    lo, sp, _ = SB.range_table(lay)
+    lo, sp, _ = SB.range_table(lay, SB.RANGES_HLX)
     lo0, sp0, _ = SB.range_table(lay, SB.RANGES_LEGACY)
     b8 = lambda v: bytes(x & 0xff for x in v)  # noqa: E731
     ld = new[0x605b7400 - BASE:0x605b7400 - BASE + 865]

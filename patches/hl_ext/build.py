@@ -92,7 +92,7 @@ def make(base):
     # 4. range tables (data only)
     lay = SB.layout()
     lo0, sp0, _ = SB.range_table(lay, SB.RANGES_LEGACY)
-    lo1, sp1, _ = SB.range_table(lay)
+    lo1, sp1, _ = SB.range_table(lay, SB.RANGES_HLX)
     b8 = lambda v: bytes(x & 0xff for x in v)                   # noqa: E731
     ld = edit_at(spec, LOADER_AT)
     blob = bytes.fromhex(ld['new'])
