@@ -50,7 +50,8 @@ export function resolveLook(key, look, recipes) {
   }
   const advice = {};
   const tone = { highlights: 0, shadows: 0, midtones: 0, blacks: 0, whites: 0 };
-  for (const k of Object.keys(tone)) tone[k] = look.tone?.[k] ?? 0;
+  // mono looks carry no tone block in LOOKS.BIN (tools/ep7_looks_bin.py compile_looks): keep them at 0
+  if (!mono) for (const k of Object.keys(tone)) tone[k] = look.tone?.[k] ?? 0;
   if (rc.tone) advice.tone = { highlights: rc.tone.highlights ?? 0, shadows: rc.tone.shadows ?? 0, midtones: rc.tone.midtones ?? 0 };
   if (rc.contrast) advice.contrast = rc.contrast;
   if (rc.mono_filter) advice.mono_filter = { colour: rc.mono_filter.colour ?? 'none', strength: rc.mono_filter.strength ?? 1 };
@@ -89,7 +90,10 @@ export function resolveLibrary(lib, recipes, name = 'Caduceus library') {
   const slots = {};
   for (const [s, k] of Object.entries(lib.slots ?? {})) {
     const i = keys.indexOf(k);
-    if (i >= 0) slots[s] = i;
+    const l = looks[i];
+    // a colour look with a tone is COLOR-only (LOOKS.BIN slot mask 1): it cannot fill a MONO slot
+    const toned = l && l.kind === 'colour' && Object.values(l.tone).some((v) => v !== 0);
+    if (i >= 0 && !(s.startsWith('MONO') && toned)) slots[s] = i;
   }
   return { schema: 'caduceus-pack/1', name, looks, slots };
 }

@@ -571,7 +571,7 @@
   },
   {
    "name": "Cuban Neg",
-   "notes": "Inspired by Osan's Classic Cuban Neg: warm Classic Neg, golden cast (WB A+4), deep blues/reds, gritty grain, bloom 4. Sat: +2 warm, -2 greens.",
+   "notes": "Inspired by Osan's Classic Cuban Neg: warm Classic Neg, golden cast (WB A+4), deep blues/reds, gritty grain, bloom 3. Sat: +2 warm, -2 greens.",
    "kind": "colour",
    "hue": [0,-1,0,0,7,6,-4,-3,6,7,5,0],
    "light": [-1,-2,-3,-3,-1,0,-1,-2,-2,-3,-5,-4],
@@ -583,7 +583,7 @@
    },
    "effect": {
     "type": "bloom",
-    "strength": 4
+    "strength": 3
    },
    "vignette": 0,
    "art_effect": "off",
@@ -796,7 +796,7 @@
   },
   {
    "name": "Polaroid",
-   "notes": "Integral instant film: faded, low contrast, warm highlights, cyan-green shadows.",
+   "notes": "Integral instant film: punchy, narrow dynamic range (bright highlights, deep shadows), warm highlights, cyan-green shadows.",
    "kind": "colour",
    "hue": [1,1,0,0,0,0,-1,-1,0,1,2,1],
    "light": [1,1,1,0,0,0,1,1,1,1,0,0],
@@ -813,11 +813,11 @@
    "vignette": 0,
    "art_effect": "off",
    "tone": {
-    "highlights": -3,
-    "shadows": 4,
-    "midtones": 1,
-    "blacks": 3,
-    "whites": -2
+    "highlights": 2,
+    "shadows": -3,
+    "midtones": 0,
+    "blacks": -1,
+    "whites": 1
    },
    "advice": {
     "tone": {
@@ -881,7 +881,7 @@
     "highlights": -1,
     "shadows": -2,
     "midtones": 0,
-    "blacks": 3,
+    "blacks": 1,
     "whites": -1
    },
    "advice": {
@@ -906,10 +906,10 @@
    "vignette": 0,
    "art_effect": "off",
    "tone": {
-    "highlights": -1,
-    "shadows": -2,
+    "highlights": 0,
+    "shadows": 0,
     "midtones": 0,
-    "blacks": -1,
+    "blacks": 0,
     "whites": 0
    },
    "advice": {
@@ -938,11 +938,11 @@
    "vignette": 0,
    "art_effect": "off",
    "tone": {
-    "highlights": -1,
-    "shadows": -3,
+    "highlights": 0,
+    "shadows": 0,
     "midtones": 0,
-    "blacks": -1,
-    "whites": 1
+    "blacks": 0,
+    "whites": 0
    },
    "advice": {
     "tone": {
@@ -970,11 +970,11 @@
    "vignette": 0,
    "art_effect": "off",
    "tone": {
-    "highlights": -2,
-    "shadows": 1,
+    "highlights": 0,
+    "shadows": 0,
     "midtones": 0,
     "blacks": 0,
-    "whites": -1
+    "whites": 0
    },
    "advice": {
     "tone": {
@@ -996,7 +996,6 @@
   "COLOR4": 0,
   "MONO1": 29,
   "MONO2": 30,
-  "MONO3": 31,
-  "MONO4": 13
+  "MONO3": 31
  }
 }

@@ -28,7 +28,7 @@ export interface Advice {
   contrast?: number;
   mono_filter?: { colour: MonoFilter; strength: number };
 }
-/** Per-look tone (LOOKS.BIN v4 tail). H/S/M -7..7: the Film pick writes them to the profile's stock tone settings.
+/** Per-look tone (LOOKS.BIN v0.19 tone block, colour looks only). H/S/M -7..7: the Film pick writes them to the profile's stock tone settings.
  *  Blacks/Whites -5..5: the two curve ends, placed into COLOR slots of BUNDLES.BIN (+47/+48). 0 = stock. */
 export interface Tone { highlights: number; shadows: number; midtones: number; blacks: number; whites: number }
 export const TONE_KEYS = ['highlights', 'shadows', 'midtones', 'blacks', 'whites'] as const;
@@ -49,7 +49,7 @@ export interface Look {
   effect: Effect | null;
   vignette: number;    // -5..5 (stored only)
   art_effect: Art;     // COLOR slots of BUNDLES.BIN only: LOOKS.BIN has no field for it
-  tone: Tone;          // LOOKS.BIN v4 tail (H/S/M/B/W); B/W also go into COLOR slots of BUNDLES.BIN
+  tone: Tone;          // LOOKS.BIN tone block when non-zero (H/S/M/B/W); B/W also go into COLOR slots of BUNDLES.BIN
   advice: Advice;      // camera settings the look recommends (preview only; not in any card file)
   origin?: string;     // app-only: the built-in library look this one came from (for Reset look); not exported
 }

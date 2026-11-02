@@ -10,15 +10,15 @@ and no photo or pack is ever uploaded.
   WB A–B / G–M, Art Effect, notes, and **Tone**: Highlights / Shadows / Midtones (±7) and Blacks / Whites (±5).
   Mono looks get the Monochrome filter advice instead of the colour sliders.
 - Live **approximate** preview on four CC0 sample photos or your own photo (decoded locally, never sent anywhere).
-- Open a pack file or a card `LOOKS.BIN` (v3 or v4; v3 looks get tone 0).
+- Open a pack file or a card `LOOKS.BIN` (looks without a tone block get tone 0).
 - Export `LOOKS.BIN`, a pack file (`*.caduceus.json`, which can be imported again), or a card zip with the
   `EP7MOD/` folder. The same validation as the desktop tools runs first.
 - Share a look as a short code, or a whole pack as a link (see [Share codes](#share-codes)).
 
-The output targets **Caduceus v0.19** (hue/light ±7, LOOKS.BIN v4 with the per-look tone; docs/TONE_ENDS.md §5).
-The v3 records are byte-compatible with `tools/ep7_looks_bin.py` / `tools/ep7_bundles_bin.py` as of commit `e477637`
-(the v0.17/v0.18 card format), and the v4 files with the repo's current tools once they write v4. The tests check
-both (the v4 cross-check is skipped while the repo's tools still write v3).
+The output targets **Caduceus v0.19**: hue/light ±7 and LOOKS.BIN version 3 with the per-look tone block. Older
+firmware ignores the tone. The output is byte-compatible with the repo's `tools/ep7_looks_bin.py` and
+`tools/ep7_bundles_bin.py`. The tests check this against `releases/v0.19/card/EP7MOD/LOOKS.BIN` and against the
+tools on random packs.
 
 ## Why plain TypeScript + Vite
 
@@ -180,9 +180,11 @@ editor offers to copy into the look's tone).
 
 - **LOOKS.BIN** record per look: hue, light, grain, WB override, effect + strength, vignette (stored, not rendered
   by v0.17), the H/L flag, sat (colour looks, used when one is placed in a MONO slot), class, slot mask, bloom
-  tint and the name (the v3 record, 64 bytes), then the v4 tone tail: +64 Blacks, +65 Whites (−5..5), +66
-  Highlights, +67 Shadows, +68 Midtones (−7..7), +69..79 zero. Header version 4, record length 80. Colour looks
-  always carry sat, so they can go in COLOR and MONO slots.
+  tint and the name, in 64 bytes (header version 3).
+- **Tone block**: a colour look whose tone is not all zero gets the v0.19 tone block. It sets +32 = 1 (tone flag),
+  +33 Blacks and +34 Whites (−5..5), and +35 Highlights, +36 Midtones, +37 Shadows (−7..7). Bytes +38..44 are zero
+  and the slot mask is 1, so the look is COLOR-only. A colour look without a tone keeps its sat at +33..44 instead,
+  and can go in COLOR and MONO slots. Mono looks never carry a tone.
 - **Tone on the camera**: picking a look writes its Highlights / Shadows / Midtones to the profile's own tone
   settings. Blacks / Whites go into the slot (BUNDLES.BIN +47 / +48, COLOR slots only; MONO slots keep 0) and move
   the two ends of the luminance tone curve.

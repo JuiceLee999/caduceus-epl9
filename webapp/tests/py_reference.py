@@ -26,9 +26,6 @@ def load(name, rel):
 LB = load('ep7_looks_bin', 'tools/ep7_looks_bin.py')
 BBIN = load('ep7_bundles_bin', 'tools/ep7_bundles_bin.py')
 LIB, SB = LB.LIB, LB.SB
-if sys.argv[2:] == ['--info']:
-    print(json.dumps({'looks_version': LB.VERSION}))
-    sys.exit(0)
 out = []
 for case in json.loads(sys.stdin.read()):
     recipes = {k: dict(v, _file='webapp-test') for k, v in case['recipes'].items()}
@@ -50,7 +47,7 @@ for case in json.loads(sys.stdin.read()):
             slot_names[i] = names[keys.index(k)]
         b = SB.make_file(bytes(table)) + BBIN.name_section(slot_names)
         res['bundles'] = b.hex()
-        res['bundles_check'] = BBIN.check_file(b) + BBIN.check_names(b[BBIN.NAMES_LO:])
+        res['bundles_check'] = BBIN.check_file(b, tone=True) + BBIN.check_names(b[BBIN.NAMES_LO:])
     except (ValueError, AssertionError) as e:
         res['error'] = str(e)
     out.append(res)

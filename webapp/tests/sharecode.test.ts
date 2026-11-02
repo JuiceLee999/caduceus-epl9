@@ -8,7 +8,7 @@ import library from '../src/data/library.json';
 
 const pack = parsePack(library);
 const hex = (b: Uint8Array) => Buffer.from(b).toString('hex');
-// What a look code carries: the card bytes (v4 record: incl. name and tone), the Art Effect and the mono-filter advice.
+// What a look code carries: the card bytes (LOOKS.BIN record: incl. name and tone block), the Art Effect and the mono-filter advice.
 const essence = (l: Look) => [hex(lookRecord(l)), l.art_effect, JSON.stringify(l.advice.mono_filter ?? null)];
 
 describe('look codes', () => {

@@ -176,7 +176,7 @@ Muted. Left: the standard curve. Right: the hidden log curve, rendered with the 
 - Tinted halation (red glow around white lights), probably via a mask built from the exposure meter grid.
 - Vignette on colour profiles as Extras sector 8 (−5..+5, finer than stock), using the stock shading stage
   (plan: `docs/VIGNETTE.md`).
-- Per-look tone on the Film page (LOOKS.BIN v4: a pick applies the look's Highlight/Shadow/Midtone and
+- Per-look tone on the Film page (LOOKS.BIN tone block: a pick applies the look's Highlight/Shadow/Midtone and
   Blacks/Whites), and a Blacks/Whites page on the tone-curve screen (plan: `docs/TONE_ENDS.md`).
 - Far future (Ricoh GR-style): **highlight-weighted metering** (meter the whole frame but protect highlights) and
   **snap focus** (a preset focus distance used when the shutter is pressed straight through).

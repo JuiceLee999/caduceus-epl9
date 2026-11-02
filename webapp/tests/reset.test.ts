@@ -8,7 +8,7 @@ import { resetLook, standardPack } from '../src/reset';
 import libraryJson from '../src/data/library.json';
 
 const LIB = parsePack(libraryJson);
-const RELEASE_LOOKS = join(__dirname, '../../releases/v0.17/card/EP7MOD/LOOKS.BIN');
+const RELEASE_LOOKS = join(__dirname, '../../releases/v0.19/card/EP7MOD/LOOKS.BIN');
 const hex = (b: Uint8Array) => Buffer.from(b).toString('hex');
 const names = (p: { looks: { name: string }[] }, skip: number) => p.looks.filter((_, k) => k !== skip).map((l) => l.name);
 
@@ -21,7 +21,7 @@ function mangle(p: ReturnType<typeof standardPack>, i: number) {
 
 describe('reset', () => {
   it('standard pack encodes to the shipped LOOKS.BIN', () => {
-    expect(hex(encodeLooksBin(standardPack(LIB), 3))).toBe(hex(new Uint8Array(readFileSync(RELEASE_LOOKS))));
+    expect(hex(encodeLooksBin(standardPack(LIB)))).toBe(hex(new Uint8Array(readFileSync(RELEASE_LOOKS))));
   });
 
   it('resetting every edited library look gives byte-identical LOOKS.BIN', () => {

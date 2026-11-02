@@ -1,6 +1,6 @@
 import './style.css';
 import libraryJson from './data/library.json';
-import { decodeLooksBin, encodeBundlesBin, encodeLooksBin, nameProblem, PackError, validatePack, type Problem } from './format';
+import { decodeLooksBin, encodeBundlesBin, encodeLooksBin, hasTone, nameProblem, PackError, validatePack, type Problem } from './format';
 import {
   ARTS, MAX_LOOKS, MONO_FILTERS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SECTORS, SLOT_NAMES, TINTS, TONE_KEYS, blankLook, cloneLook,
   exportable, parsePack, toneIsZero, toneLimit, type Look, type Pack, type SlotName, type Tone,
@@ -10,6 +10,7 @@ import { libraryOrigin, resetLook, standardPack } from './reset';
 import { renderLook } from './preview';
 import { decodeLookCode, decodePackCode, encodeLookCode, encodePackCode, isPackCode } from './sharecode';
 import { makeZip } from './zip';
+import { previewToneLut } from './tone';
 
 // ---------------------------------------------------------------- state
 const LIBRARY = parsePack(libraryJson);
@@ -341,7 +342,7 @@ function renderEditor() {
       renderList(); renderEditor(); changed();
     }),
     l.kind === 'colour' ? sectorPanel(l, changed) : monoPanel(l, changed),
-    tonePanel(l, changed),
+    ...(l.kind === 'colour' ? [tonePanel(l, changed)] : []),
     h('div', { class: 'group' },
       seg('Grain', [['off', 'Off'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']], l.grain, (v) => { l.grain = v as Look['grain']; renderEditor(); changed(); })),
     effectPanel(l, changed),
@@ -406,18 +407,51 @@ function sectorPanel(l: Look, changed: () => void): HTMLElement {
     h('div', { class: 'sectors' }, ...rows),
     h('div', { class: 'tab-foot' },
       h('span', { class: 'help' }, S.tab === 'sat'
-        ? 'Saturation is advice: set it in the camera\'s own colour-profile saturation. It is stored for MONO colour slots.'
+        ? 'Saturation is advice: set it in the camera\'s own colour-profile saturation. It is stored for MONO colour slots (looks without a tone).'
         : `±${lim} per sector (v0.17 firmware). Double-click a slider to zero it.`),
       h('button', { class: 'link', onclick: () => { arr.fill(0); renderEditor(); changed(); } }, 'Reset')));
+}
+
+/** Small live tone-curve graph: x = the stock rendering, y = with this look's tone (the camera LUT model). */
+function toneCurve(tone: Tone): { svg: SVGSVGElement; draw: () => void } {
+  const NS = 'http://www.w3.org/2000/svg', S0 = 200, P = 8, W = S0 - 2 * P;
+  const el = <K extends keyof SVGElementTagNameMap>(t: K, a: Record<string, string | number>) => {
+    const e = document.createElementNS(NS, t);
+    for (const [k, v] of Object.entries(a)) e.setAttribute(k, String(v));
+    return e;
+  };
+  const svg = el('svg', { viewBox: `0 0 ${S0} ${S0}`, width: S0, height: S0, class: 'tone-curve', role: 'img', 'aria-label': 'Tone curve: stock input to look output' });
+  const X = (v: number) => P + v * W, Y = (v: number) => P + (1 - v) * W;
+  svg.append(el('rect', { x: P, y: P, width: W, height: W, class: 'tc-frame' }));
+  for (let i = 1; i < 4; i++) {
+    svg.append(el('line', { x1: X(i / 4), y1: Y(0), x2: X(i / 4), y2: Y(1), class: 'tc-grid' }));
+    svg.append(el('line', { x1: X(0), y1: Y(i / 4), x2: X(1), y2: Y(i / 4), class: 'tc-grid' }));
+  }
+  svg.append(el('line', { x1: X(0), y1: Y(0), x2: X(1), y2: Y(1), class: 'tc-ident' }));
+  const path = el('path', { class: 'tc-curve', d: '' });
+  const dB = el('circle', { r: 3.5, class: 'tc-end' }), dW = el('circle', { r: 3.5, class: 'tc-end' });
+  svg.append(path, dB, dW);
+  const draw = () => {
+    const t = previewToneLut(tone, 128);
+    let d = '';
+    t.forEach((v, i) => { d += `${i ? 'L' : 'M'}${X(i / 128).toFixed(1)},${Y(v).toFixed(1)}`; });
+    path.setAttribute('d', d);
+    dB.setAttribute('cx', String(X(0))); dB.setAttribute('cy', String(Y(t[0])));
+    dW.setAttribute('cx', String(X(1))); dW.setAttribute('cy', String(Y(t[128])));
+    dB.classList.toggle('on', tone.blacks !== 0); dW.classList.toggle('on', tone.whites !== 0);
+  };
+  draw();
+  return { svg, draw };
 }
 
 const TONE_LABEL: Record<keyof Tone, string> = { highlights: 'Highlights', shadows: 'Shadows', midtones: 'Midtones', blacks: 'Blacks', whites: 'Whites' };
 function tonePanel(l: Look, changed: () => void): HTMLElement {
   const rows = TONE_KEYS.map((k) => {
     const lim = toneLimit(k);
-    const { inp, out } = slider(-lim, lim, l.tone[k], (v) => { l.tone[k] = v; changed(); }, undefined, TONE_LABEL[k]);
+    const { inp, out } = slider(-lim, lim, l.tone[k], (v) => { l.tone[k] = v; drawCurve(); changed(); }, undefined, TONE_LABEL[k]);
     return h('div', { class: 'srow plain' }, h('span', { class: 'sname' }, TONE_LABEL[k]), inp, out);
   });
+  const { svg, draw: drawCurve } = toneCurve(l.tone);
   const rec = l.advice.tone;
   const recTone = rec && (rec.highlights || rec.shadows || rec.midtones)
     && (rec.highlights !== l.tone.highlights || rec.shadows !== l.tone.shadows || rec.midtones !== l.tone.midtones) ? rec : null;
@@ -425,13 +459,15 @@ function tonePanel(l: Look, changed: () => void): HTMLElement {
   return h('div', { class: 'group' },
     h('div', { class: 'tone-head' }, h('span', { class: 'lbl' }, 'Tone'),
       !toneIsZero(l.tone) ? h('button', { class: 'link', onclick: () => { for (const k of TONE_KEYS) l.tone[k] = 0; renderEditor(); changed(); } }, 'Reset') : null),
+    svg,
     ...rows.slice(0, 3),
     h('div', { class: 'tone-sep' }),
     ...rows.slice(3),
     h('p', { class: 'help' },
       'Highlights / Shadows / Midtones (±7): picking the look sets the profile\'s own tone settings to these. ',
       'Blacks / Whites (±5) move the ends of the tone curve (+Blacks lifts to a matte black, −Whites rolls the white point off); ',
-      'they act in COLOR slots only. Needs Caduceus v0.19 or later.'),
+      'they act in COLOR slots, and a look with a tone is COLOR-only (it cannot go in a MONO slot). Needs Caduceus v0.19 or later. ',
+      'The graph shows stock → this look (camera tone LUT model); dots mark the Blacks and Whites ends.'),
     recTone ? h('button', {
       class: 'link', title: 'The tone the recipe suggested for the camera\'s own settings (older packs)',
       onclick: () => { l.tone.highlights = recTone.highlights; l.tone.shadows = recTone.shadows; l.tone.midtones = recTone.midtones; renderEditor(); changed(); },
@@ -593,7 +629,7 @@ async function onFile(e: Event) {
   (e.target as HTMLInputElement).value = '';
   if (!f) return;
   const bytes = new Uint8Array(await f.arrayBuffer());
-  if (bytes.length >= 4 && String.fromCharCode(...bytes.subarray(0, 4)) === 'EP7B') {   // a card LOOKS.BIN (v3 or v4)
+  if (bytes.length >= 4 && String.fromCharCode(...bytes.subarray(0, 4)) === 'EP7B') {   // a card LOOKS.BIN
     try {
       const p = decodeLooksBin(bytes, f.name.replace(/\.bin$/i, '') || 'LOOKS.BIN');
       replacePack(p, `Opened ${f.name} (${p.looks.length} looks; LOOKS.BIN has no notes or Art Effects)`);
@@ -722,7 +758,7 @@ function exportDialog() {
         save();
       },
     }, h('option', { value: '' }, '— stock —'),
-    ...S.pack.looks.map((l, i) => (s.startsWith('COLOR') && l.kind === 'mono') ? null : h('option', { value: i, selected: S.pack.slots[s] === i }, `${i + 1}. ${l.name}`)).filter(Boolean) as HTMLElement[]);
+    ...S.pack.looks.map((l, i) => (s.startsWith('COLOR') ? l.kind === 'mono' : hasTone(l)) ? null : h('option', { value: i, selected: S.pack.slots[s] === i }, `${i + 1}. ${l.name}`)).filter(Boolean) as HTMLElement[]);
     return h('label', { class: 'slot' }, h('span', {}, s), sel);
   };
   const withBundles = h('input', { type: 'checkbox' });
@@ -737,7 +773,7 @@ function exportDialog() {
         h('ul', { class: 'problems' }, ...probs.slice(0, 12).map((p) => h('li', {}, fmtProblem(p)))))
       : h('p', { class: 'ok' }, `✓ ${S.pack.looks.length} looks pass the camera's LOOKS.BIN checks (v0.19 firmware).`),
     h('div', { class: 'ex-row' },
-      h('div', {}, h('b', {}, 'LOOKS.BIN'), h('p', { class: 'help' }, 'The look list the camera\'s picker reads (v4, with tone: Caduceus v0.19 or later). Goes in EP7MOD/ on the card.')),
+      h('div', {}, h('b', {}, 'LOOKS.BIN'), h('p', { class: 'help' }, 'The look list the camera\'s picker reads (version 3; tone needs Caduceus v0.19, older firmware ignores it). Goes in EP7MOD/ on the card.')),
       h('button', { class: 'primary', disabled: probs.length > 0, onclick: () => { const b = looksBin(); if (b) download('LOOKS.BIN', b); } }, 'Download')),
     h('div', { class: 'ex-row' },
       h('div', {}, h('b', {}, 'Pack file (.json)'), h('p', { class: 'help' }, 'Everything, including notes and advice. Open it here later or send it to someone.')),
