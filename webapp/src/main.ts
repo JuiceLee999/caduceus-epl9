@@ -101,7 +101,7 @@ function shell() {
   app.replaceChildren(
     h('header', { class: 'top' },
       h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }, '☤'), h('span', { class: 'word' }, 'Caduceus'),
-        h('span', { class: 'sub' }, 'look packs')),
+        h('span', { class: 'sub' }, 'control panel')),
       h('nav', { class: 'actions' },
         menu('New', [
           ['Built-in library', () => newPack('library')],
@@ -522,7 +522,7 @@ function shareLook(l: Look) {
   const link = `${shareBase()}#${code}`;
   const grouped = encodeLookCode(l, true);
   modal(`Share "${l.name}"`, h('div', { class: 'share' },
-    h('p', {}, 'Anyone can paste this code into Caduceus Looks (Paste code) to get this look.'),
+    h('p', {}, 'Anyone can paste this code into the Caduceus Control Panel (Paste code) to get this look.'),
     h('div', { class: 'code-box' }, h('code', {}, grouped), h('button', { onclick: () => copy(code, 'Code copied') }, 'Copy code')),
     h('div', { class: 'code-box link' }, h('input', { type: 'text', readonly: true, value: link, onfocus: (e: Event) => (e.target as HTMLInputElement).select() }),
       h('button', { onclick: () => copy(link, 'Link copied') }, 'Copy link')),

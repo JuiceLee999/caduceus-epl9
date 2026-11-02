@@ -1,4 +1,4 @@
-# Caduceus Looks (web app)
+# Caduceus Control Panel (web app)
 
 A small static web app for making and sharing Caduceus look packs: the `EP7MOD/LOOKS.BIN` file the camera's look
 picker reads, plus an optional starter `EP7MOD/BUNDLES.BIN`. Everything runs in the browser. There is no backend,
