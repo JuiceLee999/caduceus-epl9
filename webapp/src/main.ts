@@ -1,0 +1,684 @@
+import './style.css';
+import libraryJson from './data/library.json';
+import { encodeBundlesBin, encodeLooksBin, nameProblem, PackError, validatePack, type Problem } from './format';
+import {
+  ARTS, MAX_LOOKS, MONO_FILTERS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SECTORS, SLOT_NAMES, TINTS, blankLook, cloneLook,
+  parsePack, type Look, type Pack, type SlotName,
+} from './pack';
+import { renderLook } from './preview';
+import { decodeLookCode, decodePackCode, encodeLookCode, encodePackCode, isPackCode } from './sharecode';
+import { makeZip } from './zip';
+
+// ---------------------------------------------------------------- state
+const LIBRARY = parsePack(libraryJson);
+const STORE = 'caduceus.pack.v1';
+const SAMPLES = [
+  { id: 'market', label: 'Market' }, { id: 'portrait', label: 'Portrait' },
+  { id: 'lake', label: 'Lake' }, { id: 'sunset', label: 'Sunset' },
+];
+const SWATCH = ['#e3c22f', '#e8932e', '#e0602a', '#d03434', '#c43c92', '#8a52c6', '#3d5bd0', '#3d8bd0', '#2fb2c6',
+  '#2fb28c', '#45a845', '#9fc63b'];
+type Tab = 'hue' | 'light' | 'sat';
+
+const S = {
+  pack: loadStored() ?? cloneDeep(LIBRARY),
+  sel: 0,
+  tab: 'hue' as Tab,
+  image: 'market',
+  advice: true,
+  compare: false,
+};
+
+function cloneDeep<T>(v: T): T { return JSON.parse(JSON.stringify(v)); }
+function loadStored(): Pack | null {
+  try {
+    const s = localStorage.getItem(STORE);
+    return s ? parsePack(JSON.parse(s)) : null;
+  } catch { return null; }
+}
+let saveTimer = 0;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => { try { localStorage.setItem(STORE, JSON.stringify(S.pack)); } catch { /* private mode */ } }, 250);
+}
+const cur = (): Look | undefined => S.pack.looks[S.sel];
+
+// ---------------------------------------------------------------- DOM helpers
+type Attrs = Record<string, unknown>;
+function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = {}, ...kids: (Node | string | null | false | undefined)[]): HTMLElementTagNameMap[K] {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v === undefined || v === null || v === false) continue;
+    if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v as EventListener);
+    else if (k === 'class') el.className = String(v);
+    else if (k === 'value') (el as HTMLInputElement).value = String(v);
+    else if (k === 'checked') (el as HTMLInputElement).checked = Boolean(v);
+    else el.setAttribute(k, v === true ? '' : String(v));
+  }
+  for (const c of kids) if (c !== null && c !== false && c !== undefined) el.append(c);
+  return el;
+}
+const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
+
+function download(name: string, data: Uint8Array | string, type = 'application/octet-stream') {
+  const url = URL.createObjectURL(new Blob([data as BlobPart], { type }));
+  const a = h('a', { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+let toastTimer = 0;
+function toast(msg: string, kind: 'ok' | 'err' = 'ok') {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = `toast show ${kind}`;
+  clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => (t.className = 'toast'), 3200);
+}
+
+function modal(title: string, body: Node, actions: (HTMLElement | null)[] = []): HTMLDialogElement {
+  const dlg = h('dialog', { class: 'modal' },
+    h('form', { method: 'dialog', class: 'modal-head' }, h('h2', {}, title), h('button', { class: 'icon', 'aria-label': 'Close' }, '×')),
+    h('div', { class: 'modal-body' }, body),
+    actions.length ? h('div', { class: 'modal-actions' }, ...actions) : null);
+  dlg.addEventListener('close', () => dlg.remove());
+  document.body.append(dlg);
+  dlg.showModal();
+  return dlg;
+}
+
+async function copy(text: string, what = 'Copied') {
+  try { await navigator.clipboard.writeText(text); toast(what); } catch { toast('Copy failed: select the text and copy it by hand', 'err'); }
+}
+
+const shareBase = () => location.origin + location.pathname;
+
+// ---------------------------------------------------------------- layout
+function shell() {
+  const app = $('#app');
+  app.replaceChildren(
+    h('header', { class: 'top' },
+      h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }, '☤'), h('span', { class: 'word' }, 'Caduceus'),
+        h('span', { class: 'sub' }, 'look packs')),
+      h('nav', { class: 'actions' },
+        menu('New', [
+          ['Built-in library', () => newPack('library')],
+          ['Empty pack', () => newPack('empty')],
+        ]),
+        h('button', { onclick: openFile }, 'Open…'),
+        h('button', { onclick: pasteDialog }, 'Paste code'),
+        h('button', { onclick: sharePack }, 'Share pack'),
+        h('button', { class: 'primary', onclick: exportDialog }, 'Export'))),
+    h('main', { class: 'layout' },
+      h('aside', { class: 'pane list-pane', id: 'list' }),
+      h('section', { class: 'pane preview-pane', id: 'preview' }),
+      h('section', { class: 'pane editor-pane', id: 'editor' })),
+    h('footer', { class: 'foot' },
+      h('span', {}, 'Caduceus is an unofficial, community firmware mod. Files are made in your browser; nothing is uploaded.'),
+      h('a', { href: './samples/CREDITS.md', target: '_blank', rel: 'noopener' }, 'Image credits (CC0)')),
+    h('div', { id: 'toast', class: 'toast', role: 'status', 'aria-live': 'polite' }),
+    h('input', { type: 'file', id: 'file', accept: '.json,application/json', hidden: true, onchange: onFile }),
+    h('input', { type: 'file', id: 'photo', accept: 'image/*', hidden: true, onchange: onPhoto }));
+  buildPreview();
+}
+
+function menu(label: string, items: [string, () => void][]): HTMLElement {
+  const d = h('details', { class: 'menu' }, h('summary', {}, label),
+    h('div', { class: 'menu-items' }, ...items.map(([t, f]) => h('button', { onclick: () => { d.open = false; f(); } }, t))));
+  document.addEventListener('click', (e) => { if (!d.contains(e.target as Node)) d.open = false; });
+  return d;
+}
+
+function renderAll() {
+  renderList();
+  renderEditor();
+  schedulePreview();
+}
+
+// ---------------------------------------------------------------- look list
+let dragFrom = -1;
+function renderList() {
+  const el = $('#list');
+  const p = S.pack;
+  const problems = validatePack(p);
+  const bad = new Set(problems.map((x) => x.look).filter((x) => x !== undefined));
+  const n = p.looks.length;
+  el.replaceChildren(
+    h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Pack name'),
+      h('input', { type: 'text', value: p.name, maxlength: 60, oninput: (e: Event) => { p.name = (e.target as HTMLInputElement).value; save(); } })),
+    h('div', { class: 'list-head' }, h('span', {}, 'Looks'), h('span', { class: n > MAX_LOOKS ? 'count over' : 'count' }, `${n} / ${MAX_LOOKS}`)),
+    h('ol', { class: 'looks' }, ...p.looks.map((l, i) => {
+      const li = h('li', {
+        class: `look${i === S.sel ? ' sel' : ''}${bad.has(i) ? ' bad' : ''}`, draggable: 'true', tabindex: 0,
+        onclick: () => { S.sel = i; renderAll(); },
+        onkeydown: (e: KeyboardEvent) => {
+          if (e.key === 'ArrowUp' && e.altKey) { move(i, i - 1); e.preventDefault(); }
+          else if (e.key === 'ArrowDown' && e.altKey) { move(i, i + 1); e.preventDefault(); }
+          else if (e.key === 'ArrowUp' && i > 0) { S.sel = i - 1; renderAll(); focusSel(); e.preventDefault(); }
+          else if (e.key === 'ArrowDown' && i < n - 1) { S.sel = i + 1; renderAll(); focusSel(); e.preventDefault(); }
+        },
+        ondragstart: (e: DragEvent) => { dragFrom = i; e.dataTransfer?.setData('text/plain', String(i)); li.classList.add('dragging'); },
+        ondragend: () => li.classList.remove('dragging'),
+        ondragover: (e: DragEvent) => { e.preventDefault(); li.classList.add('over'); },
+        ondragleave: () => li.classList.remove('over'),
+        ondrop: (e: DragEvent) => { e.preventDefault(); li.classList.remove('over'); if (dragFrom >= 0) move(dragFrom, i); dragFrom = -1; },
+      },
+      h('span', { class: 'grip', 'aria-hidden': 'true' }, '⋮⋮'),
+      h('span', { class: 'idx' }, String(i + 1)),
+      h('span', { class: 'nm' }, l.name || '(no name)'),
+      l.kind === 'mono' ? h('span', { class: 'kind mono', title: 'Monochrome look' }, 'B&W') : h('span'),
+      h('span', { class: 'row-btns' },
+        h('button', { class: 'icon', title: 'Move up (Alt+↑)', 'aria-label': 'Move up', disabled: i === 0, onclick: (e: Event) => { e.stopPropagation(); move(i, i - 1); } }, '↑'),
+        h('button', { class: 'icon', title: 'Move down (Alt+↓)', 'aria-label': 'Move down', disabled: i === n - 1, onclick: (e: Event) => { e.stopPropagation(); move(i, i + 1); } }, '↓'),
+        h('button', { class: 'icon danger', title: 'Remove', 'aria-label': 'Remove', onclick: (e: Event) => { e.stopPropagation(); remove(i); } }, '×')));
+      return li;
+    })),
+    ...(n === 0 ? [h('p', { class: 'empty' }, 'No looks yet. Add one below.')] : []),
+    h('div', { class: 'add-row' },
+      menu('+ Add look', [
+        ['Blank colour look', () => addLook(blankLook('colour', uniqueName('New Look')))],
+        ['Blank mono look', () => addLook(blankLook('mono', uniqueName('New Mono')))],
+        ['From the built-in library…', libraryPicker],
+        ['Duplicate selected', () => { const l = cur(); if (l) addLook({ ...cloneLook(l), name: uniqueName(l.name) }); }],
+        ['Paste a look code…', pasteDialog],
+      ])));
+}
+function focusSel() { ($('#list li.sel') as HTMLElement | null)?.focus(); }
+
+function uniqueName(base: string): string {
+  const names = new Set(S.pack.looks.map((l) => l.name.toLowerCase()));
+  if (!names.has(base.toLowerCase())) return base;
+  for (let k = 2; k < 100; k++) {
+    const suf = ` ${k}`, nm = base.slice(0, NAME_MAX - suf.length).trimEnd() + suf;
+    if (!names.has(nm.toLowerCase())) return nm;
+  }
+  return base;
+}
+
+function addLook(l: Look) {
+  if (S.pack.looks.length >= MAX_LOOKS) { toast(`A pack holds at most ${MAX_LOOKS} looks. Remove one first.`, 'err'); return false; }
+  S.pack.looks.push(l);
+  S.sel = S.pack.looks.length - 1;
+  save(); renderAll();
+  return true;
+}
+function remove(i: number) {
+  const l = S.pack.looks[i];
+  S.pack.looks.splice(i, 1);
+  remapSlots((k) => (k === i ? undefined : k > i ? k - 1 : k));
+  S.sel = Math.max(0, Math.min(S.sel, S.pack.looks.length - 1));
+  save(); renderAll();
+  toast(`Removed "${l.name}"`);
+}
+function move(from: number, to: number) {
+  const n = S.pack.looks.length;
+  if (to < 0 || to >= n || from === to) return;
+  const [l] = S.pack.looks.splice(from, 1);
+  S.pack.looks.splice(to, 0, l);
+  const old = [...Array(n).keys()];               // new position -> old index
+  old.splice(from, 1); old.splice(to, 0, from);
+  const map = new Map(old.map((o, k) => [o, k] as [number, number]));
+  remapSlots((k) => map.get(k));
+  S.sel = to;
+  save(); renderAll(); focusSel();
+}
+function remapSlots(f: (k: number) => number | undefined) {
+  for (const s of SLOT_NAMES) {
+    const k = S.pack.slots[s];
+    if (k === undefined) continue;
+    const v = f(k);
+    if (v === undefined) delete S.pack.slots[s]; else S.pack.slots[s] = v;
+  }
+}
+
+function newPack(kind: 'library' | 'empty') {
+  if (!confirm(kind === 'library' ? 'Replace the current pack with the built-in library?' : 'Start an empty pack? The current pack is replaced.')) return;
+  S.pack = kind === 'library' ? cloneDeep(LIBRARY) : { schema: PACK_SCHEMA, name: 'My pack', looks: [blankLook('colour', 'My Look')], slots: {} };
+  S.sel = 0;
+  save(); renderAll();
+}
+
+function libraryPicker() {
+  const have = new Set(S.pack.looks.map((l) => l.name.toLowerCase()));
+  const list = h('div', { class: 'pick-list' }, ...LIBRARY.looks.map((l) => h('button', {
+    class: 'pick', onclick: () => { if (addLook({ ...cloneLook(l), name: uniqueName(l.name) })) dlg.close(); },
+  }, h('b', {}, l.name), have.has(l.name.toLowerCase()) ? h('span', { class: 'tag' }, 'in pack') : null, h('small', {}, l.notes))));
+  const dlg = modal('Add from the built-in library', list);
+}
+
+// ---------------------------------------------------------------- editor
+function renderEditor() {
+  const el = $('#editor');
+  const l = cur();
+  if (!l) { el.replaceChildren(h('p', { class: 'empty' }, 'Add a look to start editing.')); return; }
+  const i = S.sel;
+  const changed = () => { save(); schedulePreview(); refreshProblems(); };
+  const np = nameProblem(l.name);
+  const nameInput = h('input', {
+    type: 'text', value: l.name, maxlength: NAME_MAX, spellcheck: 'false', autocomplete: 'off', 'aria-describedby': 'name-help',
+    oninput: (e: Event) => {
+      l.name = (e.target as HTMLInputElement).value;
+      const p = nameProblem(l.name) ?? dupName(l, i);
+      $('#name-help').textContent = p ?? `${l.name.length} / ${NAME_MAX}`;
+      $('#name-help').className = p ? 'help err' : 'help';
+      const row = document.querySelectorAll('#list li .nm')[i];
+      if (row) row.textContent = l.name || '(no name)';
+      changed();
+    },
+  });
+  const notesBytes = () => new TextEncoder().encode(l.notes).length;
+  el.replaceChildren(
+    h('div', { class: 'ed-head' },
+      h('label', { class: 'field grow' }, h('span', { class: 'lbl' }, 'Name'), nameInput,
+        h('span', { id: 'name-help', class: np || dupName(l, i) ? 'help err' : 'help' }, np ?? dupName(l, i) ?? `${l.name.length} / ${NAME_MAX}`)),
+      h('button', { class: 'share-btn', onclick: () => shareLook(l), title: 'Share this look as a short code' }, 'Share')),
+    seg('Type', [['colour', 'Colour'], ['mono', 'Monochrome']], l.kind, (v) => {
+      l.kind = v as Look['kind'];
+      if (l.kind === 'mono') { l.art_effect = 'off'; l.advice.mono_filter ??= { colour: 'none', strength: 1 }; }
+      renderList(); renderEditor(); changed();
+    }),
+    l.kind === 'colour' ? sectorPanel(l, changed) : monoPanel(l, changed),
+    h('div', { class: 'group' },
+      seg('Grain', [['off', 'Off'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']], l.grain, (v) => { l.grain = v as Look['grain']; renderEditor(); changed(); })),
+    effectPanel(l, changed),
+    wbPanel(l, changed),
+    ...(l.kind === 'colour' ? [h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Art Effect'),
+      h('select', { onchange: (e: Event) => { l.art_effect = (e.target as HTMLSelectElement).value as Look['art_effect']; changed(); } },
+        ...ARTS.filter((a) => ['off', 'star_light', 'pin_hole', 'blur'].includes(a) || a === l.art_effect).map((a) =>
+          h('option', { value: a, selected: a === l.art_effect }, artLabel(a)))),
+      h('span', { class: 'help' }, 'Kept in the pack file, share codes and the starter BUNDLES.BIN (COLOR slots). LOOKS.BIN has no Art Effect field. Not shown in the preview.'))] : []),
+    h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Notes'),
+      h('textarea', {
+        rows: 3, maxlength: 400, placeholder: 'What the look is for, settings advice…',
+        oninput: (e: Event) => {
+          l.notes = (e.target as HTMLTextAreaElement).value;
+          const b = notesBytes();
+          $('#notes-help').textContent = `${b} / ${NOTE_MAX} bytes · kept in the pack file (not on the card)`;
+          $('#notes-help').className = b > NOTE_MAX ? 'help err' : 'help';
+          changed();
+        },
+      }, l.notes),
+      h('span', { id: 'notes-help', class: notesBytes() > NOTE_MAX ? 'help err' : 'help' }, `${notesBytes()} / ${NOTE_MAX} bytes · kept in the pack file (not on the card)`)),
+    h('div', { id: 'problems' }));
+  refreshProblems();
+}
+
+function dupName(l: Look, i: number): string | null {
+  const j = S.pack.looks.findIndex((o, k) => k !== i && o.name.toLowerCase() === l.name.toLowerCase());
+  return j >= 0 ? `Same name as look ${j + 1}.` : null;
+}
+const artLabel = (a: string) => ({ off: 'Off', star_light: 'Star Light', pin_hole: 'Pin Hole', blur: 'Blur (Soft Focus)', white_edge: 'White Edge (legacy: Off on v0.15+)', frame: 'Frame (legacy: Off on v0.15+)' } as Record<string, string>)[a] ?? a;
+
+function seg(label: string, opts: [string, string][], value: string, on: (v: string) => void): HTMLElement {
+  return h('div', { class: 'field' }, h('span', { class: 'lbl' }, label),
+    h('div', { class: 'seg', role: 'radiogroup', 'aria-label': label }, ...opts.map(([v, t]) =>
+      h('button', { role: 'radio', 'aria-checked': String(v === value), class: v === value ? 'on' : '', onclick: () => on(v) }, t))));
+}
+
+function slider(min: number, max: number, value: number, on: (v: number) => void, fmt = (v: number) => (v > 0 ? `+${v}` : String(v)), aria = '') {
+  const out = h('output', {}, fmt(value));
+  const inp = h('input', {
+    type: 'range', min, max, step: 1, value, 'aria-label': aria,
+    oninput: (e: Event) => { const v = Number((e.target as HTMLInputElement).value); out.textContent = fmt(v); on(v); },
+    ondblclick: () => { inp.value = '0'; out.textContent = fmt(0); on(0); },
+  });
+  return { inp, out };
+}
+
+function sectorPanel(l: Look, changed: () => void): HTMLElement {
+  const tabs: [Tab, string, number][] = [['hue', 'Hue', 7], ['light', 'Lightness', 7], ['sat', 'Saturation', 5]];
+  const lim = tabs.find((t) => t[0] === S.tab)![2];
+  const arr = l[S.tab];
+  const rows = SECTORS.map((name, k) => {
+    const { inp, out } = slider(-lim, lim, arr[k], (v) => { arr[k] = v; changed(); }, undefined, `${name} ${S.tab}`);
+    return h('div', { class: 'srow' }, h('span', { class: 'sw', style: `background:${SWATCH[k]}` }), h('span', { class: 'sname' }, name), inp, out);
+  });
+  return h('div', { class: 'group' },
+    h('div', { class: 'tabs', role: 'tablist' }, ...tabs.map(([t, label]) => h('button', {
+      role: 'tab', 'aria-selected': String(t === S.tab), class: t === S.tab ? 'on' : '',
+      onclick: () => { S.tab = t; renderEditor(); },
+    }, label, l[t].some((v) => v !== 0) ? h('span', { class: 'dot' }) : null))),
+    h('div', { class: 'sectors' }, ...rows),
+    h('div', { class: 'tab-foot' },
+      h('span', { class: 'help' }, S.tab === 'sat'
+        ? 'Saturation is advice: set it in the camera\'s own colour-profile saturation. It is stored for MONO colour slots.'
+        : `±${lim} per sector (v0.17 firmware). Double-click a slider to zero it.`),
+      h('button', { class: 'link', onclick: () => { arr.fill(0); renderEditor(); changed(); } }, 'Reset')));
+}
+
+function monoPanel(l: Look, changed: () => void): HTMLElement {
+  const mf = (l.advice.mono_filter ??= { colour: 'none', strength: 1 });
+  return h('div', { class: 'group' },
+    h('p', { class: 'help' }, 'Mono looks use the camera\'s Monochrome profile; the per-sector colour sliders do not apply. Filter is advice for the camera setting (and the preview).'),
+    h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Colour filter (advice)'),
+      h('select', { onchange: (e: Event) => { mf.colour = (e.target as HTMLSelectElement).value as typeof mf.colour; changed(); } },
+        ...MONO_FILTERS.map((c) => h('option', { value: c, selected: c === mf.colour }, c[0].toUpperCase() + c.slice(1))))),
+    (() => { const { inp, out } = slider(1, 3, mf.strength, (v) => { mf.strength = v; changed(); }, String, 'Filter strength'); return h('div', { class: 'srow plain' }, h('span', { class: 'sname' }, 'Filter strength'), inp, out); })());
+}
+
+function effectPanel(l: Look, changed: () => void): HTMLElement {
+  const e = l.effect;
+  const v = !e ? 0 : e.type === 'clarity' ? e.strength : -e.strength;
+  const fmt = (x: number) => (x === 0 ? 'Off' : x < 0 ? `Glow ${-x}` : `Clarity ${x}`);
+  const tintSel = h('select', {
+    'aria-label': 'Glow colour',
+    onchange: (ev: Event) => {
+      const t = (ev.target as HTMLSelectElement).value as (typeof TINTS)[number];
+      if (l.effect && l.effect.type !== 'clarity') { if (t === 'neutral' && l.effect.type === 'bloom') delete l.effect.tint; else l.effect.tint = t; }
+      changed();
+    },
+  }, ...TINTS.map((t) => h('option', { value: t, selected: (e?.tint ?? (e?.type === 'halation' ? 'red' : 'neutral')) === t }, t[0].toUpperCase() + t.slice(1))));
+  const tintRow = h('label', { class: 'field inline' }, h('span', { class: 'lbl' }, 'Glow colour'), tintSel);
+  tintRow.hidden = !(e && e.type !== 'clarity');
+  const { inp, out } = slider(-5, 5, v, (x) => {
+    if (x === 0) l.effect = null;
+    else if (x > 0) l.effect = { type: 'clarity', strength: x };
+    else {
+      const keep = l.effect && l.effect.type !== 'clarity' ? l.effect : null;
+      l.effect = { type: keep?.type ?? 'bloom', strength: -x, ...(keep?.tint ? { tint: keep.tint } : {}) };
+    }
+    tintRow.hidden = !(l.effect && l.effect.type !== 'clarity');
+    changed();
+  }, fmt, 'Glow to clarity');
+  return h('div', { class: 'group' },
+    h('div', { class: 'field' }, h('span', { class: 'lbl' }, 'Glow ↔ Clarity'),
+      h('div', { class: 'srow plain' }, h('span', { class: 'end' }, 'Glow'), inp, h('span', { class: 'end' }, 'Clarity'), out)),
+    tintRow);
+}
+
+function wbPanel(l: Look, changed: () => void): HTMLElement {
+  const on = l.wb !== null;
+  const box = h('input', {
+    type: 'checkbox', checked: on,
+    onchange: (e: Event) => { l.wb = (e.target as HTMLInputElement).checked ? { a_b: 0, g_m: 0 } : null; renderEditor(); changed(); },
+  });
+  const rows = on ? [['a_b', 'A–B', 'Amber +  /  Blue −'], ['g_m', 'G–M', 'Green +  /  Magenta −']].map(([k, label, tip]) => {
+    const { inp, out } = slider(-7, 7, l.wb![k as 'a_b'], (v) => { l.wb![k as 'a_b'] = v; changed(); }, undefined, label);
+    return h('div', { class: 'srow plain', title: tip }, h('span', { class: 'sname' }, label), inp, out);
+  }) : [];
+  return h('div', { class: 'group' },
+    h('label', { class: 'check' }, box, h('span', {}, 'White balance shift'),
+      h('span', { class: 'help' }, on ? 'overrides the camera\'s WB fine-tune for this look' : 'off: your own WB fine-tune applies')),
+    ...rows);
+}
+
+function refreshProblems() {
+  const el = document.getElementById('problems');
+  const probs = validatePack(S.pack);
+  if (el) {
+    const mine = probs.filter((p) => p.look === S.sel);
+    el.replaceChildren(...(mine.length ? [h('ul', { class: 'problems' }, ...mine.map((p) => h('li', {}, p.message)))] : []));
+  }
+  const bad = new Set(probs.map((p) => p.look));
+  document.querySelectorAll('#list li.look').forEach((li, k) => li.classList.toggle('bad', bad.has(k)));
+}
+
+// ---------------------------------------------------------------- preview
+let srcData: ImageData | null = null;
+let userPhoto: ImageData | null = null;
+let canvas: HTMLCanvasElement;
+let previewQueued = false;
+
+function buildPreview() {
+  canvas = h('canvas', { class: 'pv', 'aria-label': 'Approximate preview of the selected look' });
+  const thumbs = h('div', { class: 'thumbs' },
+    ...SAMPLES.map((s) => h('button', { class: `thumb${S.image === s.id ? ' on' : ''}`, 'data-id': s.id, onclick: () => pickImage(s.id), title: s.label },
+      h('img', { src: `./samples/${s.id}.jpg`, alt: s.label, loading: 'lazy' }))),
+    h('button', { class: `thumb own${S.image === 'user' ? ' on' : ''}`, 'data-id': 'user', onclick: () => (userPhoto ? pickImage('user') : $<HTMLInputElement>('#photo').click()), title: 'Your photo (stays on this device)' },
+      h('span', {}, '+ Your photo')));
+  const cmp = h('button', {
+    class: 'compare', title: 'Hold to see the original',
+    onpointerdown: () => { S.compare = true; schedulePreview(); },
+    onpointerup: () => { S.compare = false; schedulePreview(); },
+    onpointerleave: () => { if (S.compare) { S.compare = false; schedulePreview(); } },
+  }, 'Hold: original');
+  $('#preview').replaceChildren(
+    h('div', { class: 'pv-wrap' }, canvas, h('span', { class: 'badge' }, 'Approximate preview'), cmp),
+    thumbs,
+    h('div', { class: 'pv-opts' },
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: S.advice, onchange: (e: Event) => { S.advice = (e.target as HTMLInputElement).checked; schedulePreview(); } }),
+        h('span', {}, 'Include advice (saturation, tone, contrast)')),
+      h('button', { class: 'link', onclick: () => $<HTMLInputElement>('#photo').click() }, 'Use your own photo…')),
+    h('p', { class: 'help' }, 'A rough desktop-sim port running on JPEGs, not the camera\'s pipeline: use it for direction and strength, then check on the camera. Your own photo never leaves this browser.'));
+  pickImage(S.image);
+}
+
+async function pickImage(id: string) {
+  S.image = id;
+  document.querySelectorAll('.thumb').forEach((t) => t.classList.toggle('on', (t as HTMLElement).dataset.id === id));
+  if (id === 'user') { srcData = userPhoto; schedulePreview(); return; }
+  try {
+    const img = new Image();
+    img.src = `./samples/${id}.jpg`;
+    await img.decode();
+    srcData = toImageData(img, img.naturalWidth, img.naturalHeight);
+    if (S.image === id) schedulePreview();
+  } catch { toast('Could not load the sample image', 'err'); }
+}
+
+function toImageData(img: CanvasImageSource, w: number, h0: number, max = 1024): ImageData {
+  const k = Math.min(1, max / Math.max(w, h0));
+  const W = Math.round(w * k), H = Math.round(h0 * k);
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d', { willReadFrequently: true })!;
+  ctx.drawImage(img, 0, 0, W, H);
+  return ctx.getImageData(0, 0, W, H);
+}
+
+async function onPhoto(e: Event) {
+  const f = (e.target as HTMLInputElement).files?.[0];
+  (e.target as HTMLInputElement).value = '';
+  if (!f) return;
+  try {
+    const bmp = await createImageBitmap(f, { imageOrientation: 'from-image' } as ImageBitmapOptions);
+    userPhoto = toImageData(bmp, bmp.width, bmp.height);
+    bmp.close();
+    pickImage('user');
+  } catch { toast('That file could not be read as an image', 'err'); }
+}
+
+function schedulePreview() {
+  if (previewQueued) return;
+  previewQueued = true;
+  requestAnimationFrame(() => {
+    previewQueued = false;
+    if (!srcData || !canvas) return;
+    if (canvas.width !== srcData.width || canvas.height !== srcData.height) { canvas.width = srcData.width; canvas.height = srcData.height; }
+    const ctx = canvas.getContext('2d')!;
+    const l = cur();
+    if (S.compare || !l) { ctx.putImageData(srcData, 0, 0); return; }
+    const out = ctx.createImageData(srcData.width, srcData.height);
+    renderLook(srcData, out, l, { advice: S.advice });
+    ctx.putImageData(out, 0, 0);
+  });
+}
+
+// ---------------------------------------------------------------- import / export / share
+function openFile() { $<HTMLInputElement>('#file').click(); }
+async function onFile(e: Event) {
+  const f = (e.target as HTMLInputElement).files?.[0];
+  (e.target as HTMLInputElement).value = '';
+  if (!f) return;
+  try {
+    const p = parsePack(JSON.parse(await f.text()));
+    replacePack(p, `Opened "${p.name}" (${p.looks.length} looks)`);
+  } catch (err) { toast(`Not a pack file: ${(err as Error).message}`, 'err'); }
+}
+
+function replacePack(p: Pack, msg: string) {
+  S.pack = p;
+  S.sel = 0;
+  save(); renderAll();
+  const probs = validatePack(p);
+  toast(probs.length ? `${msg}. ${probs.length} problem(s) to fix before export.` : msg, probs.length ? 'err' : 'ok');
+}
+
+function shareLook(l: Look) {
+  let code: string;
+  try { code = encodeLookCode(l); } catch (e) { toast((e as Error).message, 'err'); return; }
+  const link = `${shareBase()}#${code}`;
+  const grouped = encodeLookCode(l, true);
+  modal(`Share "${l.name}"`, h('div', { class: 'share' },
+    h('p', {}, 'Anyone can paste this code into Caduceus Looks (Paste code) to get this look.'),
+    h('div', { class: 'code-box' }, h('code', {}, grouped), h('button', { onclick: () => copy(code, 'Code copied') }, 'Copy code')),
+    h('div', { class: 'code-box link' }, h('input', { type: 'text', readonly: true, value: link, onfocus: (e: Event) => (e.target as HTMLInputElement).select() }),
+      h('button', { onclick: () => copy(link, 'Link copied') }, 'Copy link')),
+    h('p', { class: 'help' }, `${code.length} characters. Carries the card values, name, Art Effect and mono filter; notes stay out (use a pack link for those). Dashes and case don't matter when pasting.`)));
+}
+
+async function sharePack() {
+  const code = await encodePackCode(S.pack);
+  const link = `${shareBase()}#${code}`;
+  modal('Share this pack', h('div', { class: 'share' },
+    h('p', {}, `A link to the whole pack (${S.pack.looks.length} looks, notes and starter slots). Opening it loads the pack in the editor. The pack is inside the link itself: nothing is stored on the server.`),
+    h('div', { class: 'code-box link' }, h('input', { type: 'text', readonly: true, value: link, onfocus: (e: Event) => (e.target as HTMLInputElement).select() }),
+      h('button', { onclick: () => copy(link, 'Link copied') }, 'Copy link')),
+    h('p', { class: 'help' }, `${link.length} characters. For a single look, use the Share button next to its name: much shorter.`)));
+}
+
+function pasteDialog() {
+  const ta = h('textarea', { rows: 3, placeholder: 'Paste a look code (e.g. 1K7G-…) or a pack link', spellcheck: 'false' });
+  const msg = h('p', { class: 'help' });
+  const go = h('button', { class: 'primary' }, 'Import');
+  const dlg = modal('Paste a code', h('div', {}, ta, msg), [go]);
+  go.addEventListener('click', async () => {
+    const r = await importCode(ta.value);
+    if (r) dlg.close(); else msg.className = 'help err';
+  });
+  ta.addEventListener('input', () => { msg.textContent = ''; });
+  importCodeMsg = (m) => (msg.textContent = m);
+  ta.focus();
+}
+let importCodeMsg: (m: string) => void = (m) => toast(m, 'err');
+
+async function importCode(text: string, fromLink = false): Promise<boolean> {
+  const t = text.trim();
+  if (!t) return false;
+  try {
+    if (isPackCode(t)) {
+      const p = await decodePackCode(t);
+      if (fromLink) return confirmPack(p);
+      if (!confirm(`Open the shared pack "${p.name}" (${p.looks.length} looks)? It replaces your current pack.`)) return false;
+      replacePack(p, `Opened "${p.name}"`);
+      return true;
+    }
+    const l = decodeLookCode(t);
+    if (S.pack.looks.length >= MAX_LOOKS) { fullDialog(l); return true; }
+    l.name = uniqueName(l.name);
+    addLook(l);
+    toast(`Added "${l.name}"`);
+    return true;
+  } catch (e) {
+    importCodeMsg((e as Error).message);
+    return false;
+  }
+}
+
+/** A shared look arrives while the pack already holds 32: replace one, or start a new pack with it. */
+function fullDialog(l: Look) {
+  const sel = h('select', { 'aria-label': 'Look to replace' }, ...S.pack.looks.map((o, i) => h('option', { value: i, selected: i === S.sel }, `${i + 1}. ${o.name}`)));
+  const rep = h('button', { class: 'primary' }, 'Replace');
+  const fresh = h('button', {}, 'New pack with just this look');
+  const dlg = modal(`Add "${l.name}"`, h('div', {},
+    h('p', {}, `Your pack is full (${MAX_LOOKS} looks, the camera's limit). Replace one of them with "${l.name}", or start a new pack.`),
+    h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Replace'), sel)), [fresh, rep]);
+  rep.addEventListener('click', () => {
+    const i = Number(sel.value);
+    const old = S.pack.looks[i].name;
+    S.pack.looks[i] = { ...S.pack.looks[i], name: '' };   // so the incoming name may reuse the replaced one
+    l.name = uniqueName(l.name);
+    S.pack.looks[i] = l;
+    S.sel = i;
+    save(); renderAll(); dlg.close();
+    toast(`Replaced "${old}" with "${l.name}"`);
+  });
+  fresh.addEventListener('click', () => {
+    S.pack = { schema: PACK_SCHEMA, name: 'My pack', looks: [l], slots: {} };
+    S.sel = 0;
+    save(); renderAll(); dlg.close();
+    toast(`New pack with "${l.name}"`);
+  });
+}
+
+function confirmPack(p: Pack): boolean {
+  const yes = h('button', { class: 'primary' }, 'Open pack');
+  const keep = h('button', {}, 'Keep my pack');
+  const dlg = modal('Open shared pack?', h('div', {},
+    h('p', {}, `"${p.name}": ${p.looks.length} looks (${p.looks.slice(0, 6).map((l) => l.name).join(', ')}${p.looks.length > 6 ? ', …' : ''}).`),
+    h('p', { class: 'help' }, 'Opening it replaces the pack you are editing. Export yours first if you want to keep it.')), [keep, yes]);
+  yes.addEventListener('click', () => { replacePack(p, `Opened "${p.name}"`); dlg.close(); });
+  keep.addEventListener('click', () => dlg.close());
+  return true;
+}
+
+function exportDialog() {
+  const probs = validatePack({ ...S.pack, slots: {} });
+  const slotSel = (s: SlotName) => {
+    const sel = h('select', {
+      onchange: (e: Event) => {
+        const v = (e.target as HTMLSelectElement).value;
+        if (v === '') delete S.pack.slots[s]; else S.pack.slots[s] = Number(v);
+        save();
+      },
+    }, h('option', { value: '' }, '— stock —'),
+    ...S.pack.looks.map((l, i) => (s.startsWith('COLOR') && l.kind === 'mono') ? null : h('option', { value: i, selected: S.pack.slots[s] === i }, `${i + 1}. ${l.name}`)).filter(Boolean) as HTMLElement[]);
+    return h('label', { class: 'slot' }, h('span', {}, s), sel);
+  };
+  const withBundles = h('input', { type: 'checkbox' });
+  const fname = (S.pack.name || 'pack').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'pack';
+  const looksBin = () => {
+    try { return encodeLooksBin(S.pack); } catch (e) { toast(e instanceof PackError ? 'Fix the problems listed first' : (e as Error).message, 'err'); return null; }
+  };
+  const packJson = () => JSON.stringify({ ...S.pack, schema: PACK_SCHEMA }, null, 1) + '\n';
+  const body = h('div', { class: 'export' },
+    probs.length
+      ? h('div', { class: 'problems-box' }, h('b', {}, `${probs.length} problem(s) block LOOKS.BIN:`),
+        h('ul', { class: 'problems' }, ...probs.slice(0, 12).map((p) => h('li', {}, fmtProblem(p)))))
+      : h('p', { class: 'ok' }, `✓ ${S.pack.looks.length} looks pass the camera's LOOKS.BIN checks (v0.17 firmware).`),
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'LOOKS.BIN'), h('p', { class: 'help' }, 'The look list the camera\'s picker reads. Goes in EP7MOD/ on the card.')),
+      h('button', { class: 'primary', disabled: probs.length > 0, onclick: () => { const b = looksBin(); if (b) download('LOOKS.BIN', b); } }, 'Download')),
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'Pack file (.json)'), h('p', { class: 'help' }, 'Everything, including notes and advice. Open it here later or send it to someone.')),
+      h('button', { onclick: () => download(`${fname}.caduceus.json`, packJson(), 'application/json') }, 'Download')),
+    h('details', { class: 'ex-bundles' },
+      h('summary', {}, 'Starter slots (BUNDLES.BIN, optional)'),
+      h('p', { class: 'help' }, 'BUNDLES.BIN holds the looks currently in the 8 picture-mode slots. Your card\'s BUNDLES.BIN has your saved slot choices: only replace it if you want to reset them. Empty = the camera\'s stock rendering.'),
+      h('div', { class: 'slots' }, ...SLOT_NAMES.map(slotSel))),
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'Card folder (.zip)'), h('p', { class: 'help' }, 'EP7MOD/LOOKS.BIN (+ BUNDLES.BIN if ticked) and the pack file. Unzip at the card root.'),
+        h('label', { class: 'check' }, withBundles, h('span', {}, 'Include starter BUNDLES.BIN'))),
+      h('button', {
+        disabled: probs.length > 0, onclick: () => {
+          const lb = looksBin();
+          if (!lb) return;
+          const files = [{ name: 'EP7MOD/LOOKS.BIN', data: lb }];
+          if (withBundles.checked) {
+            try { files.push({ name: 'EP7MOD/BUNDLES.BIN', data: encodeBundlesBin(S.pack) }); } catch (e) { toast((e as Error).message, 'err'); return; }
+          }
+          files.push({ name: `${fname}.caduceus.json`, data: new TextEncoder().encode(packJson()) });
+          download(`${fname}-card.zip`, makeZip(files), 'application/zip');
+        },
+      }, 'Download')),
+    h('p', { class: 'help' }, 'Copy EP7MOD/ to the root of the card (never into DCOLYMP/). The camera checks every file and ignores one that fails.'));
+  modal('Export', body);
+}
+const fmtProblem = (p: Problem) => (p.look !== undefined ? `Look ${p.look + 1} (${S.pack.looks[p.look]?.name || 'no name'}): ` : '') + p.message;
+
+// ---------------------------------------------------------------- start
+async function handleHash() {
+  const code = decodeURIComponent(location.hash.slice(1));
+  if (!code) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  importCodeMsg = (m) => toast(`Link: ${m}`, 'err');
+  await importCode(code, true);
+  importCodeMsg = (m) => toast(m, 'err');
+}
+
+shell();
+renderAll();
+handleHash();
+window.addEventListener('hashchange', handleHash);

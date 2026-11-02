@@ -1,0 +1,21 @@
+{
+  "name": "caduceus-looks",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Caduceus look-pack editor: make and share EP7MOD/LOOKS.BIN look packs (static site)",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "gen-library": "node scripts/gen-library.mjs",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.4"
+  }
+}

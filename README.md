@@ -134,6 +134,19 @@ on E-P7 RAW files, so the camera's JPEGs can differ slightly. Several looks are 
 Olympus recipes (GarethB's Kodachrome 25 on mu-43.com, and om-recipes.com); sources and credits are in
 [docs/LIBRARY_V1.md](docs/LIBRARY_V1.md).
 
+### Make and share look packs (web app)
+
+[`webapp/`](webapp/README.md) is a browser app for building your own `EP7MOD/LOOKS.BIN`. You can start from the
+built-in library, edit the looks with sector sliders over an approximate live preview, and download the file or a
+card zip. Single looks can be shared as short codes (`1BM9Y-B0K8X-…`) and whole packs as links. It is a static site
+with no backend, and photos never leave the browser.
+
+- Locally: `cd webapp && npm ci && npm run dev` (open http://localhost:5173), or `npm test` / `npm run build`.
+- On a NAS: `cd webapp && docker compose up -d --build`. This serves nginx on port 8080 as a non-root user, at `/`
+  and `/caduceus/`. To reach it from your own domain without opening ports, put a Cloudflare Tunnel (or any reverse
+  proxy) in front, e.g. `example.com/caduceus*` → `http://caduceus-looks:8080`.
+  [webapp/README.md](webapp/README.md) has the step-by-step setup and the share-code format.
+
 ### Log video
 
 The E-P7 firmware already contains a proper log curve (about 12.4 % of output per stop) and a Flat curve:
