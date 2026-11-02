@@ -1,5 +1,5 @@
 {
- "_comment": "Look library v3 (docs/LIBRARY_V1.md, section \"Library v3\"): library v2 + 12 classic colour looks (recipes sim/recipes/library_v3.json). 32 looks: the LOOKS.BIN form for the 32-look loader (v2 order kept, new looks after the colour looks, mono last). Atrophy (inspired by GxAce) replaced Provia (= stock profile at zero).",
+ "_comment": "Look library v3 (docs/LIBRARY_V1.md, section \"Library v3\"): library v2 + 12 classic colour looks (recipes sim/recipes/library_v3.json). 32 looks: the LOOKS.BIN form for the 32-look loader (v2 order kept, new looks after the colour looks, mono last). Atrophy (inspired by GxAce) replaced Provia (= stock profile at zero). Cuban Neg (inspired by Osan's Classic Cuban Neg) replaced Superia 400 (redundant with Classic Neg).",
  "looks": {
   "velvia": {
    "name": "Velvia",
@@ -119,11 +119,15 @@
    "grain": "low",
    "notes": "Fujicolor C200 (J. Bloomer, om-recipes): warm yellows, fresh greens, soft contrast."
   },
-  "superia": {
-   "name": "Superia 400",
-   "recipe": "lib3_superia",
-   "grain": "medium",
-   "notes": "Fuji Superia 400 (J. Bloomer, om-recipes): green-leaning negative, cyan skies, lively mids."
+  "cuban": {
+   "name": "Cuban Neg",
+   "recipe": "lib3_cuban",
+   "grain": "low",
+   "effect": {
+    "type": "bloom",
+    "strength": 1
+   },
+   "notes": "Inspired by Osan's Fujifilm recipe Classic Cuban Neg: warm Classic Neg, golden cast (WB A+4), deep blues/reds, soft highlights, gritty grain, soft glow. Sat advice: +2 warm colours, -2 greens."
   },
   "cibachrome": {
    "name": "Cibachrome",

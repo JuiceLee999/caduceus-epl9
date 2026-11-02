@@ -832,6 +832,69 @@
    },
    "contrast": 2,
    "grain": "low"
+  },
+  "lib3_cuban": {
+   "name": "Cuban Neg",
+   "description": "Warm Classic Neg variant: golden amber cast, deep CC-style blues and reds, teal-olive greens, soft highlights, gritty grain and a soft glow.",
+   "base": "Color Profile",
+   "sat": [
+    2,
+    2,
+    2,
+    2,
+    0,
+    -2,
+    1,
+    1,
+    1,
+    -2,
+    -1,
+    0
+   ],
+   "hue": [
+    0,
+    -1,
+    0,
+    0,
+    7,
+    6,
+    -4,
+    -3,
+    6,
+    7,
+    5,
+    0
+   ],
+   "light": [
+    -1,
+    -2,
+    -3,
+    -3,
+    -1,
+    0,
+    -1,
+    -2,
+    -2,
+    -3,
+    -5,
+    -4
+   ],
+   "tone": {
+    "highlights": 1,
+    "shadows": -3,
+    "midtones": 1
+   },
+   "contrast": 1,
+   "grain": "low",
+   "effect": {
+    "type": "bloom",
+    "strength": 1
+   },
+   "wb_shift": {
+    "a_b": 4,
+    "g_m": 0
+   },
+   "source": "Inspired by Osan (IG @osanbilgi)'s Fujifilm recipe \"Classic Cuban Neg\" (FujiRumors, fujirumors.com/?p=128669): Classic Negative, Grain Strong/Large, CC Strong, CC Blue Strong, Auto WB R+4 B-5, DR400, H-2 S+1, Color +4, Clarity -4, NR -4. Own translation onto the E-P7 controls (Classic Neg H/L base + warm WB + darker blues/reds); no other data used."
   }
  }
 }

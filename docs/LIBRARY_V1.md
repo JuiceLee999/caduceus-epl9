@@ -178,3 +178,32 @@ Agfa Vista, CineStill50D, Vision3 250D, the mono looks.
   the slots must be picked again.
 - **Sim check.** Compared with Bleach Byp., Atrophy keeps rust roofs and red flowers while it greys the greens and
   skies. Sunsets lose most of their gold.
+
+### Cuban Neg (inspired by Osan's "Classic Cuban Neg"), replaces Superia 400
+
+- **Inspiration.** "Classic Cuban Neg" is a Fujifilm film simulation recipe by Osan (Instagram @osanbilgi). It spread
+  through a Fujifilm recipe group and is covered by FujiRumors (fujirumors.com/?p=128669, "This Recipe is Taking the
+  Fujifilm Community by Storm – Classic Cuban Neg"). Published settings: Classic Negative, Grain Strong/Large, Color
+  Chrome Strong, CC FX Blue Strong, Auto WB R+4 B−5, DR400, Highlights −2, Shadows +1, Color +4, Sharpness 0,
+  Clarity −4, NR −4. Its character is a warm, golden Classic Neg with deep blues and reds, soft highlights, heavy
+  grain and a soft rendering. Our look is our own translation of those published settings onto the E-P7 controls. It
+  uses no other data, and it is not affiliated with or endorsed by Osan or Fujifilm.
+- **Recipe** `lib3_cuban` (sector order Y,O,OR,R,M,V,B,BC,C,GC,G,YG):
+  - hue `0 -1 0 0 7 6 -4 -3 6 7 5 0`: the Classic Neg twists (lib2_cl_neg), because the source is built on Classic Negative;
+  - light `-1 -2 -3 -3 -1 0 -1 -2 -2 -3 -5 -4`: Classic Neg's darker warm colours and greens, plus darker reds
+    (Color Chrome Strong) and darker blues/skies (CC FX Blue Strong);
+  - grain low (Strong/Large in the source, but our low is already gritty) plus **bloom 1** (neutral) for Clarity −4;
+  - WB **A+4 G0** for R+4 B−5: about +18 % amber, no green or magenta.
+- **Advice:**
+  - sat `2 2 2 2 0 -2 1 1 1 -2 -1 0` for Color +4 on a low-saturation base: warm colours up, greens held back;
+  - contrast +1;
+  - highlights +1 and shadows −3 (Classic Neg's hard tone with H−2 S+1 applied on top).
+- **Library slot.** Cuban Neg takes the place of **Superia 400**, which was the most redundant colour look: our
+  Classic Neg is already modelled on a Superia-style negative (teal-green cast, punchy mids). Cuban Neg is in the
+  same position, after Fujicolor200. The `lib3_superia` recipe is kept because `bundles/library_v3_20.json` still uses
+  it. The v0.17 `card/EP7MOD/LOOKS.BIN` was rebuilt with the v0.16-era tools (commit e477637), because the v0.17
+  firmware is the v0.16 firmware. `--check` OK, 2112 B. The new CRC means the camera ignores any old SLOTS.BIN, so
+  the slots must be picked again. In the starter `card/EP7MOD/BUNDLES.BIN`, the custom COLOR3 slot "Warm" is now
+  Cuban Neg; every other slot is byte-identical.
+- **Sim check.** Compared with Classic Neg, Cuban Neg is clearly warmer and more golden. Roofs and sunsets turn amber,
+  skin is warm without going orange, skies stay a darker teal-blue, and the foliage is olive.
