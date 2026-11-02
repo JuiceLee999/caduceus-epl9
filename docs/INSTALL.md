@@ -64,11 +64,11 @@ The command-line route (`caduceus.py build --release ...`, below) still works if
 
 Windows:
 ```
-py caduceus.py build --release v0.16
+py caduceus.py build --release v0.18
 ```
 macOS / Linux:
 ```
-python3 caduceus.py build --release v0.16
+python3 caduceus.py build --release v0.18
 ```
 
 The command:
@@ -76,10 +76,10 @@ The command:
 1. downloads `OLY_E_142_1100_0000_0000.BIN` (111 MB) from OM Digital Solutions' update server, the same
    request OM Workspace makes;
 2. checks its SHA-256 (`9d1610124ad98f6edae4540182205f06c9c703d9033ef0c4f19847193f95eaeb`);
-3. applies `releases/v0.16/edits.json`. Every byte it replaces must match stock;
-4. checks every output against `releases/v0.16/SHA256SUMS`. If any hash differs, it writes nothing.
+3. applies `releases/v0.18/edits.json`. Every byte it replaces must match stock;
+4. checks every output against `releases/v0.18/SHA256SUMS`. If any hash differs, it writes nothing.
 
-If you already have the OM file: `python3 caduceus.py build --release v0.16 --stock path/to/OLY_E_142_1100_0000_0000.BIN`.
+If you already have the OM file: `python3 caduceus.py build --release v0.18 --stock path/to/OLY_E_142_1100_0000_0000.BIN`.
 Use `--out DIR` for a different output folder (it must be new or empty). `python3 caduceus.py list` shows releases.
 
 Output (`out/`):
