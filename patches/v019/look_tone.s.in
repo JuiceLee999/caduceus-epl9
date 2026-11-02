@@ -1,0 +1,163 @@
+/* E-P7 1.1 v0.19 look tone on a Film pick (ep7-firmware, our own code). docs/TONE_ENDS.md §9.
+ * Dead EVF gamma step-7 R/G tables 0x601e233c..0x601e253c (only refs: step-table words 0x601e3cf0/f4; build-checked).
+ *
+ *   lt_post <- fm_ui's final jump (0x601e2e93, was `jmp fm_post`), after a pick has written slot k:
+ *              a2 = P, d3 = k, a3 = parent. When slot k now sits on a library look (pos 1..n) whose LOOKS.BIN
+ *              record has the tone flag (+32 == 1): slot entry +47/+48 = record +33/+34 (Blacks/Whites), then
+ *              the profile's stock Highlight / Midtone / Shadow settings (COLOR1..4: 963/966/969/1672 + 0/1/2)
+ *              = record +35/+36/+37 through the facade SetValue(id, 0, value) (the mono presets' stock edit
+ *              path). Own / Stock / no flag: nothing. Then `jmp fm_post` (lv_art_refresh, then ed_poke).
+ *   lt_mod  <- the editor's ed_cfg_fm word (was fm_mod): fm_mod with the tone rule: 1 when slot k sits on a
+ *              library look and its entry P+32+64k differs from place(): record bytes 0..31, then 0, except
+ *              +45 = record +47 and, for a tone record, +47/+48 = record +33/+34. Reads only; keeps d2/d3/a2/a3.
+ * Stores: slot entry +47/+48 (heap P) and the stack. No absolute stores, no mul/div, no setlb/Lcc.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+ .set FL_MAGIC, {lmagic}
+ .set FF_MAGIC, {fmagic}
+
+ .macro FVAL miss
+ mov (1020,a2),d0
+ cmp FF_MAGIC,d0
+ bne \miss
+ mov (1016,a2),a0
+ mov a0,d0
+ btst 3,d0
+ bne \miss
+ add {npool},d0
+ cmp {llim},d0
+ bcc \miss
+ mov (2112,a0),d0
+ cmp FL_MAGIC,d0
+ bne \miss
+ mov (2116,a0),d0
+ mov a2,d1
+ cmp d1,d0
+ bne \miss
+ .endm
+
+lt_post:
+ call lt_tone,[d2,d3,a2,a3],32
+ jmp ep7_fm_post
+
+/* a2 = P, d3 = k. Frame: 16 B of locals for the callees. */
+lt_tone:
+ FVAL t_ret                       /* a0 = L */
+ cmp 4,d3
+ bcc t_ret
+ mov a0,a1
+ add d3,a1
+ movbu (2121,a1),d0               /* pos */
+ cmp 0,d0
+ beq t_ret                        /* own */
+ movbu (2120,a0),d1
+ inc d1
+ cmp d1,d0
+ bcc t_ret                        /* Stock (n + 1) or out of range */
+ asl 6,d0
+ add d0,a0                        /* a0 = record pos-1 = L + 64 pos */
+ movbu (32,a0),d0
+ cmp 1,d0
+ bne t_ret                        /* no tone block */
+ mov a0,a3                        /* a3 = record */
+ mov d3,d0
+ asl 6,d0
+ add a2,d0
+ mov d0,a1                        /* a1 = P + 64k: entry = a1 + 32 */
+ movbu (33,a3),d0
+ movbu d0,(79,a1)                 /* entry +47 Blacks */
+ movbu (34,a3),d0
+ movbu d0,(80,a1)                 /* entry +48 Whites */
+ mov 1672,d2                      /* d2 = HL id of COLOR k+1: 963, 966, 969, 1672 */
+ cmp 3,d3
+ beq 1f
+ mov d3,d0
+ add d0,d0
+ add d3,d0
+ mov 963,d2
+ add d0,d2
+1:
+ add 35,a3                        /* a3 = record +35 (H), +36 (M), +37 (S) -> ids d2, d2+1, d2+2 */
+ clr d3
+2:
+ call ep7_facade,[],4             /* a0 = OlyApiSettingControllerController */
+ mov (a0),a2
+ mov (a2),a2                      /* SetValue(id, 0, value): the stock edit path (as mp_put) */
+ movbu (a3),d1
+ extb d1
+ mov d1,a1
+ clr d1
+ mov d2,d0
+ calls (a2)
+ inc d2
+ inc a3
+ inc d3
+ cmp 3,d3
+ bcs 2b
+t_ret:
+ ret [d2,d3,a2,a3],32
+
+/* lt_mod: CALLS, a2 = P, d1 = slot k -> d0 (fm_mod + tone rule). */
+lt_mod:
+ movm [d2,d3],(sp)
+ mov d1,d3
+ FVAL m_no                        /* a0 = L */
+ cmp 4,d3
+ bcc m_no
+ mov a0,a1
+ add d3,a1
+ movbu (2121,a1),d0               /* pos */
+ cmp 0,d0
+ beq m_no
+ movbu (2120,a0),d1
+ inc d1
+ cmp d1,d0
+ bcc m_no
+ asl 6,d0
+ add d0,a0                        /* a0 = record */
+ mov d3,d0
+ asl 6,d0
+ add a2,d0
+ add 32,d0
+ mov d0,a1                        /* a1 = slot entry */
+ clr d2
+1:
+ movbu (d2,a0),d0
+ cmp 32,d2
+ bcs 2f
+ clr d0                           /* 32..63: 0, +45 = record +47, tone record: +47/+48 = record +33/+34 */
+ cmp 45,d2
+ bne 3f
+ movbu (47,a0),d0
+ bra 2f
+3:
+ cmp 47,d2
+ bcs 2f
+ cmp 49,d2
+ bcc 2f
+ movbu (32,a0),d1
+ cmp 1,d1
+ bne 2f
+ mov d2,d1
+ add -14,d1
+ movbu (d1,a0),d0
+2:
+ movbu (d2,a1),d1
+ cmp d0,d1
+ bne m_yes
+ inc d2
+ cmp 64,d2
+ bne 1b
+m_no:
+ clr d0
+ ret [d2,d3],8
+m_yes:
+ mov 1,d0
+ ret [d2,d3],8
+
+ .balign 4
+lt_end:

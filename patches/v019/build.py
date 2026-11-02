@@ -13,6 +13,10 @@
    same-size redirects inside the released look-extras blob (each site's v0.18 bytes checked) + 0x601e123c (dead
    EVF step-13 G table; only reference: step-table word 0x601e3d54, checked).
 4. patches/fw_version --mod-version v0.19 (replaces the 0.18 label edits).
+5. patches/v019/look_tone.s.in: a Film pick applies the look's tone (LOOKS.BIN v3 tone block, tools/ep7_looks_bin.py):
+   lt_post at the dead EVF step-7 R/G tables 0x601e233c (only refs: step-table words 0x601e3cf0/f4, checked), entered
+   from fm_ui's final jump 0x601e2e93 (was jmp fm_post; chains on to it); the editor's ed_cfg_fm word -> lt_mod;
+   fm_core's LOOKS.BIN range table +35..37 -> -7..7 (data, same size).
 """
 import argparse, importlib.util, json, struct, sys
 from pathlib import Path
@@ -124,11 +128,91 @@ def extras_x(spec):
                 sites={hex(a): v[1] for a, v in X_SITES.items()}), lst
 
 
+LT_AT, LT_END, LT_REFS = 0x601e233c, 0x601e253c, {0x601e3cf0, 0x601e3cf4}
+LT_SITE, FM_UI, ED_CFG_FM, FM_MOD = 0x601e2e93, 0x601e2c3c, 0x601e3160, 0x6143a6ad
+FM_CORE, FM_LO, FM_SPAN = 0x6143a410, 0x6143a788, 0x6143a7b5
+FB = _load('ep7_film_menu_v2_build_v019', ROOT / 'patches/film_menu_v2/build.py')
+LB = FB.LB
+
+
+def _edit_at(spec, a):
+    hits = [e for e in spec['edits'] if not e['addr'].startswith('off')
+            and int(e['addr'], 16) <= a < int(e['addr'], 16) + len(e['new']) // 2]
+    if len(hits) != 1:
+        raise ValueError(f'{a:#x}: in {len(hits)} edits')
+    return hits[0], a - int(hits[0]['addr'], 16)
+
+
+def look_tone(spec):
+    stock = STOCK_MAIN.read_bytes()
+    B = 0x60020020
+    for e in spec['edits']:
+        if e['addr'].startswith('off:'):
+            continue
+        a, n = int(e['addr'], 16), len(e['new']) // 2
+        if a < LT_END and LT_AT - 16 < a + n:
+            raise ValueError(f'look_tone region overlaps edit {e["addr"]}')
+    hits = set()
+    for off in range(4):
+        for i in range(off, len(stock) - 3, 4):
+            w = struct.unpack_from('<I', stock, i)[0]
+            if LT_AT <= w < LT_END:
+                hits.add(i + B)
+    if hits != LT_REFS:
+        raise ValueError(f'references into the look_tone region: {sorted(hex(h) for h in hits)}')
+    fm_post = int(spec['lv_art_refresh']['symbols']['fm_post'], 16)
+    code, lst, syms, _ = SB3.assemble(FB.source(str(ROOT / 'patches/v019/look_tone.s.in')), LT_AT,
+                                      dict(ep7_facade=0x607f9062, ep7_fm_post=fm_post))
+    if syms['lt_post'] != LT_AT or LT_AT + len(code) > LT_END:
+        raise ValueError(f'look_tone {len(code)} B does not fit')
+    bad = {'mul', 'mulu', 'div', 'divu', 'setlb', 'llt', 'lne', 'leq', 'lra', 'lcc', 'lcs', 'trap'}
+    ins = SB3.disasm(code, LT_AT, syms['lt_end'])
+    if any(op in bad for _, op, _ in ins):
+        raise ValueError('look_tone: forbidden instruction')
+    stores = [(hex(a), t, k) for a, t, k, _ in SB3.store_audit(ins)]
+    if any(k == 'abs' for _, _, k in stores):
+        raise ValueError('look_tone: absolute store')
+    # fm_ui final jump: jmp fm_post -> jmp lt_post
+    e, o = _edit_at(spec, LT_SITE)
+    blob = bytearray.fromhex(e['new'])
+    if bytes(blob[o:o + 5]) != jmp(LT_SITE, fm_post, 5):
+        raise ValueError('fm_ui final jump is not jmp fm_post')
+    blob[o:o + 5] = jmp(LT_SITE, syms['lt_post'], 5)
+    e['new'] = blob.hex()
+    e['why'] += ' [v0.19 look tone: final jump -> lt_post]'
+    # editor ed_cfg_fm word: fm_mod -> lt_mod
+    e, o = _edit_at(spec, ED_CFG_FM)
+    blob = bytearray.fromhex(e['new'])
+    if struct.unpack_from('<I', blob, o)[0] != FM_MOD:
+        raise ValueError('ed_cfg_fm is not fm_mod')
+    struct.pack_into('<I', blob, o, syms['lt_mod'])
+    e['new'] = blob.hex()
+    e['why'] += ' [v0.19 look tone: ed_cfg_fm -> lt_mod]'
+    # fm_check range table: +35..37 (H/M/S of a tone record) -7..7
+    lo, span, _ = LB.SB.range_table(LB.SB.layout())
+    e, o = _edit_at(spec, FM_CORE)
+    blob = bytearray.fromhex(e['new'])
+    lo_o, sp_o = FM_LO - FM_CORE, FM_SPAN - FM_CORE
+    if bytes(blob[lo_o:lo_o + 45]) != b8(lo[:45]) or bytes(blob[sp_o:sp_o + 45]) != bytes(span[:45]):
+        raise ValueError('fm_core range tables not found')
+    for off, (l, sp) in LB.TONE_RANGE.items():
+        blob[lo_o + off], blob[sp_o + off] = l & 0xff, sp
+    e['new'] = blob.hex()
+    e['why'] += ' [v0.19 look tone: LOOKS.BIN +35..37 accept -7..7]'
+    spec['edits'].append(dict(kind='0x100', addr=hex(LT_AT), expect=stock[LT_AT - B:LT_AT - B + len(code)].hex(),
+                              new=code.hex(), source='patches/v019',
+                              why=f'v0.19 look tone on a Film pick (lt_post / lt_mod, {len(code)} B, dead EVF step-7 R/G)'))
+    return dict(at=hex(LT_AT), len=len(code), site=hex(LT_SITE), fm_post=hex(fm_post),
+                symbols={k: hex(v) for k, v in syms.items() if k.startswith(('lt_', 't_', 'm_'))}, stores=stores), lst
+
+
 def make(base_path):
     _, merged, *_ = TE.make_spec(base_path)
     lr = loader_swap(merged)
     tx, _ = extras_x(merged)
     merged['tone_x'] = tx
+    lt, _ = look_tone(merged)
+    merged['look_tone'] = lt
     FW.apply(merged, 'v0.19')
     merged['v019'] = dict(loader_ranges=lr, built_by='patches/v019/build.py', base=str(base_path))
     return merged

@@ -11,7 +11,10 @@ pre-releases: use at your own risk (see the README).
   Extras page, sectors 6 and 7 (−5..+5). Live view shows them.
 - Fix (camera): in live view Blacks/Whites kept getting stronger frame by frame. The curve is now bent once per
   stock rebuild and left alone otherwise (JPEGs were already right).
-- The card's looks carry their library Blacks/Whites. Picking a look on the Film page resets them to 0 for now.
+- **Picking a look on the Film page applies its tone:** the look's Blacks/Whites go into the slot and its
+  Highlight/Midtone/Shadow become that profile's stock tone settings (shown on the stock tone screen). Own and
+  Stock picks leave tone as before. The card LOOKS.BIN carries each colour look's tone (same v3 format; old
+  LOOKS.BIN files still load, without tone).
 - Needs v0.19 firmware: v0.18 rejects a BUNDLES.BIN that uses Blacks/Whites.
 - Firmware screen shows `Caduceus: 0.19`.
 

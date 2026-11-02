@@ -254,3 +254,19 @@ Mapped statically for a later build [V]:
   +260 (by view+404) as {kind 4, id 2778/2779, 2}. A kind-5 text label there is the cheapest B/W readout.
 Remaining for a build: dial/arrow case hooks, a redraw poke (re-write 1088), the label hook, and an emulator harness
 for this object (none exists yet).
+
+## 9. Look tone on a Film pick (v0.19, built)
+
+- **LOOKS.BIN (still v3, 64-B records):** a COLOR record with library `tone` has +32 = 1 (tone flag; was the MONO
+  colour flag, always 0 in COLOR records), +33 Blacks, +34 Whites (−5..5), +35 Highlights, +36 Midtones,
+  +37 Shadows (−7..7), +38..44 = 0, slot mask 1 (the bytes no longer hold MONO saturation advice). Built by
+  `tools/ep7_looks_bin.py bundles/library_v3.json` (reproduces releases/v0.19/card/EP7MOD/LOOKS.BIN). v0.18
+  firmware loads it (library H/M/S stay within its ±5 rule) and ignores the tone; v0.19 loads v0.18 files.
+- **Firmware (patches/v019/look_tone.s.in, 336 B in the dead EVF step-7 R/G tables 0x601e233c):** fm_ui's final
+  jump (0x601e2e93) → `lt_post`: on a library look with the tone flag, slot +47/+48 = Blacks/Whites, then
+  **stock settings via the facade SetValue(id, 0, v)** (the mono presets' path): HL/MID/SH = 963/964/965 (COLOR1),
+  966.. (COLOR2), 969.. (COLOR3), 1672.. (COLOR4) (tone screen row table 0x611595a8), then the old `fm_post`. Own /
+  Stock / no flag: unchanged. ed_cfg_fm → `lt_mod` (fm_mod + "+47/+48 = record +33/+34"), so `*` stays right.
+  fm_core range table +35..37 → −7..7 (data).
+- Verify: `tools/ep7_verify_look_tone.py --base <v0.19 LV-fix edits> --new releases/v0.19/edits.json`
+  P 7/7, M 38/38, C 22/22, K anti-brick pass.

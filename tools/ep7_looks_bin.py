@@ -15,6 +15,11 @@ compact v3 form the camera keeps in one heap block (at most 32 looks; v0.15: a c
   record 64 B: +0..44 canonical bundle bytes 0..44 (layout.json ABI; bundle bytes 46..63 are always 0),
                +45 class (0 colour, 1 mono), +46 slot mask (bit0 COLOR, bit1 MONO; colour 1 or 3, mono 2),
                +47 bloom_tint 0..4 (test13b; placed at bundle +45; 0 in older files), +48 name[16] (1..15 printable ASCII except '@', NUL-padded, byte 15 NUL)
+  v0.19 look tone (still version 3, same size): a COLOR look with "tone" in the library has +32 = 1 (tone flag),
+               +33 Blacks, +34 Whites (s8 -5..5), +35 Highlights, +36 Midtones, +37 Shadows (s8 -7..7), +38..44 = 0,
+               and slot mask 1 (COLOR only: +33..44 no longer hold MONO saturation advice). A Film pick (v0.19
+               firmware) puts Blacks/Whites in slot +47/+48 and sets the profile's stock H/M/S settings; older
+               firmware and records with +32 = 0 ignore it. The camera range for +35..37 is -7..7.
 
 SLOTS.BIN (20 B) is what the camera writes back when the picker changes a slot (and what it reads at power-on):
   'EP7S', u32 LOOKS.BIN CRC (binds the map to one library), assign[8] (COLOR1-4, MONO1-4: 0..n-1 = look,
@@ -42,6 +47,8 @@ BUNDLE_USED = 45
 CLASS_OFF, MASK_OFF, NAME_OFF, NAME_LEN = 45, 46, 48, 16
 # test13b: record +47 = bloom_tint (0..4; old files have 0 = neutral), placed at bundle byte +45 (layout.json bloom_tint)
 TINT_OFF, TINT_BUNDLE, TINT_MAX = 47, 45, 4
+TONE_FLAG, TONE_OFF, TONE_KEYS = 32, 33, ('blacks', 'whites', 'highlights', 'midtones', 'shadows')
+TONE_RANGE = {33: (-5, 10), 34: (-5, 10), 35: (-7, 14), 36: (-7, 14), 37: (-7, 14)}   # +off: (lo, span)
 SMAGIC, SLOTS_LEN = b'EP7S', 20
 STOCK, UNTOUCHED = 0xFF, 0xFE
 PATH_LOOKS, PATH_SLOTS = 'C:\\EP7MOD\\LOOKS.BIN', 'C:\\EP7MOD\\SLOTS.BIN'
@@ -73,9 +80,43 @@ def to_rec96(rec64):
     return bytes(r)
 
 
+def has_tone(rec64):
+    return rec64[CLASS_OFF] == 0 and rec64[TONE_FLAG] == 1
+
+
+def tone_of(rec64):
+    """-> dict blacks/whites/highlights/midtones/shadows, or None (no tone: a pick leaves tone alone)."""
+    if not has_tone(rec64):
+        return None
+    return {k: (v - 256 if v >= 128 else v) for k, v in zip(TONE_KEYS, rec64[TONE_OFF:TONE_OFF + 5])}
+
+
+def with_tone(rec64, tone):
+    """COLOR record + library tone dict -> record with the tone block (+32 flag, +33..37, mask 1)."""
+    if rec64[CLASS_OFF] != 0:
+        raise ValueError('tone block: COLOR looks only')
+    if set(tone) - set(TONE_KEYS):
+        raise ValueError(f'tone: unknown keys {sorted(set(tone) - set(TONE_KEYS))}')
+    r = bytearray(rec64)
+    r[TONE_FLAG:BUNDLE_USED] = bytes(BUNDLE_USED - TONE_FLAG)
+    r[TONE_FLAG] = 1
+    for i, k in enumerate(TONE_KEYS):
+        v = tone.get(k, 0)
+        lo, sp = TONE_RANGE[TONE_OFF + i]
+        if not isinstance(v, int) or isinstance(v, bool) or not lo <= v <= lo + sp:
+            raise ValueError(f'tone {k} = {v!r} outside {lo}..{lo + sp}')
+        r[TONE_OFF + i] = v & 0xff
+    r[MASK_OFF] = 1
+    return bytes(r)
+
+
 def place(rec64, k):
-    """P(look, slot k) -> 64-byte table entry (raises if the look may not go in that slot)."""
-    return LIB.place(to_rec96(rec64), SLOTS[k])
+    """P(look, slot k) -> 64-byte table entry (raises if the look may not go in that slot). v0.19: a tone record
+    puts its Blacks/Whites at entry +47/+48 (its H/M/S go to the profile's stock settings, not the entry)."""
+    e = bytearray(LIB.place(to_rec96(rec64), SLOTS[k]))
+    if k < 4 and has_tone(rec64):
+        e[47], e[48] = rec64[TONE_OFF], rec64[TONE_OFF + 1]
+    return bytes(e)
 
 
 def allowed(rec64, k):
@@ -104,8 +145,14 @@ def compile_looks(cfg):
         looks.setdefault(r, {'recipe': r})
     recs, keys, names = [], [], []
     for k, v in looks.items():
+        tone = v.get('tone') if isinstance(v, dict) else None
+        if tone is not None:
+            v = {kk: vv for kk, vv in v.items() if kk != 'tone'}
         r96, meta = LIB.look_record(k, v, recipes)
-        recs.append(record(r96))
+        r = record(r96)
+        if tone is not None and r[CLASS_OFF] == 0:       # mono looks: the Film page never places them; no block
+            r = with_tone(r, tone)
+        recs.append(r)
         keys.append(k)
         names.append(meta['name'])
     data = make_file(recs)
@@ -152,6 +199,9 @@ def check_file(data):
     if zlib.crc32(data[:16] + data[20:]) & 0xffffffff != file_crc(data):
         p.append('crc')
     lo, span, _ = SB.range_table(SB.layout())
+    lo, span = list(lo), list(span)
+    for o, (l, sp) in TONE_RANGE.items():                  # v0.19 camera table (fm_check)
+        lo[o], span[o] = l, sp
     for j in range(n):
         r = data[HDR_LEN + REC_LEN * j:HDR_LEN + REC_LEN * (j + 1)]
         for k in range(BUNDLE_USED):
