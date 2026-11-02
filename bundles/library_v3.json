@@ -125,9 +125,9 @@
    "grain": "low",
    "effect": {
     "type": "bloom",
-    "strength": 1
+    "strength": 4
    },
-   "notes": "Inspired by Osan's Fujifilm recipe Classic Cuban Neg: warm Classic Neg, golden cast (WB A+4), deep blues/reds, soft highlights, gritty grain, soft glow. Sat advice: +2 warm colours, -2 greens."
+   "notes": "Inspired by Osan's Classic Cuban Neg: warm Classic Neg, golden cast (WB A+4), deep blues/reds, gritty grain, bloom 4. Sat: +2 warm, -2 greens."
   },
   "cibachrome": {
    "name": "Cibachrome",
