@@ -21,6 +21,9 @@
  *              (as `lv`; never called when every COLOR slot is 0);
  *   - profile 1..4 -> COLOR slot 0..3 of the active table ({tbl_note});
  *   - slot +47 Blacks / +48 Whites (s8): a value outside -5..5 counts as 0; both 0 -> nothing.
+ *   - idempotent (v0.19b; the LV context persists across developments): O+2608 == O+2612 is remapped only when
+ *     the builder rebuilt it this pass (R+1524 art override, or C+60 & 0x8268063e, the builder's own test);
+ *     otherwise it already holds remap(base) from the last rebuild and is left alone (no compounding).
  * Then, like the stock tone-control step: copy the active LUT to O+2612 if it is not there, remap O+2612 in
  * place (tools/ep7_tone.py remap(), bit-exact), O+2608 = O+2612, clear O+4 bit 8.
  *
@@ -47,6 +50,18 @@ tone:
  mov (2608,a3),d0
  cmp 0,d0
  beq out                             /* no LUT */
+ mov a3,d1                           /* v0.19b idempotence: O+2608 == O+2612 holds a pristine base only when */
+ add 2612,d1                         /* the builder rebuilt it this pass (art override R+1524, or a C+60 bit of */
+ cmp d1,d0                           /* its mask 0x8268063e); otherwise it is last pass's output (ours): keep it */
+ bne fresh
+ mov (4,a2),a1
+ mov (1524,a1),d1
+ cmp 0,d1
+ bne fresh
+ mov (60,a2),d1
+ and 0x8268063e,d1
+ beq out
+fresh:
  mov (4,a2),a1                       /* request R */
  mov (a1),d0
  cmp {callback},d0

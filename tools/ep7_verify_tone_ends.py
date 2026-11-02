@@ -18,6 +18,9 @@ The bundle table is read through the real SD loader v3 accessor tbl_idx. Every i
   A  active: LUT at O+2612 == tools/ep7_tone.remap(base LUT, B, W) bit-exact, O+2608 = O+2612, O+4 bit 8 clear,
      every other byte of output/job/context/stack/registers == v0.18; monotone; y[0] = 8B (B > 0), y[255] =
      1023 - 10|W| (W < 0). Stills (marker) == LV (getter) LUTs. Contrast -2/0/+2, tone block on, art LUT.
+  R  idempotence (v0.19b, camera: LV compounded): pass 1 on a fresh output, then passes on that same output
+     with C+60 = 0 (no rebuild) twice and with a rebuild: the LUT and O+2608..O+3123 stay pass 1's; a pass on
+     v0.18's pass-1 output (O+2608 = ROM LUT, no rebuild) gives remap(base) once, and stays there.
   D  SD loader v3 loaded mode (table in a pool buffer, flashed copy poisoned): active + inactive.
 
 Usage: tools/ep7_verify_tone_ends.py [generated/tone_ends/merged.json] [--json out.json] [--jobs N] [--full]
@@ -70,7 +73,7 @@ def table_with(t0, slot_bytes):
 
 
 def run(img, table, *, live=False, profile=1, mode=11, key=11, contrast=0, tone=(0, 0, 0, 0, 0), art=None,
-        callback=CALLBACK, foreign_parent=False, reg=True, bloom=False, ctx60=TONE_BIT, cpu=0):
+        callback=CALLBACK, foreign_parent=False, reg=True, bloom=False, ctx60=TONE_BIT, cpu=0, out0=None):
     """Real stage-list span 0x603b14f8..0x603b1506 on a fixture job. art = (LUT address, strength) -> R+1524."""
     m = bytearray(img)
     m[0x60210900 - BASE:0x60210b00 - BASE] = table
@@ -98,6 +101,8 @@ def run(img, table, *, live=False, profile=1, mode=11, key=11, contrast=0, tone=
     struct.pack_into('<5h', ctx, 64, *tone)
     out = bytearray(O_LEN)
     struct.pack_into('<I', out, 4, O4_INIT)
+    if out0 is not None:                                  # R: the persistent output of a previous pass
+        out = bytearray(out0)
     blk = bytearray(64)
     struct.pack_into('<5h', blk, 0, *tone)
     regions = [Region('code', 0x60330000, sl(img, 0x60330000, 0x603c0000), 'rx'),
@@ -233,6 +238,21 @@ def lv_cases(t0):
     return out
 
 
+def r_cases(t0):
+    out = []
+    for B, W in ((-5, 0), (5, 0), (0, 5), (0, -5), (3, -2), (-4, 4)):
+        for live in (True, False):
+            tb = table_with(t0, {2: (B, W)})
+            lab = 'LV' if live else 'stills'
+            out.append((f'{lab} COLOR3 c0 B={B:+d} W={W:+d}', dict(table=tb, profile=3, live=live), B, W))
+        out.append((f'LV COLOR3 c+2 B={B:+d} W={W:+d}', dict(table=tb, profile=3, live=True, contrast=2), B, W))
+        out.append((f'LV COLOR3 tone block B={B:+d} W={W:+d}',
+                    dict(table=tb, profile=3, live=True, tone=(2, -3, 5, 4, -6)), B, W))
+        out.append((f'LV COLOR3 art LUT B={B:+d} W={W:+d}',
+                    dict(table=tb, profile=3, live=True, art=(0x604fb482, -3)), B, W))
+    return out
+
+
 IMGS = {}
 
 
@@ -254,6 +274,29 @@ def _work(item):
             c, got = active_check(m, b, B, W)
             return dict(test=f'A {name}', passed=all(c.values()), **c, y=[got[i] for i in SAMPLE],
                         insns=m['insns'], fault=m['fault'])
+        if kind == 'R':
+            # repeated development on one persistent output O (live view): pass 1 rebuilds (C+60 tone bit),
+            # passes 2..4 run on pass 1's O with no rebuild (C+60 = 0) or a rebuild; the LUT must not move
+            kw1 = dict(kw)
+            first = run(img, **kw1)
+            b1 = run(base_img, **kw1)
+            c, g1 = active_check(first, b1, B, W)
+            res = dict(first=all(c.values()))
+            o = first['mem']['out']
+            for n, c60 in (('norebuild', 0), ('norebuild2', 0), ('rebuild', TONE_BIT)):
+                r2 = run(img, **dict(kw, ctx60=c60, out0=o))
+                res[n] = r2['ok'] and lut_of(r2)[1] == g1 and r2['mem']['out'][2608:3124] == first['mem']['out'][2608:3124]
+                o = r2['mem']['out']
+            # B/W switched on with no rebuild, on v0.18's pass-1 output: O+2608 = a ROM LUT -> remap(ROM) once, then
+            # stable; O+2608 = O+2612 (stock tone control's own bend; cannot be told from ours) -> left as is
+            o = b1['mem']['out']
+            own = struct.unpack_from('<I', o, 2608)[0] == OUT + 2612
+            want = lut_of(b1)[1] if own else g1
+            for n in ('from_base', 'from_base2'):
+                r3 = run(img, **dict(kw, ctx60=0, out0=o))
+                res[n] = r3['ok'] and lut_of(r3)[1] == want
+                o = r3['mem']['out']
+            return dict(test=f'R {name} repeated passes == one', passed=all(res.values()), **res)
         if kind == 'L':
             kw_l = dict(kw, live=True)
             st, lv = run(img, **kw), run(img, **kw_l)
@@ -354,6 +397,7 @@ def main():
     ap.add_argument('--json', type=Path)
     ap.add_argument('--jobs', type=int, default=1)
     ap.add_argument('--full', action='store_true', help='all 121 B/W combos also at contrast -2/+2')
+    ap.add_argument('--part', default='NALRD', help='case kinds to run (D = SD-loaded A/N), default all')
     a = ap.parse_args()
     spec = json.loads(a.merged.read_text())
     if 'tone_ends' not in spec:
@@ -380,8 +424,10 @@ def main():
     items = [('N', n, kw, 0, 0, False) for n, kw in n_cases(t0)]
     items += [('A', n, kw, B, W, False) for n, kw, B, W in a_cases(t0, a.full)]
     items += [('L', n, kw, B, W, False) for n, kw, B, W in lv_cases(t0)]
+    items += [('R', n, kw, B, W, False) for n, kw, B, W in r_cases(t0)]
     items += [('A', 'SD-loaded ' + n, kw, B, W, True) for n, kw, B, W in lv_cases(t0)[:4]]
     items += [('N', 'SD-loaded ' + n, kw, 0, 0, True) for n, kw in n_cases(t0)[:3] + n_cases(t0)[5:6]]
+    items = [i for i in items if (('D' if i[5] else i[0]) in a.part)]
     if a.jobs > 1:
         with ProcessPoolExecutor(a.jobs, initializer=_init, initargs=(img, base_img)) as ex:
             results += list(ex.map(_work, items, chunksize=4))

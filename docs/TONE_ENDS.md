@@ -189,6 +189,11 @@ is split over two dead EVF B tables, each referenced only by its step-table word
   (W < 0), then a running max. So y[0] = 8B for B > 0 (up to 40 codes) and y[255] = 1023 − 10|W| for W < 0 (down
   to 973); B < 0 / W > 0 keep the end points 0 / 1023 and bend the toe / shoulder (about 12 codes per step at the
   ends, a few codes at mid-grey).
+- **Idempotent (v0.19 fix after the camera test: LV compounded).** The builder leaves O+2608 alone when it does
+  not rebuild (C+60 & 0x8268063e = 0 and no art override R+1524), so in live view O+2612 can still hold the last
+  pass's remapped LUT. The hook remaps when O+2608 ≠ O+2612 (a pristine ROM/art LUT) or when the builder rebuilt
+  this pass; otherwise it leaves the LUT as it is. Limit: B/W edited with no rebuild show at the next rebuild
+  (when O+2612 holds stock tone control's own bend). Verify part R: repeated passes == one pass.
 - Like the stock tone-control step: copy the LUT to O+2612 if O+2608 points elsewhere, remap in place,
   O+2608 = O+2612, clear O+4 bit 8.
 - Registers all restored, MDR restored. Stores: own stack frame (48 B below the callee frame), O+2612..O+3123,

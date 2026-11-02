@@ -9,6 +9,8 @@ pre-releases: use at your own risk (see the README).
   the stock Highlight/Shadow controls never touch. Blacks + lifts the black point (matte, faded), − deepens the
   shadows; Whites − rolls the white point off, + pushes the brightest tones. Set them on the colour editor's
   Extras page, sectors 6 and 7 (−5..+5). Live view shows them.
+- Fix (camera): in live view Blacks/Whites kept getting stronger frame by frame. The curve is now bent once per
+  stock rebuild and left alone otherwise (JPEGs were already right).
 - The card's looks carry their library Blacks/Whites. Picking a look on the Film page resets them to 0 for now.
 - Needs v0.19 firmware: v0.18 rejects a BUNDLES.BIN that uses Blacks/Whites.
 - Firmware screen shows `Caduceus: 0.19`.
