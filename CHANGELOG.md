@@ -13,6 +13,15 @@ pre-releases: use at your own risk (see the README).
   Build-time sizes: `patches/lcd_tint/build.py --green-pct 8 --span-pct 16`.
 - Firmware screen shows `Caduceus: 0.20`.
 
+## v0.20 — 2026-11-02
+
+- **LCD pink cast fixed:** the rear screen's panel colour table sent green lower than red/blue at every Monitor
+  Adjust step, giving live view a pink cast. Green is now raised (+8 % at the default).
+- **Monitor Adjust colour is now green↔magenta:** Setup › Monitor Adjust's colour slider shifts the LCD from
+  magenta to green (about 2.3 % per step; 0 = corrected default). Display only: photos, movies and HDMI are
+  unchanged. (The warm/cool screen adjustment is replaced.)
+- Firmware screen shows `Caduceus: 0.20`.
+
 ## v0.19 — 2026-11-02
 
 - **Blacks and Whites per Colour Profile:** two new tone controls that move the ends of the tone curve, which
