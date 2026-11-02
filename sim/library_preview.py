@@ -3,7 +3,8 @@
   systemd-run --user --scope -p MemoryMax=3G -q .venv/bin/python sim/library_preview.py \
       sim/recipes/library_v1.json generated/library [key1,key2,...]
 
-Renders only what the camera can do: sat/hue/light, tone levels, contrast, WB shift (sim/film.py),
+Also takes a bundles library (bundles/library_v3.json: look recipe + the look's grain/effect/tone overrides).
+Renders only what the camera can do: sat/hue/light, tone levels (camera LUT model incl. Blacks/Whites), contrast, WB shift (sim/film.py),
 then bloom as the Soft Focus blend (share 8/14/20/27/35 % of a 160-px-wide blurred copy,
 docs/BLOOM_HALATION.md) and grain with the v0.4 colour gains 50/75/100 or stock mono 110/300/600.
 Writes sheet_<image>.jpg (all looks), overview.jpg (look x image) and detail_portrait_50pct.jpg.
@@ -26,8 +27,20 @@ MONO_GAIN = dict(low=110, medium=300, high=600)        # stock mono grain
 
 
 def load_looks(path):
+    """sim/recipes/*.json -> recipes; a bundles library (bundles/library_v3.json) -> each look's recipe with the
+    look's own overrides (grain, effect, tone incl. v0.19 Blacks/Whites) and name."""
     j = json.loads(Path(path).read_text())
-    return j['recipes']
+    if 'looks' not in j:
+        return j['recipes']
+    rec = {}
+    for f in sorted((ROOT / 'sim/recipes').glob('library_v*.json')):
+        rec.update(json.loads(f.read_text())['recipes'])
+    out = {}
+    for k, look in j['looks'].items():
+        r = dict(rec[look['recipe']])
+        r.update({kk: v for kk, v in look.items() if kk not in ('recipe', 'notes')})
+        out[k] = r
+    return out
 
 
 def prep(name, rel, full=False):

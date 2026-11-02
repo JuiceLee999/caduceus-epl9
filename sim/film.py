@@ -7,7 +7,8 @@ vignette), so a preview here is a fair stand-in for in-camera output.
 
 Recipe JSON keys (all optional):
   sat[12], hue[12], light[12]   -7..7, sector order = pipeline.SECTORS
-  tone {highlights, shadows, midtones}  -7..7   (stock tone levels)
+  tone {highlights, shadows, midtones}  -7..7   (stock tone levels; camera LUT model, tools/ep7_tone_model.py)
+       {blacks, whites}  -5..5   (v0.19 end points, tools/ep7_tone.py)  "_tone_model": "legacy" = old guess
   contrast   -5..5            wb_shift {a_b, g_m}  -7..7 (A+ warmer, G+ greener)
   grain      off/low/medium/high      vignette  -5..5 (negative darkens corners)
   base_saturation  -5..5      notes
@@ -31,6 +32,11 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pipeline as P  # noqa: E402
 import effects as FX  # noqa: E402
+sys.path.insert(0, str(P.ROOT / 'tools'))
+try:
+    import ep7_tone_model as TM  # noqa: E402  (bit-exact camera H/S/M LUT + Blacks/Whites)
+except Exception:               # pragma: no cover  (data file missing): fall back to the legacy guess
+    TM = None
 
 # ---- uncalibrated stock-control models (documented guesses; refine with test shots)
 TONE_STEP = 0.010      # gamma-luma shift per tone-level step at the band peak
@@ -67,6 +73,22 @@ def tone_levels(y, hl=0, sh=0, mid=0, contrast=0):
         k = CONTRAST_STEP * contrast
         y = y + 0.5 * k * np.sin(2 * np.pi * (y - 0.5))  # S-curve: darker shadows, brighter highlights
     return np.clip(y, 0, 1)
+
+
+_TONE_CACHE = {}
+
+
+def camera_tone(y, t):
+    """Camera tone control on display luma y in [0,1]: the contrast-0 LUT bent by H/S/M (tools/ep7_tone_model.py,
+    bit-exact with the firmware) then the Blacks/Whites remap, applied as a map base LUT -> toned LUT
+    (luminance only, display domain, after the base curve; zero tone = identity)."""
+    key = tuple(int(t.get(f, 0)) for f in ('highlights', 'shadows', 'midtones', 'blacks', 'whites'))
+    if not any(key):
+        return y
+    if key not in _TONE_CACHE:
+        _TONE_CACHE[key] = (np.array(TM.base_lut(), np.float32) / 1023, np.array(TM.tone_lut(*key), np.float32) / 1023)
+    xs, ys = _TONE_CACHE[key]
+    return np.interp(y, xs, ys).astype(y.dtype)
 
 
 # Monochrome Profile colour filters as luminance channel weights on gamma RGB (approximation;
@@ -111,9 +133,12 @@ def render(lin, recipe, curve=None, seed=10, full_width=5184):
     else:
         img = P.apply_tone(lin, curve or neutral_curve())
     ycc = P.rgb_to_ycc(img)
-    t = r.get('tone', {})
-    y_new = tone_levels(ycc[..., 0], t.get('highlights', 0), t.get('shadows', 0), t.get('midtones', 0),
-                        r.get('contrast', 0))
+    t = r.get('tone') or {}
+    if TM is not None and r.get('_tone_model') != 'legacy':
+        y_new = camera_tone(tone_levels(ycc[..., 0], contrast=r.get('contrast', 0)), t)
+    else:
+        y_new = tone_levels(ycc[..., 0], t.get('highlights', 0), t.get('shadows', 0), t.get('midtones', 0),
+                            r.get('contrast', 0))
     ratio = np.where(ycc[..., 0] > 1e-3, y_new / np.maximum(ycc[..., 0], 1e-3), 1)
     ycc[..., 0] = y_new
     ycc[..., 1:] *= np.clip(ratio, 0.5, 1.5)[..., None] ** 0.5 * (1 + SAT_STEP * r.get('base_saturation', 0))

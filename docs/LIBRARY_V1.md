@@ -207,3 +207,62 @@ Agfa Vista, CineStill50D, Vision3 250D, the mono looks.
   Cuban Neg; every other slot is byte-identical.
 - **Sim check.** Compared with Classic Neg, Cuban Neg is clearly warmer and more golden. Roofs and sunsets turn amber,
   skin is warm without going orange, skies stay a darker teal-blue, and the foliage is olive.
+
+## v0.19 tone
+
+Each look in `bundles/library_v3.json` now has `"tone": {highlights, shadows, midtones, blacks, whites}`.
+H/S/M (−7..7) are the camera's own per-profile tone settings, written into the Colour Profile when the look is
+picked. Blacks/Whites (−5..5) are the new end-point controls (docs/TONE_ENDS.md, `tools/ep7_tone.py`): Blacks > 0
+lifts the black point to 8·B codes of 1023 (matte), < 0 crushes the toe; Whites < 0 lowers the white point to
+1023 − 10·|W|, > 0 pushes the shoulder. Contrast stays as before (advice, not part of `tone`).
+
+**H/S/M** are the values each look's recipe already carried (sourced advice, e.g. Kodachrome25 "H−2 M+3 S−5",
+or the FILM_SIMS.md measured-LUT translations for the Fuji-style looks); none changed. **Blacks/Whites** follow the
+film's character: slide films crisp (B −1..−2, W 0..+1), negatives a soft roll-off (W −1..−2), cinema negatives a
+slight lift (B +1), Polaroid and Atrophy faded blacks (B +3). Changes are kept small: B ±1 moves the black end by
+8–12 codes, W ±1 the white end by 10–12 codes.
+
+| look | H | S | M | B | W | rationale |
+|---|---|---|---|---|---|---|
+| Velvia | 1 | −4 | 0 | −2 | 1 | slide; measured crushed toe (L\* 4.1 vs PROVIA 9.5) |
+| Astia | −2 | 1 | 0 | 0 | 0 | soft slide, softer shoulder already from H−2 |
+| Cl. Chrome | 0 | −3 | 0 | −1 | 0 | hard toe (5.2), muted not glossy |
+| Classic Neg | 4 | −2 | 1 | 0 | −1 | measured steep mids; negative roll-off |
+| Nostalgic | −2 | 1 | 1 | 1 | −1 | soft amber print, faded |
+| Reala Ace | 3 | 1 | 0 | 0 | −1 | crisp negative, soft toe (11.3) via S+1 |
+| Eterna | −2 | 4 | 0 | 1 | −1 | most open toe (14.6) and lower shoulder: flat cinema |
+| Bleach Byp. | 4 | −3 | 0 | −2 | 1 | silver retained: dense blacks, harsh whites |
+| Kodachrome64 | −1 | −2 | 0 | −1 | 1 | slide, deep and dense |
+| Portra 400 | −2 | 2 | 1 | 0 | −2 | soft portrait negative, long roll-off |
+| Ektar 100 | 0 | −1 | 0 | 0 | −1 | vivid but a negative shoulder |
+| Gold 200 | −1 | 0 | 1 | 0 | −1 | consumer negative |
+| Ektachrome | 0 | −2 | 0 | −1 | 1 | clean slide |
+| CineStill800 | −1 | 2 | 0 | 0 | −1 | cinema negative; bloom does the glow |
+| Pro 400H | −2 | 3 | 2 | 1 | −2 | airy pastel negative |
+| Faux IR | 1 | −2 | 0 | −1 | 0 | slide-based (Aerochrome is E-6), deep skies |
+| Kodachrome25 | −2 | −5 | 3 | −1 | 0 | advice H−2 M+3 S−5 (GarethB); slide blacks |
+| Portra 160 | −1 | 1 | 0 | 0 | −1 | advice H−1 M0 S+1 (Mitropoulos); negative |
+| Fujicolor200 | 0 | −3 | 1 | 0 | −1 | advice H0 M+1 S−3 (Bloomer); negative |
+| Cuban Neg | 1 | −3 | 1 | 0 | −2 | Classic Neg + H−2 S+1; DR400 soft highlights → W−2 |
+| Cibachrome | −3 | −2 | 1 | −1 | 1 | advice H−3 M+1 S−2 (Jay); glossy print, rich darks |
+| UltraMax 400 | 0 | −1 | 0 | 0 | −1 | consumer negative |
+| Agfa Vista | 0 | −1 | 0 | 0 | −1 | consumer negative |
+| CineStill50D | −2 | 2 | 0 | 0 | −2 | soft highlights (notes) |
+| Vision3 250D | −3 | 3 | 0 | 1 | −1 | flat, wide-latitude cinema |
+| Vision3 500T | −2 | 3 | 0 | 1 | −1 | open shadows, cinema |
+| Polaroid | −3 | 4 | 1 | 3 | −2 | faded, low-contrast instant film |
+| Cross Proc. | 2 | −3 | 0 | −1 | 1 | hard contrast, hot highlights |
+| Atrophy | −1 | −2 | 0 | 3 | −1 | matte decay grade: lifted black under dense darks |
+| Acros | −1 | −2 | 0 | −1 | 0 | deep blacks (toe 6.3), smooth tones |
+| Tri-X 400 | −1 | −3 | 0 | −1 | 1 | punchy reportage |
+| HP5 Plus | −2 | 1 | 0 | 0 | −1 | soft, wide latitude |
+
+**Tone model for previews.** `tools/ep7_tone_model.py` gives the camera luminance LUT (256 × u16, 0..1023, display
+domain, contrast-0 ROM LUT 0x604fa082) for any H/S/M, bit-exact with the native code (0x6034fcd2 knots,
+0x6034ff93 spline bend): 99 emulator cases (42 single-field, 12 mixed, 40 random, 5 on the contrast +2 LUT), max
+error 0. Per-field LUT deltas do **not** add up (max error 28 codes on the mixed checks: once Midtones ≠ 0 the
+firmware swaps the curve the H/S knots act on), so the data (`tools/data/tone_hsm.json`) holds the knot gains,
+the spline x tables and exact test vectors, and ports run the splines. Blacks/Whites go through
+`tools/ep7_tone.py` `remap()`. `sim/film.py` applies the result luminance-only after the base curve and the
+contrast model (`"_tone_model": "legacy"` restores the old guess); `sim/library_preview.py bundles/library_v3.json
+<out>` renders the library with each look's tone.
