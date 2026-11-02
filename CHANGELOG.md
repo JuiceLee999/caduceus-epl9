@@ -5,12 +5,12 @@ pre-releases: use at your own risk (see the README).
 
 ## v0.20 — 2026-11-02
 
-- **Rear LCD less pink:** the stock LCD shows a slight magenta cast at every Monitor Adjust colour-temperature
-  step. v0.20 raises the panel's green gain by 8 % (about two WB green fine-tune steps) in all 225
-  brightness × colour-temperature settings and the panel power-on sequences. This is a data-only change to the
-  LCD panel's own SPI registers: photos, movies, HDMI out and the View Assist / log paths are byte-identical to
-  v0.19. Monitor Adjust still works as before, on top of the trim. Size set at build time
-  (`patches/lcd_tint/build.py --green-pct`).
+- **Rear LCD less pink, and adjustable:** the stock LCD has a slight magenta cast. Setup › Monitor Adjust's
+  colour slider (−7..+7) is now a **green ↔ magenta** slider for the LCD: 0 (default) adds 8 % green (about two WB
+  green fine-tune steps), each step ±2.3 %, so −7 is 8 % more magenta than stock and +7 is 24 % greener than stock.
+  The warm/cool setting is gone (one slider, one axis); brightness is unchanged. Data-only change to the LCD
+  panel's own registers: photos, movies, HDMI out and the View Assist / log paths are byte-identical to v0.19.
+  Build-time sizes: `patches/lcd_tint/build.py --green-pct 8 --span-pct 16`.
 - Firmware screen shows `Caduceus: 0.20`.
 
 ## v0.19 — 2026-11-02

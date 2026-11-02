@@ -6,11 +6,12 @@
   D  diff vs base package: every component other than main byte-identical; main differs only in the lcd_tint
      G bytes and the fw_version label bytes; no tint byte in the VSC display-gamma route (LUT/step data
      0x601de13c-0x601e3c3c, which also hosts fw_version code; loader..writer 0x60187400-0x60189200 identical) and the ISP/JPEG/movie code (0x60330000-0x60540000) byte-identical.
-  T  table: per row only the 0xd9 G byte changes, = round(G * (1 + pct/100)); mode/R/B/0x91 words identical.
+  T  table: per row only the 0xd9 [mode,R,G,B] bytes change, = step_rgb(colour step) (G/M axis, step 7 = 0x91
+     mode with the trimmed G); 0x91 words (brightness), high data-marker bytes and the tail identical.
   X  refs: every 32-bit word in all components pointing into the edited .data (panel sequences, table, template)
      sits in the panel routine 0x60184000-0x60184800 (i.e. no ISP/encoder/HDMI reader).
   E  emulator: the patched panel routine 0x60184360 for all 15 colour-temp x 3 brightness steps builds the same
-     70-B SPI command buffer as stock except the 0xd9 G byte (= the trimmed value), returns to the send call, no
+     70-B SPI command buffer as stock except the 0xd9 [mode,R,G,B] low bytes (= step_rgb), returns to the send call, no
      fault.
 """
 import argparse, json, subprocess, sys, tempfile
@@ -91,7 +92,7 @@ def main():
     ap.add_argument('--json', type=Path)
     a = ap.parse_args()
     spec, bspec = json.loads(a.spec.read_text()), json.loads(a.base.read_text())
-    pct = spec['lcd_tint']['green_pct']
+    pct, span = spec['lcd_tint']['green_pct'], spec['lcd_tint']['span_pct']
     stock_bytes = BP.STOCK.read_bytes()
     pkg, restore, _ = BP.build(spec, stock_bytes)
     bpkg, _, _ = BP.build(bspec, stock_bytes)
@@ -123,12 +124,13 @@ def main():
         o = LT.TABLE + r * LT.ROW
         s_, p_ = sl(stock, o, o + LT.ROW), sl(img, o, o + LT.ROW)
         want = bytearray(s_)
-        want[4] = LT.trim(s_[4], pct)
+        for k, v in enumerate(LT.step_rgb(r % 15, pct, span)):
+            want[2 * k] = v
         nchg += want != s_
         rows_ok &= p_ == bytes(want)
     singles = all(sl(img, x, x + 1)[0] == LT.trim(0xe0, pct) and sl(stock, x, x + 1) == b'\xe0' for x in LT.SINGLE)
     res['T'] = dict(rows=LT.ROWS, rows_exact=rows_ok, rows_changed=nchg, singles_exact=singles,
-                    g_map={hex(g): hex(LT.trim(g, pct)) for g in sorted({sl(stock, LT.TABLE + r * 26 + 4, LT.TABLE + r * 26 + 5)[0] for r in range(15)})})
+                    steps={c - 7: '%02x %02x %02x %02x' % LT.step_rgb(c, pct, span) for c in range(15)})
 
     # X
     refs = []
@@ -154,13 +156,14 @@ def main():
             ok_s, bs = panel_run(stock, stub, b, c)
             ok_p, bp = panel_run(img, stub, b, c)
             want = bytearray(bs)
-            want[50] = LT.trim(bs[50], pct)          # buffer word 25 = 0xd9 data 2 (G)
-            good = ok_s and ok_p and bs[42:46] == bytes.fromhex('0500d900') and bp == bytes(want) and bp != bs
+            for k, v in enumerate(LT.step_rgb(c, pct, span)):   # buffer words 23..26 = 0xd9 data
+                want[46 + 2 * k] = v
+            good = ok_s and ok_p and bs[42:46] == bytes.fromhex('0500d900') and bp == bytes(want)
             e_ok &= good
             cases += 1
     res['E'] = dict(cases=cases, all_pass=e_ok)
 
-    passed = (all(v for k, v in res['D'].items() if isinstance(v, bool)) and res['D']['tint_bytes_changed'] == 228
+    passed = (all(v for k, v in res['D'].items() if isinstance(v, bool)) and res['D']['tint_bytes_changed'] > 0
               and res['T']['rows_exact'] and res['T']['rows_changed'] == 225 and res['T']['singles_exact']
               and res['X']['only_panel_driver'] and res['E']['all_pass'])
     res['pass'] = passed

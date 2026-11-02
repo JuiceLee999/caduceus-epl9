@@ -95,7 +95,8 @@ Inferred:
   table at `0x61f9d31e` (`0x60184235` → `0x60184360`).
   Layout (v0.20, `patches/lcd_tint`): .data, init image = address − 0x1d67d40; row = brightness·390 +
   colourtemp·26; words 0–3 → panel cmd 0xd9 [mode 0x80/0x91, R, G, B], words 4–7 → cmd 0x91 (word 7 =
-  brightness). G is below R/B at every step (the stock pink); v0.20 scales G by +8 %.
+  brightness). G is below R/B at every step (the stock pink). v0.20 rewrites words 0–3 as a green/magenta
+  axis: step 7 = 0x91 [0, G·1.08, 0], other steps mode 0x80 with G/RB = (0xe0/0xff)·(1 + (8 + (c−7)·16/7) %).
 - **So on the E-P7 the TFT runs with the VSC gamma bypassed, and the LUT hardware and its loader are
   dormant [V static, I that no computed-id sender exists].**
 - HDMI is VSC channel 1. The programmer never addresses it, so HDMI output has no display gamma [V].
