@@ -258,9 +258,9 @@
    "grain": "low",
    "effect": {
     "type": "bloom",
-    "strength": 4
+    "strength": 3
    },
-   "notes": "Inspired by Osan's Classic Cuban Neg: warm Classic Neg, golden cast (WB A+4), deep blues/reds, gritty grain, bloom 4. Sat: +2 warm, -2 greens.",
+   "notes": "Inspired by Osan's Classic Cuban Neg: warm Classic Neg, golden cast (WB A+4), deep blues/reds, gritty grain, bloom 3. Sat: +2 warm, -2 greens.",
    "tone": {
     "highlights": 1,
     "shadows": -3,
@@ -364,13 +364,13 @@
     "type": "bloom",
     "strength": 2
    },
-   "notes": "Integral instant film: faded, low contrast, warm highlights, cyan-green shadows.",
+   "notes": "Integral instant film: punchy, narrow dynamic range (bright highlights, deep shadows), warm highlights, cyan-green shadows.",
    "tone": {
-    "highlights": -3,
-    "shadows": 4,
-    "midtones": 1,
-    "blacks": 3,
-    "whites": -2
+    "highlights": 2,
+    "shadows": -3,
+    "midtones": 0,
+    "blacks": -1,
+    "whites": 1
    }
   },
   "xpro": {
@@ -399,7 +399,7 @@
     "highlights": -1,
     "shadows": -2,
     "midtones": 0,
-    "blacks": 3,
+    "blacks": 1,
     "whites": -1
    }
   },
