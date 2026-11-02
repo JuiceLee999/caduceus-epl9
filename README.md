@@ -10,7 +10,7 @@ recording.
 *Named after the caduceus, the staff of Hermes: messenger between gods and mortals and guide of travellers.*
 
 **Latest release: [v0.18](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.18)** ·
-**[Install guide](docs/INSTALL.md)** · **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** (make and share looks in your browser) · The camera's Setup › Firmware screen shows the Caduceus version.
+**[Install guide](docs/INSTALL.md)** · **[Changelog](CHANGELOG.md)** · **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** (make and share looks in your browser) · The camera's Setup › Firmware screen shows the Caduceus version.
 
 > [!WARNING]
 > **Early development, use at your own risk.** Caduceus is unofficial, experimental firmware modification.
