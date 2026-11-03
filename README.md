@@ -3,7 +3,7 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-cakelesscoder-FFDD00?logo=buymeacoffee&logoColor=000)](https://buymeacoffee.com/cakelesscoder)
 
 **Caduceus** is a set of open-source firmware patches for the **Olympus PEN E-P7** (firmware 1.1). It adds
-film simulations you pick and edit in the camera, per-colour hue and lightness, grain, bloom, clarity and Art
+film simulations you pick and edit in the camera, per-colour hue and lightness, bloom, clarity and Art
 Effects on your colour profiles, B&W film presets, true log video, XPan and 21:9 stills, and longer video
 recording.
 
@@ -34,7 +34,8 @@ recording.
 | **Looks on the SD card** | Looks load from `EP7MOD/BUNDLES.BIN` on the first half-press. Edits made in the camera save back to the card (with a `.BAK` of the previous file). | Camera-tested |
 | **Tone per look** | Every film look carries its own tone curve: Highlights, Midtones and Shadows (applied through the camera's own tone control) plus new **Blacks** and **Whites** that move the very ends of the curve (crushed slide-film blacks, faded instant-film blacks, rolled-off negative highlights). Picking a look applies it; Blacks/Whites are also adjustable per profile (Extras 6/7). Shown in live view too. | New in v0.20 |
 | **LCD colour fix** | The rear screen no longer looks slightly pink (+8 % green by default), and Monitor Adjust's colour slider becomes a green ↔ magenta slider (−7..+7, about 2.3 % per step) instead of warm/cool. Display only: photos, movies and HDMI are unchanged. | New in v0.20 |
-| **Extras per profile** | Colour film grain (the E-P7's mono grain hardware, on colour), bloom ↔ clarity (one slider), WB amber/blue and green/magenta shift, and Art Effects (Star Light, Pin Hole, Blur). | Camera-tested |
+| **Extras per profile** | Bloom ↔ clarity (one slider), WB amber/blue and green/magenta shift, and Art Effects (Star Light, Pin Hole, Blur). | Camera-tested |
+| **Colour film grain** | The grain setting (Extras sector 1, Off/1–5) is in place, but camera tests show it adds no visible grain to full-size colour photos yet: the route it uses only works on small images. A fix using the camera's full-size Monochrome grain route is on the roadmap. | ⚠️ Not working yet |
 | **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profiles, built from OM's own mono settings. Label `Film: <name>`, `*` when modified. | Camera-tested |
 | **Live-view preview** | Hue, lightness and bloom show in live view, not only in the saved photo. | Camera-tested |
 | **True log video** | A log curve Olympus left hidden in the firmware, switched on with the **movie** picture mode set to Muted. | Camera-tested |
@@ -139,7 +140,7 @@ Saturation stays yours. A `*` after the name means you've changed something sinc
 | Saturation (· All) | stock per-colour saturation (INFO also toggles single colour / all colours) |
 | Hue / Light | shift or brighten/darken one colour sector (pick the sector with the other dial) |
 | Film | choose a look from the library |
-| Extras | sector 1 grain · 2 glow ← → clarity · 3 WB amber/blue · 4 WB green/magenta · 5 Art Effect · 6 Blacks · 7 Whites |
+| Extras | sector 1 grain (not working yet) · 2 glow ← → clarity · 3 WB amber/blue · 4 WB green/magenta · 5 Art Effect · 6 Blacks · 7 Whites |
 
 Highlights/Midtones/Shadows are on the camera's normal tone-curve screen; picking a look sets them for you.
 
@@ -162,7 +163,8 @@ boots back to 4:3 each time, on purpose.
 - *Nothing changed?* Half-press once after switching on, and check `EP7MOD/` is at the card's top level.
 - *Want stock back for a moment?* Remove the `EP7MOD` folder. *For good?* Flash the restore file (see Install).
 - *Will updating lose my looks?* No: keep your `EP7MOD/BUNDLES.BIN`, and just replace `LOOKS.BIN` and the firmware.
-- *Live view vs photo:* grain, Star Light and some effects only show in the saved photo.
+- *Live view vs photo:* Star Light and some effects only show in the saved photo.
+- *Grain does nothing?* Known issue: colour grain isn't visible on full-size photos yet (see Features).
 
 ### On-camera UI
 
@@ -231,6 +233,8 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
 - Control Panel camera selector: export the same looks for other cameras (built, hidden until other cameras have known-good builds).
 
 **Possible / medium effort**
+- **Working colour film grain:** route colour photos through the camera's full-size Monochrome two-pass grain
+  stage (today's route adds nothing on full-size colour photos). Bigger change, needs careful camera testing.
 - ISO Auto in movie M: the movie ISO list already includes Auto; the dynamic gate in the AE code still has to be found.
 - Vignette on colour profiles as Extras sector 8 (−5..+5, finer than stock), using the stock shading stage (`docs/VIGNETTE.md`).
 - Per-look tone on the Film page, plus a Blacks/Whites page on the tone-curve screen (`docs/TONE_ENDS.md`).

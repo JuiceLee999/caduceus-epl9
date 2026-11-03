@@ -13,6 +13,10 @@ pre-releases: use at your own risk (see the README).
   every other code is unchanged.
 - Firmware screen shows `Caduceus: 0.21`.
 
+**Known issue (all versions):** colour film grain adds no visible grain to full-size colour photos. Camera
+measurements (v0.21) show grain 5 and grain off are identical; the grain route used only works on small images.
+A fix is on the roadmap.
+
 ## v0.20 — 2026-11-02
 
 - **Rear LCD less pink, and adjustable:** the stock LCD has a slight magenta cast. Setup › Monitor Adjust's
