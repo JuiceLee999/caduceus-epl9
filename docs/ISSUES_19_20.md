@@ -126,6 +126,19 @@ pass 2 without the sequencer's update step, which risks a review that never upda
 trace the >= 100 sites above to the one that schedules the second development and the review refresh, then extend
 that one gate (with the converter gates) to COLOR slots with an effect.
 
+**Trace of the record-task `cmp 100` sites (stopped):** none of them is a single "schedule the art follow-up" gate.
+- `0x60314d4b`: record +294 >= 100 forces param +2108 = 0, next to the +206 pass copy at `0x603148c1`.
+- `0x6031aadc`: picture mode >= 100 -> `0x60307c8c` table lookup (output codes); below 100, a 1..12 jump table.
+- `0x60316c2b`: the LV art-level byte.
+- `0x60318d2e` / `0x60318f6b` / `0x6031999c`: a mode value == 100 in request records.
+- `0x603311b9`: record art -> `0x60312123`.
+- `0x60313013`: the LV Art Effect switch.
+
+The ART two-pass review is spread over the capture sequencer, the record parameters and the converters. ART mode
+probably also reserves image memory for its full-size buffers. Changing several of these gates with semantics that
+are unproven and cannot be emulated risks lost or corrupted captures. **Judged not safe to build statically.**
+Workaround: Auto ▶ or ▶ after the shot.
+
 **Camera probes that would settle it** (cheap; no capture-path change):
 - (a) The stock Soft Focus **art filter** with Rec View 2 s. Does it also go black? If yes, this is stock ISP
   contention, not our layout.
