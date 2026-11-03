@@ -112,8 +112,9 @@ and make new presets, right in your browser:
   Control Panel to get the same look.
 - **Export** your pack as `LOOKS.BIN`, copy it to `EP7MOD/` on your SD card, half-press, and your looks are
   on the camera's Film page.
-- **RapidRAW presets (no firmware needed):** *Export › RapidRAW presets* saves one look or the whole pack as a
-  `.rrpreset` for [RapidRAW](https://github.com/CyberTimon/RapidRAW), the free raw editor (Presets › Import). Use
+- **RapidRAW presets (no firmware needed):** a look's *Share* button (or *Export › RapidRAW presets*) saves it as a
+  `.rrpreset` for [RapidRAW](https://github.com/CyberTimon/RapidRAW), the free raw editor; Export can also zip all
+  of them, one preset per look (unzip, then Presets › Import and select the files). Use
   it to apply the looks to your ORF files after the shot, or to raws from **any camera**, so you can use the looks
   without a modded body. It's an approximation: RapidRAW starts from its own raw rendering, so expect the look's
   character rather than an exact match to the camera JPEG. Colour, tone, white balance, glow/halation, clarity,

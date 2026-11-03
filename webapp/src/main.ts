@@ -725,7 +725,10 @@ function shareLook(l: Look) {
     h('div', { class: 'code-box' }, h('code', {}, grouped), h('button', { onclick: () => copy(code, 'Code copied') }, 'Copy code')),
     h('div', { class: 'code-box link' }, h('input', { type: 'text', readonly: true, value: link, onfocus: (e: Event) => (e.target as HTMLInputElement).select() }),
       h('button', { onclick: () => copy(link, 'Link copied') }, 'Copy link')),
-    h('p', { class: 'help' }, `${code.length} characters. Carries the card values (incl. tone), name, Art Effect and mono filter; notes stay out (use a pack link for those). Dashes and case don't matter when pasting.`)));
+    h('p', { class: 'help' }, `${code.length} characters. Carries the card values (incl. tone), name, Art Effect and mono filter; notes stay out (use a pack link for those). Dashes and case don't matter when pasting.`),
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'RapidRAW preset'), h('p', { class: 'help' }, 'This look as a .rrpreset for RapidRAW (Presets › Import), for ORF files or raws from any camera. An approximation of the camera look.')),
+      h('button', { onclick: () => { const i = S.pack.looks.indexOf(l); if (i >= 0) downloadRr(i); } }, 'Download'))));
 }
 
 async function sharePack() {
@@ -903,6 +906,8 @@ function recipeBody(): HTMLElement {
 }
 
 const rrName = (n: string) => n.replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'look';
+const downloadRr = (i: number) => download(`${rrName(S.pack.looks[i].name)}.rrpreset`, rrpreset(S.pack, i), 'application/json');
+const rrFiles = () => S.pack.looks.map((l, i) => ({ name: `${String(i + 1).padStart(2, '0')}-${rrName(l.name)}.rrpreset`, data: new TextEncoder().encode(rrpreset(S.pack, i)) }));
 function ep7Body(): HTMLElement {
   const probs = validatePack({ ...S.pack, slots: {} });
   const slotSel = (s: SlotName) => {
@@ -934,10 +939,10 @@ function ep7Body(): HTMLElement {
       h('div', {}, h('b', {}, 'Pack file (.json)'), h('p', { class: 'help' }, 'Everything, including notes and advice. Open it here later or send it to someone.')),
       h('button', { onclick: () => download(`${fname}.caduceus.json`, packJson(), 'application/json') }, 'Download')),
     h('div', { class: 'ex-row' },
-      h('div', {}, h('b', {}, 'RapidRAW presets (.rrpreset)'), h('p', { class: 'help' }, 'Every look as a RapidRAW preset, for ORF files or raws from any camera. Import in RapidRAW: Presets › Import. Approximate: RapidRAW starts from its own raw rendering, so expect the look\'s character, not an exact match to the camera JPEG.')),
+      h('div', {}, h('b', {}, 'RapidRAW presets (.rrpreset)'), h('p', { class: 'help' }, 'One look, or every look as its own preset in a zip, for ORF files or raws from any camera. Unzip, then in RapidRAW: Presets › Import and select the files. Approximate: RapidRAW starts from its own raw rendering, so expect the look\'s character, not an exact match to the camera JPEG.')),
       h('div', { class: 'ex-btns' },
-        h('button', { disabled: !cur(), onclick: () => { const l = cur(); if (l) download(`${rrName(l.name)}.rrpreset`, rrpreset(S.pack, S.sel), 'application/json'); } }, 'This look'),
-        h('button', { disabled: !S.pack.looks.length, onclick: () => download(`${fname}.rrpreset`, rrpreset(S.pack), 'application/json') }, 'All looks'))),
+        h('button', { disabled: !cur(), onclick: () => { if (cur()) downloadRr(S.sel); } }, 'This look'),
+        h('button', { disabled: !S.pack.looks.length, onclick: () => download(`${fname}-rapidraw.zip`, makeZip(rrFiles()), 'application/zip') }, `All ${S.pack.looks.length} (.zip)`))),
     h('details', { class: 'ex-bundles' },
       h('summary', {}, 'Starter slots (BUNDLES.BIN, optional)'),
       h('p', { class: 'help' }, 'BUNDLES.BIN holds the looks currently in the 8 picture-mode slots. Your card\'s BUNDLES.BIN has your saved slot choices: only replace it if you want to reset them. Empty = the camera\'s stock rendering.'),

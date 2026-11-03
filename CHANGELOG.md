@@ -5,8 +5,8 @@ pre-releases: use at your own risk (see the README).
 
 ## Control Panel — 2026-11-04
 
-- **RapidRAW preset export:** *Export › RapidRAW presets* writes one look or the whole pack (a folder) as a
-  `.rrpreset` for RapidRAW, for ORF files or raws from any camera. The 12-sector colour settings are fitted to
+- **RapidRAW preset export:** a look's *Share* dialog and *Export › RapidRAW presets* save it as a `.rrpreset` for
+  RapidRAW, for ORF files or raws from any camera; Export also zips every look as its own preset. The 12-sector colour settings are fitted to
   RapidRAW's 8 HSL bands; tone and contrast go into the luma curve; WB, glow/halation, clarity, vignette and the mono
   filter are mapped as well. An approximation of the camera rendering, not an exact match.
 - **Install firmware** button: a step-by-step install guide with links to the latest release and `docs/INSTALL.md`.
