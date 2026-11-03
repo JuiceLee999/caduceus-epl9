@@ -253,6 +253,8 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
   and thermal setup are unknown and need camera tests.
 - FHD 120p high-speed: the E-P7 only has a 720p 120 mode; this needs a new readout and encoder setup.
 - Highlight-weighted metering and snap focus (Ricoh GR-style).
+- Picture-in-picture focus assist (GM1-style magnified window over the full view, issue #18): no second LV window in
+  stock; needs a second, cropped output from the LV job (`docs/PIP_FOCUS.md`).
 - E-M10 IV port: same container and CPU, ~48 % of v0.20 edits relocate by signature, but it has no Colour/Mono
   profiles (looks need a new host) and no test body (`docs/PORT_EM10IV.md`).
 
