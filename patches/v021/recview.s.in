@@ -1,0 +1,71 @@
+/* E-P7 1.1 v0.21 Rec View hold for effect looks (issue #19; ep7-firmware, our own code). docs/ISSUES_19_20.md.
+ * Dead EVF gamma step-9 R table tail {at} (the Art stub uses 0x601e1d3c-0x601e1d78; only refs to the table:
+ * step-table words, build-checked).
+ *
+ *   rv <- `jmp rv; nop; nop` at {site} (stock: call 0x6031c7be,[d2,d3],28 = start the Rec View timer, d0 = Rec View
+ *         time in 0.1 s (setting 19: 3..200; 0 Off and 255 Auto never reach a timer here, and are left alone), d1 = arg).
+ *   When the capture would be a COLOR still of profile 1..4 (the same reads as the capture population 0x602a856e:
+ *   picture mode 0x9481, 6 -> 0x9d11, == 11, profile 0xF6B1) and that slot has a full-image effect (bloom /
+ *   red bloom / clarity: +28 = 1..3 and +29 strength 1..5), the timer gets {extra} more (0.1 s units), so the
+ *   review stays up for the set time after the slower effect development. Otherwise d0 is unchanged.
+ *   Then the stock call is made exactly as at the site and we resume at {resume}.
+ * Registers at resume: as after the stock call (d0 = its result; d1/a0/a1 are dead at the site, build-checked).
+ * Stores: our stack frame only. No absolute stores, no mul/div.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+rv:
+ add -20,sp                       /* (0,sp) scratch for call return words */
+ mov d0,(4,sp)
+ mov d1,(8,sp)
+ mov d2,(12,sp)
+ mov d3,(16,sp)
+ mov d0,d2
+ add -1,d2
+ cmp 254,d2                       /* 1..254 only */
+ bcc out
+ mov {prop_mode},d0
+ clr d1
+ mov 0,a0
+ call ep7_getter,[d2,d3],12
+ extbu d0
+ cmp 6,d0
+ bne 1f
+ mov {prop_mode2},d0
+ clr d1
+ mov 0,a0
+ call ep7_getter,[d2,d3],12
+ extbu d0
+1:
+ cmp 11,d0                        /* COLOR */
+ bne out
+ mov {prop_profile},d0
+ clr d1
+ mov 0,a0
+ call ep7_getter,[d2,d3],12
+ add -1,d0
+ cmp 4,d0
+ bcc out                          /* profile 1..4 -> slot 0..3 */
+ call ep7_tbl_idx,[d2,d3],8       /* a0 = slot entry */
+ movbu ({f_effect},a0),d1
+ add -1,d1
+ cmp 3,d1
+ bcc out
+ movbu ({f_strength},a0),d1
+ add -1,d1
+ cmp 5,d1
+ bcc out
+ mov (4,sp),d0
+ add {extra},d0
+ mov d0,(4,sp)
+out:
+ mov (4,sp),d0
+ mov (8,sp),d1
+ mov (12,sp),d2
+ mov (16,sp),d3
+ add 20,sp
+ call ep7_timer,[d2,d3],28        /* the stock call */
+ jmp ep7_resume
+code_end:

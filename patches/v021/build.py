@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v0.21 = releases/v0.20 (byte level) + 5 COLOR grain levels + Blur Art Effect off (issue #20). Offline.
+"""v0.21 = releases/v0.20 (byte level) + 5 COLOR grain levels + Blur off (#20) + Rec View hold (#19). Offline.
 
   python3 -I patches/v021/build.py releases/v0.20/edits.json --out releases/v0.21/edits.json
 
@@ -17,6 +17,9 @@ Edits on top of the v0.20 spec (every old byte is asserted):
                        bound -> Pin Hole only, Blur entry -> 0 (0x601e11c3/0x601e1215); look extras art read 3 -> Off
                        (0x601e331c) and ex_set wrap modulo 3 (Off / Star Light / Pin Hole; 0x601e33a0..b6).
                        A stored Blur byte (old cards) is kept on the card but does nothing. docs/ISSUES_19_20.md.
+  Rec View hold (#19)  hook 0x60332905 (Rec View timer start, `call 0x6031c7be,[d2,d3],28`) -> jmp rv; nop; nop.
+                       rv (patches/v021/recview.s.in, dead EVF step-9 R tail 0x601e1d80): COLOR profile 1..4 slot with
+                       bloom/clarity (+28 1..3, +29 1..5) and a timed Rec View (1..254) -> timer + RV_EXTRA (0.1 s).
   fw_version           value "0.21" (run patches/fw_version/build.py afterwards, --mod-version 0.21)
 """
 import argparse, copy, importlib.util, json, struct
@@ -52,6 +55,54 @@ BYTES = [  # (addr, old, new, what)
 ]
 LBL_PTR, LBL_OLD = 0x601e356e, 0x601e35f0          # `mov ex_tg,a2` imm32 in ex_ui
 TAB_AT, TAB_END = 0x601e3840, 0x601e38a0           # claim 0x601e383c..0x601e38a0 (rest of step-0 R stays stock)
+
+
+RV_SITE, RV_STOCK, RV_RESUME = 0x60332905, bytes.fromhex('ddb99efeffc01c'), 0x6033290c
+RV_TIMER, RV_AT, RV_END = 0x6031c7be, 0x601e1d80, 0x601e1e30   # step-9 R table 0x601e1d3c-0x601e1e3c (Art stub to 0x601e1d78)
+RV_EXTRA = 20                                       # +2.0 s
+GETTER, TBL_IDX = 0x6005e971, 0x6055e7b0
+TC = Path.home() / 'ep7fw-toolchains/mn10300/bin'
+
+
+def rv_code():
+    import subprocess, tempfile
+    src = (ROOT / SRC / 'recview.s.in').read_text()
+    for k, v in dict(at=hex(RV_AT), site=hex(RV_SITE), resume=hex(RV_RESUME), extra=RV_EXTRA, prop_mode='0x9481',
+                     prop_mode2='0x9d11', prop_profile='0xf6b1', f_effect=28, f_strength=29).items():
+        src = src.replace('{' + k + '}', str(v))
+    if '{' in src or '}' in src:
+        raise SystemExit('recview template field left')
+    syms = dict(ep7_getter=GETTER, ep7_tbl_idx=TBL_IDX, ep7_timer=RV_TIMER, ep7_resume=RV_RESUME)
+    with tempfile.TemporaryDirectory() as t:
+        t = Path(t)
+        (t / 'r.s').write_text(src)
+        subprocess.run([TC / 'mn10300-elf-as', '-o', t / 'r.o', t / 'r.s'], check=True)
+        subprocess.run([TC / 'mn10300-elf-ld', '-Ttext', hex(RV_AT), '-e', '_start',
+                        *[f'--defsym={k}={v:#x}' for k, v in syms.items()], '-o', t / 'r.elf', t / 'r.o'], check=True)
+        subprocess.run([TC / 'mn10300-elf-objcopy', '-O', 'binary', '-j', '.text', t / 'r.elf', t / 'r.bin'], check=True)
+        code = (t / 'r.bin').read_bytes()
+    if RV_AT + len(code) > RV_END:
+        raise SystemExit('recview stub too long')
+    return code
+
+
+def rv_edits(spec, stock):
+    for x in spec['edits']:
+        if not x['addr'].startswith('off:'):
+            a, n = int(x['addr'], 16), len(x['new']) // 2
+            if (a < RV_END + 4 and RV_AT - 4 < a + n) or (a < RV_SITE + 7 and RV_SITE < a + n):
+                raise SystemExit(f'recview placement/site overlaps {x["addr"]}')
+    if stock[RV_SITE - BASE:RV_SITE - BASE + 7] != RV_STOCK:
+        raise SystemExit('Rec View timer call site differs')
+    code = rv_code()
+    rel = (RV_AT - RV_SITE) & 0xffffffff
+    hook = b'\xdc' + struct.pack('<I', rel) + b'\xcb\xcb'
+    spec['edits'].append(dict(kind='0x100', addr=hex(RV_SITE), expect=RV_STOCK.hex(), new=hook.hex(), source=SRC,
+                              why='v0.21 Rec View hold (#19): timer start call 0x6031c7be -> jmp rv; nop; nop'))
+    spec['edits'].append(dict(kind='0x100', addr=hex(RV_AT), expect=stock[RV_AT - BASE:RV_AT - BASE + len(code)].hex(),
+                              new=code.hex(), source=SRC,
+                              why=f'v0.21 Rec View hold rv ({len(code)} B, dead EVF step-9 R tail): COLOR effect slot -> timer +{RV_EXTRA / 10} s'))
+    return dict(site=hex(RV_SITE), code_at=hex(RV_AT), code_len=len(code), extra_tenths=RV_EXTRA, resume=hex(RV_RESUME))
 
 
 def load(name, rel):
@@ -106,11 +157,12 @@ def apply(spec):
     spec['edits'].append(dict(kind='0x100', addr=hex(TAB_AT), expect=stock[TAB_AT - BASE:TAB_AT - BASE + len(data)].hex(),
                               new=data.hex(), source=SRC,
                               why='v0.21 look extras: grain label table (Off + "1 Grain 1".."1 Grain 5") in the dead EVF step-0 R table'))
+    rv = rv_edits(spec, stock)
     GB = load('gb', 'patches/grain_boost/build.py')
     spec = GB.apply(spec)                                   # strips the v0.20 boost edits, adds the 5-level ones
     spec['v021'] = dict(built_by=SRC, base='releases/v0.20/edits.json', grain_levels=5, grain_gains=list(GB.GAINS),
                         byte_edits=[dict(addr=hex(a), old=o, new=n, what=w) for a, o, n, w in BYTES],
-                        label_table=hex(TAB_AT), label_ptr=hex(LBL_PTR))
+                        label_table=hex(TAB_AT), label_ptr=hex(LBL_PTR), recview=rv)
     return spec
 
 

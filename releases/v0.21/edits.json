@@ -2145,6 +2145,22 @@
   },
   {
    "kind": "0x100",
+   "addr": "0x60332905",
+   "expect": "ddb99efeffc01c",
+   "new": "dc7bf4eaffcbcb",
+   "source": "patches/v021",
+   "why": "v0.21 Rec View hold (#19): timer start call 0x6031c7be -> jmp rv; nop; nop"
+  },
+  {
+   "kind": "0x100",
+   "addr": "0x601e1d80",
+   "expect": "3c3d3e3f4040414243444546474848494a4b4c4d4e4f5050515253545556575858595a5b5c5d5e5f6060616263646566676768696a6b6c6d6e6e6f70717273747575767778797a7b7c7c7d7e7f8081828383848586878889898a8b8c8d8e8f9090919293949596979898999a9b9c9d9e9f9fa0a1a2a3a4a5a6a7a7a8a9aaabacadaeafb0b0b1b2b3b4b5",
+   "new": "f8feec420446084a0c4e10822afffacafe00c661fccc81940000049000ddd4cbe7ffc00c14a006c913fccc119d0000049000ddbfcbe7ffc00c14a00bc937fcccb1f60000049000ddaacbe7ffc00c28ffa004c621dddcc93700c008f8441c29ffa503c611f8441d29ffa505c608580428144204580459085a0c5b10f8fe14ddc0a91300c01cdc070b1500",
+   "source": "patches/v021",
+   "why": "v0.21 Rec View hold rv (138 B, dead EVF step-9 R tail): COLOR effect slot -> timer +2.0 s"
+  },
+  {
+   "kind": "0x100",
    "addr": "0x603a065b",
    "expect": "f80208f82a04",
    "new": "dcb507e7ffcb",
@@ -9838,7 +9854,14 @@
    }
   ],
   "label_table": "0x601e3840",
-  "label_ptr": "0x601e356e"
+  "label_ptr": "0x601e356e",
+  "recview": {
+   "site": "0x60332905",
+   "code_at": "0x601e1d80",
+   "code_len": 138,
+   "extra_tenths": 20,
+   "resume": "0x6033290c"
+  }
  },
  "fw_version": {
   "mod_version": "0.21",

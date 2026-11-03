@@ -17,6 +17,11 @@
      B3 ex_get art read (0x601e3318): byte 0,1,2 -> itself, 3..6/255 -> 0 (v0.20: 3 -> 3)
      B4 ex_set art write (0x601e339f): wheel -7..8 -> clamp -3..5, wrap modulo 3 (Off/Star Light/Pin Hole);
         v0.20: clamp -4..7, modulo 4
+  H  Rec View hold (#19): from the timer-start site 0x60332905 to 0x6033290c, timer 0x6031c7be stubbed (returns its
+     d0), getter 0x6005e971 native on a fixture registry (0x9481 picture mode, 0x9d11, 0xF6B1 profile), tbl_idx
+     native on a fixture table: time + 20 exactly when mode 11 (or 6 -> 0x9d11 == 11), profile 1..4, slot effect
+     1..3 and strength 1..5, time 1..254; every other case (Off 0, Auto 255, MONO/other modes, profile 0/5/255,
+     effect 0/4, strength 0/6, erased table) == v0.20 (d0 passed through); d1/d2/d3/a2/a3/sp and stack == v0.20
   P  anti-brick: build_package decodes to stock + edits, restore == stock
 (Grain gains per level / MONO stock: tools/ep7_grain_verify.py.)
 """
@@ -191,6 +196,69 @@ def b_set(im, blur):
     return bad
 
 
+REG_LO, REG_TAB, PDATA = 0xa26ffa80, 0xa26ffa88, 0xa2800000
+
+
+def h_run(im, spec, table, t, mode, mode2, prof):
+    VB = _load('vb21', 'tools/ep7_verify_bundles.py')
+    LVB = _load('lvb21', 'tools/ep7_verify_lv_bundles.py')
+    SDV3 = _load('sdv21', 'tools/ep7_sdv3_env.py')
+    im = VB.with_table(im, spec, table) if table is not None else im
+    keys = {0x9481: mode, 0x9d11: mode2, 0xF6B1: prof}
+    reg = bytearray((REG_TAB - REG_LO) + 8 * ((0xF6B1 >> 4) + 1))
+    data = bytearray(64)
+    for i, (k, v) in enumerate(keys.items()):
+        struct.pack_into('<II', reg, REG_TAB - REG_LO + 8 * (k >> 4), k, PDATA + 16 * i)
+        data[16 * i:16 * i + 4] = bytes([v & 0xff, 0xa5, 0x5a, 0xc3])
+    st = bytearray(0x400)
+    for o in range(0, 0x400, 4):
+        struct.pack_into('<I', st, o, 0xc0de0000 | o)
+    sl = lambda lo, hi: im[lo - BASE:hi - BASE]
+    rg = [Region('site', 0x60332900, sl(0x60332900, 0x60332940), 'rx'), Region('rv', 0x601e1d3c, sl(0x601e1d3c, 0x601e1e3c), 'rx'),
+          Region('timer', 0x6031c7be, bytes.fromhex('dfc01c'), 'rx'),
+          Region('tbl', 0x6055e7b0, sl(0x6055e7b0, 0x6055e7f0), 'rx'), VB.tail1(im),
+          Region('getter', LVB.GETTER_LO, sl(LVB.GETTER_LO, LVB.GETTER_HI), 'rx'),
+          Region('xlate', LVB.XLATE_LO, sl(LVB.XLATE_LO, LVB.XLATE_HI), 'rx'),
+          Region('xtab', LVB.XTAB, sl(LVB.XTAB, LVB.XTAB + 32), 'r'),
+          Region('logger', LVB.LOGGER, bytes.fromhex('dff070'), 'rx'), LVB.cpu_region(0),
+          Region('registry', REG_LO, bytes(reg), 'r'), Region('prop', PDATA, bytes(data), 'r'),
+          Region('stk', STK, bytes(st), 'rw', True)]
+    regs = dict(pc=0x60332905, sp=STK + 0x200, d0=t, d1=0xd1d1d1d1, d2=0x2222, d3=0x3333, a0=0xa0a0, a1=0xa1a1,
+                a2=0xa2a2, a3=0xa3a3, mdr=0x5a5a)
+    r = SDV3.wrap(execute)(rg, regs, 0x6033290c, limit=20000)
+    rr = r['registers']
+    m = {x['name']: bytes.fromhex(x['hex']) for x in r['memory']}
+    ok = not r['fault'] and rr['pc'] == 0x6033290c
+    return ok, rr['d0'], tuple(rr[k] for k in ('d1', 'd2', 'd3', 'a2', 'a3', 'sp')), m['stk'][0x200:]
+
+
+def h_hold(im1, im0, new, old):
+    LV = _load('lv21h', 'patches/lv_art/verify.py')
+    bad, n, hits = [], 0, 0
+    tabs = {'mix': LV.fixture({0: dict(eff=1, s=3), 1: dict(eff=3, s=5), 2: dict(eff=2, s=1), 3: dict(eff=1, s=0),
+                               4: dict(eff=1, s=3), 5: dict(eff=1, s=3)}),
+            'odd': LV.fixture({0: dict(eff=4, s=3), 1: dict(eff=1, s=6), 2: dict(eff=0, s=3, grain=2, hl=True), 3: dict(eff=3, s=1)}),
+            'erased': b'\xff' * 512}
+    for tn, tb in tabs.items():
+        for t in (0, 1, 3, 10, 200, 254, 255):
+            for mode, mode2 in ((11, 0), (6, 11), (6, 12), (12, 11), (2, 11), (0x1d, 11)):
+                for prof in (0, 1, 2, 3, 4, 5, 255):
+                    o1, d1, x1, s1 = h_run(im1, new, tb, t, mode, mode2, prof)
+                    o0, d0, x0, s0 = h_run(im0, old, tb, t, mode, mode2, prof)
+                    on = (mode == 11 or (mode == 6 and mode2 == 11)) and 1 <= prof <= 4 and 1 <= t <= 254 and tn != 'erased'
+                    if on:
+                        e, st = tb[(prof - 1) * 64 + 28], tb[(prof - 1) * 64 + 29]
+                        on = 1 <= e <= 3 and 1 <= st <= 5
+                    want = t + 20 if on else t
+                    hits += on
+                    n += 1
+                    if not (o1 and o0 and d0 == t and d1 == want and x1 == x0 and s1[4:] == s0[4:]):
+                        bad.append((tn, t, mode, mode2, prof, o1, o0, d1, want))
+    if hits == 0:
+        bad.append('no case extended')
+    return n, hits, bad
+
+
 def main():
     old, new = (json.loads(Path(p).read_text()) for p in sys.argv[1:3])
     im0, *_ = image(old)
@@ -212,6 +280,9 @@ def main():
         good = not b1 and not b0
         ok &= good
         print(f"{'PASS' if good else 'FAIL'} {name}: v0.21 Off/Star Light/Pin Hole {b1 or 'ok'}; v0.20 control 0..3 {b0 or 'ok'}")
+    n3, h3, bb = h_hold(im1, im0, new, old)
+    ok &= not bb
+    print(f"{'PASS' if not bb else 'FAIL'} H Rec View hold: {n3 - len(bb)}/{n3} ({h3} extended by 2.0 s) {bb[:6] or ''}")
     bl, seen = l_label(im1)
     ok &= not bl
     print(f"{'PASS' if not bl else 'FAIL'} L label: {seen}; 6/7 -> q_out {bl or 'ok'}")
