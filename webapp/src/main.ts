@@ -332,7 +332,7 @@ function renderEditor() {
   const l = cur();
   if (!l) { el.replaceChildren(h('p', { class: 'empty' }, 'Add a look to start editing.')); return; }
   const i = S.sel;
-  const changed = () => { save(); schedulePreview(); refreshProblems(); };
+  const changed = () => { save(); schedulePreview(); refreshProblems(); refreshLookCode(); };
   const np = nameProblem(l.name);
   const nameInput = h('input', {
     type: 'text', value: l.name, maxlength: NAME_MAX, spellcheck: 'false', autocomplete: 'off', 'aria-describedby': 'name-help',
@@ -386,8 +386,56 @@ function renderEditor() {
         }),
       }, l.notes),
       h('span', { id: 'notes-help', class: notesBytes() > NOTE_MAX ? 'help err' : 'help' }, `${notesBytes()} / ${NOTE_MAX} bytes · kept in the pack file (not on the card)`)),
+    lookCodePanel(l),
     h('div', { id: 'problems' }));
   refreshProblems();
+  refreshLookCode();
+}
+
+/** Per-look share code: live code with copy buttons, and a box to paste a code into this look. */
+function lookCodePanel(l: Look): HTMLElement {
+  const code = h('code', { id: 'look-code' });
+  const help = h('span', { id: 'look-code-help', class: 'help' });
+  const inp = h('input', { type: 'text', placeholder: 'Paste a look code to load it into this look', spellcheck: 'false', autocomplete: 'off' });
+  const msg = h('span', { class: 'help' });
+  const apply = () => {
+    const t = inp.value.trim();
+    if (!t) return;
+    if (isPackCode(t)) { msg.className = 'help err'; msg.textContent = 'That is a pack link: use Paste code at the top.'; return; }
+    try {
+      const n = decodeLookCode(t), i = S.sel;
+      n.notes = l.notes;                                    // codes carry no notes: keep this look's
+      S.pack.looks[i] = { ...l, name: '' };                 // so the incoming name may reuse this look's
+      n.name = uniqueName(n.name);
+      S.pack.looks[i] = n;
+      save(); renderAll();
+      toast(`Loaded "${n.name}" into look ${i + 1} (Undo brings the old one back)`);
+    } catch (e) { msg.className = 'help err'; msg.textContent = (e as Error).message; }
+  };
+  inp.addEventListener('input', () => { msg.textContent = ''; });
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') apply(); });
+  const raw = () => { try { return encodeLookCode(cur()!); } catch { return null; } };
+  return h('div', { class: 'group look-code' },
+    h('span', { class: 'lbl' }, 'Look code'),
+    h('div', { class: 'code-box' }, code,
+      h('button', { onclick: () => { const c = raw(); if (c) copy(c, 'Code copied'); } }, 'Copy code'),
+      h('button', { onclick: () => { const c = raw(); if (c) copy(`${shareBase()}#${c}`, 'Link copied'); } }, 'Copy link')),
+    help,
+    h('div', { class: 'code-box' }, inp, h('button', { onclick: apply }, 'Load code')),
+    msg);
+}
+function refreshLookCode() {
+  const code = document.getElementById('look-code'), help = document.getElementById('look-code-help'), l = cur();
+  if (!code || !help || !l) return;
+  try {
+    code.textContent = encodeLookCode(l, true);
+    help.className = 'help';
+    help.textContent = 'Share just this look: anyone can paste the code (or open the link) in the control panel. Notes are not included.';
+  } catch (e) {
+    code.textContent = '—';
+    help.className = 'help err';
+    help.textContent = (e as Error).message;
+  }
 }
 
 function dupName(l: Look, i: number): string | null {

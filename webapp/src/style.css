@@ -202,6 +202,9 @@ canvas.pv { width: 100%; height: auto; display: block; max-height: 70vh; object-
 }
 .code-box.link input { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
 .code-box button { white-space: nowrap; }
+.look-code .code-box code { font-size: 14px; }
+.look-code .code-box input { flex: 1; min-width: 0; font-family: ui-monospace, Menlo, Consolas, monospace; }
+@media (max-width: 520px) { .look-code .code-box { flex-wrap: wrap; } .look-code .code-box code { flex-basis: 100%; } }
 .pick-list { display: flex; flex-direction: column; gap: 4px; }
 .pick { text-align: left; display: grid; grid-template-columns: auto 1fr; gap: 0 8px; align-items: baseline; }
 .pick small { grid-column: 1 / -1; color: var(--muted); }
