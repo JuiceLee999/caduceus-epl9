@@ -3,14 +3,18 @@
 
 export const SECTORS = ['Yellow', 'Orange', 'Orange-red', 'Red', 'Magenta', 'Violet', 'Blue', 'Blue-cyan', 'Cyan',
   'Green-cyan', 'Green', 'Yellow-green'] as const;
-// v0.22 firmware "natural grain": slot grain byte 0 off (Noise Filter untouched), 1 fine (Noise Filter Low),
-// 2 film (Noise Filter Off); older bytes 3..5 read as film. Index = byte; never reorder.
-export const GRAINS = ['off', 'fine', 'film'] as const;
+// v0.22 firmware "natural grain" (camera Noise Filter). JSON name -> slot byte -> camera label:
+//   off -> 0 "Global" (Noise Filter untouched), standard -> 6 "Off" (Standard), fine -> 1 "Fine" (Low), film -> 2 "Film" (Off).
+// Older bytes 3..5 read as film. Index = share-code digit (v1/v2: off/fine/film = old 0/1/2; standard = digit 6, v5/v6).
+export const GRAINS = ['off', 'fine', 'film', 'standard'] as const;
+export const GRAIN_BYTE: Record<string, number> = { off: 0, fine: 1, film: 2, standard: 6 };
+export const GRAIN_LABEL: Record<string, string> = { off: 'Global', standard: 'Standard', fine: 'Low', film: 'Off' };   // "Noise filter: …"
 // Older names (packs / share codes made before v0.22), by their old byte: low -> fine, medium..extreme -> film.
 export const LEGACY_GRAINS = ['off', 'low', 'medium', 'high', 'heavy', 'extreme'] as const;
-export const grainFromByte = (b: number): Grain => (b <= 0 ? 'off' : b === 1 ? 'fine' : 'film');
+export const grainFromByte = (b: number): Grain => (b <= 0 ? 'off' : b === 1 ? 'fine' : b === 6 ? 'standard' : b > 6 ? 'off' : 'film');
 export const grainFromName = (v: string): Grain | undefined =>
   (GRAINS as readonly string[]).includes(v) ? (v as Grain) : v === 'med' ? 'film'
+    : v === 'global' ? 'off'
     : (LEGACY_GRAINS as readonly string[]).includes(v) ? grainFromByte(LEGACY_GRAINS.indexOf(v as never)) : undefined;
 export const EFFECTS = ['none', 'bloom', 'halation', 'clarity'] as const;
 export const TINTS = ['neutral', 'red', 'amber', 'warm', 'cool'] as const;

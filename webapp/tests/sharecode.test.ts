@@ -73,7 +73,7 @@ describe('look codes', () => {
     const code = encodeLookCode({ ...pack.looks[1], tone: zeroTone() });
     expect(code[0]).toBe('1');
     expect(() => decodeLookCode('2' + code.slice(1))).toThrow(/Check failed/);
-    expect(() => decodeLookCode('5' + code.slice(1))).toThrow(/newer/);
+    expect(() => decodeLookCode('7' + code.slice(1))).toThrow(/newer/);
     expect(() => decodeLookCode('X' + code.slice(1))).toThrow(/not a Caduceus/);
     expect(() => decodeLookCode('1U23456')).toThrow(/not a code character/);
     expect(() => decodeLookCode('12')).toThrow(/too short/);
@@ -85,6 +85,12 @@ describe('look codes', () => {
       const c = encodeLookCode(l);
       expect(c[0]).toBe(v);
       expect(decodeLookCode(c).grain).toBe(g);
+    }
+    for (const tone of [false, true]) {             // standard (camera "Noise Std") -> v5/v6 codes
+      const l = { ...pack.looks[1], grain: 'standard', tone: tone ? { ...zeroTone(), shadows: 2 } : zeroTone() } as typeof pack.looks[1];
+      const c = encodeLookCode(l);
+      expect(c[0]).toBe(tone ? '6' : '5');
+      expect(decodeLookCode(c).grain).toBe('standard');
     }
     // a v0.21 app code: v1 body with the grain digit in radix 6 = 5 (extreme), re-labelled '3' -> reads as film
     const l = { ...pack.looks[1], grain: 'film', tone: zeroTone() } as typeof pack.looks[1];

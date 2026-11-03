@@ -10,7 +10,7 @@
 // Blacks/Whites at +47/+48 (MONO slots keep 0). The app writes the tone block when the look's tone is not all zero.
 // tests/encoder.test.ts checks the output against the Python tools and the released card files.
 import {
-  ARTS, EFFECTS, GRAINS, grainFromByte, MAX_LOOKS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SLOT_NAMES, TINTS, TONE_BW_MAX, TONE_KEYS,
+  ARTS, EFFECTS, GRAINS, GRAIN_BYTE, grainFromByte, MAX_LOOKS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SLOT_NAMES, TINTS, TONE_BW_MAX, TONE_KEYS,
   blankLook, toneIsZero, toneLimit, zeroTone, type Look, type Pack,
 } from './pack';
 
@@ -51,7 +51,7 @@ export const SLOT_NAME_MAX = 15;
 
 // Per-byte loader ranges of the 64-byte bundle ABI (sd_bundles RANGES_LEGACY over layout.json fields).
 const FIELDS: [number, number, number, number][] = [   // off, len, lo, hi
-  [0, 12, -HL_MAX, HL_MAX], [12, 12, -HL_MAX, HL_MAX], [24, 1, 0, 5], [25, 1, 0, 1], [26, 1, -WB_MAX, WB_MAX],
+  [0, 12, -HL_MAX, HL_MAX], [12, 12, -HL_MAX, HL_MAX], [24, 1, 0, 6], [25, 1, 0, 1], [26, 1, -WB_MAX, WB_MAX],
   [27, 1, -WB_MAX, WB_MAX], [28, 1, 0, 3], [29, 1, 0, 5], [30, 1, -VIG_MAX, VIG_MAX], [31, 1, 0, 3], [32, 1, 0, 1],
   [33, 12, -SAT_MAX, SAT_MAX], [45, 1, 0, 4], [46, 1, 0, 5],
   [B_BLACKS, 1, -TONE_BW_MAX, TONE_BW_MAX], [B_WHITES, 1, -TONE_BW_MAX, TONE_BW_MAX]];
@@ -87,7 +87,7 @@ export function validateLook(l: Look, i?: number): Problem[] {
     if (!Array.isArray(a) || a.length !== 12 || !a.every((v) => intIn(v, -lim, lim)))
       add(k, `${k}: 12 whole numbers in -${lim}..${lim} (v0.16/v0.17 firmware).`);
   }
-  if (!GRAINS.includes(l.grain)) add('grain', 'Grain: off, fine or film.');
+  if (!GRAINS.includes(l.grain)) add('grain', 'Noise filter: off (Global), standard, fine (Low) or film (Off).');
   if (l.wb && !(intIn(l.wb.a_b, -WB_MAX, WB_MAX) && intIn(l.wb.g_m, -WB_MAX, WB_MAX)))
     add('wb', `WB shift: A-B and G-M in -${WB_MAX}..${WB_MAX}.`);
   if (l.effect) {
@@ -138,7 +138,7 @@ export const hasTone = (l: Look) => l.kind === 'colour' && !!l.tone && !toneIsZe
 export function lookRecord(l: Look): Uint8Array {
   const r = new Uint8Array(REC_LEN);
   for (let k = 0; k < 12; k++) { r[k] = u8(l.hue[k]); r[12 + k] = u8(l.light[k]); }
-  r[24] = GRAINS.indexOf(l.grain);
+  r[24] = GRAIN_BYTE[l.grain];
   if (l.wb) { r[25] = 1; r[26] = u8(l.wb.a_b); r[27] = u8(l.wb.g_m); }
   if (l.effect) {
     r[28] = EFFECTS.indexOf(l.effect.type);

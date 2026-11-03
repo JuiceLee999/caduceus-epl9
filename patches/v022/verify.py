@@ -3,12 +3,14 @@
 
   .venv/bin/python -I patches/v022/verify.py releases/v0.21/edits.json releases/v0.22/edits.json
 
-  S  Extras grain edit (ex_set from 0x601e33bc, wheel value -7..8): slot byte = clamp 0..2; manager 0x60827440 called
-     once with (1334, -1 Fine / -2 Film, ex_set's a0, a1) only for 1/2, never for 0; d0/d1/a0/a1, MDR, sp restored
-     at s_dirty
-  K  Film pick (lt_post tail 0x601e2341), slot k 0..3 x grain byte 0..5 (+ k 4): facade SetValue(1334, 0, v) once
-     for 1 (-1) and 2..5 (-2), never for 0 / k >= 4; d2/d3/a2/a3 kept; reaches fm_post
-  L  sector-1 labels: "1 Grain Off" / "1 Grain Fine" / "1 Grain Film" (3..5 Film), 6/7 -> no label
+  R  loader ranges: SD loader v3 / fm_check accept grain 0..6, reject 7
+  G  ex_get grain read: byte 0 / 6 / 1 / 2..5 -> u 0 Global / 1 Off / 2 Fine / 3 Film; 7+ -> 0
+  S  Extras grain edit (ex_set from 0x601e33bc, wheel value -7..8): u = clamp 0..3, slot byte 0/6/1/2; manager
+     0x60827440 once with (1334, 0 Standard / -1 Low / -2 Off, ex_set's a0, a1) for u 1..3, never for Global;
+     d0/d1/a0/a1, MDR, sp restored at s_dirty
+  K  Film pick (lt_post tail 0x601e2341), slot k 0..3 x grain byte 0..7 (+ k 4): facade SetValue(1334, 0, v) once
+     with the byte's Noise Filter value, never for Global (0, 7) / k >= 4; d2/d3/a2/a3 kept; reaches fm_post
+  L  sector-1 labels by u: "1 Grain Global" / "Off" / "Fine" / "Film" (4/5 Film), 6/7 -> no label
   W  COLOR combiner grain inert: work list for COLOR slot grain 0..5 == stock COLOR; MONO (key 12) == stock
   D  diff vs v0.21 only inside the v0.22 sites; P anti-brick
 """
@@ -54,12 +56,15 @@ def image(spec):
 
 def segs(im, extra):
     s = lambda lo, hi: Region(f'i{lo:x}', lo, im[lo - BASE:hi - BASE], 'rx')
-    return [s(0x601e2000, 0x601e3a00)] + extra + [Region('cap', CAP, bytes(64), 'rw', True)]
+    return [s(0x601e1b00, 0x601e1c40), s(0x601e2000, 0x601e3a00)] + extra + [Region('cap', CAP, bytes(64), 'rw', True)]
 
 
 def cap(m):
     c = m['cap']
     return struct.unpack_from('<I', c, 0)[0], struct.unpack_from('<iiII', c, 4)
+
+
+U2B, B2U, U2NF = [0, 6, 1, 2], [0, 2, 3, 3, 3, 3, 1], [None, 0, -1, -2]
 
 
 def t_set(im):
@@ -72,11 +77,11 @@ def t_set(im):
                     regs, 0x601e3428, limit=2000)
         m = {x['name']: bytes.fromhex(x['hex']) for x in r['memory']}
         rr = r['registers']
-        want = min(max(v, 0), 2)
+        u = min(max(v, 0), 3)
         cnt, args = cap(m)
-        good = (not r['fault'] and rr['pc'] == 0x601e3428 and m['buf'][56] == want and rr['sp'] == STK + 0x100 and
-                rr['d0'] == 1234 and rr['d1'] == want and rr['a0'] == 0xa0a0 and rr['a1'] == 0xa1a1)
-        good &= (cnt == 0) if want == 0 else (cnt == 1 and args == (1334, {1: -1, 2: -2}[want], 0xa0a0, 0xa1a1))
+        good = (not r['fault'] and rr['pc'] == 0x601e3428 and m['buf'][56] == U2B[u] and rr['sp'] == STK + 0x100 and
+                rr['d0'] == 1234 and rr['d1'] == u and rr['a0'] == 0xa0a0 and rr['a1'] == 0xa1a1)
+        good &= (cnt == 0) if u == 0 else (cnt == 1 and args == (1334, U2NF[u], 0xa0a0, 0xa1a1))
         n += 1
         if not good:
             bad.append((v, m['buf'][56] if 'buf' in m else None, cnt, args, r['fault']))
@@ -92,7 +97,7 @@ def t_pick(im):
     fake[0x10:0x14] = struct.pack('<I', FAKE + 0x20)
     fake[0x20:0x20 + len(sv)] = sv
     for k in range(5):
-        for g in range(6):
+        for g in range(8):
             P = bytearray(0x400); P[32 + 64 * k + 24] = g if k < 4 else 0
             if k == 4:
                 P[32 + 24] = 2
@@ -103,8 +108,9 @@ def t_pick(im):
             rr = r['registers']
             cnt, args = cap(m)
             good = not r['fault'] and rr['pc'] == 0x601e37b4 and (rr['d2'], rr['d3'], rr['a2'], rr['a3'], rr['sp']) == (0x2222, k, BUF, 0x3333, STK + 0x100)
-            if k < 4 and g:
-                good &= cnt == 1 and args[0] == 1334 and args[1] == 0 and args[3] == ((-1 if g == 1 else -2) & 0xffffffff)
+            u = B2U[g] if g < 7 else 0
+            if k < 4 and u:
+                good &= cnt == 1 and args[0] == 1334 and args[1] == 0 and args[3] == (U2NF[u] & 0xffffffff)
             else:
                 good &= cnt == 0
             n += 1
@@ -115,7 +121,7 @@ def t_pick(im):
 
 def t_label(im):
     bad, seen = [], []
-    want = ['1 Grain Off', '1 Grain Fine', '1 Grain Film', '1 Grain Film', '1 Grain Film', '1 Grain Film']
+    want = ['1 Noise Global', '1 Noise Std', '1 Noise Low', '1 Noise Off', '1 Noise Off', '1 Noise Off']
     for v in range(8):
         rg = [Region(f'i{lo:x}', lo, im[lo - BASE:hi - BASE], 'rx') for lo, hi in V21.EX] + \
              [Region('stk', STK, bytes(0x104) + struct.pack('<I', v) + bytes(0xf8), 'rw', True)]
@@ -129,6 +135,19 @@ def t_label(im):
         elif txt is not None:
             bad.append((v, txt))
     return bad, seen
+
+
+def t_get(im):
+    bad = []
+    for g in range(9):
+        buf = bytearray(64); buf[56] = g
+        rg = [Region(f'i{lo:x}', lo, im[lo - BASE:hi - BASE], 'rx') for lo, hi in ((0x601e1b00, 0x601e1c40), (0x601e3200, 0x601e3a00))] + \
+             [Region('buf', BUF, bytes(buf), 'rw', True), Region('stk', STK, bytes(0x200), 'rw', True)]
+        r = execute(rg, dict(sp=STK + 0x100, pc=0x601e32c8, a2=BUF), 0x601e3322, limit=200)
+        want = B2U[g] if g < 7 else 0
+        if r['fault'] or r['registers']['pc'] != 0x601e3322 or r['registers']['d0'] != want:
+            bad.append((g, r['registers']['d0']))
+    return bad, 9
 
 
 def t_wl(stock, im):
@@ -150,15 +169,16 @@ def main():
     old, *_ = image(old_s)
     im, pkg, rst, info = image(new_s)
     ok = True
-    for name, fn in (('S Extras grain edit', lambda: t_set(im)), ('K Film pick', lambda: t_pick(im)), ('W combiner grain inert', lambda: t_wl(stock, im))):
+    for name, fn in (('R loader ranges 0..6', lambda: (V21.r_ranges(im, 6), 8)), ('G ex_get byte -> u', lambda: t_get(im)),
+                     ('S Extras grain edit', lambda: t_set(im)), ('K Film pick', lambda: t_pick(im)), ('W combiner grain inert', lambda: t_wl(stock, im))):
         bad, n = fn()
         ok &= not bad
         print(f"{'PASS' if not bad else 'FAIL'} {name}: {n - len(bad)}/{n}", bad[:4] if bad else '')
     bad, seen = t_label(im)
     ok &= not bad
     print(f"{'PASS' if not bad else 'FAIL'} L labels {seen}", bad or '')
-    sites = [(0x60210d3c, 1), (0x60210dd3, 1), (0x601e33d2, 1), (0x601e33d6, 1), (0x601e33d7, 5), (0x601e2341, 5),
-             (0x601e3840, 74), (0x601e3890, 160), (0x601e1c40, 0xc0), (0x61242fc0, 16)]       # + fw_version value
+    sites = [(0x605b7739, 1), (0x6143a7cd, 1), (0x601e32c8, 5), (0x601e1b90, 96), (0x60210d3c, 1), (0x60210dd3, 1), (0x601e33d2, 1), (0x601e33d6, 1), (0x601e33d7, 5), (0x601e2341, 5),
+             (0x601e3840, 80), (0x601e3890, 160), (0x601e1c40, 0xc0), (0x61242fc0, 16)]       # + fw_version value
     diff = [i + BASE for i in range(len(im)) if im[i] != old[i]]
     stray = [hex(x) for x in diff if not any(a <= x < a + n for a, n in sites)]
     ok &= not stray

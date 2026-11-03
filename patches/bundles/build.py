@@ -73,9 +73,11 @@ assert HUE_LUT_X[8:23] == HUE_LUT and L_LUT_X[8:23] == L_LUT and len(L_LUT_X) ==
 HLX_AT, HLX_TABLE_END, HLX_REF = 0x601e123c, 0x601e133c, 0x601e3d54
 PERM = [2 * (r % 6) + r // 6 for r in range(12)]
 SLOTS = ['COLOR1', 'COLOR2', 'COLOR3', 'COLOR4', 'MONO1', 'MONO2', 'MONO3', 'MONO4']
-# v0.22 natural grain: 0 off (Noise Filter untouched), 1 fine (Noise Filter Low), 2 film (Noise Filter Off).
-# Older names: low -> fine, medium/high (and v0.21 heavy/extreme) -> film. Old card bytes 3..5 read as film.
-GRAIN = {'off': 0, 'fine': 1, 'film': 2, 'low': 1, 'medium': 2, 'med': 2, 'high': 2, 'heavy': 2, 'extreme': 2}
+# v0.22 natural grain (camera labels): 0 "Global" (Noise Filter untouched; JSON "off" / "global"), 6 "Off" (Noise
+# Filter Standard; JSON "standard"), 1 "Fine" (Low), 2 "Film" (Off). Older names: low -> fine, medium/high (and v0.21
+# heavy/extreme) -> film. Old card bytes 3..5 read as Film.
+GRAIN = {'off': 0, 'global': 0, 'standard': 6, 'fine': 1, 'film': 2, 'low': 1, 'medium': 2, 'med': 2, 'high': 2,
+         'heavy': 2, 'extreme': 2}
 EFFECT = {'none': 0, 'bloom': 1, 'halation': 2, 'clarity': 3}   # clarity: patches/bloom --clarity
 TINT = {'neutral': 0, 'red': 1, 'amber': 2, 'warm': 3, 'cool': 4}   # bloom_tint +45 (layout.json; test13b)
 TINT_OFF = 45

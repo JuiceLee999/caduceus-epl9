@@ -5,13 +5,14 @@ pre-releases: use at your own risk (see the README).
 
 ## v0.22 — 2026-11-03
 
-- **Natural grain (noise filter):** camera tests showed the ISP grain stages add nothing visible to colour photos
-  (v0.16–v0.21 combiner route and the v0.22 Monochrome-route probe, both dropped). Extras sector 1 now reads
-  `1 Grain Off` / `1 Grain Fine` / `1 Grain Film`: Off leaves the camera's Noise Filter alone, Fine sets it to Low,
-  Film to Off, so the sensor's own grain survives. Applied on a look pick and on a sector-1 edit, through the stock
-  settings path. The Noise Filter is camera-wide: it stays at the last value when you switch profiles.
-- Old values: grain 1 reads as Fine, 2–5 as Film. Library: low → Fine, medium/high → Film. Web app: Off/Fine/Film;
-  older packs and share codes still load. The colour grain combiner hooks are inert.
+- **Noise filter per look** (replaces colour grain): camera tests showed the camera's grain stages add nothing
+  visible to colour photos (the v0.16–v0.21 route and a Monochrome-route probe, both dropped). Extras sector 1 is now
+  **Noise**: `1 Noise Global` (leave the camera's Noise Filter alone), `1 Noise Std`, `1 Noise Low`, `1 Noise Off`.
+  Set on a look pick and on a sector-1 edit through the stock settings path. The Noise Filter is camera-wide, so it
+  stays at the last value when you switch profiles. True film grain is on the roadmap.
+- Card values: 0 Global (old cards' "off"), 6 Std (new), 1 Low (old low), 2–5 Off (old medium/high). Library: no
+  grain → Global, low → Low, medium/high → Off. Web app: "Noise filter: Global / Standard / Low / Off"; older packs
+  and share codes still load (Standard uses new code prefixes 5/6). Card loaders accept 0..6.
 - Firmware screen shows `Caduceus: 0.22`.
 
 ## v0.21 — 2026-11-03

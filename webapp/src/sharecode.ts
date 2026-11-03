@@ -10,7 +10,7 @@
 // Pack code v1:  "pk1_" + base64url(zlib-deflate(UTF-8 JSON of the pack file, schema caduceus-pack/1))
 //   (zlib's Adler-32 catches corruption; base64url is case-sensitive, so pack codes are for links, not typing)
 import {
-  ARTS, EFFECTS, GRAINS, grainFromByte, MONO_FILTERS, TINTS, TONE_KEYS, exportable, parsePack, toneIsZero, toneLimit, zeroTone,
+  ARTS, EFFECTS, GRAIN_BYTE, grainFromByte, MONO_FILTERS, TINTS, TONE_KEYS, exportable, parsePack, toneIsZero, toneLimit, zeroTone,
   type Effect, type Look, type Pack, type Tone,
 } from './pack';
 
@@ -19,7 +19,9 @@ export const LOOK_VERSION = '1';        // codes without tone
 export const LOOK_VERSION_TONE = '2';   // codes with a tone block
 export const LOOK_VERSION_G6 = '3';     // v1 + grain radix 6
 export const LOOK_VERSION_G6_TONE = '4';  // v2 + grain radix 6
-const KNOWN_VERSIONS = [LOOK_VERSION, LOOK_VERSION_TONE, LOOK_VERSION_G6, LOOK_VERSION_G6_TONE];
+export const LOOK_VERSION_G7 = '5';       // v0.22: v1 + grain radix 7 (digit 6 = standard / camera "Off")
+export const LOOK_VERSION_G7_TONE = '6';  // v0.22: v2 + grain radix 7
+const KNOWN_VERSIONS = [LOOK_VERSION, LOOK_VERSION_TONE, LOOK_VERSION_G6, LOOK_VERSION_G6_TONE, LOOK_VERSION_G7, LOOK_VERSION_G7_TONE];
 export const PACK_PREFIX = 'pk1_';
 const NAME_CHARS = (() => {
   let s = '';
@@ -138,13 +140,13 @@ function getTone(r: Reader): Tone {
 }
 
 /** Pack one look into a mixed-radix integer (v1/v2 field order; never reorder: it is the code format). */
-function lookToBigInt(l: Look, withTone: boolean, g6 = false): bigint {
+function lookToBigInt(l: Look, withTone: boolean, gr = 4): bigint {
   const w = new Writer();
   w.put(l.kind === 'mono' ? 1 : 0, 2);
   putVec(w, l.hue, 7);
   putVec(w, l.light, 7);
   putVec(w, l.kind === 'mono' ? new Array(12).fill(0) : l.sat, 5);
-  w.put(GRAINS.indexOf(l.grain), g6 ? 6 : 4);          // off/fine/film = old digits 0/1/2
+  w.put(GRAIN_BYTE[l.grain], gr);                      // off/fine/film = old digits 0/1/2; standard = 6 (radix 7)
   w.put(l.wb ? 1 + (l.wb.a_b + 7) * 15 + (l.wb.g_m + 7) : 0, 226);
   w.put(effectIndex(l.effect), EFFECT_N);
   w.put(l.vignette + 5, 11);
@@ -158,11 +160,11 @@ function lookToBigInt(l: Look, withTone: boolean, g6 = false): bigint {
   return w.toBigInt();
 }
 
-function lookFromBigInt(n: bigint, withTone: boolean, g6 = false): Look {
+function lookFromBigInt(n: bigint, withTone: boolean, gr = 4): Look {
   const r = new Reader(n);
   const kind = r.get(2) ? 'mono' : 'colour';
   const hue = getVec(r, 7), light = getVec(r, 7), sat = getVec(r, 5);
-  const grain = grainFromByte(r.get(g6 ? 6 : 4));       // old low -> fine, medium..extreme -> film
+  const grain = grainFromByte(r.get(gr));               // old low -> fine, medium..extreme -> film, 6 standard
   const wbi = r.get(226);
   const wb = wbi ? { a_b: Math.floor((wbi - 1) / 15) - 7, g_m: ((wbi - 1) % 15) - 7 } : null;
   const effect = effectFrom(r.get(EFFECT_N));
@@ -195,9 +197,9 @@ export function encodeLookCode(l: Look, group = false): string {
     if (!Number.isInteger(v) || Math.abs(v) > L) throw new Error(`share code: tone ${k} must be a whole number in -${L}..${L}`);
   }
   const withTone = !!l.tone && !toneIsZero(l.tone);
-  const g6 = false;                                  // v0.22: grain digit 0..2 always fits radix 4
-  const ver = g6 ? (withTone ? LOOK_VERSION_G6_TONE : LOOK_VERSION_G6) : (withTone ? LOOK_VERSION_TONE : LOOK_VERSION);
-  const syms = [ALPHABET.indexOf(ver), ...toSymbols(lookToBigInt(l, withTone, g6))];
+  const g7 = l.grain === 'standard';                 // only "standard" needs the radix-7 grain digit
+  const ver = g7 ? (withTone ? LOOK_VERSION_G7_TONE : LOOK_VERSION_G7) : (withTone ? LOOK_VERSION_TONE : LOOK_VERSION);
+  const syms = [ALPHABET.indexOf(ver), ...toSymbols(lookToBigInt(l, withTone, g7 ? 7 : 4))];
   const c = crc15(syms);
   syms.push((c >> 10) & 31, (c >> 5) & 31, c & 31);
   const s = syms.map((v) => ALPHABET[v]).join('');
@@ -218,7 +220,7 @@ export function decodeLookCode(input: string): Look {
   const bad = syms.indexOf(-1);
   if (bad >= 0) throw new Error(`"${s[bad]}" is not a code character.`);
   if (!KNOWN_VERSIONS.includes(s[0])) {
-    if (/[5-9]/.test(s[0])) throw new Error(`This is a version-${s[0]} code from a newer Caduceus app. Update the app (or ask for a pack link).`);
+    if (/[7-9]/.test(s[0])) throw new Error(`This is a version-${s[0]} code from a newer Caduceus app. Update the app (or ask for a pack link).`);
     throw new Error('This is not a Caduceus look code.');
   }
   const body = syms.slice(0, -3), chk = syms.slice(-3);
@@ -227,8 +229,8 @@ export function decodeLookCode(input: string): Look {
     throw new Error('Check failed: the code has a typo (or is incomplete).');
   let n = 0n;
   for (const v of body.slice(1)) n = (n << 5n) | BigInt(v);
-  const g6 = s[0] === LOOK_VERSION_G6 || s[0] === LOOK_VERSION_G6_TONE;
-  return lookFromBigInt(n, s[0] === LOOK_VERSION_TONE || s[0] === LOOK_VERSION_G6_TONE, g6);
+  const gr = s[0] === LOOK_VERSION_G7 || s[0] === LOOK_VERSION_G7_TONE ? 7 : s[0] === LOOK_VERSION_G6 || s[0] === LOOK_VERSION_G6_TONE ? 6 : 4;
+  return lookFromBigInt(n, [LOOK_VERSION_TONE, LOOK_VERSION_G6_TONE, LOOK_VERSION_G7_TONE].includes(s[0]), gr);
 }
 
 // ---- pack codes

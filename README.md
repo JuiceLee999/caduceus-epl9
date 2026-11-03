@@ -35,7 +35,7 @@ recording.
 | **Tone per look** | Every film look carries its own tone curve: Highlights, Midtones and Shadows (applied through the camera's own tone control) plus new **Blacks** and **Whites** that move the very ends of the curve (crushed slide-film blacks, faded instant-film blacks, rolled-off negative highlights). Picking a look applies it; Blacks/Whites are also adjustable per profile (Extras 6/7). Shown in live view too. | New in v0.20 |
 | **LCD colour fix** | The rear screen no longer looks slightly pink (+8 % green by default), and Monitor Adjust's colour slider becomes a green ↔ magenta slider (−7..+7, about 2.3 % per step) instead of warm/cool. Display only: photos, movies and HDMI are unchanged. | New in v0.20 |
 | **Extras per profile** | Bloom ↔ clarity (one slider), WB amber/blue and green/magenta shift, and Art Effects (Star Light, Pin Hole; Blur removed in v0.21, it could restart the camera). | Camera-tested |
-| **Natural grain (noise filter)** | Grain on a colour profile now works by turning down the camera's own noise reduction, so the sensor's natural fine grain stays in the photo instead of being smoothed away. Extras sector 1: **Off** (the camera's Noise Filter setting is left as it is), **Fine** (Noise Filter Low) or **Film** (Noise Filter Off). It is set when you pick a look or change sector 1. The Noise Filter is one camera-wide setting, so it stays at the last value when you switch to another profile. Visible mostly at higher ISO; at ISO 200 the effect is subtle. | ✅ v0.22 |
+| **Noise filter per look** | Each colour look can set the camera's own noise reduction (Noise Filter). Less noise reduction keeps the sensor's natural fine texture instead of smoothing it away. Extras sector 1 **Noise**: **Global** (leave the camera's setting alone), **Std**, **Low** or **Off**. It is set when you pick a look or change sector 1. The Noise Filter is one camera-wide setting, so it stays at the last value when you switch to another profile. The difference shows mostly at higher ISO. True film grain is on the roadmap (the camera's grain stages add nothing visible to colour photos). | ✅ v0.22 |
 | **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profiles, built from OM's own mono settings. Label `Film: <name>`, `*` when modified. | Camera-tested |
 | **Live-view preview** | Hue, lightness and bloom show in live view, not only in the saved photo. | Camera-tested |
 | **True log video** | A log curve Olympus left hidden in the firmware, switched on with the **movie** picture mode set to Muted. | Camera-tested |
@@ -106,7 +106,7 @@ More detail, troubleshooting and FAQ: **[docs/INSTALL.md](docs/INSTALL.md)**.
 **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** is where you edit the built-in looks
 and make new presets, right in your browser:
 
-- Tweak any look (per-colour hue, lightness and saturation, grain, glow/clarity, WB shift, Art Effect), or
+- Tweak any look (per-colour hue, lightness and saturation, noise filter, glow/clarity, WB shift, Art Effect), or
   start a new one, with a live preview on example photos or your own (your photo never leaves your browser).
 - **Share a look with a short code:** press *Share*, send the code or link, and anyone can paste it into the
   Control Panel to get the same look.
@@ -130,7 +130,7 @@ read at boot). No `EP7MOD` folder = the camera behaves almost stock.
 2. Open that profile's colour wheel, press **INFO** until the page shows a look name (the Film page).
 3. Turn the dial to scroll looks (`Velvia`, `Portra 400`, … `Stock`). Leave the editor and **half-press** to save.
 
-Picking a look sets that profile's colours, grain, glow/clarity, WB shift, Art Effect and tone curve.
+Picking a look sets that profile's colours, noise filter, glow/clarity, WB shift, Art Effect and tone curve.
 Saturation stays yours. A `*` after the name means you've changed something since picking it.
 
 **Fine-tune a look** (same colour wheel, **INFO** cycles the pages):
@@ -140,7 +140,7 @@ Saturation stays yours. A `*` after the name means you've changed something sinc
 | Saturation (· All) | stock per-colour saturation (INFO also toggles single colour / all colours) |
 | Hue / Light | shift or brighten/darken one colour sector (pick the sector with the other dial) |
 | Film | choose a look from the library |
-| Extras | sector 1 grain Off / Fine / Film (Noise Filter) · 2 glow ← → clarity · 3 WB amber/blue · 4 WB green/magenta · 5 Art Effect · 6 Blacks · 7 Whites |
+| Extras | sector 1 Noise Global / Std / Low / Off (Noise Filter) · 2 glow ← → clarity · 3 WB amber/blue · 4 WB green/magenta · 5 Art Effect · 6 Blacks · 7 Whites |
 
 Highlights/Midtones/Shadows are on the camera's normal tone-curve screen; picking a look sets them for you.
 
@@ -166,7 +166,7 @@ boots back to 4:3 each time, on purpose.
 - *Live view vs photo:* Star Light and some effects only show in the saved photo.
 - *Black screen during Rec View on bloom/clarity looks?* Known issue: the review goes dark while the effect is
   processed. The photo is fine: set Rec View to **Auto ▶** or press **▶** to see it.
-- *Grain does nothing?* It works through the Noise Filter, so it shows mostly at higher ISO, and it applies when you pick a look or edit sector 1 (switching profiles keeps the last Noise Filter value).
+- *Sector 1 "Noise"?* It sets the camera's Noise Filter (not film grain). It shows mostly at higher ISO, and it applies when you pick a look or edit sector 1 (switching profiles keeps the last Noise Filter value).
 
 ### On-camera UI
 
@@ -237,7 +237,8 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
 - Control Panel camera selector: export the same looks for other cameras (built, hidden until other cameras have known-good builds).
 
 **Possible / medium effort**
-- **Per-profile natural grain:** re-apply the slot's Noise Filter value when a profile is selected (today it is
+- **True film grain on colour photos** (the camera's own grain stages add nothing visible to colour; needs a new approach).
+- **Noise filter on profile switch:** re-apply the slot's Noise Filter value when a profile is selected (today it is
   set on a look pick or a sector-1 edit; the Noise Filter itself is camera-wide).
 - ISO Auto in movie M: the movie ISO list already includes Auto; the dynamic gate in the AE code still has to be found.
 - Vignette on colour profiles as Extras sector 8 (−5..+5, finer than stock), using the stock shading stage (`docs/VIGNETTE.md`).
