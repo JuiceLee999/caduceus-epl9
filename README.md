@@ -237,7 +237,7 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
   stage (today's route adds nothing on full-size colour photos). Bigger change, needs careful camera testing.
 - ISO Auto in movie M: the movie ISO list already includes Auto; the dynamic gate in the AE code still has to be found.
 - Vignette on colour profiles as Extras sector 8 (−5..+5, finer than stock), using the stock shading stage (`docs/VIGNETTE.md`).
-- Per-look tone on the Film page, plus a Blacks/Whites page on the tone-curve screen (`docs/TONE_ENDS.md`).
+- Blacks/Whites page on the camera's own tone-curve screen (today they live on Extras 6/7; `docs/TONE_ENDS.md` §8).
 - Tinted halation (red glow around white lights), probably via a mask built from the exposure meter grid.
 - Maybe: use the ART position on the mode dial as a quick "silent shutter" switch.
 - Canon 1100D (Rebel T3): no firmware hack; export looks as Canon Picture Style (.PF2) files, if the PF2 checksum can be
