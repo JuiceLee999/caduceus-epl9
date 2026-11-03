@@ -38,6 +38,11 @@ weight without helping with that. The build output is ~60 kB of JS/CSS plus the 
 | `tests/` | Encoder tests (byte-identical vs the release file and the Python tools), validation rejects, share codes |
 | `public/samples/` | Sample images, all CC0 ([CREDITS.md](public/samples/CREDITS.md)) |
 
+**Export targets** (the camera selector in Export): each target is a module in `src/targets/` that implements
+`Target` (`id`, `label`, `supports(look)`, `export(pack) → files`). To add a camera, write the module and list it
+in `src/targets/index.ts`. The ready targets are the E-P7 (Caduceus) `LOOKS.BIN`, which is the default, and a
+Markdown recipe card per look for any camera. The E-M10 IV and Canon `.PF2` targets are listed as coming soon.
+
 ## Run it locally
 
 Node 20+:

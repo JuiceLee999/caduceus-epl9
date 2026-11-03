@@ -194,6 +194,7 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
 - Per-profile "vignette correction off": stock Shading Comp. is sid 61; override it per slot like the Art Effect flag.
 - Art Effect live-view preview that updates immediately.
 - More film looks, and a cross-platform web app to build and share `LOOKS.BIN` files.
+- Control Panel camera selector: export the same looks for other cameras as ports land.
 
 **Possible / medium effort**
 - ISO Auto in movie M: the movie ISO list already includes Auto; the dynamic gate in the AE code still has to be found.

@@ -1,6 +1,6 @@
 import './style.css';
 import libraryJson from './data/library.json';
-import { decodeLooksBin, encodeBundlesBin, encodeLooksBin, hasTone, nameProblem, PackError, validatePack, type Problem } from './format';
+import { decodeLooksBin, encodeBundlesBin, hasTone, nameProblem, PackError, validatePack, type Problem } from './format';
 import {
   ARTS, MAX_LOOKS, MONO_FILTERS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SECTORS, SLOT_NAMES, TINTS, TONE_KEYS, blankLook, cloneLook,
   exportable, parsePack, toneIsZero, toneLimit, type Look, type Pack, type SlotName, type Tone,
@@ -10,6 +10,8 @@ import { fromLibrary, libraryOrigin, migratePack, resetLook, standardPack } from
 import { renderLook } from './preview';
 import { decodeLookCode, decodePackCode, encodeLookCode, encodePackCode, isPackCode } from './sharecode';
 import { makeZip } from './zip';
+import { TARGETS, targetById } from './targets';
+import { recipeCard } from './targets/recipe';
 import { previewToneLut } from './tone';
 
 // ---------------------------------------------------------------- state
@@ -761,7 +763,50 @@ function confirmPack(p: Pack): boolean {
   return true;
 }
 
+const STORE_TARGET = 'caduceus.target';
 function exportDialog() {
+  let target = targetById((() => { try { return localStorage.getItem(STORE_TARGET); } catch { return null; } })());
+  const sel = h('select', {
+    'aria-label': 'Camera',
+    onchange: () => {
+      target = targetById(sel.value);
+      try { localStorage.setItem(STORE_TARGET, target.id); } catch { /* private mode */ }
+      paint();
+    },
+  }, ...TARGETS.map((t) => h('option', { value: t.id, disabled: t.status !== 'ready', selected: t.id === target.id },
+    t.status === 'ready' ? t.label : `${t.label} (coming soon)`)));
+  const soonLinks = h('p', { class: 'help' }, 'Coming soon: ', ...TARGETS.filter((t) => t.status === 'soon').flatMap((t, i) =>
+    [i ? ' · ' : '', h('a', { href: t.doc, target: '_blank', rel: 'noopener' }, t.label)]));
+  const note = h('p', { class: 'help' });
+  const content = h('div', {});
+  const paint = () => {
+    note.textContent = target.note;
+    content.replaceChildren(target.id === 'recipe-card' ? recipeBody() : ep7Body());
+  };
+  const body = h('div', { class: 'export' },
+    h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Camera'), sel, note), soonLinks, content);
+  paint();
+  modal('Export', body);
+}
+
+function recipeBody(): HTMLElement {
+  const fname = (S.pack.name || 'pack').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'pack';
+  const l = cur();
+  const files = () => targetById('recipe-card').export(S.pack);
+  return h('div', {},
+    l ? h('pre', { class: 'recipe-card' }, recipeCard(l)) : null,
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'This look (.md)'), h('p', { class: 'help' }, `The card above: "${l?.name ?? ''}".`)),
+      h('button', { class: 'primary', disabled: !l, onclick: () => { if (l) { const f = files()[S.sel]; download(f.name, f.data, 'text/markdown'); } } }, 'Download')),
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'All looks (.zip)'), h('p', { class: 'help' }, `${S.pack.looks.length} cards, one Markdown file per look.`)),
+      h('button', {
+        disabled: !S.pack.looks.length,
+        onclick: () => download(`${fname}-recipes.zip`, makeZip(files().map((f) => ({ name: f.name, data: typeof f.data === 'string' ? new TextEncoder().encode(f.data) : f.data }))), 'application/zip'),
+      }, 'Download')));
+}
+
+function ep7Body(): HTMLElement {
   const probs = validatePack({ ...S.pack, slots: {} });
   const slotSel = (s: SlotName) => {
     const sel = h('select', {
@@ -777,7 +822,7 @@ function exportDialog() {
   const withBundles = h('input', { type: 'checkbox' });
   const fname = (S.pack.name || 'pack').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'pack';
   const looksBin = () => {
-    try { return encodeLooksBin(S.pack); } catch (e) { toast(e instanceof PackError ? 'Fix the problems listed first' : (e as Error).message, 'err'); return null; }
+    try { return targetById('ep7-caduceus').export(S.pack)[0].data as Uint8Array; } catch (e) { toast(e instanceof PackError ? 'Fix the problems listed first' : (e as Error).message, 'err'); return null; }
   };
   const packJson = () => JSON.stringify({ ...exportable(S.pack), schema: PACK_SCHEMA }, null, 1) + '\n';
   const body = h('div', { class: 'export' },
@@ -811,7 +856,7 @@ function exportDialog() {
         },
       }, 'Download')),
     h('p', { class: 'help' }, 'Copy EP7MOD/ to the root of the card (never into DCOLYMP/). The camera checks every file and ignores one that fails.'));
-  modal('Export', body);
+  return body;
 }
 const fmtProblem = (p: Problem) => (p.look !== undefined ? `Look ${p.look + 1} (${S.pack.looks[p.look]?.name || 'no name'}): ` : '') + p.message;
 

@@ -235,3 +235,6 @@ canvas.pv { width: 100%; height: auto; display: block; max-height: 70vh; object-
 .tc-curve { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
 .tc-end { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
 .tc-end.on { fill: var(--accent); stroke: var(--accent); }
+
+.recipe-card { white-space: pre-wrap; font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace; background: var(--soft);
+  border-radius: 8px; padding: 10px 12px; max-height: 260px; overflow: auto; margin: 8px 0; }
