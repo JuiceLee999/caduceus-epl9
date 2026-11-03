@@ -15,9 +15,6 @@ pre-releases: use at your own risk (see the README).
   photo. Blur is now Off everywhere: the photo path, the live-view preview and Extras sector 5, which now cycles
   Off / Star Light / Pin Hole. A slot that already has Blur saved keeps the byte on the card, but it does nothing and
   shows as Off. Web app: Blur is listed only as a legacy value (Off on v0.21+). docs/ISSUES_19_20.md.
-- **Rec View lasts longer with glow/clarity looks (issue #19):** on a COLOR profile whose look has bloom or clarity, the
-  Rec View time gets an extra 2 s, because the extra processing can keep the screen dark at the start of the review.
-  Rec View Off and Auto ▶, other picture modes and other looks are stock.
 - Firmware screen shows `Caduceus: 0.21`.
 
 **Known issue (all versions):** colour film grain adds no visible grain to full-size colour photos. Camera

@@ -56,38 +56,55 @@ Pin Hole (0x400) is not stripped for 0x1xx in stock.
   art byte changes. The tone / lv_bundles hooks only change LUT contents. ed_get / ex_get / ed_set / ex_set
   intercept only COLOR saturation-sector ids 927..962 / 1655..1666, so sid 19 passes through.
 
-**Follow-up (user):** with bloom/clarity looks the review starts on a **dark screen** until the slower processing
-finishes. The photo is fine in playback.
+**Camera results (user / coordinator):**
+1. With bloom/clarity looks the review starts dark.
+2. The +2 s Rec View build (8ded8fd) showed **a short unprocessed review image, then a long black screen**.
+   The extra time only lengthened the black, so 8ded8fd is **reverted** (v0.21 is byte-identical to 06805e4 again).
 
-**How Rec View gets its image and timer [V code]:** the record-task Rec View state machine (handlers
-`0x604e4bc0`, transitions `0x604e4c20`, dispatcher `0x60332607`) works in this order on its start event:
-1. `0x6033277f` allocates the yc buffer (`0x6031c483`), sets the rec-view image parameters (`0x6031ce13` /
-   `0x6031cd12`) and runs "exe image proc" `0x6031cfb3`. That posts request 10 (`0x60311a1a`) and waits for it
-   (`0x60311a5b`, `0x6032232b`, timeout 0xffff). The review image is a separate small development from the capture
-   (set_imgprm_recview), not the finished JPEG/thumbnail.
-2. `0x603328bd` posts that buffer to the display (`0x6031c614` -> `0x60320610`, double buffer `0x6266a319`) and starts
-   the **Rec View timer** at once: `0x60332905` `call 0x6031c7be(d0 = Rec View time in 0.1 s, d1)` -> timer
-   `0x6031d806`, callback `0x6031d247` -> end event. Stop: `0x6031c82e`. A non-zero status from step 1 (for example
-   0xff20) skips both display and timer, so no review appears.
-3. [I] The display post and the IPU are shared with the full-size still job. With bloom/clarity's extra full-image
-   passes (reduce, full-size upscale, blend), the screen stays dark after the post while the timer already runs.
+**How Rec View gets its image and timer [V code]:** the Rec View state machine lives in the record task.
+- Handler table `0x604e4bc0` (state x event: {action, entry}), transitions `0x604e4c20`, dispatcher `0x60332607`.
+- Event 0 in state 0 goes to state 1 and runs `0x6033277f`:
+  - it allocates the yc buffer (`0x6031c483`: memory-manager request `0x6031f7ff` / `0x6031f9f2`, area 0x3c00,
+    double-buffer table `0x6266a31c`, index `0x6266a319`);
+  - it develops a **separate small review image** from the capture (set_imgprm_recview `0x6031ce13` / `0x6031cd12`,
+    "exe image proc" `0x6031cfb3`: request 10, waited for by `0x60311a5b`). The review image is not the finished
+    JPEG or thumbnail.
+- Then `0x603328bd` posts the buffer to the display (`0x6031c614` -> `0x60320610`). Right after, it starts the
+  timer at `0x60332905` (`0x6031c7be`, d0 = time in 0.1 s; callback `0x6031d247` posts the end event), and
+  sets state 2.
+- In state 2:
+  - event 0 runs `0x6033277f` / `0x603328bd` **again**: it stops the timer, re-develops into the other buffer,
+    re-displays and restarts the timer. This is a stock "redo the review" path.
+  - event 1 runs `0x6033293e` (stop and clear);
+  - event 2 runs `0x60332972` (stop, clear, free the yc buffer: the end);
+  - event 3 runs `0x60332a27`.
 
-**No completion event for our passes:** the bloom/clarity passes are stages of the still job's work list. Nothing
-in the Rec View machine waits for them, and there is no "still job done" event in that machine. The preferred
-option (show the preview, then repaint after the effect) would need a second display post from the still job's
-completion path, which is untraced and runs on another task. That is not clearly safe, so it is not built.
+**What blanks it (not settled) [I]:** the review image is up, and then it goes black while the still job runs
+our bloom/clarity passes. The passes need two job buffers:
+- 0x1060, the 160x120 reduce;
+- **0x1061, a full-size 2 B/px upscale** (about 40 MB at 5184x3888; BLOOM_HALATION table). It is described to the
+  job pool (`0x60350578`: 48 x 88-B descriptors at job+6592), with its address supplied by the pass setup
+  `0x6035cfe9`.
 
-**Fallback built (v0.21):** extend the Rec View timer for effect looks. `0x60332905` -> `jmp rv`
-(`patches/v021/recview.s.in`, 138 B at `0x601e1d80`, dead EVF step-9 R tail).
-- Gate: picture mode = the capture population's own reads (`0x9481`, 6 -> `0x9d11`) == 11 (COLOR); profile
-  `0xF6B1` 1..4; that slot has effect 1..3 (bloom, red bloom, clarity) with strength 1..5; Rec View time 1..254.
-- Then time + 2.0 s, and the stock call is made unchanged. Everything else, including Off, Auto ▶, MONO, other
-  modes, no-effect looks and grain-only looks, is stock.
-- [I] 2.0 s is an estimate of the effect processing time, not a measurement. If the camera shows the review still
-  appears late, raise `RV_EXTRA` in `patches/v021/build.py`.
-- Verified: `patches/v021/verify.py` H 882/882 runs the site natively with the real getter, accessor and
-  fixture registry/tables. 40 gated cases get +20, every other case passes d0 through, and registers and stack
-  == v0.20.
+COLOR stills never need 0x1061 in stock, but ART-mode Soft Focus does. So the most likely cause is that the
+address the pass setup chooses lies in image memory that the review yc buffer or the display plane also uses in
+COLOR mode. The other candidate is that display output is held while the ISP is busy. Neither the memory map nor
+the display plane's source is traced, and neither can be emulated meaningfully.
+
+**Why no fix ships yet:**
+1. A different scratch buffer for 0x1061 needs the image-memory map (unknown), so it risks corrupting the
+   capture.
+2. Re-showing the review needs event 0 posted to the Rec View machine (state 2 -> redo) from the still job's
+   completion. That runs on another task and its poster is untraced. If the yc buffer was overwritten, a redo
+   re-develops it, which is fine; a bare re-post of the old buffer would show garbage.
+
+Neither is clearly safe from static analysis alone.
+
+**Camera probes that would settle it** (cheap; no capture-path change):
+- (a) The stock Soft Focus **art filter** with Rec View 2 s. Does it also go black? If yes, this is stock ISP
+  contention, not our layout.
+- (b) A COLOR look with clarity but bloom 0, and one with grain only. Does the black need the 0x1061 passes?
+- (c) Raise the image size from S to L. Does the black scale with the full-size buffer?
 
 ## #19 (b): the camera gets hot
 
@@ -124,21 +141,22 @@ picked keeps its BUNDLES.BIN contents or the user's own colour-wheel settings.
 
 Thanks for the detailed report, and no need to apologise for the translation, it's very clear.
 
-**Rec View / Auto Review:** thanks for the extra detail. With glow (bloom) or clarity looks, the camera needs
-extra time to process the photo, so the review starts on a dark screen. The review timer is already running
-during that time, which eats into your Rec View time. The photo itself is fine. In v0.21, profiles whose look has
-glow or clarity get 2 extra seconds of Rec View, so the picture stays up for the time you chose. Everything else
-behaves as stock.
-Until then:
-1. Set a longer Rec View (Menu → Setup (wrench) → Rec View, e.g. 3–5 sec), or
-2. use **Auto ▶**, which opens playback after the shot, or
-3. for quick checks, use a profile whose look has glow/clarity at 0.
+**Rec View / Auto Review:** thanks for testing. With glow (bloom) or clarity looks, the review image appears
+briefly and then goes black while the camera runs the extra glow/clarity processing. The photo itself is fine (check
+it in playback). Making the review longer only made the black part longer, so I've taken that change out, and I'm
+still tracking down what blanks the screen. Until then:
+1. Use **Auto ▶** (Menu → Setup (wrench) → Rec View), which opens playback after the shot. Playback shows the
+   finished photo.
+2. Or press ▶ after the shot.
+3. For fast checks, use a profile whose look has glow/clarity at 0. Those reviews behave as stock.
 
-If the review still comes up dark on v0.21, tell me roughly how long the dark part lasts and I'll lengthen it.
+It would really help if you could tell me:
+- Does the stock **Soft Focus** art filter also go black after a shot (Rec View 2 s)?
+- Does the black part get longer at image size L than at S?
 
 **Heat:** the mod adds at most one small live-view pass (the same as the stock Soft Focus art filter), and only on
 profiles whose look has glow (bloom) or Pin Hole. Colour, tone and the other settings cost nothing per frame. The
-E-P7 also gets warm in live view on stock firmware. If you can compare with the stock firmware (flash `restore/E1429999.BIN`, then reflash Caduceus) and it's
+E-P7 also gets warm in live view on stock firmware. If you can compare with the stock firmware (step 3) and it's
 clearly cooler, please tell me: I can make the live-view glow preview optional.
 
 **LUTs / looks:** I think everything was imported. The looks just live somewhere else than you expected.
