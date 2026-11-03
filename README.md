@@ -114,20 +114,55 @@ and make new presets, right in your browser:
 
 ## Using it
 
+**On the card** (copy `EP7MOD` from the build to the card's top level):
+
 ```
-EP7MOD/BUNDLES.BIN   your four Colour Profile slots: looks, names, edits (the camera rewrites it; .NEW/.BAK alongside)
-EP7MOD/LOOKS.BIN     the film library the Film page picks from
+EP7MOD/LOOKS.BIN     the film library (the looks you can pick)
+EP7MOD/BUNDLES.BIN   your 4 Colour Profile slots: which look each holds, plus your edits (the camera rewrites it)
 ```
 
-- Switch on and **half-press once**: the looks load from the card (nothing is read at boot).
-- Open a Colour Profile's colour wheel. **INFO** steps: Saturation → Saturation · All → Hue → Light →
-  Film → Extras. Turn the dial to change the value; on Film it steps through the library.
-- Extras (sectors 1–7): grain, glow/clarity, WB amber/blue, WB green/magenta, Art Effect, Blacks, Whites.
-- Monochrome Profile editor (filter or shading): **INFO** steps through the mono film presets.
-- Leave the editor and half-press: changes are saved to `BUNDLES.BIN`. The previous file is kept as `.BAK`.
-- Picking a film look replaces that slot's hue, light and extras (saturation stays yours). Tweak on top
-  after picking; the label shows `*` once the slot differs from the look.
-- **Log video:** set the movie picture mode to **Muted**. Live view shows the flat log image.
+**Every time you switch on:** **half-press the shutter once**. That loads your looks from the card (nothing is
+read at boot). No `EP7MOD` folder = the camera behaves almost stock.
+
+**Pick a film look**
+1. Picture Mode → a **Colour Profile** (COLOR1–4); its name shows in the Picture Mode list.
+2. Open that profile's colour wheel, press **INFO** until the page shows a look name (the Film page).
+3. Turn the dial to scroll looks (`Velvia`, `Portra 400`, … `Stock`). Leave the editor and **half-press** to save.
+
+Picking a look sets that profile's colours, grain, glow/clarity, WB shift, Art Effect and tone curve.
+Saturation stays yours. A `*` after the name means you've changed something since picking it.
+
+**Fine-tune a look** (same colour wheel, **INFO** cycles the pages):
+
+| Page | What the dial does |
+|---|---|
+| Saturation (· All) | stock per-colour saturation (INFO also toggles single colour / all colours) |
+| Hue / Light | shift or brighten/darken one colour sector (pick the sector with the other dial) |
+| Film | choose a look from the library |
+| Extras | sector 1 grain · 2 glow ← → clarity · 3 WB amber/blue · 4 WB green/magenta · 5 Art Effect · 6 Blacks · 7 Whites |
+
+Highlights/Midtones/Shadows are on the camera's normal tone-curve screen; picking a look sets them for you.
+
+**Mono film presets:** Picture Mode → a **Monochrome Profile** → open its Colour Filter (or Shading) editor →
+**INFO** steps Pan F, Acros, T-Max, Tri-X, HP5, Delta 3200, Sepia… (name shown on screen).
+
+**Make, change or share looks:** use the [Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/).
+Edit sliders with a live preview, press **Share** for a short code anyone can paste in, and **Export** a new
+`LOOKS.BIN` to copy into `EP7MOD/`.
+
+**Log video:** in movie mode set the **movie** picture mode to **Muted**. You record the camera's hidden log curve
+(live view looks flat too). Grade it afterwards.
+
+**XPan / 21:9:** Image Aspect (menu or Super Control Panel) → **Panorama** (65:24) or **Wide** (21:9). The camera
+boots back to 4:3 each time, on purpose.
+
+**Screen too pink or green?** Setup › Monitor Adjust: the colour slider is now green ↔ magenta (0 = corrected).
+
+**Quick answers**
+- *Nothing changed?* Half-press once after switching on, and check `EP7MOD/` is at the card's top level.
+- *Want stock back for a moment?* Remove the `EP7MOD` folder. *For good?* Flash the restore file (see Install).
+- *Will updating lose my looks?* No: keep your `EP7MOD/BUNDLES.BIN`, and just replace `LOOKS.BIN` and the firmware.
+- *Live view vs photo:* grain, Star Light and some effects only show in the saved photo.
 
 ### On-camera UI
 
