@@ -9,7 +9,7 @@ recording.
 
 *Named after the caduceus, the staff of Hermes: messenger between gods and mortals and guide of travellers.*
 
-**Latest release: [v0.20](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.20)** ·
+**Latest release: [v0.22](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.22)** ·
 **[Install guide](docs/INSTALL.md)** · **[Changelog](CHANGELOG.md)** · **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** (make and share looks in your browser) · The camera's Setup › Firmware screen shows the Caduceus version.
 
 > [!WARNING]
@@ -60,8 +60,8 @@ The builder downloads OM's official 1.1 firmware from OM's server, checks it, an
   - Windows: `Build Caduceus (Windows).bat`
   - macOS: `Build Caduceus (Mac).command` (the first time: right-click › **Open**)
   - Linux: `build-caduceus-linux.sh`
-- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.20`
-  (Windows: `py caduceus.py build --release v0.20`).
+- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.22`
+  (Windows: `py caduceus.py build --release v0.22`).
 
 It creates a folder with:
 
