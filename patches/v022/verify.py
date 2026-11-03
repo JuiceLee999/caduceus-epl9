@@ -4,7 +4,8 @@
   .venv/bin/python -I patches/v022/verify.py releases/v0.21/edits.json releases/v0.22/edits.json
 
   R  loader ranges: SD loader v3 / fm_check accept grain 0..6, reject 7
-  G  ex_get grain read: byte 0 / 6 / 1 / 2..5 -> u 0 Global / 1 Off / 2 Fine / 3 Film; 7+ -> 0
+  G  ex_get grain read through g_val/rets (real CALLS frame, image read-only): byte 0 / 6 / 1 / 2..5 -> OUT = u
+     0 Global / 1 Std / 2 Low / 3 Off; 7+ -> 0; a1/d2/d3/a2 kept (regression: the first v0.22 build clobbered a1)
   S  Extras grain edit (ex_set from 0x601e33bc, wheel value -7..8): u = clamp 0..3, slot byte 0/6/1/2; manager
      0x60827440 once with (1334, 0 Standard / -1 Low / -2 Off, ex_set's a0, a1) for u 1..3, never for Global;
      d0/d1/a0/a1, MDR, sp restored at s_dirty
@@ -138,16 +139,25 @@ def t_label(im):
 
 
 def t_get(im):
-    bad = []
-    for g in range(9):
+    """ex_get grain tail from 0x601e32c8 through g_val (`mov d0,(a1)`; movm pop; rets) with a real CALLS frame:
+    OUT gets u, a1 kept, the image (read-only) is never written, returns to the caller. Bytes 0..8 + the card's."""
+    bad, n = [], 0
+    for g in list(range(9)) + [2, 3, 1, 3]:
         buf = bytearray(64); buf[56] = g
+        stk = bytearray(0x200)
+        struct.pack_into('<IIII', stk, 0x100, 0xa2a2, 0x3333, 0x2222, 0x18050000)   # movm [d2,d3,a2] frame (a2, d3, d2) + return
         rg = [Region(f'i{lo:x}', lo, im[lo - BASE:hi - BASE], 'rx') for lo, hi in ((0x601e1b00, 0x601e1c40), (0x601e3200, 0x601e3a00))] + \
-             [Region('buf', BUF, bytes(buf), 'rw', True), Region('stk', STK, bytes(0x200), 'rw', True)]
-        r = execute(rg, dict(sp=STK + 0x100, pc=0x601e32c8, a2=BUF), 0x601e3322, limit=200)
+             [Region('buf', BUF, bytes(buf), 'rw', True), Region('stk', STK, bytes(stk), 'rw', True),
+              Region('out', CAP, b'\xee' * 16, 'rw', True), Region('ret', 0x18050000, b'\xcb' * 4, 'rx')]
+        r = execute(rg, dict(sp=STK + 0x100, pc=0x601e32c8, a2=BUF, a1=CAP, d3=0, mdr=0x18050000), 0x18050000, limit=200)
+        m = {x['name']: bytes.fromhex(x['hex']) for x in r['memory']}
         want = B2U[g] if g < 7 else 0
-        if r['fault'] or r['registers']['pc'] != 0x601e3322 or r['registers']['d0'] != want:
-            bad.append((g, r['registers']['d0']))
-    return bad, 9
+        rr = r['registers']
+        n += 1
+        if r['fault'] or rr['pc'] != 0x18050000 or struct.unpack_from('<I', m['out'], 0)[0] != want or rr['d0'] != 0 or \
+           (rr['d2'], rr['d3'], rr['a2']) != (0x2222, 0x3333, 0xa2a2):
+            bad.append((g, r['fault'], hex(rr['pc']), m.get('out', b'')[:4].hex(), [hex(rr[x]) for x in ('d0', 'd2', 'd3', 'a2', 'sp')]))
+    return bad, n
 
 
 def t_wl(stock, im):

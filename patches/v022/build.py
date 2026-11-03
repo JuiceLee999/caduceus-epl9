@@ -77,13 +77,14 @@ ng_set:                          /* ex_set grain write: d1 = u 0..3, a2 = P + 64
  mov (16,sp),a1
  add 24,sp
  jmp ep7_s_dirty
-ng_get:                          /* ex_get grain read: a2 = P + 64*slot -> d0 = u */
+ng_get:                          /* ex_get grain read: a2 = P + 64*slot, a1 = OUT pointer (g_val stores to it) -> d0 = u */
  movbu (56,a2),d0
  cmp 7,d0
  bcc 1f
+ mov a1,d1                       /* keep the output pointer (v0.22 first build clobbered a1: reboot on Extras) */
  mov ng_b2u,a1
- add d0,a1
- movbu (a1),d0
+ movbu (d0,a1),d0
+ mov d1,a1
  jmp ep7_g_val
 1:
  clr d0
