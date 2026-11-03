@@ -279,6 +279,8 @@ welcome: please open an issue.
   emulator harness this project builds on (used as a submodule).
 - LightSnowDev, Altsoph/mx3 (CHDK forum), the DVXuser and Personal View Olympus threads, and iKenndac for
   earlier Olympus firmware research.
+- **[Gx]Ace** (Casey Cavanaugh, [gxace.com](https://gxace.com)): his videos inspired the **Atrophy** look and the
+  **XPan** aspect ratio.
 - Community film recipes: GarethB (Kodachrome 25, mu-43.com), om-recipes.com contributors; see
   `docs/LIBRARY_V1.md`. Film-look references: `docs/FILM_SIMS.md` and `docs/FILM_LOOK.md`.
 
