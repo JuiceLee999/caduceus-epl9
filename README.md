@@ -173,18 +173,31 @@ Muted. Left: the standard curve. Right: the hidden log curve, rendered with the 
 
 ## Roadmap
 
-- More film looks, and a cross-platform web app to build and share `LOOKS.BIN` files.
+Grouped by how likely and how hard each item is. Feasibility notes for the video and lens items are in
+`docs/VIDEO_HIDDEN.md`.
+
+**Likely / easy**
+- Clean HDMI output: stock Record Mode (sid 1276) exists but is gated to movie mode at `0x60d1cb42`; drop the gate.
+- Per-profile "vignette correction off": stock Shading Comp. is sid 61; override it per slot like the Art Effect flag.
 - Art Effect live-view preview that updates immediately.
+- More film looks, and a cross-platform web app to build and share `LOOKS.BIN` files.
+
+**Possible / medium effort**
+- ISO Auto in movie M: the movie ISO list already includes Auto; the dynamic gate in the AE code still has to be found.
+- Vignette on colour profiles as Extras sector 8 (−5..+5, finer than stock), using the stock shading stage (`docs/VIGNETTE.md`).
+- Per-look tone on the Film page, plus a Blacks/Whites page on the tone-curve screen (`docs/TONE_ENDS.md`).
 - Tinted halation (red glow around white lights), probably via a mask built from the exposure meter grid.
-- Vignette on colour profiles as Extras sector 8 (−5..+5, finer than stock), using the stock shading stage
-  (plan: `docs/VIGNETTE.md`).
-- Per-look tone on the Film page (LOOKS.BIN tone block: a pick applies the look's Highlight/Shadow/Midtone and
-  Blacks/Whites), and a Blacks/Whites page on the tone-curve screen (plan: `docs/TONE_ENDS.md`).
-- Far future (Ricoh GR-style): **highlight-weighted metering** (meter the whole frame but protect highlights) and
-  **snap focus** (a preset focus distance used when the shutter is pressed straight through).
 - Maybe: use the ART position on the mode dial as a quick "silent shutter" switch.
-- Parked: colour looks on Monochrome slots or extra profile slots; a list-style menu instead of the wheel;
-  4:3 "open gate" video.
+
+**Hard / long shot**
+- C4K video: hidden, not removed (C4K drive mode, 4096×2160 tables and HDMI C4K are present); the sensor, encoder
+  and thermal setup are unknown and need camera tests.
+- FHD 120p high-speed: the E-P7 only has a 720p 120 mode; this needs a new readout and encoder setup.
+- Highlight-weighted metering and snap focus (Ricoh GR-style).
+
+**Parked**
+- Live ND: the code exists only on E-M1-class bodies, not in the E-P7 or E-M5 III; it would mean new ISP code.
+- Colour looks on Monochrome slots or extra profile slots; a list-style menu instead of the wheel; 4:3 "open gate" video.
 
 ## How it works
 
