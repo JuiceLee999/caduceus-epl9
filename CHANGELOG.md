@@ -11,6 +11,10 @@ pre-releases: use at your own risk (see the README).
   new. MONO grain is stock. The card loaders accept grain 0..5 (a v0.21 look with grain 4/5 is rejected by older
   firmware's loader, which allows 0..3). Web app: grain Off/1–5; share codes for grain 4/5 use new prefixes 3/4,
   every other code is unchanged.
+- **Blur Art Effect removed (issue #20):** on a colour profile, Blur could restart the camera without saving the
+  photo. Blur is now Off everywhere: the photo path, the live-view preview and Extras sector 5, which now cycles
+  Off / Star Light / Pin Hole. A slot that already has Blur saved keeps the byte on the card, but it does nothing and
+  shows as Off. Web app: Blur is listed only as a legacy value (Off on v0.21+). docs/ISSUES_19_20.md.
 - Firmware screen shows `Caduceus: 0.21`.
 
 **Known issue (all versions):** colour film grain adds no visible grain to full-size colour photos. Camera

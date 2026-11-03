@@ -8,6 +8,15 @@
   G  look extras ex_get grain read (0x601e32c8): byte 0..5 -> value, 6+ -> 0 (v0.20: 4+ -> 0)
   S  ex_set grain clamp (0x601e33bc): wheel value -7..8 -> clamp 0..5 (v0.20: 0..3)
   L  sector-1 label (0x601e355e): 0 "1 Grain Off", 1..5 "1 Grain 1".."1 Grain 5", 6+ -> no label (q_out)
+  B  Blur off (issue #20), v0.21 vs the v0.20 control:
+     B1 still converter 0x603eab39 (native, via tools/ep7_bloom_verify.conv_run): art 3 (Blur) on a key-11 COLOR job
+        gives exactly the flags of art 0 (no 0x100, 0x200 untouched); every other art value / key / mode / profile /
+        effect / erased table == v0.20 (Star Light 0x40, Pin Hole 0x400 kept); control: v0.20 adds 0x100 for art 3
+     B2 lv_art hook (patches/lv_art/verify.hook_run): art 3 -> job == art 0 (no 0x100); art 2 Pin Hole 0x400 kept;
+        all other values == v0.20; control: v0.20 adds 0x100
+     B3 ex_get art read (0x601e3318): byte 0,1,2 -> itself, 3..6/255 -> 0 (v0.20: 3 -> 3)
+     B4 ex_set art write (0x601e339f): wheel -7..8 -> clamp -3..5, wrap modulo 3 (Off/Star Light/Pin Hole);
+        v0.20: clamp -4..7, modulo 4
   P  anti-brick: build_package decodes to stock + edits, restore == stock
 (Grain gains per level / MONO stock: tools/ep7_grain_verify.py.)
 """
@@ -97,6 +106,91 @@ def l_label(im):
     return bad, seen
 
 
+def _load(name, rel):
+    import importlib.util
+    sp = importlib.util.spec_from_file_location(name, ROOT / rel)
+    m = importlib.util.module_from_spec(sp); sp.loader.exec_module(m)
+    return m
+
+
+def b_conv(im1, im0):
+    BV = _load('bv21', 'tools/ep7_bloom_verify.py')
+    bad, n, ctl = [], 0, 0
+    for art in (0, 1, 2, 3, 4, 5, 6, 255):
+        for eff in ((0, 0), (1, 3), (3, 2)):
+            for erased in (False, True):
+                t = bytearray(BV.fixture_table({i: eff for i in range(8)}))
+                for k in range(8):
+                    t[64 * k + 46] = art
+                t0 = bytearray(t)
+                for k in range(8):
+                    t0[64 * k + 46] = 0
+                tb, tb0 = (b'\xff' * 512, b'\xff' * 512) if erased else (bytes(t), bytes(t0))
+                for key in (11, 0x01010064, 12):
+                    for mode in (11, 12):
+                        for prof in (1, 4, 5):
+                            o1, f1, p1, c1 = BV.conv_run(im1, tb, key, mode, prof)
+                            o0, f0, p0, c0 = BV.conv_run(im0, tb, key, mode, prof)
+                            want = f0
+                            if art == 3 and not erased:
+                                oa, fa, _, _ = BV.conv_run(im0, tb0, key, mode, prof)
+                                want = fa
+                                ctl += (f0 & 0x100) != 0 and key == 11 and mode == 11 and prof <= 4
+                            n += 1
+                            if not (o1 and o0 and c1 and c0 and f1 == want and p1[:12] == p0[:12] and p1[16:] == p0[16:]):
+                                bad.append((art, eff, erased, hex(key), mode, prof, hex(f1), hex(want)))
+    if ctl == 0:
+        bad.append('control: v0.20 never set 0x100 for Blur')
+    return n, bad
+
+
+def b_lv(im1, im0, new, old):
+    LV = _load('lv21', 'patches/lv_art/verify.py')
+    bad, n, ctl = [], 0, 0
+    for art in (0, 1, 2, 3, 4, 5, 6, 255):
+        for extra in ({}, dict(hl=True), dict(eff=1, s=3)):
+            t = LV.fixture({k: dict(art=art, **extra) for k in range(4)})
+            t0 = LV.fixture({k: dict(art=0, **extra) for k in range(4)})
+            for prof in (1, 3, 4, 5):
+                for jt in (0x38, 0x40):
+                    r1 = LV.hook_run(im1, new, t, profile=prof, jtype=jt)
+                    r0 = LV.hook_run(im0, old, t, profile=prof, jtype=jt)
+                    want = r0
+                    if art == 3:
+                        want = LV.hook_run(im0, old, t0, profile=prof, jtype=jt)
+                        ctl += struct.unpack_from('<I', r0[1]['job'], 16)[0] & 0x100 != 0
+                    n += 1
+                    if not (r1[0] and want[0] and r1[1]['job'] == want[1]['job'] and r1[1]['stack'] == want[1]['stack']):
+                        bad.append((art, extra, prof, hex(jt)))
+                    if art == 2 and jt == 0x38 and prof <= 4 and not struct.unpack_from('<I', r1[1]['job'], 16)[0] & 0x400:
+                        bad.append(('pin hole lost', prof))
+    if ctl == 0:
+        bad.append('control: v0.20 never set 0x100 for LV Blur')
+    return n, bad
+
+
+def b_get(im, blur):
+    bad = []
+    for v in (0, 1, 2, 3, 4, 5, 6, 255):
+        buf = bytearray(128); buf[78] = v                 # a2 = P + 64*slot: (78,a2) = table byte 32 + slot +46
+        rr, _, f = run(im, EX, dict(pc=0x601e3318, a2=BUF, d0=0x5555), 0x601e3322, buf)
+        want = v if v < (4 if blur else 3) else 0
+        if f or rr['pc'] != 0x601e3322 or rr['d0'] != want:
+            bad.append((v, rr['d0'], want))
+    return bad
+
+
+def b_set(im, blur):
+    bad = []
+    lo, hi, m = (-4, 7, 4) if blur else (-3, 5, 3)
+    for v in range(-7, 9):
+        rr, _, f = run(im, EX, dict(pc=0x601e339f, d1=v & 0xffffffff, a2=BUF), 0x601e33b7)
+        want = min(max(v, lo), hi) % m
+        if f or rr['pc'] != 0x601e33b7 or rr['d1'] != want:
+            bad.append((v, rr['d1'], want))
+    return bad
+
+
 def main():
     old, new = (json.loads(Path(p).read_text()) for p in sys.argv[1:3])
     im0, *_ = image(old)
@@ -107,6 +201,17 @@ def main():
         good = not b1 and not b0
         ok &= good
         print(f"{'PASS' if good else 'FAIL'} {name}: v0.21 0..5 {b1 or 'ok'}; v0.20 control 0..3 {b0 or 'ok'}")
+    n1, bb = b_conv(im1, im0)
+    ok &= not bb
+    print(f"{'PASS' if not bb else 'FAIL'} B1 converter Blur -> Off: {n1 - len(bb)}/{n1} {bb[:6] or ''}")
+    n2, bb = b_lv(im1, im0, new, old)
+    ok &= not bb
+    print(f"{'PASS' if not bb else 'FAIL'} B2 lv_art Blur -> Off: {n2 - len(bb)}/{n2} {bb[:6] or ''}")
+    for name, fn in (('B3 ex_get art', b_get), ('B4 ex_set art wrap', b_set)):
+        b1, b0 = fn(im1, False), fn(im0, True)
+        good = not b1 and not b0
+        ok &= good
+        print(f"{'PASS' if good else 'FAIL'} {name}: v0.21 Off/Star Light/Pin Hole {b1 or 'ok'}; v0.20 control 0..3 {b0 or 'ok'}")
     bl, seen = l_label(im1)
     ok &= not bl
     print(f"{'PASS' if not bl else 'FAIL'} L label: {seen}; 6/7 -> q_out {bl or 'ok'}")

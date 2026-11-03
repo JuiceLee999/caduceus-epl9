@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v0.21 = releases/v0.20 (byte level) + 5 COLOR grain levels. Offline.
+"""v0.21 = releases/v0.20 (byte level) + 5 COLOR grain levels + Blur Art Effect off (issue #20). Offline.
 
   python3 -I patches/v021/build.py releases/v0.20/edits.json --out releases/v0.21/edits.json
 
@@ -13,7 +13,11 @@ Edits on top of the v0.20 spec (every old byte is asserted):
                        label bound cmp 4 -> 6 (0x601e3565); label table ptr 0x601e35f0 -> new 6-entry table at
                        0x601e3840 (dead EVF step-0 R table; only ref: step-table word 0x601e3c80): "1 Grain Off"
                        (the old string) and "1 Grain 1".."1 Grain 5". Value clamps at 0 and 5 (no wrap), as before.
-  fw_version           value "0.21" (run patches/fw_version/build.py afterwards)
+  Blur off (issue #20) COLOR Art stub bound 1..3 -> 1..2 and its Blur entry -> no-op (0x601e1d42/71/75); lv_art LV
+                       bound -> Pin Hole only, Blur entry -> 0 (0x601e11c3/0x601e1215); look extras art read 3 -> Off
+                       (0x601e331c) and ex_set wrap modulo 3 (Off / Star Light / Pin Hole; 0x601e33a0..b6).
+                       A stored Blur byte (old cards) is kept on the card but does nothing. docs/ISSUES_19_20.md.
+  fw_version           value "0.21" (run patches/fw_version/build.py afterwards, --mod-version 0.21)
 """
 import argparse, copy, importlib.util, json, struct
 from pathlib import Path
@@ -31,6 +35,20 @@ BYTES = [  # (addr, old, new, what)
     (0x601e33d2, 0x03, 0x05, 'look extras ex_set: grain clamp max 5 (cmp)'),
     (0x601e33d6, 0x03, 0x05, 'look extras ex_set: grain clamp max 5 (mov)'),
     (0x601e3565, 0x04, 0x06, 'look extras label: grain index < 6'),
+    # issue #20 (COLOR + Blur restarts the camera without saving): Blur (art 3) is mapped to Off everywhere
+    (0x601e1d42, 0x03, 0x02, 'COLOR Art stub: art bound 1..3 -> 1..2 (Blur = Off, issue #20)'),
+    (0x601e1d71, 0xfc, 0xff, 'COLOR Art stub: Blur entry AND mask ~0x300 -> ~0 (dead entry, no-op)'),
+    (0x601e1d75, 0x01, 0x00, 'COLOR Art stub: Blur entry OR 0x100 -> 0 (dead entry, no-op)'),
+    (0x601e11c3, 0x02, 0x01, 'lv_art: LV art bound 2..3 -> 2 (Pin Hole only; Blur not previewed)'),
+    (0x601e1215, 0x01, 0x00, 'lv_art: LV Blur flag 0x100 -> 0 (dead entry, no-op)'),
+    (0x601e331c, 0x04, 0x03, 'look extras ex_get: art byte 3 (Blur) reads Off'),
+    (0x601e33a0, 0xfc, 0xfd, 'look extras ex_set: art pre-clamp low -4 -> -3 (cmp)'),
+    (0x601e33a4, 0xfc, 0xfd, 'look extras ex_set: art pre-clamp low -4 -> -3 (mov)'),
+    (0x601e33a6, 0x07, 0x05, 'look extras ex_set: art pre-clamp high 7 -> 5 (cmp)'),
+    (0x601e33aa, 0x07, 0x05, 'look extras ex_set: art pre-clamp high 7 -> 5 (mov)'),
+    (0x601e33b0, 0x04, 0x03, 'look extras ex_set: art wrap modulo 3 (negative: +3)'),
+    (0x601e33b2, 0x04, 0x03, 'look extras ex_set: art wrap modulo 3 (>= 3)'),
+    (0x601e33b6, 0xfc, 0xfd, 'look extras ex_set: art wrap modulo 3 (-3)'),
 ]
 LBL_PTR, LBL_OLD = 0x601e356e, 0x601e35f0          # `mov ex_tg,a2` imm32 in ex_ui
 TAB_AT, TAB_END = 0x601e3840, 0x601e38a0           # claim 0x601e383c..0x601e38a0 (rest of step-0 R stays stock)

@@ -371,7 +371,7 @@ function renderEditor() {
     wbPanel(l, changed),
     ...(l.kind === 'colour' ? [h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Art Effect'),
       h('select', { onchange: (e: Event) => { l.art_effect = (e.target as HTMLSelectElement).value as Look['art_effect']; changed(); } },
-        ...ARTS.filter((a) => ['off', 'star_light', 'pin_hole', 'blur'].includes(a) || a === l.art_effect).map((a) =>
+        ...ARTS.filter((a) => ['off', 'star_light', 'pin_hole'].includes(a) || a === l.art_effect).map((a) =>
           h('option', { value: a, selected: a === l.art_effect }, artLabel(a)))),
       h('span', { class: 'help' }, 'Kept in the pack file, share codes and the starter BUNDLES.BIN (COLOR slots). LOOKS.BIN has no Art Effect field. Not shown in the preview.'))] : []),
     h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Notes'),
@@ -394,7 +394,7 @@ function dupName(l: Look, i: number): string | null {
   const j = S.pack.looks.findIndex((o, k) => k !== i && o.name.toLowerCase() === l.name.toLowerCase());
   return j >= 0 ? `Same name as look ${j + 1}.` : null;
 }
-const artLabel = (a: string) => ({ off: 'Off', star_light: 'Star Light', pin_hole: 'Pin Hole', blur: 'Blur (Soft Focus)', white_edge: 'White Edge (legacy: Off on v0.15+)', frame: 'Frame (legacy: Off on v0.15+)' } as Record<string, string>)[a] ?? a;
+const artLabel = (a: string) => ({ off: 'Off', star_light: 'Star Light', pin_hole: 'Pin Hole', blur: 'Blur (legacy: Off on v0.21+, issue #20)', white_edge: 'White Edge (legacy: Off on v0.15+)', frame: 'Frame (legacy: Off on v0.15+)' } as Record<string, string>)[a] ?? a;
 
 function seg(label: string, opts: [string, string][], value: string, on: (v: string) => void): HTMLElement {
   return h('div', { class: 'field' }, h('span', { class: 'lbl' }, label),
