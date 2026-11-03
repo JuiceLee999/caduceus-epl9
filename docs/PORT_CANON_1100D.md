@@ -56,6 +56,14 @@ and stock file format).
 
 ## Sources
 
+- [EOS 1100D manual (Picture Style, p.24)][m]
+- [Canon: registering Picture Style files][reg]
+- [Picture Style Editor: saving files][pse-save]
+- [Seller list of PF2/PF3 compatibility][ps3]
+- [Magic Lantern forum: PF2 format][ml-pf2]
+- [Magic Lantern 1100D builds][ml-builds]
+- [Magic Lantern forum: 1100D port][ml-1100d]
+
 [m]: https://www.manualsdir.com/manuals/633199/canon-eos-1100-d.html?page=24
 [reg]: https://id.canon/en/support/8200044800
 [pse-save]: https://cam.start.canon/he/S004/manual/html/UG-04_Saving_0020.html
