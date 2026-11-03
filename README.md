@@ -280,6 +280,8 @@ welcome: please open an issue.
 
 ## Credits
 
+- **Inspiration:** [u/fischgurke](https://www.reddit.com/user/fischgurke/) and his PEN-F HSL firmware mod, which
+  showed an Olympus body could get in-camera HSL editing and started this whole project.
 - [fishcu/oly_fw_analysis](https://github.com/fishcu/oly_fw_analysis): PEN-F firmware research and the MN103
   emulator harness this project builds on (used as a submodule).
 - LightSnowDev, Altsoph/mx3 (CHDK forum), the DVXuser and Personal View Olympus threads, and iKenndac for
