@@ -9,7 +9,7 @@ recording.
 
 *Named after the caduceus, the staff of Hermes: messenger between gods and mortals and guide of travellers.*
 
-**Latest release: [v0.22](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.22)** ·
+**Latest release: [v0.23](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.23)** ·
 **[Install guide](docs/INSTALL.md)** · **[Changelog](CHANGELOG.md)** · **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** (make and share looks in your browser) · The camera's Setup › Firmware screen shows the Caduceus version.
 
 > [!WARNING]
@@ -36,7 +36,7 @@ recording.
 | **LCD colour fix** | The rear screen no longer looks slightly pink (+8 % green by default), and Monitor Adjust's colour slider becomes a green ↔ magenta slider (−7..+7, about 2.3 % per step) instead of warm/cool. Display only: photos, movies and HDMI are unchanged. | New in v0.20 |
 | **Extras per profile** | Bloom ↔ clarity (one slider), WB amber/blue and green/magenta shift, and Art Effects (Star Light, Pin Hole; Blur removed in v0.21, it could restart the camera). | Camera-tested |
 | **Noise reduction per look** | Each colour look can set the camera's own noise reduction (Noise Filter). Less noise reduction keeps the sensor's natural fine texture instead of smoothing it away. Extras sector 1 **NR**: **Camera** (leave the camera's setting alone), **Std**, **Low** or **Off** (most texture). It is set when you pick a look or change sector 1. The Noise Filter is one camera-wide setting, so it stays at the last value when you switch to another profile. The difference shows mostly at higher ISO. True film grain is on the roadmap (the camera's grain stages add nothing visible to colour photos). | ✅ v0.22 |
-| **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profiles, built from OM's own mono settings. Label `Film: <name>`, `*` when modified. | Camera-tested |
+| **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profiles, built from OM's own mono settings. Label `<name>`, `*` when modified. | Camera-tested |
 | **Live-view preview** | Hue, lightness and bloom show in live view, not only in the saved photo. | Camera-tested |
 | **True log video** | A log curve Olympus left hidden in the firmware, switched on with the **movie** picture mode set to Muted. | Camera-tested |
 | **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel, with matching live view and playback framing and `XPAN`/`UW` size labels. Boots back to 4:3 each power-on, for safety. | Camera-tested |
@@ -60,8 +60,8 @@ The builder downloads OM's official 1.1 firmware from OM's server, checks it, an
   - Windows: `Build Caduceus (Windows).bat`
   - macOS: `Build Caduceus (Mac).command` (the first time: right-click › **Open**)
   - Linux: `build-caduceus-linux.sh`
-- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.22`
-  (Windows: `py caduceus.py build --release v0.22`).
+- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.23`
+  (Windows: `py caduceus.py build --release v0.23`).
 
 It creates a folder with:
 
@@ -127,8 +127,8 @@ read at boot). No `EP7MOD` folder = the camera behaves almost stock.
 
 **Pick a film look**
 1. Picture Mode → a **Colour Profile** (COLOR1–4); its name shows in the Picture Mode list.
-2. Open that profile's colour wheel, press **INFO** until the page shows a look name (the Film page).
-3. Turn the dial to scroll looks (`Velvia`, `Portra 400`, … `Stock`). Leave the editor and **half-press** to save.
+2. Open that profile's colour wheel, press **INFO** until the page shows `Film: <name>` (the Film page).
+3. Turn the dial to scroll looks (`Film: Velvia`, `Film: Portra 400`, … `Stock`). Leave the editor and **half-press** to save.
 
 Picking a look sets that profile's colours, noise reduction, glow/clarity, WB shift, Art Effect and tone curve.
 Saturation stays yours. A `*` after the name means you've changed something since picking it.

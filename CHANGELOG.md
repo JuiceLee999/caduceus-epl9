@@ -3,6 +3,15 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). All releases are early-development
 pre-releases: use at your own risk (see the README).
 
+## v0.23 — 2026-11-03
+
+- **No more duplicate looks on the Film page:** when a profile was already on a library look, turning the dial
+  showed that look twice (its saved copy and the library entry). An unedited copy is now skipped; if you've edited
+  the look (`*`), your edited version stays in the cycle so you can get back to it.
+- **`Film: ` prefix is back** on the colour Film page, for every name: `Film: Velvia`, `Film: Kodachrome64*`
+  (label up to 19 characters).
+- Firmware screen shows `Caduceus: 0.23`. Card files (`LOOKS.BIN`) unchanged from v0.22.
+
 ## v0.22 — 2026-11-03
 
 - **Noise reduction per look** (replaces colour grain): camera tests showed the camera's grain stages add nothing
