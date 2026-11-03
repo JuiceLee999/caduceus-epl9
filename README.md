@@ -39,7 +39,6 @@ recording.
 | **Live-view preview** | Hue, lightness and bloom show in live view, not only in the saved photo. | Camera-tested |
 | **True log video** | A log curve Olympus left hidden in the firmware, switched on with the **movie** picture mode set to Muted. | Camera-tested |
 | **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel, with matching live view and playback framing and `XPAN`/`UW` size labels. Boots back to 4:3 each power-on, for safety. | Camera-tested |
-| **LCD tint fix** | The rear screen's factory pink cast is corrected, and Setup › Monitor Adjust's colour slider becomes a green↔magenta slider so you can fine-tune it. Display only: photos, video and HDMI are untouched. | New in v0.20 |
 | **Recording limit** | 29-minute and 2-hour caps raised to 9 hours (file, chapter and heat limits still apply). | Camera-tested |
 
 ## Install
