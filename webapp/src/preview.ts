@@ -43,7 +43,7 @@ const enc = (x: number) => ENC[Math.max(0, Math.min(ENC_N, (x * ENC_N + 0.5) | 0
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 
 /** Per-hue-bin colour-engine response for a look: saturation multiplier, hue shift (deg), lightness (native sum). */
-function sectorLut(hue: number[], light: number[], sat: number[]) {
+export function sectorLut(hue: number[], light: number[], sat: number[]) {
   const satMul = new Float32Array(BINS), shift = new Float32Array(BINS), lsum = new Float32Array(BINS);
   const sc = sat.map((s, k) => (s * (s >= 0 ? GAIN_POS[k] : GAIN_NEG[k])) / 5 * SAT_SCALE);
   const centre = CENTRE.map((c) => (c + ANGLE_OFFSET) % 360);
@@ -71,7 +71,7 @@ function sectorLut(hue: number[], light: number[], sat: number[]) {
   return { satMul, shift, lsum };
 }
 
-const contrastCurve = (contrast: number) => (y: number) => clamp01(y + 0.5 * CONTRAST_STEP * contrast * Math.sin(2 * Math.PI * (y - 0.5)));
+export const contrastCurve = (contrast: number) => (y: number) => clamp01(y + 0.5 * CONTRAST_STEP * contrast * Math.sin(2 * Math.PI * (y - 0.5)));
 
 /** Box-downsample to ~sw px wide, blur, and bilinear-upsample back: the Soft Focus "blurred copy". */
 function blurredCopy(src: Float32Array, w: number, h: number, sw: number, sigma: number): Float32Array {

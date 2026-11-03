@@ -211,6 +211,7 @@ canvas.pv { width: 100%; height: auto; display: block; max-height: 70vh; object-
 .tag { font-size: 11px; color: var(--accent); justify-self: start; }
 .ex-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
 .ex-row p { margin: 2px 0 4px; }
+.ex-btns { display: flex; gap: 6px; flex-shrink: 0; }
 .ex-bundles { border-top: 1px solid var(--line); padding: 10px 0; }
 .ex-bundles summary { cursor: pointer; font-weight: 600; }
 .slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
@@ -241,3 +242,17 @@ canvas.pv { width: 100%; height: auto; display: block; max-height: 70vh; object-
 
 .recipe-card { white-space: pre-wrap; font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace; background: var(--soft);
   border-radius: 8px; padding: 10px 12px; max-height: 260px; overflow: auto; margin: 8px 0; }
+
+/* install guide */
+.install .warn { background: var(--soft); border-left: 3px solid var(--accent); padding: 8px 12px; border-radius: 6px; margin: 4px 0 12px; font-size: 13px; }
+.install .steps { list-style: none; counter-reset: step; padding: 0; margin: 0; display: grid; gap: 10px; }
+.install .step { counter-increment: step; position: relative; padding: 10px 12px 10px 48px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.install .step::before { content: counter(step); position: absolute; left: 12px; top: 10px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 13px; display: grid; place-items: center; }
+.install .step > b { display: block; margin: 2px 0 2px; }
+.install .step-body p { margin: 2px 0 6px; }
+.install .step-body ul { margin: 2px 0 6px; padding-left: 18px; }
+.install code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; background: var(--soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.install a { color: var(--accent); }
+a.btn { display: inline-block; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; text-decoration: none; color: var(--ink); background: var(--panel); }
+a.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }

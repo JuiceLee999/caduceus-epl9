@@ -10,6 +10,7 @@ import { fromLibrary, libraryOrigin, migratePack, resetLook, standardPack } from
 import { renderLook } from './preview';
 import { decodeLookCode, decodePackCode, encodeLookCode, encodePackCode, isPackCode } from './sharecode';
 import { makeZip } from './zip';
+import { rrpreset } from './rapidraw';
 import { TARGETS, targetById } from './targets';
 import { recipeCard } from './targets/recipe';
 import { previewToneLut } from './tone';
@@ -177,6 +178,7 @@ function shell() {
         h('button', { onclick: openFile }, 'Open…'),
         h('button', { onclick: pasteDialog }, 'Paste code'),
         h('button', { onclick: sharePack }, 'Share pack'),
+        h('button', { onclick: installDialog }, 'Install firmware'),
         h('button', { class: 'primary', onclick: exportDialog }, 'Export'))),
     h('main', { class: 'layout' },
       h('aside', { class: 'pane list-pane', id: 'list' }),
@@ -811,6 +813,42 @@ function confirmPack(p: Pack): boolean {
   return true;
 }
 
+const GH = 'https://github.com/cakelesscoder/caduceus-ep7';
+function installDialog() {
+  const link = (href: string, text: string) => h('a', { href, target: '_blank', rel: 'noopener' }, text);
+  const code = (t: string) => h('code', {}, t);
+  const step = (title: string, ...body: (Node | string | null)[]) => h('li', { class: 'step' }, h('b', {}, title), h('div', { class: 'step-body' }, ...body));
+  const exportBtn = h('button', { onclick: () => { dlg.close(); exportDialog(); } }, 'Open Export');
+  const body = h('div', { class: 'install' },
+    h('p', { class: 'warn' }, '⚠️ Unofficial, experimental firmware. Flashing can brick your camera; you do this at your own risk. Without the EP7MOD folder the camera is almost stock, and the restore file returns it fully to stock.'),
+    h('ol', { class: 'steps' },
+      step('Check your camera',
+        h('p', {}, 'Olympus PEN ', h('b', {}, 'E-P7'), ' on firmware ', h('b', {}, '1.1'), ' (Setup › Firmware), a charged battery and an SD card formatted in the camera.')),
+      step('Get Python 3.10+ (once)',
+        h('p', {}, 'Windows / macOS: ', link('https://www.python.org/downloads/', 'python.org/downloads'), '. Windows: tick ', h('b', {}, 'Add python.exe to PATH'), '. macOS: afterwards run ', code('Install Certificates.command'), ' in the Python folder. Linux: usually already installed.')),
+      step('Download Caduceus',
+        h('p', {}, 'Open the ', link(`${GH}/releases/latest`, 'latest release'), ', download ', h('b', {}, 'Source code (zip)'), ' and unzip it. There is no firmware file to download: OM\'s licence means you build it yourself in the next step.')),
+      step('Build (one double-click)',
+        h('p', {}, 'In the unzipped folder, double-click the launcher for your system:'),
+        h('ul', {},
+          h('li', {}, 'Windows: ', code('Build Caduceus (Windows).bat')),
+          h('li', {}, 'macOS: ', code('Build Caduceus (Mac).command'), ' (first time: right-click › Open, then Open)'),
+          h('li', {}, 'Linux: ', code('build-caduceus-linux.sh'))),
+        h('p', {}, 'It downloads OM\'s official 1.1 firmware, builds Caduceus, checks every file and offers to copy it to your camera card. Otherwise copy ', code('DCOLYMP'), ' and ', code('EP7MOD'), ' to the root of the card. Keep ', code('restore/'), ' on your computer.')),
+      step('Add your looks (optional)',
+        h('p', {}, 'Export ', code('LOOKS.BIN'), ' from this Control Panel and put it in ', code('EP7MOD/'), ' on the card, replacing the one there. Your saved slots (', code('BUNDLES.BIN'), ') stay as they are.'),
+        exportBtn),
+      step('Flash',
+        h('p', {}, 'Put the card in the camera, hold ', h('b', {}, 'OK'), ' and switch on. Wait for the update to finish (blinking LED) and don\'t switch off meanwhile. Setup › Firmware then shows Caduceus.')),
+      step('Shoot',
+        h('p', {}, 'Half-press once so the looks load. Picture Mode › a Colour Profile › colour wheel, press ', h('b', {}, 'INFO'), ' until ', code('Film: <name>'), ', and turn the dial to pick a look.')))
+  );
+  const dlg = modal('Install the firmware', body, [
+    h('a', { class: 'btn', href: `${GH}/blob/main/docs/INSTALL.md`, target: '_blank', rel: 'noopener' }, 'Full guide on GitHub'),
+    h('a', { class: 'btn primary', href: `${GH}/releases/latest`, target: '_blank', rel: 'noopener' }, 'Latest release'),
+  ]);
+}
+
 const STORE_TARGET = 'caduceus.target';
 // Camera selector stays hidden until other cameras have known-good builds (the E-P7 export is used meanwhile).
 const SHOW_CAMERA_SELECTOR = false;
@@ -857,6 +895,7 @@ function recipeBody(): HTMLElement {
       }, 'Download')));
 }
 
+const rrName = (n: string) => n.replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'look';
 function ep7Body(): HTMLElement {
   const probs = validatePack({ ...S.pack, slots: {} });
   const slotSel = (s: SlotName) => {
@@ -887,6 +926,11 @@ function ep7Body(): HTMLElement {
     h('div', { class: 'ex-row' },
       h('div', {}, h('b', {}, 'Pack file (.json)'), h('p', { class: 'help' }, 'Everything, including notes and advice. Open it here later or send it to someone.')),
       h('button', { onclick: () => download(`${fname}.caduceus.json`, packJson(), 'application/json') }, 'Download')),
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'RapidRAW presets (.rrpreset)'), h('p', { class: 'help' }, 'Every look as a RapidRAW preset, for ORF files or raws from any camera. Import in RapidRAW: Presets › Import. Approximate: RapidRAW starts from its own raw rendering, so expect the look\'s character, not an exact match to the camera JPEG.')),
+      h('div', { class: 'ex-btns' },
+        h('button', { disabled: !cur(), onclick: () => { const l = cur(); if (l) download(`${rrName(l.name)}.rrpreset`, rrpreset(S.pack, S.sel), 'application/json'); } }, 'This look'),
+        h('button', { disabled: !S.pack.looks.length, onclick: () => download(`${fname}.rrpreset`, rrpreset(S.pack), 'application/json') }, 'All looks'))),
     h('details', { class: 'ex-bundles' },
       h('summary', {}, 'Starter slots (BUNDLES.BIN, optional)'),
       h('p', { class: 'help' }, 'BUNDLES.BIN holds the looks currently in the 8 picture-mode slots. Your card\'s BUNDLES.BIN has your saved slot choices: only replace it if you want to reset them. Empty = the camera\'s stock rendering.'),

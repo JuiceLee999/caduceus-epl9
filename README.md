@@ -112,6 +112,14 @@ and make new presets, right in your browser:
   Control Panel to get the same look.
 - **Export** your pack as `LOOKS.BIN`, copy it to `EP7MOD/` on your SD card, half-press, and your looks are
   on the camera's Film page.
+- **RapidRAW presets (no firmware needed):** *Export › RapidRAW presets* saves one look or the whole pack as a
+  `.rrpreset` for [RapidRAW](https://github.com/CyberTimon/RapidRAW), the free raw editor (Presets › Import). Use
+  it to apply the looks to your ORF files after the shot, or to raws from **any camera**, so you can use the looks
+  without a modded body. It's an approximation: RapidRAW starts from its own raw rendering, so expect the look's
+  character rather than an exact match to the camera JPEG. Colour, tone, white balance, glow/halation, clarity,
+  vignette and the mono filter carry over; noise reduction and Art Effects don't.
+- **Install firmware:** the *Install firmware* button walks you through installing Caduceus step by step, with
+  links to the latest release and the full guide.
 
 ## Using it
 
@@ -190,7 +198,8 @@ Olympus recipes (GarethB's Kodachrome 25 on mu-43.com, and om-recipes.com); sour
 ### Make and share look packs
 
 Use the **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)**: edit or create looks, share
-them as short codes, and download `LOOKS.BIN` for your card. Nothing to install. (Developers: the source is in
+them as short codes, download `LOOKS.BIN` for your card, or export them as RapidRAW presets for raw files
+from any camera. Nothing to install. (Developers: the source is in
 [`webapp/`](webapp/README.md).)
 
 ### Log video
