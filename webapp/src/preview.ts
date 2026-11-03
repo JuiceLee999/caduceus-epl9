@@ -18,7 +18,7 @@ const ANGLE_OFFSET = 15, SAT_SCALE = 1.5, HUE_DEG_PER_STEP = 5.5;
 const L_LUT = [-300, -250, -200, -150, -100, -50, -25, 0, 25, 50, 100, 150, 200, 250, 300];
 const WB_STEP = 0.015, CONTRAST_STEP = 0.035;
 const BLOOM_SHARE = [0.08, 0.14, 0.2, 0.27, 0.35];
-const COLOUR_GRAIN = [0, 220, 600, 1200, 1500, 1800], MONO_GRAIN = [0, 110, 300, 600, 600, 600];   // v0.21 colour table
+const COLOUR_GRAIN = [0, 40, 80], MONO_GRAIN = [0, 110, 300];   // v0.22: colour = a hint of sensor-like texture (Noise Filter Low/Off)
 const CLARITY = [0.12, 0.22, 0.32, 0.42, 0.52];
 const TINT_RGB: Record<string, [number, number, number]> = {
   neutral: [1, 1, 1], red: [1, 0.5, 0.38], amber: [1, 0.75, 0.42], warm: [1, 0.87, 0.72], cool: [0.78, 0.9, 1.1],

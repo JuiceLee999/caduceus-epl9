@@ -10,7 +10,8 @@ import { join } from 'node:path';
 
 export const RECIPE_FILES = ['sim/recipes/fuji_like.json', 'sim/recipes/film_look.json', 'sim/recipes/library_v1.json',
   'sim/recipes/library_v2.json', 'sim/recipes/library_v3.json'];
-export const GRAINS = ['off', 'low', 'medium', 'high', 'heavy', 'extreme'];
+export const GRAINS = ['off', 'fine', 'film'];   // v0.22: low -> fine, medium/high -> film (Noise Filter Low / Off)
+const GRAIN_MAP = { off: 'off', low: 'fine', fine: 'fine', med: 'film', medium: 'film', high: 'film', film: 'film', heavy: 'film', extreme: 'film' };
 const DEFAULT_NAMES = {
   provia: 'Provia', velvia: 'Velvia', classic_chrome: 'Cl. Chrome', classic_neg: 'Classic Neg',
   nostalgic_neg: 'Nostalgic', reala_ace: 'Reala Ace', eterna: 'Eterna', eterna_bleach_bypass: 'Bleach Byp.',
@@ -63,7 +64,7 @@ export function resolveLook(key, look, recipes) {
     hue: [...(rc.hue ?? zeros())],
     light: [...(rc.light ?? zeros())],
     sat,
-    grain: look.grain === 'med' ? 'medium' : (look.grain ?? 'off'),
+    grain: GRAIN_MAP[look.grain ?? 'off'] ?? look.grain,
     wb: wb ? { a_b: wb.a_b ?? 0, g_m: wb.g_m ?? 0 } : null,
     effect: eff && eff.type !== 'none' ? { type: eff.type, strength: eff.strength, ...(eff.tint ? { tint: eff.tint } : {}) } : null,
     vignette: look.vignette ?? rc.vignette ?? 0,

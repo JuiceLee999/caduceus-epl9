@@ -3,11 +3,16 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). All releases are early-development
 pre-releases: use at your own risk (see the README).
 
-## v0.22 (test build, not a release) — 2026-11-03
+## v0.22 — 2026-11-03
 
-- **Probe: colour grain through the full-size MONO grain route.** COLOR stills with grain use the camera's own
-  two-pass MONO grain (brightness mask + grain at MONO Low/Medium/High; slot levels 4/5 = High). Camera-side risk
-  accepted for this probe; keep the v0.21 restore ready. Firmware screen shows `Caduceus: 0.22`.
+- **Natural grain (noise filter):** camera tests showed the ISP grain stages add nothing visible to colour photos
+  (v0.16–v0.21 combiner route and the v0.22 Monochrome-route probe, both dropped). Extras sector 1 now reads
+  `1 Grain Off` / `1 Grain Fine` / `1 Grain Film`: Off leaves the camera's Noise Filter alone, Fine sets it to Low,
+  Film to Off, so the sensor's own grain survives. Applied on a look pick and on a sector-1 edit, through the stock
+  settings path. The Noise Filter is camera-wide: it stays at the last value when you switch profiles.
+- Old values: grain 1 reads as Fine, 2–5 as Film. Library: low → Fine, medium/high → Film. Web app: Off/Fine/Film;
+  older packs and share codes still load. The colour grain combiner hooks are inert.
+- Firmware screen shows `Caduceus: 0.22`.
 
 ## v0.21 — 2026-11-03
 

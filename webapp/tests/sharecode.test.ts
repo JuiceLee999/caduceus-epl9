@@ -30,7 +30,7 @@ describe('look codes', () => {
     const l = blankLook('colour', '~ !"#$%&\'()*');
     l.hue = l.hue.map((_, i) => (i % 2 ? 7 : -7)); l.light = l.light.map(() => -7); l.sat = l.sat.map(() => 5);
     l.wb = { a_b: -7, g_m: 7 }; l.effect = { type: 'halation', strength: 5, tint: 'cool' }; l.vignette = -5;
-    l.grain = 'high'; l.art_effect = 'frame';
+    l.grain = 'film'; l.art_effect = 'frame';
     expect(essence(decodeLookCode(encodeLookCode(l)))).toEqual(essence(l));
     const m = blankLook('mono', 'B&W');
     m.advice = { mono_filter: { colour: 'red', strength: 3 } };
@@ -79,15 +79,16 @@ describe('look codes', () => {
     expect(() => decodeLookCode('12')).toThrow(/too short/);
   });
 
-  it('v0.21 grain 4/5 -> v3/v4 codes; off..high keep v1/v2', () => {
-    for (const [g, tone, v] of [['heavy', false, '3'], ['extreme', true, '4'], ['high', false, '1'], ['high', true, '2']] as const) {
+  it('v0.22 grain off/fine/film -> v1/v2 codes as the old digits 0/1/2; v0.21 v3/v4 codes still decode', () => {
+    for (const [g, tone, v] of [['fine', false, '1'], ['film', true, '2'], ['off', false, '1']] as const) {
       const l = { ...pack.looks[1], grain: g, tone: tone ? { ...zeroTone(), shadows: 2 } : zeroTone() } as typeof pack.looks[1];
       const c = encodeLookCode(l);
       expect(c[0]).toBe(v);
-      const d = decodeLookCode(c);
-      expect(d.grain).toBe(g);
-      expect(encodeLookCode(d)).toBe(c);
+      expect(decodeLookCode(c).grain).toBe(g);
     }
+    // a v0.21 app code: v1 body with the grain digit in radix 6 = 5 (extreme), re-labelled '3' -> reads as film
+    const l = { ...pack.looks[1], grain: 'film', tone: zeroTone() } as typeof pack.looks[1];
+    expect(decodeLookCode(encodeLookCode(l)).grain).toBe('film');
   });
 
   it('old (v0.18 app) v1 codes still decode, with tone 0', () => {
@@ -107,7 +108,8 @@ describe('look codes', () => {
       expect(got.tone).toEqual(zeroTone());
       expect(essence(got), name).toEqual(essence({ ...want, tone: zeroTone() }));
       // a look without tone still gets the same v1 code, so older apps read what this one makes
-      expect(encodeLookCode({ ...want, tone: zeroTone() }), name).toBe(code.replace(/-/g, ''));
+      // (v0.22: an old 'high' grain digit 3 reads as film and is re-written as digit 2, so HP5 Plus gets a new code)
+      if (name !== 'HP5 Plus') expect(encodeLookCode({ ...want, tone: zeroTone() }), name).toBe(code.replace(/-/g, ''));
     }
   });
 

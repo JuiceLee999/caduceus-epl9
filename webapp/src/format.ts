@@ -10,7 +10,7 @@
 // Blacks/Whites at +47/+48 (MONO slots keep 0). The app writes the tone block when the look's tone is not all zero.
 // tests/encoder.test.ts checks the output against the Python tools and the released card files.
 import {
-  ARTS, EFFECTS, GRAINS, MAX_LOOKS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SLOT_NAMES, TINTS, TONE_BW_MAX, TONE_KEYS,
+  ARTS, EFFECTS, GRAINS, grainFromByte, MAX_LOOKS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SLOT_NAMES, TINTS, TONE_BW_MAX, TONE_KEYS,
   blankLook, toneIsZero, toneLimit, zeroTone, type Look, type Pack,
 } from './pack';
 
@@ -87,7 +87,7 @@ export function validateLook(l: Look, i?: number): Problem[] {
     if (!Array.isArray(a) || a.length !== 12 || !a.every((v) => intIn(v, -lim, lim)))
       add(k, `${k}: 12 whole numbers in -${lim}..${lim} (v0.16/v0.17 firmware).`);
   }
-  if (!GRAINS.includes(l.grain)) add('grain', 'Grain: off, low, medium, high, heavy or extreme.');
+  if (!GRAINS.includes(l.grain)) add('grain', 'Grain: off, fine or film.');
   if (l.wb && !(intIn(l.wb.a_b, -WB_MAX, WB_MAX) && intIn(l.wb.g_m, -WB_MAX, WB_MAX)))
     add('wb', `WB shift: A-B and G-M in -${WB_MAX}..${WB_MAX}.`);
   if (l.effect) {
@@ -246,7 +246,7 @@ export function decodeLooksBin(d: Uint8Array, name = 'Imported LOOKS.BIN'): Pack
     const l = blankLook(mono ? 'mono' : 'colour', String.fromCharCode(...nm.subarray(0, nm.indexOf(0))));
     const tone = !mono && r[TONE_FLAG] === 1;
     for (let k = 0; k < 12; k++) { l.hue[k] = s8(r[k]); l.light[k] = s8(r[12 + k]); if (!mono && !tone) l.sat[k] = s8(r[B_SAT + k]); }
-    l.grain = GRAINS[r[24]];
+    l.grain = grainFromByte(r[24]);
     if (r[25]) l.wb = { a_b: s8(r[26]), g_m: s8(r[27]) };
     if (r[28]) {
       l.effect = { type: EFFECTS[r[28]] as Exclude<(typeof EFFECTS)[number], 'none'>, strength: r[29] };

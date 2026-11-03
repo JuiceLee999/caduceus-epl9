@@ -9,13 +9,13 @@ import { blankLook, toneIsZero, zeroTone } from '../src/pack';
 import libraryJson from '../src/data/library.json';
 
 const LIB = parsePack(libraryJson);
-const RELEASE_LOOKS = join(__dirname, '../../releases/v0.19/card/EP7MOD/LOOKS.BIN');
+const RELEASE_LOOKS = join(__dirname, '../../releases/v0.22/card/EP7MOD/LOOKS.BIN');
 const hex = (b: Uint8Array) => Buffer.from(b).toString('hex');
 const names = (p: { looks: { name: string }[] }, skip: number) => p.looks.filter((_, k) => k !== skip).map((l) => l.name);
 
 function mangle(p: ReturnType<typeof standardPack>, i: number) {
   const l = p.looks[i];
-  l.hue = l.hue.map((v) => (v + 3) % 7); l.light[0] = -4; l.sat[5] = 2; l.grain = 'high';
+  l.hue = l.hue.map((v) => (v + 3) % 7); l.light[0] = -4; l.sat[5] = 2; l.grain = 'film';
   l.wb = { a_b: 3, g_m: -2 }; l.effect = { type: 'clarity', strength: 4 }; l.notes = 'changed';
   l.tone = { highlights: 2, shadows: -3, midtones: 1, blacks: 2, whites: -1 };
 }

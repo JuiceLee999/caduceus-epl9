@@ -3,8 +3,15 @@
 
 export const SECTORS = ['Yellow', 'Orange', 'Orange-red', 'Red', 'Magenta', 'Violet', 'Blue', 'Blue-cyan', 'Cyan',
   'Green-cyan', 'Green', 'Yellow-green'] as const;
-// v0.21 firmware: slot grain byte 0..5 (COLOR gains 220/600/1200/1500/1800). Index = byte; never reorder.
-export const GRAINS = ['off', 'low', 'medium', 'high', 'heavy', 'extreme'] as const;
+// v0.22 firmware "natural grain": slot grain byte 0 off (Noise Filter untouched), 1 fine (Noise Filter Low),
+// 2 film (Noise Filter Off); older bytes 3..5 read as film. Index = byte; never reorder.
+export const GRAINS = ['off', 'fine', 'film'] as const;
+// Older names (packs / share codes made before v0.22), by their old byte: low -> fine, medium..extreme -> film.
+export const LEGACY_GRAINS = ['off', 'low', 'medium', 'high', 'heavy', 'extreme'] as const;
+export const grainFromByte = (b: number): Grain => (b <= 0 ? 'off' : b === 1 ? 'fine' : 'film');
+export const grainFromName = (v: string): Grain | undefined =>
+  (GRAINS as readonly string[]).includes(v) ? (v as Grain) : v === 'med' ? 'film'
+    : (LEGACY_GRAINS as readonly string[]).includes(v) ? grainFromByte(LEGACY_GRAINS.indexOf(v as never)) : undefined;
 export const EFFECTS = ['none', 'bloom', 'halation', 'clarity'] as const;
 export const TINTS = ['neutral', 'red', 'amber', 'warm', 'cool'] as const;
 // art_effect +46 (patches/bundles ART). 4/5 (white edge, frame) are legacy values the v0.15+ camera treats as Off.
@@ -86,7 +93,7 @@ const int = (v: unknown, what: string, dflt = 0): number => {
 };
 function oneOf<T extends readonly string[]>(v: unknown, list: T, what: string, dflt: T[number]): T[number] {
   if (v === undefined || v === null) return dflt;
-  if (v === 'med' && list === (GRAINS as readonly string[])) return 'medium';
+  if (typeof v === 'string' && list === (GRAINS as readonly string[]) && grainFromName(v)) return grainFromName(v) as T[number];
   if (typeof v !== 'string' || !list.includes(v)) throw new Error(`${what}: ${JSON.stringify(v)} (use ${list.join(', ')})`);
   return v as T[number];
 }

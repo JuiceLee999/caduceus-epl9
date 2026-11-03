@@ -5,12 +5,12 @@
 //   check = CRC-15/CAN (poly 0x4599) over the 5-bit symbols of "1" + body, as 3 symbols
 // Look code v2:  "2" + body + check      the v1 fields with a tone block (H/S/M/B/W) before the name. Only made
 //   when the look's tone is not all zero, so a look without tone keeps its v1 code (older apps read it).
-// Look code v3 / v4: v1 / v2 with the grain digit in radix 6 (v0.21: grain 0..5) instead of 4. Only made when the
-//   grain is heavy or extreme (4/5), so every look with grain off..high keeps its v1/v2 code.
+// Look code v3 / v4: v1 / v2 with the grain digit in radix 6 (v0.21 apps: grain 0..5). Decoded only; v0.22 apps
+//   write grain as the old digit (off 0, fine = old low 1, film = old medium 2), so they always make v1/v2 codes.
 // Pack code v1:  "pk1_" + base64url(zlib-deflate(UTF-8 JSON of the pack file, schema caduceus-pack/1))
 //   (zlib's Adler-32 catches corruption; base64url is case-sensitive, so pack codes are for links, not typing)
 import {
-  ARTS, EFFECTS, GRAINS, MONO_FILTERS, TINTS, TONE_KEYS, exportable, parsePack, toneIsZero, toneLimit, zeroTone,
+  ARTS, EFFECTS, GRAINS, grainFromByte, MONO_FILTERS, TINTS, TONE_KEYS, exportable, parsePack, toneIsZero, toneLimit, zeroTone,
   type Effect, type Look, type Pack, type Tone,
 } from './pack';
 
@@ -144,7 +144,7 @@ function lookToBigInt(l: Look, withTone: boolean, g6 = false): bigint {
   putVec(w, l.hue, 7);
   putVec(w, l.light, 7);
   putVec(w, l.kind === 'mono' ? new Array(12).fill(0) : l.sat, 5);
-  w.put(GRAINS.indexOf(l.grain), g6 ? 6 : 4);
+  w.put(GRAINS.indexOf(l.grain), g6 ? 6 : 4);          // off/fine/film = old digits 0/1/2
   w.put(l.wb ? 1 + (l.wb.a_b + 7) * 15 + (l.wb.g_m + 7) : 0, 226);
   w.put(effectIndex(l.effect), EFFECT_N);
   w.put(l.vignette + 5, 11);
@@ -162,7 +162,7 @@ function lookFromBigInt(n: bigint, withTone: boolean, g6 = false): Look {
   const r = new Reader(n);
   const kind = r.get(2) ? 'mono' : 'colour';
   const hue = getVec(r, 7), light = getVec(r, 7), sat = getVec(r, 5);
-  const grain = GRAINS[r.get(g6 ? 6 : 4)];
+  const grain = grainFromByte(r.get(g6 ? 6 : 4));       // old low -> fine, medium..extreme -> film
   const wbi = r.get(226);
   const wb = wbi ? { a_b: Math.floor((wbi - 1) / 15) - 7, g_m: ((wbi - 1) % 15) - 7 } : null;
   const effect = effectFrom(r.get(EFFECT_N));
@@ -195,7 +195,7 @@ export function encodeLookCode(l: Look, group = false): string {
     if (!Number.isInteger(v) || Math.abs(v) > L) throw new Error(`share code: tone ${k} must be a whole number in -${L}..${L}`);
   }
   const withTone = !!l.tone && !toneIsZero(l.tone);
-  const g6 = GRAINS.indexOf(l.grain) >= 4;
+  const g6 = false;                                  // v0.22: grain digit 0..2 always fits radix 4
   const ver = g6 ? (withTone ? LOOK_VERSION_G6_TONE : LOOK_VERSION_G6) : (withTone ? LOOK_VERSION_TONE : LOOK_VERSION);
   const syms = [ALPHABET.indexOf(ver), ...toSymbols(lookToBigInt(l, withTone, g6))];
   const c = crc15(syms);

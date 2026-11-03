@@ -56,11 +56,11 @@ describe('recipe cards', () => {
     l.hue[3] = 2; l.sat[6] = -4; l.light[10] = 1;
     l.tone = { highlights: -2, midtones: 1, shadows: 3, blacks: 2, whites: -1 };
     l.wb = { a_b: 3, g_m: -2 };
-    l.grain = 'medium';
+    l.grain = 'film';
     l.effect = { type: 'bloom', strength: 2, tint: 'amber' };
     l.art_effect = 'pin_hole';
     const c = recipeCard(l);
-    for (const s of ['# Test Look', 'Some notes.', '**Type:** Colour', 'Amber 3 (A–B +3)', 'Magenta 2 (G–M −2)', '**Grain:** Medium',
+    for (const s of ['# Test Look', 'Some notes.', '**Type:** Colour', 'Amber 3 (A–B +3)', 'Magenta 2 (G–M −2)', '**Grain:** Film',
       'Glow 2 of 5 (amber tint)', '**Art effect:** Pin Hole', '**Highlights:** −2', '**Midtones:** +1', '**Shadows:** +3',
       '**Blacks:** +2', '**Whites:** −1', '| Red | +2 | 0 | 0 |', '| Blue | 0 | −4 | 0 |', '| Green | 0 | 0 | +1 |'])
       expect(c, s).toContain(s);

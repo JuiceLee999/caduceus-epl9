@@ -136,7 +136,9 @@ on the gain; the noise clamp −6682 (bank+148) already saturates at 600, so hig
 grain and lift the mean slightly. Desktop estimate: `sim/grain_boost_preview.py`
 (model uncalibrated to camera; midtone std ×2.2/×4/×6 vs the old levels).
 
-### v0.22 test build: COLOR stills on the stock MONO full-size route (Approach C; patches/grain_c)
+### v0.22 test build (dropped): COLOR stills on the stock MONO full-size route (Approach C; patches/grain_c)
+Camera: S and L frames in colour but no visible grain. **Replaced by v0.22 natural grain** (patches/v022: slot grain → stock Noise Filter, setting 1334: Fine = Low −1, Film = Off −2; Off = untouched; combiner COLOR grain inert, GLEVEL bounds 0). Verify: `patches/v022/verify.py` S 16 / K 30 / W 24 / L / D / P.
+
 Camera (v0.21): combiner 32 adds nothing visible on COLOR stills, full size or S, even at gain 1800. Mapping run
 (`patches/grain_c/map.py`, real builder to finalize 0x60357c91): stock key 12 class 0 = mask pass 0x60359bc8 + grain
 image pass 0x60359cd8 (pending, no single-shot variant), and the feature chain then appends post-pass *entries*; the
