@@ -122,7 +122,7 @@ def t_pick(im):
 
 def t_label(im):
     bad, seen = [], []
-    want = ['1 Noise Global', '1 Noise Std', '1 Noise Low', '1 Noise Off', '1 Noise Off', '1 Noise Off']
+    want = ['1 NR Camera', '1 NR Std', '1 NR Low', '1 NR Off', '1 NR Off', '1 NR Off']
     for v in range(8):
         rg = [Region(f'i{lo:x}', lo, im[lo - BASE:hi - BASE], 'rx') for lo, hi in V21.EX] + \
              [Region('stk', STK, bytes(0x104) + struct.pack('<I', v) + bytes(0xf8), 'rw', True)]

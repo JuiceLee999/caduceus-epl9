@@ -8,7 +8,7 @@ export const SECTORS = ['Yellow', 'Orange', 'Orange-red', 'Red', 'Magenta', 'Vio
 // Older bytes 3..5 read as film. Index = share-code digit (v1/v2: off/fine/film = old 0/1/2; standard = digit 6, v5/v6).
 export const GRAINS = ['off', 'fine', 'film', 'standard'] as const;
 export const GRAIN_BYTE: Record<string, number> = { off: 0, fine: 1, film: 2, standard: 6 };
-export const GRAIN_LABEL: Record<string, string> = { off: 'Global', standard: 'Standard', fine: 'Low', film: 'Off' };   // "Noise filter: …"
+export const GRAIN_LABEL: Record<string, string> = { off: 'Camera', standard: 'Standard', fine: 'Low', film: 'Off (most texture)' };   // "Noise reduction: …"
 // Older names (packs / share codes made before v0.22), by their old byte: low -> fine, medium..extreme -> film.
 export const LEGACY_GRAINS = ['off', 'low', 'medium', 'high', 'heavy', 'extreme'] as const;
 export const grainFromByte = (b: number): Grain => (b <= 0 ? 'off' : b === 1 ? 'fine' : b === 6 ? 'standard' : b > 6 ? 'off' : 'film');

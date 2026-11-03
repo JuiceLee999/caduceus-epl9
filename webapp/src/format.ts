@@ -87,7 +87,7 @@ export function validateLook(l: Look, i?: number): Problem[] {
     if (!Array.isArray(a) || a.length !== 12 || !a.every((v) => intIn(v, -lim, lim)))
       add(k, `${k}: 12 whole numbers in -${lim}..${lim} (v0.16/v0.17 firmware).`);
   }
-  if (!GRAINS.includes(l.grain)) add('grain', 'Noise filter: off (Global), standard, fine (Low) or film (Off).');
+  if (!GRAINS.includes(l.grain)) add('grain', 'Noise reduction: off (Camera), standard, fine (Low) or film (Off).');
   if (l.wb && !(intIn(l.wb.a_b, -WB_MAX, WB_MAX) && intIn(l.wb.g_m, -WB_MAX, WB_MAX)))
     add('wb', `WB shift: A-B and G-M in -${WB_MAX}..${WB_MAX}.`);
   if (l.effect) {

@@ -7,10 +7,10 @@
 Camera tests v0.16..v0.22 probe: the ISP grain combiners add nothing visible to COLOR stills. So the slot grain byte
 (+24) now drives the camera's own Noise Filter (setting 1334, values -2..1 = Off/Low/Standard/High, validator list
 0x604cb4ed; one global setting, not per profile):
-  byte 0     Global -> Noise Filter untouched (the camera's own setting)   "1 Noise Global"  (old cards' 0)
-  byte 6     Off    -> Noise Filter Standard (0)                           "1 Noise Std"     (new byte; loaders 0..6)
-  byte 1     Fine   -> Noise Filter Low (-1)                               "1 Noise Low"     (old low)
-  byte 2..5  Film   -> Noise Filter Off (-2)                               "1 Noise Off"     (old medium/high/heavy/extreme)
+  byte 0     Global -> Noise Filter untouched (the camera's own setting)   "1 NR Camera"     (old cards' 0)
+  byte 6     Off    -> Noise Filter Standard (0)                           "1 NR Std"        (new byte; loaders 0..6)
+  byte 1     Fine   -> Noise Filter Low (-1)                               "1 NR Low"        (old low)
+  byte 2..5  Film   -> Noise Filter Off (-2)                               "1 NR Off"        (old medium/high/heavy/extreme)
 The editor shows a value u = 0 Global, 1 Off, 2 Fine, 3 Film (clamped 0..3): ex_get maps byte -> u (ng_get, hook
 0x601e32c8), ex_set maps u -> byte 0/6/1/2 (ng_set).
 Applied (only then; a profile switch does not re-apply, the setting stays at the last value):
@@ -198,7 +198,7 @@ def apply(spec):
     e, o = covering(spec, TAB_AT, 24)
     if o != 0:
         raise SystemExit('label table edit moved')
-    strs = [b'1 Noise Global\0', b'1 Noise Std\0', b'1 Noise Low\0', b'1 Noise Off\0']     # u 0..3 (4/5 = Off)
+    strs = [b'1 NR Camera\0', b'1 NR Std\0', b'1 NR Low\0', b'1 NR Off\0']     # u 0..3 (4/5 = Off); NR = noise reduction
     ptr, at = [], TAB_AT + 24
     for x in strs:
         ptr.append(at); at += len(x)
@@ -208,7 +208,7 @@ def apply(spec):
     n = len(e['new']) // 2
     data += stock[TAB_AT - BASE + len(data):TAB_AT - BASE + n]     # rest of the old 74-B span back to stock bytes
     e['expect'] = stock[TAB_AT - BASE:TAB_AT - BASE + len(data)].hex()
-    e['new'] = data.hex(); e['why'] = 'v0.22 look extras: sector-1 labels by u: Noise Global / Std / Low / Off, dead EVF step-0 R'
+    e['new'] = data.hex(); e['why'] = 'v0.22 look extras: sector-1 labels by u: NR Camera / Std / Low / Off, dead EVF step-0 R'
     spec['edits'].append(dict(kind='0x100', addr=hex(CODE_AT), expect=stock[CODE_AT - BASE:CODE_AT - BASE + len(code)].hex(),
                               new=code.hex(), source=SRC, why=f'v0.22 natural grain: ng_set / ng_get ({len(code)} B, dead EVF step-0 R)'))
     spec['edits'].append(dict(kind='0x100', addr=hex(CODE2_AT), expect=stock[CODE2_AT - BASE:CODE2_AT - BASE + len(code2)].hex(),
@@ -217,7 +217,7 @@ def apply(spec):
     gb['inert'] = 'v0.22: COLOR grain never attached (GLEVEL bounds 0); hooks kept'
     spec['v022'] = dict(built_by=SRC, base='releases/v0.21/edits.json', noise_filter_sid=NF_SID,
                         grain_bytes={0: 'Global (Noise Filter untouched)', 6: 'Off (Noise Filter Standard, 0)', 1: 'Fine (Low, -1)',
-                                     2: 'Film (Off, -2)'}, old_values='3..5 -> Film', editor_order='Noise Global, Std, Low, Off', symbols={k: hex(v) for k, v in syms.items() if k.startswith('ng_')},
+                                     2: 'Film (Off, -2)'}, old_values='3..5 -> Film', editor_order='NR Camera, Std, Low, Off', symbols={k: hex(v) for k, v in syms.items() if k.startswith('ng_')},
                         sites=[hex(SET_SITE), hex(GET_SITE), hex(PICK_SITE)], code_at=hex(CODE_AT), code_len=len(code), code2_at=hex(CODE2_AT), code2_len=len(code2))
     return spec
 

@@ -30,7 +30,7 @@ export function recipeCard(l: Look): string {
     out.push(`- **Colour filter:** ${mf && mf.colour !== 'none' ? `${cap(mf.colour)}, strength ${mf.strength}` : 'None'}`);
   }
   out.push(`- **White balance shift:** ${wbText(l.wb)}`);
-  out.push(`- **Noise filter:** ${GRAIN_LABEL[l.grain] ?? cap(l.grain)}`);
+  out.push(`- **Noise reduction:** ${GRAIN_LABEL[l.grain] ?? cap(l.grain)}`);
   out.push(`- **Glow / clarity:** ${effectText(l.effect)}`);
   if (l.kind === 'colour') out.push(`- **Art effect:** ${ART[l.art_effect] ?? l.art_effect}`);
   if (l.advice.contrast) out.push(`- **Contrast:** ${sg(l.advice.contrast)}`);

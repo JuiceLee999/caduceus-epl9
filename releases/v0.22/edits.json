@@ -2138,10 +2138,10 @@
   {
    "kind": "0x100",
    "addr": "0x601e3840",
-   "expect": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e",
-   "new": "58381e6067381e6073381e607f381e607f381e607f381e6031204e6f69736520476c6f62616c0031204e6f697365205374640031204e6f697365204c6f770031204e6f697365204f666600",
+   "expect": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d",
+   "new": "58381e6064381e606d381e6076381e6076381e6076381e6031204e522043616d6572610031204e52205374640031204e52204c6f770031204e52204f666600434445464748494a4b4c4d",
    "source": "patches/v021",
-   "why": "v0.22 look extras: sector-1 labels by u: Noise Global / Std / Low / Off, dead EVF step-0 R"
+   "why": "v0.22 look extras: sector-1 labels by u: NR Camera / Std / Low / Off, dead EVF step-0 R"
   },
   {
    "kind": "0x100",
@@ -9868,7 +9868,7 @@
    "2": "Film (Off, -2)"
   },
   "old_values": "3..5 -> Film",
-  "editor_order": "Noise Global, Std, Low, Off",
+  "editor_order": "NR Camera, Std, Low, Off",
   "symbols": {
    "ng_b2u": "0x601e1bca",
    "ng_pick": "0x601e1b90",

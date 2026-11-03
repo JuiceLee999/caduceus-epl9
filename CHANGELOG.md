@@ -5,13 +5,13 @@ pre-releases: use at your own risk (see the README).
 
 ## v0.22 — 2026-11-03
 
-- **Noise filter per look** (replaces colour grain): camera tests showed the camera's grain stages add nothing
+- **Noise reduction per look** (replaces colour grain): camera tests showed the camera's grain stages add nothing
   visible to colour photos (the v0.16–v0.21 route and a Monochrome-route probe, both dropped). Extras sector 1 is now
-  **Noise**: `1 Noise Global` (leave the camera's Noise Filter alone), `1 Noise Std`, `1 Noise Low`, `1 Noise Off`.
+  **NR**: `1 NR Camera` (leave the camera's Noise Filter alone), `1 NR Std`, `1 NR Low`, `1 NR Off` (most texture).
   Set on a look pick and on a sector-1 edit through the stock settings path. The Noise Filter is camera-wide, so it
   stays at the last value when you switch profiles. True film grain is on the roadmap.
 - Card values: 0 Global (old cards' "off"), 6 Std (new), 1 Low (old low), 2–5 Off (old medium/high). Library: no
-  grain → Global, low → Low, medium/high → Off. Web app: "Noise filter: Global / Standard / Low / Off"; older packs
+  grain → Global, low → Low, medium/high → Off. Web app: "Noise reduction: Camera / Standard / Low / Off (most texture)"; older packs
   and share codes still load (Standard uses new code prefixes 5/6). Card loaders accept 0..6.
 - Firmware screen shows `Caduceus: 0.22`.
 
