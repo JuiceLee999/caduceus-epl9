@@ -171,6 +171,26 @@ Muted. Left: the standard curve. Right: the hidden log curve, rendered with the 
 
 ![Standard vs log](docs/img/log_vs_standard.jpg)
 
+## Build on Caduceus
+
+Caduceus is meant to be a starting point, not a walled garden. The goal is an **open film-recipe community for
+Micro Four Thirds**, the way Fujifilm shooters share film simulation recipes, but for OM/Olympus bodies.
+Fork it, port it, remix it:
+
+- **Port it to your camera.** The patch tooling (`caduceus.py`, `tools/build_package.py`, the edit-list format and
+  the emulator checks) is camera-agnostic. Other TruePic VIII bodies share most of the code base; see
+  [docs/PORT_EM10IV.md](docs/PORT_EM10IV.md) for what carries over to the E-M10 IV.
+- **Keep the shared formats.** Please keep `LOOKS.BIN`, the look parameters and the **share codes** compatible (or
+  versioned) so a look made on one project works everywhere. The format is documented in
+  [webapp/README.md](webapp/README.md).
+- **Use the Control Panel.** [Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/) is the common
+  place to make, preview and share looks. Fork it for your camera, or send changes back so everyone gets them.
+- **Share your looks.** Post the share code with a sample photo (Reddit, forums, socials); anyone can paste it into
+  the Control Panel. Good community looks can be added to the built-in library: open an issue or PR with the
+  code, a sample, and credit for any recipe it's based on.
+- **Credit and licence.** Apache 2.0: use it in your own projects, commercial or not. Keep the `NOTICE`, credit
+  recipe authors, and never redistribute OM firmware (ship edit lists plus a builder, like Caduceus does).
+
 ## Roadmap
 
 Grouped by how likely and how hard each item is. Feasibility notes for the video and lens items are in
