@@ -164,6 +164,8 @@ boots back to 4:3 each time, on purpose.
 - *Want stock back for a moment?* Remove the `EP7MOD` folder. *For good?* Flash the restore file (see Install).
 - *Will updating lose my looks?* No: keep your `EP7MOD/BUNDLES.BIN`, and just replace `LOOKS.BIN` and the firmware.
 - *Live view vs photo:* Star Light and some effects only show in the saved photo.
+- *Black screen during Rec View on bloom/clarity looks?* Known issue: the review goes dark while the effect is
+  processed. The photo is fine: set Rec View to **Auto ▶** or press **▶** to see it.
 - *Grain does nothing?* Known issue: colour grain isn't visible on full-size photos yet (see Features).
 
 ### On-camera UI
@@ -229,6 +231,8 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
 - Clean HDMI output: stock Record Mode (sid 1276) exists but is gated to movie mode at `0x60d1cb42`; drop the gate.
 - Per-profile "vignette correction off": stock Shading Comp. is sid 61; override it per slot like the Art Effect flag.
 - Art Effect live-view preview that updates immediately.
+- Rec View that shows the photo and then updates it with bloom/clarity (as stock Art mode does), instead of a
+  black screen.
 - More film looks, and a cross-platform web app to build and share `LOOKS.BIN` files.
 - Control Panel camera selector: export the same looks for other cameras (built, hidden until other cameras have known-good builds).
 
