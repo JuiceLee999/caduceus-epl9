@@ -51,7 +51,7 @@ export const SLOT_NAME_MAX = 15;
 
 // Per-byte loader ranges of the 64-byte bundle ABI (sd_bundles RANGES_LEGACY over layout.json fields).
 const FIELDS: [number, number, number, number][] = [   // off, len, lo, hi
-  [0, 12, -HL_MAX, HL_MAX], [12, 12, -HL_MAX, HL_MAX], [24, 1, 0, 3], [25, 1, 0, 1], [26, 1, -WB_MAX, WB_MAX],
+  [0, 12, -HL_MAX, HL_MAX], [12, 12, -HL_MAX, HL_MAX], [24, 1, 0, 5], [25, 1, 0, 1], [26, 1, -WB_MAX, WB_MAX],
   [27, 1, -WB_MAX, WB_MAX], [28, 1, 0, 3], [29, 1, 0, 5], [30, 1, -VIG_MAX, VIG_MAX], [31, 1, 0, 3], [32, 1, 0, 1],
   [33, 12, -SAT_MAX, SAT_MAX], [45, 1, 0, 4], [46, 1, 0, 5],
   [B_BLACKS, 1, -TONE_BW_MAX, TONE_BW_MAX], [B_WHITES, 1, -TONE_BW_MAX, TONE_BW_MAX]];
@@ -87,7 +87,7 @@ export function validateLook(l: Look, i?: number): Problem[] {
     if (!Array.isArray(a) || a.length !== 12 || !a.every((v) => intIn(v, -lim, lim)))
       add(k, `${k}: 12 whole numbers in -${lim}..${lim} (v0.16/v0.17 firmware).`);
   }
-  if (!GRAINS.includes(l.grain)) add('grain', 'Grain: off, low, medium or high.');
+  if (!GRAINS.includes(l.grain)) add('grain', 'Grain: off, low, medium, high, heavy or extreme.');
   if (l.wb && !(intIn(l.wb.a_b, -WB_MAX, WB_MAX) && intIn(l.wb.g_m, -WB_MAX, WB_MAX)))
     add('wb', `WB shift: A-B and G-M in -${WB_MAX}..${WB_MAX}.`);
   if (l.effect) {

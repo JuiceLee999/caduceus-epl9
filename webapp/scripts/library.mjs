@@ -10,7 +10,7 @@ import { join } from 'node:path';
 
 export const RECIPE_FILES = ['sim/recipes/fuji_like.json', 'sim/recipes/film_look.json', 'sim/recipes/library_v1.json',
   'sim/recipes/library_v2.json', 'sim/recipes/library_v3.json'];
-export const GRAINS = ['off', 'low', 'medium', 'high'];
+export const GRAINS = ['off', 'low', 'medium', 'high', 'heavy', 'extreme'];
 const DEFAULT_NAMES = {
   provia: 'Provia', velvia: 'Velvia', classic_chrome: 'Cl. Chrome', classic_neg: 'Classic Neg',
   nostalgic_neg: 'Nostalgic', reala_ace: 'Reala Ace', eterna: 'Eterna', eterna_bleach_bypass: 'Bleach Byp.',

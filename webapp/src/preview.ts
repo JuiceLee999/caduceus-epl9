@@ -5,7 +5,7 @@
 // The look's tone (H/S/M/B/W, card data) is a luminance LUT in the display domain after the base curve (src/tone.ts);
 // the contrast advice bends the input to it first. The old recipe tone advice (advice.tone) is not previewed: on
 // v0.19 the Film pick sets the profile's H/S/M from the look's own tone.
-import { toneIsZero, type Look } from './pack';
+import { GRAINS, toneIsZero, type Look } from './pack';
 import { previewToneLut } from './tone';
 
 // Firmware COLOR table (generated/color/ep7_color_table.json, UI order): sector centre / width (0..32767 = 360 deg)
@@ -18,7 +18,7 @@ const ANGLE_OFFSET = 15, SAT_SCALE = 1.5, HUE_DEG_PER_STEP = 5.5;
 const L_LUT = [-300, -250, -200, -150, -100, -50, -25, 0, 25, 50, 100, 150, 200, 250, 300];
 const WB_STEP = 0.015, CONTRAST_STEP = 0.035;
 const BLOOM_SHARE = [0.08, 0.14, 0.2, 0.27, 0.35];
-const COLOUR_GRAIN = [0, 50, 75, 100], MONO_GRAIN = [0, 110, 300, 600];
+const COLOUR_GRAIN = [0, 220, 600, 1200, 1500, 1800], MONO_GRAIN = [0, 110, 300, 600, 600, 600];   // v0.21 colour table
 const CLARITY = [0.12, 0.22, 0.32, 0.42, 0.52];
 const TINT_RGB: Record<string, [number, number, number]> = {
   neutral: [1, 1, 1], red: [1, 0.5, 0.38], amber: [1, 0.75, 0.42], warm: [1, 0.87, 0.72], cool: [0.78, 0.9, 1.1],
@@ -196,7 +196,7 @@ export function renderLook(src: ImageData, dst: ImageData, look: Look, opt: Prev
     }
   }
   // 6. grain (Olympus xorshift32 luma grain with brightness mask; v0.4 colour gains / stock mono gains)
-  const gi = ['off', 'low', 'medium', 'high'].indexOf(look.grain);
+  const gi = GRAINS.indexOf(look.grain);
   const gain = gi > 0 ? (mono ? MONO_GRAIN : COLOUR_GRAIN)[gi] : 0;
   const scale = Math.min(1, w / FULL_WIDTH) * 2.2;   // a little stronger than full-res-viewed-small, so it stays visible
   for (let i = 0; i < n; i++) {

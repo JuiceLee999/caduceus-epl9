@@ -73,10 +73,21 @@ describe('look codes', () => {
     const code = encodeLookCode({ ...pack.looks[1], tone: zeroTone() });
     expect(code[0]).toBe('1');
     expect(() => decodeLookCode('2' + code.slice(1))).toThrow(/Check failed/);
-    expect(() => decodeLookCode('3' + code.slice(1))).toThrow(/newer/);
+    expect(() => decodeLookCode('5' + code.slice(1))).toThrow(/newer/);
     expect(() => decodeLookCode('X' + code.slice(1))).toThrow(/not a Caduceus/);
     expect(() => decodeLookCode('1U23456')).toThrow(/not a code character/);
     expect(() => decodeLookCode('12')).toThrow(/too short/);
+  });
+
+  it('v0.21 grain 4/5 -> v3/v4 codes; off..high keep v1/v2', () => {
+    for (const [g, tone, v] of [['heavy', false, '3'], ['extreme', true, '4'], ['high', false, '1'], ['high', true, '2']] as const) {
+      const l = { ...pack.looks[1], grain: g, tone: tone ? { ...zeroTone(), shadows: 2 } : zeroTone() } as typeof pack.looks[1];
+      const c = encodeLookCode(l);
+      expect(c[0]).toBe(v);
+      const d = decodeLookCode(c);
+      expect(d.grain).toBe(g);
+      expect(encodeLookCode(d)).toBe(c);
+    }
   });
 
   it('old (v0.18 app) v1 codes still decode, with tone 0', () => {

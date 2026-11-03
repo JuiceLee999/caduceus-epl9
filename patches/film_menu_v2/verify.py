@@ -513,7 +513,7 @@ def bad_files():
     for off, lab in ((0, 'magic'), (4, 'version'), (6, 'hdr len'), (8, 'fw build'), (20, 'sha'), (26, 'rec len'),
                      (28, 'layout crc'), (40, 'zero pad'), (63, 'zero pad end'), (12, 'payload'), (24, 'n')):
         mut(f'header {lab}', off, good[off] ^ 0x10)
-    for off, val, lab in ((64 + 0, 8, 'hue +8'), (64 + 0, 0xf8, 'hue -8'), (64 + 24, 4, 'grain 4'), (64 + 25, 2, 'wb flags 2'),
+    for off, val, lab in ((64 + 0, 8, 'hue +8'), (64 + 0, 0xf8, 'hue -8'), (64 + 24, 6, 'grain 6'), (64 + 25, 2, 'wb flags 2'),
                           (64 + 28, 4, 'effect 4'), (64 + 29, 6, 'strength 6'), (64 + 31, 4, 'flags 4'),
                           (64 + 44, 6, 'sat +6'), (64 + 45, 1, 'class mono, mask 1'), (64 + 46, 0, 'mask 0'),
                           (64 + 46, 2, 'colour mask 2'), (64 + 47, 5, 'bloom colour 5'), (64 + 48, 0, 'name empty'),
@@ -549,6 +549,12 @@ def l_cases(quick=False):
         out.append((f'{n} looks', LB.make_file(recs), 'ok', {}))
     for lab, data in bad_files():
         out.append((lab, data, 'bad', {}))
+    if G['spec'].get('grain_boost', {}).get('levels', 3) == 5:   # v0.21: grain 0..5 accepted
+        for g in (4, 5):
+            b = bytearray(G['looks'])
+            b[64 + 24] = g
+            struct.pack_into('<I', b, 16, zlib.crc32(bytes(b[:16] + b[20:])) & 0xffffffff)
+            out.append((f'record grain {g} (v0.21)', bytes(b), 'ok', {}))
     out.append(('no file', None, 'bad', {}))
     out.append(('malloc fail', G['looks'], 'bad', dict(malloc=0)))
     out.append(('malloc misaligned', G['looks'], 'bad', dict(malloc=L_AT + 2)))

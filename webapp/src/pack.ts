@@ -3,7 +3,8 @@
 
 export const SECTORS = ['Yellow', 'Orange', 'Orange-red', 'Red', 'Magenta', 'Violet', 'Blue', 'Blue-cyan', 'Cyan',
   'Green-cyan', 'Green', 'Yellow-green'] as const;
-export const GRAINS = ['off', 'low', 'medium', 'high'] as const;
+// v0.21 firmware: slot grain byte 0..5 (COLOR gains 220/600/1200/1500/1800). Index = byte; never reorder.
+export const GRAINS = ['off', 'low', 'medium', 'high', 'heavy', 'extreme'] as const;
 export const EFFECTS = ['none', 'bloom', 'halation', 'clarity'] as const;
 export const TINTS = ['neutral', 'red', 'amber', 'warm', 'cool'] as const;
 // art_effect +46 (patches/bundles ART). 4/5 (white edge, frame) are legacy values the v0.15+ camera treats as Off.

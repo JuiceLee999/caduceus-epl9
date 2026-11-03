@@ -210,7 +210,7 @@ function randomLook(r: () => number, i: number): Look {
   const l = blankLook(mono ? 'mono' : 'colour', `Look ${i}${String.fromCharCode(33 + ri(0, 30))}`.slice(0, 12));
   l.hue = sparse(7); l.light = sparse(7);
   l.sat = mono ? new Array(12).fill(0) : sparse(5);
-  l.grain = GRAINS[ri(0, 3)];
+  l.grain = GRAINS[ri(0, 5)];
   l.wb = r() < 0.5 ? { a_b: ri(-7, 7), g_m: ri(-7, 7) } : null;
   const et = EFFECTS[ri(0, 3)];
   l.effect = et === 'none' ? null : { type: et, strength: ri(1, 5) };

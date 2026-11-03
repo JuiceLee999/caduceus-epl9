@@ -366,7 +366,7 @@ function renderEditor() {
     l.kind === 'colour' ? sectorPanel(l, changed) : monoPanel(l, changed),
     ...(l.kind === 'colour' ? [tonePanel(l, changed)] : []),
     h('div', { class: 'group' },
-      seg('Grain', [['off', 'Off'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']], l.grain, (v) => { l.grain = v as Look['grain']; renderEditor(); changed(); })),
+      seg('Grain', [['off', 'Off'], ['low', '1'], ['medium', '2'], ['high', '3'], ['heavy', '4'], ['extreme', '5']], l.grain, (v) => { l.grain = v as Look['grain']; renderEditor(); changed(); })),
     effectPanel(l, changed),
     wbPanel(l, changed),
     ...(l.kind === 'colour' ? [h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Art Effect'),

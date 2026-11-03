@@ -199,11 +199,21 @@ T2_CASES = [  # (label, ext bytes (profile, mode, marker) or None, slot grain by
     ('grain 4 (out of range)', (1, 11, MAGIC), [4, 0, 0, 0], 0),
     ('grain 0xFF (erased table)', (2, 11, MAGIC), [0xff] * 8, 0),
 ]
+T2_CASES_5 = [c for c in T2_CASES if not c[0].startswith('grain 4')] + [   # v0.21: slot grain 0..5
+    ('COLOR1 grain 4', (1, 11, MAGIC), [4, 0, 0, 0], 4),
+    ('COLOR3 grain 5', (3, 11, MAGIC), [0, 0, 5, 0], 5),
+    ('grain 6 (out of range)', (1, 11, MAGIC), [6, 0, 0, 0], 0),
+]
+LEVELS = 3
+
+
+def cases():
+    return T2_CASES_5 if LEVELS == 5 else T2_CASES
 
 
 def t2_worklist(stock, patched, mod_addr):
     res, ok = [], True
-    for label, ext, grains, lv in T2_CASES:
+    for label, ext, grains, lv in cases():
         table = fixture_table(grains)
         for key in ((0, 5, 10, 11, 12, 0x01010068) if label == 'COLOR1 grain 1' else (11,)):
             job = job_bytes(key=key, ext=ext)
@@ -282,7 +292,7 @@ def t6_jobtype(stock, patched, mod_addr):
 # ------------------------------------------------------------------ T3
 def t3_modifier(stock, patched, mod_addr):
     res, ok = [], True
-    for label, ext, grains, lv in T2_CASES:
+    for label, ext, grains, lv in cases():
         table = fixture_table(grains)
         for kind in (0, 3):
             for lv_in in (0, 2):
@@ -315,15 +325,15 @@ def t4_combiner(stock, patched, mod_addr, boost=None):
     res, ok = [], True
     gains = struct.unpack_from('<3H', stock, 0x604ec0d4 - BASE)
     if boost:   # COLOR gains = the boost table in the PATCHED image; must equal the spec's color_gains
-        gains = struct.unpack_from('<3H', patched, int(boost['color_table'], 16) - BASE)
+        gains = struct.unpack_from(f'<{LEVELS}H', patched, int(boost['color_table'], 16) - BASE)
         if list(gains) != boost['color_gains']:
             return False, [dict(check='image boost table == spec color_gains', image=gains, spec=boost['color_gains'], ok=False)]
-    for lv in (0, 1, 2, 3):
+    for lv in range(LEVELS + 1):
         table = fixture_table([lv, 0, 0, 0])
         out = []
         for name, main in (('stock', stock), ('patched', patched), ('stock_mono_0902', stock)):
             req = request(0, 0, 0x0400, 0)
-            if name == 'stock_mono_0902':   # reference: stock MONO (key 12) single-pass route, same level
+            if name == 'stock_mono_0902':   # reference: stock MONO (key 12) single-pass route, same level (4/5: gain 0)
                 req = request(0, 0x0902, 0x0400, lv)
                 req[8:12] = bytes([0, 0, 12, 0])
             if name == 'patched':
@@ -386,7 +396,7 @@ def t8_boost_isolation(stock, patched, mod_addr):
     table = fixture_table([3, 3, 3, 3, 3, 3, 3, 3])
     for key in (12, 0x01010068, 0, 5, 10):
         for stage in (0x0901, 0x0902):
-            for lv in (0, 1, 2, 3):
+            for lv in range(8):         # 4..7: stock gain-0 path (hook C) must stay stock for non-COLOR keys
                 s, p = cfg_run(stock, table, key, stage, lv), cfg_run(patched, table, key, stage, lv)
                 good = s['ok'] and p['ok'] and all(s[k] == p[k] for k in ('bank', 'ramctr', 'req', 'ctx'))
                 ok &= good
@@ -416,7 +426,7 @@ def t7_real_table(stock, patched, mod_addr, spec):
     res, ok = [dict(check='image table == spec table_hex', ok=img == table)], img == table
     for prof in (1, 2, 3, 4):
         g = table[(prof - 1) * SLOT + F_GRAIN]
-        lv = g if 1 <= g <= 3 else 0
+        lv = g if 1 <= g <= LEVELS else 0
         job = job_bytes(ext=(prof, 11, MAGIC))
         s, p = wl_run(stock, None, 11, job), wl_run(patched, None, 11, job)
         att = has_mod(p, mod_addr)
@@ -440,6 +450,8 @@ def main():
     pkg, restore, info = BP.build(spec, BP.STOCK.read_bytes())
     patched, stock = oc.parse(pkg)[0].payload, oc.parse(restore)[0].payload
     mod_addr = int(spec['symbols']['grain_mod'], 16)
+    global LEVELS
+    LEVELS = spec.get('grain_boost', {}).get('levels', 3)
     import numpy as np
     idx = np.nonzero(np.frombuffer(stock, np.uint8) != np.frombuffer(patched, np.uint8))[0] + BASE
     spans = [(int(e['addr'], 16), int(e['addr'], 16) + len(bytes.fromhex(e['new']))) for e in spec['edits']]

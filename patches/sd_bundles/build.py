@@ -59,9 +59,9 @@ SHA_PREFIX = bytes.fromhex(MAIN_SHA[:8])           # decoded main SHA-256, first
 # Per-field value ranges (inclusive, as s8/u8 numbers) of the bundle-table ABI. Must cover every
 # field of patches/bundles/layout.json; bytes no field claims must be 0. These are the ranges
 # patches/bundles/build.py can emit (it rejects anything else), so every table it builds passes.
-# RANGES = the released loaders (v0.16..v0.19 firmware: hue/light -7..7). RANGES_HLX = the reverted v0.17 extended
+# RANGES = the released loaders (v0.16..v0.19 firmware: hue/light -7..7; v0.21: grain 0..5, was 0..3). RANGES_HLX = the reverted v0.17 extended
 # H/L experiment (-15..15, patches/hl_ext only); RANGES_LEGACY = RANGES (old name, kept for callers).
-RANGES = {'hue': (-7, 7), 'light': (-7, 7), 'grain': (0, 3), 'wb_flags': (0, 1), 'wb_ab': (-7, 7),
+RANGES = {'hue': (-7, 7), 'light': (-7, 7), 'grain': (0, 5), 'wb_flags': (0, 1), 'wb_ab': (-7, 7),
           'wb_gm': (-7, 7), 'effect_id': (0, 3), 'effect_strength': (0, 5), 'vignette': (-5, 5),
           'flags': (0, 3), 'colour': (0, 1), 'sat': (-5, 5), 'bloom_tint': (0, 4),
           'art_effect': (0, 5)}

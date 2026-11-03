@@ -3,6 +3,16 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). All releases are early-development
 pre-releases: use at your own risk (see the README).
 
+## v0.21 — 2026-11-03
+
+- **Five colour grain levels:** a COLOR slot's grain is now Off / 1–5 (Extras sector 1 shows `1 Grain Off`,
+  `1 Grain 1` … `1 Grain 5`; the value stops at 0 and 5). Gains 220 / 600 / 1200 / 1500 / 1800: levels 1–3 are the
+  old Low / Medium / High, unchanged, so existing cards and looks keep their strength; 4 (heavy) and 5 (extreme) are
+  new. MONO grain is stock. The card loaders accept grain 0..5 (a v0.21 look with grain 4/5 is rejected by older
+  firmware's loader, which allows 0..3). Web app: grain Off/1–5; share codes for grain 4/5 use new prefixes 3/4,
+  every other code is unchanged.
+- Firmware screen shows `Caduceus: 0.21`.
+
 ## v0.20 — 2026-11-02
 
 - **Rear LCD less pink, and adjustable:** the stock LCD has a slight magenta cast. Setup › Monitor Adjust's

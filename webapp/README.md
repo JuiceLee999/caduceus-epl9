@@ -110,7 +110,9 @@ Example: `1BM9Y-B0K8X-PVAC8-KB9ND-BFVKG-0YAYT-SC59H-5W548-8TYZ0` (CineStill800).
   and `.` are dropped, `O` reads as `0`, and `I`/`L` read as `1`. Anything up to a `#` is dropped, so a whole link
   can be pasted. The app shows codes in groups of 5 with hyphens.
 - **Layout**: `V` + `BODY` + `CCC`.
-  - `V` = version symbol, `1`. The decoder reports a code starting with `2`–`9` as made by a newer app.
+  - `V` = version symbol, `1`. `2` adds a tone block; `3` / `4` are `1` / `2` with the grain digit in radix 6
+    (v0.21 firmware: grain heavy/extreme), made only for those grains. A code starting with `5`–`9` is reported
+    as made by a newer app.
   - `BODY` = one non-negative integer in base 32, most significant symbol first.
   - `CCC` = CRC-15/CAN (poly 0x4599, init 0, MSB first, no reflection, no final xor) over the 5-bit values of
     `V` + `BODY`, as 3 symbols (high bits first). This catches every single-symbol typo and every swap of two
@@ -125,7 +127,7 @@ Example: `1BM9Y-B0K8X-PVAC8-KB9ND-BFVKG-0YAYT-SC59H-5W548-8TYZ0` (CineStill800).
   | 2 | hue[12] | vector, limit 7 | see below |
   | 3 | light[12] | vector, limit 7 | |
   | 4 | sat[12] | vector, limit 5 | (all zero for mono) |
-  | 5 | grain | 4 | off, low, medium, high |
+  | 5 | grain | 4 (v3/v4: 6) | off, low, medium, high (v3/v4 also heavy, extreme) |
   | 6 | WB shift | 226 | 0 = none, else 1 + (a_b+7)·15 + (g_m+7) |
   | 7 | effect | 56 | 0 none; 1–25 bloom 1 + (strength−1)·5 + tint; 26–50 halation (same, +25); 51–55 clarity 1–5 |
   | 8 | vignette | 11 | value + 5 |

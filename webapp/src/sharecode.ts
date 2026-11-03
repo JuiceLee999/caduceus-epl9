@@ -5,6 +5,8 @@
 //   check = CRC-15/CAN (poly 0x4599) over the 5-bit symbols of "1" + body, as 3 symbols
 // Look code v2:  "2" + body + check      the v1 fields with a tone block (H/S/M/B/W) before the name. Only made
 //   when the look's tone is not all zero, so a look without tone keeps its v1 code (older apps read it).
+// Look code v3 / v4: v1 / v2 with the grain digit in radix 6 (v0.21: grain 0..5) instead of 4. Only made when the
+//   grain is heavy or extreme (4/5), so every look with grain off..high keeps its v1/v2 code.
 // Pack code v1:  "pk1_" + base64url(zlib-deflate(UTF-8 JSON of the pack file, schema caduceus-pack/1))
 //   (zlib's Adler-32 catches corruption; base64url is case-sensitive, so pack codes are for links, not typing)
 import {
@@ -15,7 +17,9 @@ import {
 export const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 export const LOOK_VERSION = '1';        // codes without tone
 export const LOOK_VERSION_TONE = '2';   // codes with a tone block
-const KNOWN_VERSIONS = [LOOK_VERSION, LOOK_VERSION_TONE];
+export const LOOK_VERSION_G6 = '3';     // v1 + grain radix 6
+export const LOOK_VERSION_G6_TONE = '4';  // v2 + grain radix 6
+const KNOWN_VERSIONS = [LOOK_VERSION, LOOK_VERSION_TONE, LOOK_VERSION_G6, LOOK_VERSION_G6_TONE];
 export const PACK_PREFIX = 'pk1_';
 const NAME_CHARS = (() => {
   let s = '';
@@ -134,13 +138,13 @@ function getTone(r: Reader): Tone {
 }
 
 /** Pack one look into a mixed-radix integer (v1/v2 field order; never reorder: it is the code format). */
-function lookToBigInt(l: Look, withTone: boolean): bigint {
+function lookToBigInt(l: Look, withTone: boolean, g6 = false): bigint {
   const w = new Writer();
   w.put(l.kind === 'mono' ? 1 : 0, 2);
   putVec(w, l.hue, 7);
   putVec(w, l.light, 7);
   putVec(w, l.kind === 'mono' ? new Array(12).fill(0) : l.sat, 5);
-  w.put(GRAINS.indexOf(l.grain), 4);
+  w.put(GRAINS.indexOf(l.grain), g6 ? 6 : 4);
   w.put(l.wb ? 1 + (l.wb.a_b + 7) * 15 + (l.wb.g_m + 7) : 0, 226);
   w.put(effectIndex(l.effect), EFFECT_N);
   w.put(l.vignette + 5, 11);
@@ -154,11 +158,11 @@ function lookToBigInt(l: Look, withTone: boolean): bigint {
   return w.toBigInt();
 }
 
-function lookFromBigInt(n: bigint, withTone: boolean): Look {
+function lookFromBigInt(n: bigint, withTone: boolean, g6 = false): Look {
   const r = new Reader(n);
   const kind = r.get(2) ? 'mono' : 'colour';
   const hue = getVec(r, 7), light = getVec(r, 7), sat = getVec(r, 5);
-  const grain = GRAINS[r.get(4)];
+  const grain = GRAINS[r.get(g6 ? 6 : 4)];
   const wbi = r.get(226);
   const wb = wbi ? { a_b: Math.floor((wbi - 1) / 15) - 7, g_m: ((wbi - 1) % 15) - 7 } : null;
   const effect = effectFrom(r.get(EFFECT_N));
@@ -191,7 +195,9 @@ export function encodeLookCode(l: Look, group = false): string {
     if (!Number.isInteger(v) || Math.abs(v) > L) throw new Error(`share code: tone ${k} must be a whole number in -${L}..${L}`);
   }
   const withTone = !!l.tone && !toneIsZero(l.tone);
-  const syms = [ALPHABET.indexOf(withTone ? LOOK_VERSION_TONE : LOOK_VERSION), ...toSymbols(lookToBigInt(l, withTone))];
+  const g6 = GRAINS.indexOf(l.grain) >= 4;
+  const ver = g6 ? (withTone ? LOOK_VERSION_G6_TONE : LOOK_VERSION_G6) : (withTone ? LOOK_VERSION_TONE : LOOK_VERSION);
+  const syms = [ALPHABET.indexOf(ver), ...toSymbols(lookToBigInt(l, withTone, g6))];
   const c = crc15(syms);
   syms.push((c >> 10) & 31, (c >> 5) & 31, c & 31);
   const s = syms.map((v) => ALPHABET[v]).join('');
@@ -212,7 +218,7 @@ export function decodeLookCode(input: string): Look {
   const bad = syms.indexOf(-1);
   if (bad >= 0) throw new Error(`"${s[bad]}" is not a code character.`);
   if (!KNOWN_VERSIONS.includes(s[0])) {
-    if (/[3-9]/.test(s[0])) throw new Error(`This is a version-${s[0]} code from a newer Caduceus app. Update the app (or ask for a pack link).`);
+    if (/[5-9]/.test(s[0])) throw new Error(`This is a version-${s[0]} code from a newer Caduceus app. Update the app (or ask for a pack link).`);
     throw new Error('This is not a Caduceus look code.');
   }
   const body = syms.slice(0, -3), chk = syms.slice(-3);
@@ -221,7 +227,8 @@ export function decodeLookCode(input: string): Look {
     throw new Error('Check failed: the code has a typo (or is incomplete).');
   let n = 0n;
   for (const v of body.slice(1)) n = (n << 5n) | BigInt(v);
-  return lookFromBigInt(n, s[0] === LOOK_VERSION_TONE);
+  const g6 = s[0] === LOOK_VERSION_G6 || s[0] === LOOK_VERSION_G6_TONE;
+  return lookFromBigInt(n, s[0] === LOOK_VERSION_TONE || s[0] === LOOK_VERSION_G6_TONE, g6);
 }
 
 // ---- pack codes
