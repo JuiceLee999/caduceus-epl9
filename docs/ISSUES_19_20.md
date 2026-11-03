@@ -100,6 +100,32 @@ the display plane's source is traced, and neither can be emulated meaningfully.
 
 Neither is clearly safe from static analysis alone.
 
+**Camera results 2 (coordinator):**
+- Rec View Off: a short unprocessed frame, then no black.
+- COLOR bloom with Rec View 2 s: the unprocessed preview, then 2 s of black.
+- **Stock ART Soft Focus with Rec View 2 s:** the colour-corrected picture, then the same picture updated with the
+  bloom once processing finishes. So stock already shows and then updates, but only for art filters.
+
+**Where ART mode differs [V code, I meaning]:** the converters split a capture into sub-developments by capture kind
+(+194: 0x2001 / 0x2006 / 0x100a) and pass number (+206 = 1 / 2; copied by the record task at `0x603148c1` from
++264 of its source).
+- Key mapper `0x603eaa78`: when picture mode (cap+24053) is >= 100, kind is 0x2001/0x2006 and +206 == 2, the key bytes
+  are cleared and the result is 2. So pass 2 of an art capture gets a plain (non-art) key, which is [I] the
+  colour-corrected first review.
+- Params builder `0x603e3fd8`: the same gate (mode >= 100, kind 0x2001/0x2006, +206 == 2) sets params+5528 = 0.
+- In COLOR mode (11) both gates fail. Our bloom/clarity therefore runs on every sub-development, including the
+  review one, and the review cannot update.
+- [I] The ART flow needs more than those two gates: the capture sequencer must also issue the extra development and
+  post the Rec View machine's state-2 event 0 (redo, above) when the art pass finishes. Where it decides that for
+  picture mode >= 100 is not yet traced. Candidates are the `cmp 100` sites in the record task: `0x60313013`,
+  `0x60314d4b`, `0x60316c2b`, `0x60318d2e`, `0x60318f6b`, `0x6031999c`, `0x6031aadc`, `0x60320314/1d`,
+  `0x603209ab/b4`, `0x603311b9`.
+
+**Status:** no fix shipped. Extending only the two converter gates to COLOR + effect would strip our effect from
+pass 2 without the sequencer's update step, which risks a review that never updates or a missing pass. Next step:
+trace the >= 100 sites above to the one that schedules the second development and the review refresh, then extend
+that one gate (with the converter gates) to COLOR slots with an effect.
+
 **Camera probes that would settle it** (cheap; no capture-path change):
 - (a) The stock Soft Focus **art filter** with Rec View 2 s. Does it also go black? If yes, this is stock ISP
   contention, not our layout.
