@@ -764,7 +764,10 @@ function confirmPack(p: Pack): boolean {
 }
 
 const STORE_TARGET = 'caduceus.target';
+// Camera selector stays hidden until other cameras have known-good builds (the E-P7 export is used meanwhile).
+const SHOW_CAMERA_SELECTOR = false;
 function exportDialog() {
+  if (!SHOW_CAMERA_SELECTOR) { modal('Export', h('div', { class: 'export' }, ep7Body())); return; }
   let target = targetById((() => { try { return localStorage.getItem(STORE_TARGET); } catch { return null; } })());
   const sel = h('select', {
     'aria-label': 'Camera',
