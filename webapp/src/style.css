@@ -256,3 +256,4 @@ canvas.pv { width: 100%; height: auto; display: block; max-height: 70vh; object-
 .install a { color: var(--accent); }
 a.btn { display: inline-block; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; text-decoration: none; color: var(--ink); background: var(--panel); }
 a.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.install .substeps { margin: 2px 0 6px; padding-left: 20px; } .install .substeps li { margin: 2px 0; }
