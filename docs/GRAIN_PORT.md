@@ -136,7 +136,20 @@ on the gain; the noise clamp −6682 (bank+148) already saturates at 600, so hig
 grain and lift the mean slightly. Desktop estimate: `sim/grain_boost_preview.py`
 (model uncalibrated to camera; midtone std ×2.2/×4/×6 vs the old levels).
 
-## 4. Verification (emulator; `tools/ep7_grain_verify.py`, fishcu's libsim runner)
+### v0.22 test build: COLOR stills on the stock MONO full-size route (Approach C; patches/grain_c)
+Camera (v0.21): combiner 32 adds nothing visible on COLOR stills, full size or S, even at gain 1800. Mapping run
+(`patches/grain_c/map.py`, real builder to finalize 0x60357c91): stock key 12 class 0 = mask pass 0x60359bc8 + grain
+image pass 0x60359cd8 (pending, no single-shot variant), and the feature chain then appends post-pass *entries*; the
+last one outputs. Every COLOR job carries 0x80000 (creative shading, 0x60353bcf), whose entry 0x6035b529 follows.
+v0.22: when the v0.21 wl_hook accepts a COLOR job (gate, marker, slot grain 1..5) **and** class 0 **and** job+16 has
+0x80000, `gc_wl` writes params+5551 (job+5587) = min(level,3) and adds the two stock MONO entries (as 0x603577d4);
+`gc_sel`: key 11 stage 0x0901 → 31; `gc_tone`: key 11 kind-0 stage 0x0900 → mask LUT 0x605003aa. Else v0.21.
+Gains = stock MONO 110/300/600 (slot 1/2/3; 4/5 = 600). Buffers: the passes' own job+10992 records, released by the
+dispatcher (0x6035490d/0x60354930) as for MONO. `patches/grain_c/verify.py`: W 26 (list == stock MONO for the same
+flags; grain 0 / no 0x80000 / class 4 / gated types / other keys == v0.21), T 24, C 4, F 2 (stock alloc-failure
+returns 40643/40654), P. **Unproven on camera:** chroma through the 0x0302 grain image pass with key 11, memory
+with bloom/clarity entries, burst/RAW+JPEG timing (same entry shapes as MONO).
+ (emulator; `tools/ep7_grain_verify.py`, fishcu's libsim runner)
 
 **v0.4 (current verifier, `generated/v04/grain/verify.json`).** A synthetic bundle table is injected at
 0x60210900; on a merged spec the real table is also used (T7).

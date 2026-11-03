@@ -44,7 +44,7 @@ execute = SDV3.wrap(execute)
 BASE = 0x60020020
 SEGS = [('code', 0x60340000, 0x603c0000, 'rx'), ('data', 0x60520000, 0x60540000, 'r'),
         ('gain', 0x604ec000, 0x604ed000, 'r'), ('tail', 0x6055e5b0, 0x6055e800, 'rx'),
-        ('mapper', 0x603ea900, 0x603eaa00, 'rx')]
+        ('mapper', 0x603ea900, 0x603eaa00, 'rx'), ('evf0', 0x601e3800, 0x601e3a00, 'rx')]   # v0.22 grain C stubs
 SEC1_LO, SEC1_HI = 0x60210800, 0x60211000
 TABLE, SLOT, F_GRAIN = 0x60210900, 64, 24
 EXT, MAGIC = 15488, 0xB2
@@ -138,6 +138,8 @@ def t1_selector(stock, patched, table):
                         out.append((r['registers']['d0'], regs_ok(r, CALLER + 7), m['ctx'], m['req']))
                     (s0, sok, sc, sr), (p0, pok, pc, pr) = out
                     want = 32 if (key == 11 and kind == 0 and stage == 0x0902) else s0
+                    if GRAIN_C and key == 11 and kind == 0 and stage == 0x0901:
+                        want = 31                     # v0.22: COLOR on the MONO mask route (as key 12)
                     good = sok and pok and p0 == want and sc == pc and sr == pr
                     ok &= good
                     if not good or want != s0:
@@ -205,6 +207,7 @@ T2_CASES_5 = [c for c in T2_CASES if not c[0].startswith('grain 4')] + [   # v0.
     ('grain 6 (out of range)', (1, 11, MAGIC), [6, 0, 0, 0], 0),
 ]
 LEVELS = 3
+GRAIN_C = False
 
 
 def cases():
@@ -450,8 +453,9 @@ def main():
     pkg, restore, info = BP.build(spec, BP.STOCK.read_bytes())
     patched, stock = oc.parse(pkg)[0].payload, oc.parse(restore)[0].payload
     mod_addr = int(spec['symbols']['grain_mod'], 16)
-    global LEVELS
+    global LEVELS, GRAIN_C
     LEVELS = spec.get('grain_boost', {}).get('levels', 3)
+    GRAIN_C = 'grain_c' in spec
     import numpy as np
     idx = np.nonzero(np.frombuffer(stock, np.uint8) != np.frombuffer(patched, np.uint8))[0] + BASE
     spans = [(int(e['addr'], 16), int(e['addr'], 16) + len(bytes.fromhex(e['new']))) for e in spec['edits']]

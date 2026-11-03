@@ -3,6 +3,12 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). All releases are early-development
 pre-releases: use at your own risk (see the README).
 
+## v0.22 (test build, not a release) — 2026-11-03
+
+- **Probe: colour grain through the full-size MONO grain route.** COLOR stills with grain use the camera's own
+  two-pass MONO grain (brightness mask + grain at MONO Low/Medium/High; slot levels 4/5 = High). Camera-side risk
+  accepted for this probe; keep the v0.21 restore ready. Firmware screen shows `Caduceus: 0.22`.
+
 ## v0.21 — 2026-11-03
 
 - **Five colour grain levels:** a COLOR slot's grain is now Off / 1–5 (Extras sector 1 shows `1 Grain Off`,
