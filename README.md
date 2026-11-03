@@ -201,6 +201,8 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
 - Per-look tone on the Film page, plus a Blacks/Whites page on the tone-curve screen (`docs/TONE_ENDS.md`).
 - Tinted halation (red glow around white lights), probably via a mask built from the exposure meter grid.
 - Maybe: use the ART position on the mode dial as a quick "silent shutter" switch.
+- Canon 1100D (Rebel T3): no firmware hack; export looks as Canon Picture Style (.PF2) files, if the PF2 checksum can be
+  solved, else as recipe cards (`docs/PORT_CANON_1100D.md`).
 
 **Hard / long shot**
 - C4K video: hidden, not removed (C4K drive mode, 4096×2160 tables and HDMI C4K are present); the sensor, encoder
