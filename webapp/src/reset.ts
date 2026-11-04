@@ -66,6 +66,49 @@ export function migratePack(saved: Pack, library: Pack, previousNames?: string[]
 /** Library looks that were replaced: a look copied from the old one now belongs to the new one. */
 const REPLACED_LOOKS: Record<string, string> = { Nostalgic: 'Provia 400' };
 
+/** Every value set the built-in Nostalgic ever shipped with (tone zero: saved before looks had a tone). */
+const isShippedNostalgic = (l: Look): boolean => {
+  const eq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const t = l.tone;
+  const shippedTone = t.highlights === -2 && t.shadows === 1 && t.midtones === 1 && t.blacks === 1 && t.whites === -1;
+  return l.name === 'Nostalgic' && l.kind === 'colour'
+    && eq(l.hue, [0, 1, 0, 1, 0, 0, 0, 0, 0, -2, -3, -2]) && eq(l.light, [1, 1, 1, 0, 0, 0, -1, -1, 0, 0, 0, 0])
+    && (eq(l.sat, [2, 2, 1, 0, -1, -1, -2, -2, -2, -1, 0, 2]) || l.sat.every((v) => v === 0))   // LOOKS.BIN has no sat
+    && eq(l.wb, { a_b: 2, g_m: 0 }) && (shippedTone || toneIsZero(t))
+    && l.grain === 'fine' && !l.effect && !l.vignette && l.art_effect === 'off';
+};
+
+/**
+ * Swap saved copies of a replaced library look for the new one, however old the saved pack is. Recognised by its
+ * shipped values, not its fingerprint (older apps wrote different ones), so this runs on every load, not only when
+ * the library version changes. A copy with other values is the user's own edit and stays.
+ */
+export function replaceRetiredLooks(saved: Pack, library: Pack): { pack: Pack; replaced: number } {
+  const pack: Pack = JSON.parse(JSON.stringify(saved));
+  const src = library.looks.find((o) => o.name === REPLACED_LOOKS.Nostalgic);
+  let replaced = 0;
+  if (!src) return { pack, replaced };
+  for (let i = pack.looks.length - 1; i >= 0; i--) {
+    if (!isShippedNostalgic(pack.looks[i])) continue;
+    replaced++;
+    const have = pack.looks.findIndex((l) => l.name === src.name);
+    if (have < 0) {
+      pack.looks[i] = fromLibrary(src);
+      // a toned look is COLOR-only: it cannot stay in a MONO slot
+      for (const [s, v] of Object.entries(pack.slots)) if (v === i && s.startsWith('MONO')) delete pack.slots[s as keyof Pack['slots']];
+      continue;
+    }
+    // already in the pack (added by an earlier library update): drop the old copy, its slots move to the new look
+    pack.looks.splice(i, 1);
+    const target = have > i ? have - 1 : have;
+    for (const [s, v] of Object.entries(pack.slots) as [keyof Pack['slots'], number][]) {
+      if (v === i) { if (s.startsWith('MONO')) delete pack.slots[s]; else pack.slots[s] = target; }
+      else if (v > i) pack.slots[s] = v - 1;
+    }
+  }
+  return { pack, replaced };
+}
+
 /** The library look `l` came from, if any. */
 export const libraryOrigin = (l: Look, library: Pack): Look | undefined => {
   if (l.origin === undefined) return undefined;

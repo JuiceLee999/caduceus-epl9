@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { encodeLooksBin } from '../src/format';
 import { exportable, parsePack } from '../src/pack';
 import { decodeLookCode, encodeLookCode } from '../src/sharecode';
-import { fromLibrary, lookFingerprint, migratePack, resetLook, standardPack } from '../src/reset';
+import { fromLibrary, lookFingerprint, migratePack, replaceRetiredLooks, resetLook, standardPack } from '../src/reset';
 import { blankLook, toneIsZero, zeroTone } from '../src/pack';
 import libraryJson from '../src/data/library.json';
 
@@ -21,6 +21,54 @@ function mangle(p: ReturnType<typeof standardPack>, i: number) {
 }
 
 describe('reset', () => {
+  describe('replaceRetiredLooks: saved Nostalgic of any age', () => {
+    const NOST = { name: 'Nostalgic', hue: [0, 1, 0, 1, 0, 0, 0, 0, 0, -2, -3, -2], light: [1, 1, 1, 0, 0, 0, -1, -1, 0, 0, 0, 0],
+      sat: [2, 2, 1, 0, -1, -1, -2, -2, -2, -1, 0, 2], grain: 'fine', wb: { a_b: 2, g_m: 0 }, effect: null, vignette: 0,
+      tone: { highlights: -2, shadows: 1, midtones: 1, blacks: 1, whites: -1 } };
+    const zero = { highlights: 0, shadows: 0, midtones: 0, blacks: 0, whites: 0 };
+    const make = (extra: Record<string, unknown>, drop: string[] = []) => {
+      const p = standardPack(LIB) as any;
+      const i = p.looks.findIndex((l: any) => l.name === 'Provia 400');
+      p.looks[i] = { ...p.looks[i], ...NOST, ...extra };
+      for (const k of drop) delete p.looks[i][k];
+      return { p, i };
+    };
+    const cases: [string, Record<string, unknown>, string[]][] = [
+      ['an old fingerprint', { origin: 'Nostalgic', lib: 'deadbeef' }, []],
+      ['origin but no fingerprint', { origin: 'Nostalgic' }, ['lib']],
+      ['no origin (imported)', {}, ['origin', 'lib']],
+      ['no tone (pre-v0.19)', { origin: 'Nostalgic', lib: 'deadbeef', tone: zero }, []],
+      ['no sat (from a LOOKS.BIN)', { sat: new Array(12).fill(0) }, ['origin', 'lib']],
+    ];
+    it.each(cases)('%s becomes Provia 400 in place', (_n, extra, drop) => {
+      const { p, i } = make(extra, drop);
+      const r = replaceRetiredLooks(p, LIB);
+      expect(r.replaced).toBe(1);
+      expect(r.pack.looks.length).toBe(LIB.looks.length);
+      expect(r.pack.looks[i]).toEqual(fromLibrary(LIB.looks[i]));
+      expect(replaceRetiredLooks(r.pack, LIB).replaced).toBe(0);
+    });
+    it('keeps a copy the user edited', () => {
+      const { p } = make({ origin: 'Nostalgic', lib: 'deadbeef', vignette: 2 });
+      const r = replaceRetiredLooks(p, LIB);
+      expect(r.replaced).toBe(0);
+      expect(r.pack.looks.some((l: any) => l.name === 'Nostalgic')).toBe(true);
+    });
+    it('a pack already holding Provia 400 loses the old copy; slots follow', () => {
+      const p = standardPack(LIB) as any;
+      p.looks.length = 6;
+      const prov = p.looks.findIndex((l: any) => l.name === 'Provia 400');
+      p.looks.splice(1, 0, { ...p.looks[0], ...NOST, origin: 'Nostalgic', lib: 'deadbeef', art_effect: 'off' });
+      const after = p.looks[prov + 2].name;
+      p.slots = { COLOR1: 1, COLOR2: prov + 2, MONO1: 1 };
+      const r = replaceRetiredLooks(p, LIB);
+      expect(r.pack.looks.filter((l: any) => l.name === 'Nostalgic')).toEqual([]);
+      expect(r.pack.looks[r.pack.slots.COLOR1!].name).toBe('Provia 400');
+      expect(r.pack.looks[r.pack.slots.COLOR2!].name).toBe(after);
+      expect(r.pack.slots.MONO1).toBeUndefined();
+    });
+  });
+
   describe('replaced library look (Nostalgic -> Provia 400)', () => {
     const oldPack = (edit = false) => {
       const p = standardPack(LIB);

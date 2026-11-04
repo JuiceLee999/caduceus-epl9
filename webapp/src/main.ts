@@ -6,7 +6,7 @@ import {
   exportable, parsePack, toneIsZero, toneLimit, type Look, type Pack, type SlotName, type Tone,
 } from './pack';
 import { History } from './history';
-import { fromLibrary, libraryOrigin, migratePack, resetLook, standardPack } from './reset';
+import { fromLibrary, libraryOrigin, migratePack, replaceRetiredLooks, resetLook, standardPack } from './reset';
 import { renderLook } from './preview';
 import { decodeLookCode, decodePackCode, encodeLookCode, encodePackCode, isPackCode } from './sharecode';
 import { makeZip } from './zip';
@@ -40,7 +40,13 @@ const S = {
 /** The saved pack brought up to the current built-in library (or the library itself for a first visit). */
 let libNotice = '';
 function startPack(): Pack {
-  const saved = loadStored();
+  const stored = loadStored();
+  const swap = stored ? replaceRetiredLooks(stored, LIBRARY) : null;
+  const saved = swap ? swap.pack : stored;
+  if (swap?.replaced) {
+    libNotice = 'Nostalgic has been replaced by Provia 400 in your saved pack.';
+    try { localStorage.setItem(STORE, JSON.stringify(swap.pack)); } catch { /* private mode */ }
+  }
   let prev: { version?: string; names?: string[] } = {};
   try { prev = JSON.parse(localStorage.getItem(STORE_LIB) ?? '{}'); } catch { /* none */ }
   const stamp = () => { try { localStorage.setItem(STORE_LIB, JSON.stringify({ version: LIB_VERSION, names: LIBRARY.looks.map((l) => l.name) })); } catch { /* private mode */ } };
@@ -49,7 +55,7 @@ function startPack(): Pack {
   const m = migratePack(saved, LIBRARY, prev.names);
   stamp();
   if (m.updated || m.added)
-    libNotice = `Film library updated to v${LIB_VERSION}: ${m.updated} look${m.updated === 1 ? '' : 's'} refreshed` +
+    libNotice = (libNotice ? libNotice + ' ' : '') + `Film library updated to v${LIB_VERSION}: ${m.updated} look${m.updated === 1 ? '' : 's'} refreshed` +
       (m.added ? `, ${m.added} added` : '') + '. Your own and edited looks are unchanged.';
   try { localStorage.setItem(STORE, JSON.stringify(m.pack)); } catch { /* private mode */ }
   return m.pack;
