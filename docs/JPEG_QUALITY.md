@@ -1,0 +1,32 @@
+# Finer JPEGs ("more super fine"): first look
+
+Status: **idea, static analysis only (2026-11-04).** Nothing built or run on a camera. E-P7 1.1 main, addresses are CPU addresses.
+Notation: **[V]** read in the disassembly; **[I]** inference.
+
+## What is known
+
+- **[V] The quantisation tables are the standard JPEG Annex K tables at quality 50.** Luma is at `0x60533058` and chroma at
+  `0x60533098`, followed by the Huffman tables. A pointer record at `0x60533048` points to both; it is used from `0x603b6186`.
+- **[V] A routine around `0x603b6120` scales them at run time.** For each of the 64 entries it computes
+  `min(255, (base * Sf + 128) >> 8)` (so `Sf = 256` gives the Q50 tables) and stores the result for the JPEG engine
+  (registers at `0x99901xxx`). A smaller `Sf` gives finer quantisation, so a bigger, cleaner JPEG.
+  - `Sf` is a halfword read from the job's parameter block. If it is 0 the caller's default is used. The result is cached
+    (`0xa27393fc` holds the last `Sf`), so the tables are rebuilt only when `Sf` changes.
+  - The debug strings `usJpegSf`, `ucJpegMode`, `ulJpegTargetSize`, `ulJpegCodeSize` name the parameter block fields.
+- **[V] There is no lower clamp.** A small `Sf` can produce quantiser steps of 0, which is invalid for the JPEG engine.
+  The smallest entry in the base tables is 10, so `Sf` must stay at or above 13 for every step to remain at least 1.
+
+## Not found yet
+
+1. **Where `Sf` is chosen for each quality setting** (SF / F / N / B, and the size classes). It is probably a small table or
+   a few constants in the job-setup code; the writer of the parameter block has not been traced.
+2. **Whether `ulJpegTargetSize` drives a rate-control loop** that re-encodes at a coarser `Sf` until the file fits a target.
+   If so, a finer `Sf` would be undone for large files unless the target is raised too.
+3. **Buffer sizes.** A finer JPEG is larger. The code-size buffer, the card-write path and the burst buffer limits need
+   checking so a bigger file cannot overrun.
+
+## Difficulty (estimate)
+
+Moderate. If `Sf` for Super Fine is a constant or a one-entry table, changing it is a few data bytes. The work is items 1-3 above,
+then a camera test measuring file size, decoded quality and burst speed. It also needs a body to try it on. Risk is
+medium (buffers), so test with SD-card-only changes first and keep the restore file ready.

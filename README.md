@@ -247,6 +247,9 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
 - Control Panel camera selector: export the same looks for other cameras (built, hidden until other cameras have known-good builds).
 
 **Possible / medium effort**
+- **Finer JPEGs ("more super fine"):** the camera scales a standard quality-50 quantisation table by a factor `Sf`; a smaller
+  `Sf` for Super Fine would give bigger, cleaner JPEGs. Still to find: where `Sf` is chosen per quality setting, any file-size
+  target that undoes it, and the buffer limits (`docs/JPEG_QUALITY.md`).
 - **True film grain on colour photos** (the camera's own grain stages add nothing visible to colour; needs a new approach).
 - **Noise reduction on profile switch:** re-apply the slot's Noise Filter value when a profile is selected (today it is
   set on a look pick or a sector-1 edit; the Noise Filter itself is camera-wide).
@@ -267,6 +270,9 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
   stock; needs a second, cropped output from the LV job (`docs/PIP_FOCUS.md`).
 - E-M10 IV port: same container and CPU, ~48 % of v0.20 edits relocate by signature, but it has no Colour/Mono
   profiles (looks need a new host) and no test body (`docs/PORT_EM10IV.md`).
+- E-M5 III port: ~36 % of v0.20 edits relocate by signature (recording limit and LCD tint do; SD loader and log hook do
+  not), and it has no Colour/Mono profiles. **Needs an owner of the camera to try it and test on the body**
+  (`docs/PORT_EM5III.md`, checker `tools/port_sigmatch.py`). More body assessments are welcome.
 
 **Parked**
 - Live ND: the code exists only on E-M1-class bodies, not in the E-P7 or E-M5 III; it would mean new ISP code.
