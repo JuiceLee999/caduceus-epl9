@@ -96,7 +96,7 @@ Overview, one row per look: roof, sunset, valley (PA211089), flower:
 - In v2 the WB values are re-scaled to camera steps. Previews use `WB_STEP` 0.044; `sim/film.py` is unchanged.
 - Hue and light are still uncalibrated.
 
-**Saturation is advice only.** The Film page does not set it, so set the profile's own saturation by hand.
+**Saturation:** from v0.24 a Film pick sets the profile's saturation from the look. Before v0.24 it was advice only.
 
 | Look | v2 change (H/L in sector order Y,O,OR,R,M,V,B,BC,C,GC,G,YG) |
 |---|---|

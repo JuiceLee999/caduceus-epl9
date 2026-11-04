@@ -18,13 +18,13 @@ const WEBAPP = join(__dirname, '..');
 const ROOT = join(WEBAPP, '..');
 const python = ['.venv/bin/python', 'python3'].map((p) => (p.startsWith('.') ? join(ROOT, p) : p))
   .find((p) => { try { execFileSync(p, ['-c', '0']); return true; } catch { return false; } });
-const RELEASE_LOOKS = join(ROOT, 'releases/v0.23/card/EP7MOD/LOOKS.BIN');
+const RELEASE_LOOKS = join(ROOT, 'releases/v0.24/card/EP7MOD/LOOKS.BIN');
 const hex = (b: Uint8Array) => Buffer.from(b).toString('hex');
 const library = () => parsePack(resolveRepoLibrary(ROOT));
 
 // What LOOKS.BIN keeps of a look (no notes, Art Effect or advice; a look with a tone block keeps no sat).
 const cardView = (l: Look) => ({
-  ...cloneLook(l), notes: '', art_effect: 'off', sat: hasTone(l) ? new Array(12).fill(0) : [...l.sat],
+  ...cloneLook(l), notes: '', art_effect: 'off', sat: [...l.sat],
   advice: l.kind === 'mono' ? { mono_filter: { colour: 'none', strength: 1 } } : {},
 });
 
@@ -45,14 +45,14 @@ describe('built-in library', () => {
     } finally { rmSync(out, { recursive: true, force: true }); }
   });
 
-  it('tone block: v3 header, 64-byte records, +32 flag, +33..37 B/W/H/M/S, mask 1', () => {
+  it('tone block: v3 header, 64-byte records, +32 flag, +33..37 B/W/H/M/S, +38..44 sat, mask 1', () => {
     const lib = library();
     lib.looks[0].tone = { highlights: -7, shadows: 7, midtones: 3, blacks: -5, whites: 5 };
     const got = encodeLooksBin(lib), n = lib.looks.length, dv = new DataView(got.buffer);
     expect(got.length).toBe(64 + 64 * n);
     expect([dv.getUint16(4, true), dv.getUint16(26, true)]).toEqual([3, 64]);
     const r = got.subarray(64, 128);
-    expect([...r.subarray(32, 45)].map((b) => (b << 24) >> 24)).toEqual([1, -5, 5, -7, 3, 7, 0, 0, 0, 0, 0, 0, 0]);
+    expect([...r.subarray(32, 45)].map((b) => (b << 24) >> 24)).toEqual([1, -5, 5, -7, 3, 7, 0x44, 0x54, 0x43, 0x55, 0x33, 0x44, 1]);   // Velvia sat[12] as nibbles + marker
     expect([r[45], r[46]]).toEqual([0, 1]);
     const plain = blankLook('colour', 'P'); plain.sat[0] = 4;
     const pr = lookRecord(plain);

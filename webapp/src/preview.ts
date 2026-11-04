@@ -144,7 +144,7 @@ export function renderLook(src: ImageData, dst: ImageData, look: Look, opt: Prev
   // 2. contrast advice + the look's tone (luminance), 3. 12-sector colour engine, 4. mono
   const con = opt.advice ? look.advice.contrast ?? 0 : 0;
   const tl = !toneIsZero(look.tone) || con ? previewToneLut(look.tone, 1024, con ? contrastCurve(con) : undefined) : null;
-  const lut = sectorLut(look.hue, look.light, opt.advice && !mono ? look.sat : new Array(12).fill(0));
+  const lut = sectorLut(look.hue, look.light, !mono ? look.sat : new Array(12).fill(0));
   const mf = look.advice.mono_filter;
   let mw: [number, number, number] = MONO_W.none;
   if (mono && mf) {

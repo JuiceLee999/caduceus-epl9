@@ -485,7 +485,7 @@ function sectorPanel(l: Look, changed: () => void): HTMLElement {
     h('div', { class: 'sectors' }, ...rows),
     h('div', { class: 'tab-foot' },
       h('span', { class: 'help' }, S.tab === 'sat'
-        ? 'Saturation is advice: set it in the camera\'s own colour-profile saturation. It is stored for MONO colour slots (looks without a tone).'
+        ? 'A Film pick sets the camera\'s saturation from these values on Caduceus v0.24 or later, for looks with a tone. It is also stored for MONO colour slots (looks without a tone).'
         : `±${lim} per sector (v0.17 firmware). Double-click a slider to zero it.`),
       h('button', { class: 'link', onclick: () => { arr.fill(0); renderEditor(); changed(); } }, 'Reset')));
 }
@@ -636,7 +636,7 @@ function buildPreview() {
     thumbs,
     h('div', { class: 'pv-opts' },
       h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: S.advice, onchange: (e: Event) => { S.advice = (e.target as HTMLInputElement).checked; schedulePreview(); } }),
-        h('span', {}, 'Include advice (saturation, contrast)')),
+        h('span', {}, 'Include advice (contrast)')),
       h('button', { class: 'link', onclick: () => $<HTMLInputElement>('#photo').click() }, 'Use your own photo…')),
     h('p', { class: 'help' }, 'A rough desktop-sim port running on JPEGs, not the camera\'s pipeline: use it for direction and strength, then check on the camera. Your own photo never leaves this browser.'));
   pickImage(S.image);
@@ -939,7 +939,7 @@ function ep7Body(): HTMLElement {
         h('ul', { class: 'problems' }, ...probs.slice(0, 12).map((p) => h('li', {}, fmtProblem(p)))))
       : h('p', { class: 'ok' }, `✓ ${S.pack.looks.length} looks pass the camera's LOOKS.BIN checks (v0.19 firmware).`),
     h('div', { class: 'ex-row' },
-      h('div', {}, h('b', {}, 'LOOKS.BIN'), h('p', { class: 'help' }, 'The looks the camera\'s Film page offers. The firmware install already puts the 32 built-in looks on the card; download this only to use your own edits. Copy it to EP7MOD/ on the card (replacing LOOKS.BIN there) and half-press. No re-flash needed.')),
+      h('div', {}, h('b', {}, 'LOOKS.BIN'), h('p', { class: 'help' }, 'The looks the camera\'s Film page offers (needs Caduceus v0.24 or later). The firmware install already puts the 32 built-in looks on the card; download this only to use your own edits. Copy it to EP7MOD/ on the card (replacing LOOKS.BIN there) and half-press. No re-flash needed.')),
       h('button', { class: 'primary', disabled: probs.length > 0, onclick: () => { const b = looksBin(); if (b) download('LOOKS.BIN', b); } }, 'Download')),
     h('div', { class: 'ex-row' },
       h('div', {}, h('b', {}, 'Pack file (.json)'), h('p', { class: 'help' }, 'Everything, including notes and advice. Open it here later or send it to someone.')),

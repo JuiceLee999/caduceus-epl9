@@ -3,12 +3,23 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). All releases are early-development
 pre-releases: use at your own risk (see the README).
 
+## v0.24 — 2026-11-05
+
+- **A Film pick now sets the look's saturation:** picking a look writes its 12 per-colour values to the profile's
+  saturation, as it already did for Highlights, Midtones and Shadows. It replaces whatever that profile's saturation was.
+  Every colour look now shows its designed saturation for the first time, so strong looks like Velvia will look stronger.
+  Own and Stock picks don't change saturation.
+- **New `LOOKS.BIN`:** tone records carry saturation as nibbles at +38..43 with marker +44 = 1. **v0.23 and older reject this
+  file**, so install it with v0.24. An older `LOOKS.BIN` on v0.24 still works and leaves saturation alone. Control Panel
+  exports need v0.24 or later.
+- Control Panel preview always shows saturation. Firmware screen shows `Caduceus: 0.24`.
+
 ## Looks — 2026-11-05
 
 - **Provia 400 replaces Nostalgic** (same Film-page position), designed from a tripod comparison of real Provia 400X and
   100F slides plus Fujifilm's bulletin and reviews: WB G-3 (magenta-red cast), warm-sector hue toward red, blue hue +1, light
   -1 on red, blue, blue-cyan, green-cyan and yellow-green, -2 on green, tone S-1 M-1 Blacks -1 Whites -3, NR Low, no bloom.
-  On the camera, also set sat +1 warm, +2 blue and contrast +1 (advice, as for every look).
+  Saturation +1 warm, +2 blue (applied on a pick from v0.24); set contrast +1 on the camera.
 - `releases/v0.23/card/EP7MOD/LOOKS.BIN` rebuilt (SHA256SUMS updated). Card file only, no re-flash.
 - Control Panel: a saved, unedited Nostalgic becomes Provia 400 in place; an edited one is kept as your own look.
 

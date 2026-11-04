@@ -153,6 +153,8 @@ export function lookRecord(l: Look): Uint8Array {
     r[TONE_FLAG] = 1;
     for (const k of TONE_KEYS) r[TONE_OFF[k]] = u8(l.tone[k]);
     r[MASK_OFF] = 1;
+    for (let k = 0; k < 12; k++) r[38 + (k >> 1)] |= (l.sat[k] & 15) << (4 * (k & 1));   // v0.24: a Film pick sets saturation
+    r[44] = 1;
   } else {
     if (!mono) for (let k = 0; k < 12; k++) r[B_SAT + k] = u8(l.sat[k]);
     r[MASK_OFF] = mono ? 2 : 3;         // colour looks without tone carry sat (-5..5), so they may go in MONO slots
@@ -206,6 +208,7 @@ function nameOk(nm: Uint8Array): boolean {     // camera rule (_name_ok): 1..15 
 const LOOK_LO = Int8Array.from(RANGE_LO), LOOK_HI = Int8Array.from(RANGE_HI);
 LOOK_LO[33] = LOOK_LO[34] = -5; LOOK_HI[33] = LOOK_HI[34] = 5;
 for (const o of [35, 36, 37]) { LOOK_LO[o] = -7; LOOK_HI[o] = 7; }
+for (let o = 38; o < 44; o++) { LOOK_LO[o] = -128; LOOK_HI[o] = 127; }   // v0.24: sat[12] as nibbles
 
 /** Mirror of the camera's pk_check (tools/ep7_looks_bin.py check_file): [] = accepted. */
 export function checkLooksBin(d: Uint8Array): string[] {
@@ -255,6 +258,7 @@ export function decodeLooksBin(d: Uint8Array, name = 'Imported LOOKS.BIN'): Pack
     l.vignette = s8(r[30]);
     l.tone = zeroTone();
     if (tone) for (const k of TONE_KEYS) l.tone[k] = s8(r[TONE_OFF[k]]);
+    if (tone && r[44] === 1) for (let k = 0; k < 12; k++) { const v = (r[38 + (k >> 1)] >> (4 * (k & 1))) & 15; l.sat[k] = v > 7 ? v - 16 : v; }
     looks.push(l);
   }
   return { schema: PACK_SCHEMA, name, looks, slots: {} };

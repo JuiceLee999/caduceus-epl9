@@ -9,7 +9,7 @@ import { blankLook, toneIsZero, zeroTone } from '../src/pack';
 import libraryJson from '../src/data/library.json';
 
 const LIB = parsePack(libraryJson);
-const RELEASE_LOOKS = join(__dirname, '../../releases/v0.23/card/EP7MOD/LOOKS.BIN');
+const RELEASE_LOOKS = join(__dirname, '../../releases/v0.24/card/EP7MOD/LOOKS.BIN');
 const hex = (b: Uint8Array) => Buffer.from(b).toString('hex');
 const names = (p: { looks: { name: string }[] }, skip: number) => p.looks.filter((_, k) => k !== skip).map((l) => l.name);
 

@@ -1,7 +1,7 @@
 {
  "schema": "caduceus-pack/1",
  "name": "Caduceus library",
- "version": "2a50798b",
+ "version": "6a9ab57c",
  "looks": [
   {
    "name": "Velvia",
@@ -117,7 +117,7 @@
   },
   {
    "name": "Provia 400",
-   "notes": "Fujichrome Provia 400X slide: magenta-red cast, lavender skies, rich blues, deep reds, dark greens, fast fall to black, fine grain. Advice: sat +1 warm, +2 blue; contrast +1.",
+   "notes": "Fujichrome Provia 400X slide: magenta-red cast, lavender skies, rich blues, deep reds, dark greens, fast fall to black, fine grain. Advice: contrast +1.",
    "kind": "colour",
    "hue": [-3,-2,-2,0,0,0,1,0,0,0,0,0],
    "light": [0,0,0,-1,0,0,-1,-1,0,-1,-2,-1],

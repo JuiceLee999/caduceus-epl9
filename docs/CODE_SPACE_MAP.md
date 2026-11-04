@@ -71,6 +71,8 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | 0x603b5249 | 7 | grain combiner selector |
 | 0x601e33d7 | 5 (inside look extras) | v0.22: ex_set grain write → ng_set (u → byte, Noise Filter via the settings manager) |
 | 0x601e32c8 | 5 (inside look extras) | v0.22: ex_get grain read → ng_get (byte → u) |
+| 0x601e248c–0x601e24ec | 1 | **v0.24 saturation on a Film pick** `sp_tail` (patches/v024/sat.s.in; 96 B, dead EVF step-7 tables after look tone) |
+| 0x601e23e3 | 7 (inside look tone) | v0.24: H/M/S loop tail → sp_tail |
 | 0x601e2341 | 5 (inside look tone) | v0.22: lt_post `jmp fm_post` → ng_pick (Noise Filter via facade SetValue) |
 | 0x603a065b (6), 0x603a06dd (6), 0x603a06ed (5, v0.21) | 17 | v0.16 grain boost: combiner-32 handler entry loads → jmp gb_a (replayed + job key → d2); gain-table add → jmp gb_b (key 11: our gb_tab 220/600/1200, else stock 0x604ec0d4) |
 | 0x603eabd7 | 6 | bloom: art-effect flag converter (key 11 → job flag 0x80); clarity builds: same hook, also effect_id 3 |

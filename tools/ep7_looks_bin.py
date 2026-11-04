@@ -49,6 +49,10 @@ CLASS_OFF, MASK_OFF, NAME_OFF, NAME_LEN = 45, 46, 48, 16
 TINT_OFF, TINT_BUNDLE, TINT_MAX = 47, 45, 4
 TONE_FLAG, TONE_OFF, TONE_KEYS = 32, 33, ('blacks', 'whites', 'highlights', 'midtones', 'shadows')
 TONE_RANGE = {33: (-5, 10), 34: (-5, 10), 35: (-7, 14), 36: (-7, 14), 37: (-7, 14)}   # +off: (lo, span)
+# v0.24: a tone record carries sat[12] as nibbles at +38..43 (low first, two's complement) with marker +44 = 1; a Film
+# pick sets the profile's stock saturation from it. Older firmware rejects such a file.
+SAT_OFF, SAT_MARK = 38, 44
+SAT_RANGE = {o: (-128, 255) for o in range(38, 44)}             # +44 keeps -5..5: marker only counts with the tone flag
 SMAGIC, SLOTS_LEN = b'EP7S', 20
 STOCK, UNTOUCHED = 0xFF, 0xFE
 PATH_LOOKS, PATH_SLOTS = 'C:\\EP7MOD\\LOOKS.BIN', 'C:\\EP7MOD\\SLOTS.BIN'
@@ -98,8 +102,14 @@ def with_tone(rec64, tone):
     if set(tone) - set(TONE_KEYS):
         raise ValueError(f'tone: unknown keys {sorted(set(tone) - set(TONE_KEYS))}')
     r = bytearray(rec64)
+    sat = [v - 256 if v >= 128 else v for v in r[33:45]]          # the look's sat[12], still in the bundle bytes
     r[TONE_FLAG:BUNDLE_USED] = bytes(BUNDLE_USED - TONE_FLAG)
     r[TONE_FLAG] = 1
+    for i, v in enumerate(sat):
+        if not -5 <= v <= 5:
+            raise ValueError(f'sat[{i}] = {v} outside -5..5')
+        r[SAT_OFF + i // 2] |= (v & 15) << (4 * (i & 1))
+    r[SAT_MARK] = 1
     for i, k in enumerate(TONE_KEYS):
         v = tone.get(k, 0)
         lo, sp = TONE_RANGE[TONE_OFF + i]
@@ -200,7 +210,7 @@ def check_file(data):
         p.append('crc')
     lo, span, _ = SB.range_table(SB.layout())
     lo, span = list(lo), list(span)
-    for o, (l, sp) in TONE_RANGE.items():                  # v0.19 camera table (fm_check)
+    for o, (l, sp) in {**TONE_RANGE, **SAT_RANGE}.items():  # v0.19 / v0.24 camera table (fm_check)
         lo[o], span[o] = l, sp
     for j in range(n):
         r = data[HDR_LEN + REC_LEN * j:HDR_LEN + REC_LEN * (j + 1)]
