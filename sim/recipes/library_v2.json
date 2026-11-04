@@ -288,10 +288,9 @@
   },
   "lib2_provia400": {
    "name": "Provia 400",
-   "description": "Fujichrome Provia 400X slide film: darker and moody, warm red cast, lavender-leaning skies, dark muted greens, fine grain, no glow.",
+   "description": "Fujichrome Provia 400X slide film: magenta-red cast, lavender skies, redder warm tones, dark muted greens, lowered whites, fine grain, no glow.",
    "base": "Color Profile",
    "sat": [
-    -1,
     0,
     0,
     0,
@@ -300,19 +299,20 @@
     0,
     0,
     0,
-    -1,
-    -1,
-    -1
+    0,
+    0,
+    0,
+    0
    ],
    "hue": [
+    -3,
+    -2,
+    -2,
     0,
-    -1,
-    -1,
     0,
     0,
     0,
-    1,
-    1,
+    0,
     0,
     0,
     0,
@@ -329,20 +329,19 @@
     0,
     0,
     0,
-    -1,
-    -1
+    0,
+    0
    ],
    "tone": {
-    "highlights": -1,
-    "shadows": -1,
+    "highlights": 0,
+    "shadows": 0,
     "midtones": -1
    },
-   "contrast": 1,
    "grain": "low",
-   "source": "Matched to Oleg Novikov's tripod comparison of Provia 400X and 100F (darker, narrower range, red cast; lavender skies and darker greens measured from his pairs), with the highlight roll-off supported by the RawTherapee Provia 400X HaldCLUT. Hand-set, not a colorimetric match. Slide film: no bloom.",
+   "source": "Fitted with the Control Panel colour engine to Oleg Novikov's six tripod pairs of Provia 100F and 400X slides, using 100F as the stand-in for the neutral starting image; settings were near-identical in leave-one-out folds. No skin or strongly saturated subjects in the pairs. Slide film: no bloom.",
    "wb_shift": {
-    "a_b": 1,
-    "g_m": 0
+    "a_b": 0,
+    "g_m": -4
    }
   },
   "lib2_reala": {

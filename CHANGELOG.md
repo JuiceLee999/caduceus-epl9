@@ -5,10 +5,9 @@ pre-releases: use at your own risk (see the README).
 
 ## Looks — 2026-11-05
 
-- **Provia 400 replaces Nostalgic** (same Film-page position), matched to a tripod comparison of real Provia 400X and
-  100F slides: WB A1 (red cast), tone H-1 S-1 M-1 Blacks -1 Whites -1 (darker, lower whites, faster fall to black), blue and
-  blue-cyan hue +1 (lavender skies), orange and orange-red hue -1, green and yellow-green light -1, NR Low, no bloom. On the
-  camera, also set sat -1 on yellow and greens, and contrast +1. Hand-set from that comparison, not a colorimetric match.
+- **Provia 400 replaces Nostalgic** (same Film-page position), fitted to six tripod pairs of real Provia 400X and 100F
+  slides: WB G-4 (magenta-red cast, lavender skies), tone Midtones -1, Whites -4, yellow hue -3, orange and orange-red hue -2,
+  NR Low, no bloom. Nothing to set by hand. The pairs have no skin or strongly saturated subjects, so those are untested.
 - `releases/v0.23/card/EP7MOD/LOOKS.BIN` rebuilt (SHA256SUMS updated). Card file only, no re-flash.
 - Control Panel: a saved, unedited Nostalgic becomes Provia 400 in place; an edited one is kept as your own look.
 
