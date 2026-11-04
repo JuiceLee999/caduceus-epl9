@@ -1,6 +1,16 @@
 # Finer JPEGs ("more super fine"): first look
 
-Status: **idea, static analysis only (2026-11-04).** Nothing built or run on a camera. E-P7 1.1 main, addresses are CPU addresses.
+Status: **closed for quantiser quality (2026-11-04): stock Super Fine is already at the minimum.** Nothing built or run on a camera.
+
+## Result: Super Fine cannot get finer
+
+The DQT tables inside 12 real E-P7 JPEGs (`testdata/`, 5184x3888, 6-14 MB each) are **all 1s for both luma and chroma**
+(sum 64 = 64 entries of 1). A quantiser step of 1 is the smallest a JPEG can have, so there is no finer setting to move to
+by changing `Sf`. The other JPEG choice is chroma subsampling: these files are 4:2:2 (luma sampling 2x1, chroma 1x1);
+4:4:4 would need the JPEG engine to support it, which is unknown and unlikely. The analysis below stays for reference
+(and for anyone wanting the *lower* qualities, F/N/B, finer or coarser).
+
+Original notes follow. E-P7 1.1 main, addresses are CPU addresses.
 Notation: **[V]** read in the disassembly; **[I]** inference.
 
 ## What is known
