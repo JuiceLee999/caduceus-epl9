@@ -288,31 +288,31 @@
   },
   "lib2_provia400": {
    "name": "Provia 400",
-   "description": "Fujichrome Provia 400X slide film: true, neutral colour, denser skies and greens, firm but smooth contrast, fine grain, no glow.",
+   "description": "Fujichrome Provia 400X slide film: darker and moody, warm red cast, lavender-leaning skies, dark muted greens, fine grain, no glow.",
    "base": "Color Profile",
    "sat": [
-    1,
-    1,
-    1,
-    1,
+    -1,
     0,
-    1,
-    2,
-    2,
-    1,
     0,
-    1,
-    0
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    -1
    ],
    "hue": [
     0,
+    -1,
+    -1,
     0,
     0,
     0,
-    0,
-    0,
-    0,
-    0,
+    1,
+    1,
     0,
     0,
     0,
@@ -325,21 +325,25 @@
     0,
     0,
     0,
-    -1,
-    -1,
+    0,
+    0,
     0,
     0,
     -1,
-    0
+    -1
    ],
    "tone": {
-    "highlights": 0,
-    "shadows": -2,
-    "midtones": 0
+    "highlights": -1,
+    "shadows": -1,
+    "midtones": -1
    },
    "contrast": 1,
    "grain": "low",
-   "source": "Own design from Fujifilm's Provia 400X bulletin (AF3-0213E: RMS 11, ISO 100-class grey balance, smooth highlight-to-shadow gradation) and reviews (saturated yet realistic, contrasty; skin reports mixed, so no WB override). Sat is advice only, so density comes from light. Slide film: no bloom or halation."
+   "source": "Matched to Oleg Novikov's tripod comparison of Provia 400X and 100F (darker, narrower range, red cast; lavender skies and darker greens measured from his pairs), with the highlight roll-off supported by the RawTherapee Provia 400X HaldCLUT. Hand-set, not a colorimetric match. Slide film: no bloom.",
+   "wb_shift": {
+    "a_b": 1,
+    "g_m": 0
+   }
   },
   "lib2_reala": {
    "name": "Reala Ace",

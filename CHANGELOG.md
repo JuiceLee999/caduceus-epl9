@@ -5,10 +5,10 @@ pre-releases: use at your own risk (see the README).
 
 ## Looks — 2026-11-05
 
-- **Provia 400 replaces Nostalgic** (same Film-page position). Fujichrome Provia 400X slide film: tone S-2, Blacks -1
-  (about 6 % more mid contrast than stock, highlights untouched), denser blue, blue-cyan and green (light -1), NR Low,
-  no WB override and no bloom. Saturation and contrast are advice, as for every look: set sat +1 warm, +2 blue and
-  contrast +1 on the camera for the full look. An approximation from Fujifilm's bulletin and reviews, not measured.
+- **Provia 400 replaces Nostalgic** (same Film-page position), matched to a tripod comparison of real Provia 400X and
+  100F slides: WB A1 (red cast), tone H-1 S-1 M-1 Blacks -1 Whites -1 (darker, lower whites, faster fall to black), blue and
+  blue-cyan hue +1 (lavender skies), orange and orange-red hue -1, green and yellow-green light -1, NR Low, no bloom. On the
+  camera, also set sat -1 on yellow and greens, and contrast +1. Hand-set from that comparison, not a colorimetric match.
 - `releases/v0.23/card/EP7MOD/LOOKS.BIN` rebuilt (SHA256SUMS updated). Card file only, no re-flash.
 - Control Panel: a saved, unedited Nostalgic becomes Provia 400 in place; an edited one is kept as your own look.
 

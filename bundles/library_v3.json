@@ -54,13 +54,13 @@
    "name": "Provia 400",
    "recipe": "lib2_provia400",
    "grain": "low",
-   "notes": "Fujichrome Provia 400X slide: true, neutral colour, denser skies and greens, firm but smooth contrast, fine grain. Advice: sat +1 warm, +2 blue; contrast +1.",
+   "notes": "Fujichrome Provia 400X slide: darker and moody, warm red cast, lavender-leaning skies, dark muted greens, fine grain. Advice: sat -1 yellow and greens; contrast +1.",
    "tone": {
-    "highlights": 0,
-    "shadows": -2,
-    "midtones": 0,
+    "highlights": -1,
+    "shadows": -1,
+    "midtones": -1,
     "blacks": -1,
-    "whites": 0
+    "whites": -1
    }
   },
   "reala": {
