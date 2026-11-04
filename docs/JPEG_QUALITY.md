@@ -25,6 +25,17 @@ Notation: **[V]** read in the disassembly; **[I]** inference.
 3. **Buffer sizes.** A finer JPEG is larger. The code-size buffer, the card-write path and the burst buffer limits need
    checking so a bigger file cannot overrun.
 
+## Dead ends and next step (2026-11-04)
+
+- **[V] Parameter block layout** (from the debug-print code at `0x613e8627..` and `0x613f121b..`): `ulJpegCodeSize` at +0x10,
+  `usJpegSf` at +0x14, `usJpegType` at +0x16, `usCtrlThAB` at +0x18.
+- A search for code that stores halfwords at +0x10, +0x14 and +0x16 of one block within 60 bytes finds about 100 sites, so
+  static tracing from the stores is too slow. The slow-ramp u16 table at `0x60708620` (0..96) is an identity ramp, not an `Sf` table.
+- **Do not** blindly halve the output (for example `lsr 9` instead of `lsr 8` at `0x603b619c`): if Super Fine's `Sf` is
+  below about 38 the smallest steps become 0.
+- **Next step:** run the JPEG setup in the MN103 emulator and read the `Sf` actually passed for each quality setting
+  (or log it from a one-off camera probe), then change that value.
+
 ## Difficulty (estimate)
 
 Moderate. If `Sf` for Super Fine is a constant or a one-entry table, changing it is a few data bytes. The work is items 1-3 above,
