@@ -33,7 +33,7 @@ None of the looks use halation, clarity or split toning.
 | Astia | – | Soft slide film: gentle contrast, clean skin, slightly richer skies. |
 | Cl. Chrome | – | Documentary look: muted greens and yellows, cyan skies, hard shadows. |
 | Classic Neg | low | Superia-style negative: teal-green cast, punchy mids, light skies. The green sunset core of the old recipe is fixed. |
-| Nostalgic | low | Amber 1970s print: warm highlights, soft tones, faded blues. |
+| Provia 400 | low | Fujichrome Provia 400X slide: true, neutral colour, denser skies and greens, fine grain (replaced Nostalgic, 2026-11-05). |
 | Reala Ace | – | Accurate, crisp modern negative: true hues, restrained greens. |
 | Eterna | – | Cinema negative: flat, open shadows, quiet teal-leaning colour. |
 | Bleach Byp. | low | Silver-retained cinema look: near-monochrome, harsh contrast. |
@@ -149,7 +149,7 @@ studioarchitecturecom.wordpress.com. Other Kodachrome 25 variants found but not 
 numbers were found for CineStill, Vision3, Agfa, Polaroid, Ektar or cross-processing, hence the own designs.
 
 Fallback order (≤20): Classic Neg, Kodachrome25, Portra 400, Kodachrome64, Gold 200, Portra 160, Ektar 100, Velvia,
-Cl. Chrome, Superia 400, UltraMax 400, CineStill800, Ektachrome, Pro 400H, Vision3 500T, Fujicolor200, Nostalgic,
+Cl. Chrome, Superia 400, UltraMax 400, CineStill800, Ektachrome, Pro 400H, Vision3 500T, Fujicolor200, Provia 400,
 Eterna, Polaroid, Cross Proc. Dropped from it: Provia (= stock), Astia, Reala Ace, Bleach Byp., Aerochrome, Cibachrome,
 Agfa Vista, CineStill50D, Vision3 250D, the mono looks.
 
@@ -228,7 +228,7 @@ slight lift (B +1), Polaroid and Atrophy faded blacks (B +3). Changes are kept s
 | Astia | −2 | 1 | 0 | 0 | 0 | soft slide, softer shoulder already from H−2 |
 | Cl. Chrome | 0 | −3 | 0 | −1 | 0 | hard toe (5.2), muted not glossy |
 | Classic Neg | 4 | −2 | 1 | 0 | −1 | measured steep mids; negative roll-off |
-| Nostalgic | −2 | 1 | 1 | 1 | −1 | soft amber print, faded |
+| Provia 400 | 0 | −2 | 0 | −1 | 0 | slide: firmer toe, highlights left alone (replaced Nostalgic) |
 | Reala Ace | 3 | 1 | 0 | 0 | −1 | crisp negative, soft toe (11.3) via S+1 |
 | Eterna | −2 | 4 | 0 | 1 | −1 | most open toe (14.6) and lower shoulder: flat cinema |
 | Bleach Byp. | 4 | −3 | 0 | −2 | 1 | silver retained: dense blacks, harsh whites |

@@ -3,6 +3,15 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). All releases are early-development
 pre-releases: use at your own risk (see the README).
 
+## Looks — 2026-11-05
+
+- **Provia 400 replaces Nostalgic** (same Film-page position). Fujichrome Provia 400X slide film: tone S-2, Blacks -1
+  (about 6 % more mid contrast than stock, highlights untouched), denser blue, blue-cyan and green (light -1), NR Low,
+  no WB override and no bloom. Saturation and contrast are advice, as for every look: set sat +1 warm, +2 blue and
+  contrast +1 on the camera for the full look. An approximation from Fujifilm's bulletin and reviews, not measured.
+- `releases/v0.23/card/EP7MOD/LOOKS.BIN` rebuilt (SHA256SUMS updated). Card file only, no re-flash.
+- Control Panel: a saved, unedited Nostalgic becomes Provia 400 in place; an edited one is kept as your own look.
+
 ## Control Panel — 2026-11-04
 
 - **RapidRAW preset export:** a look's *Share* dialog and *Export › RapidRAW presets* save it as a `.rrpreset` for

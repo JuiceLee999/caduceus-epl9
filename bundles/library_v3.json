@@ -1,5 +1,5 @@
 {
- "_comment": "Look library v3 (docs/LIBRARY_V1.md, section \"Library v3\"): library v2 + 12 classic colour looks (recipes sim/recipes/library_v3.json). 32 looks: the LOOKS.BIN form for the 32-look loader (v2 order kept, new looks after the colour looks, mono last). Atrophy (inspired by GxAce) replaced Provia (= stock profile at zero). Cuban Neg (inspired by Osan's Classic Cuban Neg) replaced Superia 400 (redundant with Classic Neg).",
+ "_comment": "Look library v3 (docs/LIBRARY_V1.md, section \"Library v3\"): library v2 + 12 classic colour looks (recipes sim/recipes/library_v3.json). 32 looks: the LOOKS.BIN form for the 32-look loader (v2 order kept, new looks after the colour looks, mono last). Atrophy (inspired by GxAce) replaced Provia (= stock profile at zero). Cuban Neg (inspired by Osan's Classic Cuban Neg) replaced Superia 400 (redundant with Classic Neg). Provia 400 (Provia 400X) replaced Nostalgic.",
  "looks": {
   "velvia": {
    "name": "Velvia",
@@ -50,17 +50,17 @@
     "whites": -1
    }
   },
-  "nostalgic": {
-   "name": "Nostalgic",
-   "recipe": "lib2_nostalgic",
+  "provia400": {
+   "name": "Provia 400",
+   "recipe": "lib2_provia400",
    "grain": "low",
-   "notes": "Amber 1970s print: warm highlights, soft tones, faded blues.",
+   "notes": "Fujichrome Provia 400X slide: true, neutral colour, denser skies and greens, firm but smooth contrast, fine grain. Advice: sat +1 warm, +2 blue; contrast +1.",
    "tone": {
-    "highlights": -2,
-    "shadows": 1,
-    "midtones": 1,
-    "blacks": 1,
-    "whites": -1
+    "highlights": 0,
+    "shadows": -2,
+    "midtones": 0,
+    "blacks": -1,
+    "whites": 0
    }
   },
   "reala": {

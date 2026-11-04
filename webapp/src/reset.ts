@@ -63,9 +63,15 @@ export function migratePack(saved: Pack, library: Pack, previousNames?: string[]
   return { pack, updated, added };
 }
 
+/** Library looks that were replaced: a look copied from the old one now belongs to the new one. */
+const REPLACED_LOOKS: Record<string, string> = { Nostalgic: 'Provia 400' };
+
 /** The library look `l` came from, if any. */
-export const libraryOrigin = (l: Look, library: Pack): Look | undefined =>
-  l.origin === undefined ? undefined : library.looks.find((o) => o.name === l.origin);
+export const libraryOrigin = (l: Look, library: Pack): Look | undefined => {
+  if (l.origin === undefined) return undefined;
+  const name = REPLACED_LOOKS[l.origin] ?? l.origin;
+  return library.looks.find((o) => o.name === name);
+};
 
 /**
  * `l` reset: a library look gets its shipped values back (and its shipped name, unless another look in the pack

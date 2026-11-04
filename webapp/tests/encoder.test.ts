@@ -18,7 +18,7 @@ const WEBAPP = join(__dirname, '..');
 const ROOT = join(WEBAPP, '..');
 const python = ['.venv/bin/python', 'python3'].map((p) => (p.startsWith('.') ? join(ROOT, p) : p))
   .find((p) => { try { execFileSync(p, ['-c', '0']); return true; } catch { return false; } });
-const RELEASE_LOOKS = join(ROOT, 'releases/v0.22/card/EP7MOD/LOOKS.BIN');
+const RELEASE_LOOKS = join(ROOT, 'releases/v0.23/card/EP7MOD/LOOKS.BIN');
 const hex = (b: Uint8Array) => Buffer.from(b).toString('hex');
 const library = () => parsePack(resolveRepoLibrary(ROOT));
 

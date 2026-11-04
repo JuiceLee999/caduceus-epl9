@@ -1,7 +1,7 @@
 {
  "schema": "caduceus-pack/1",
  "name": "Caduceus library",
- "version": "8603ac3a",
+ "version": "dde7e3a0",
  "looks": [
   {
    "name": "Velvia",
@@ -116,34 +116,31 @@
    }
   },
   {
-   "name": "Nostalgic",
-   "notes": "Amber 1970s print: warm highlights, soft tones, faded blues.",
+   "name": "Provia 400",
+   "notes": "Fujichrome Provia 400X slide: true, neutral colour, denser skies and greens, firm but smooth contrast, fine grain. Advice: sat +1 warm, +2 blue; contrast +1.",
    "kind": "colour",
-   "hue": [0,1,0,1,0,0,0,0,0,-2,-3,-2],
-   "light": [1,1,1,0,0,0,-1,-1,0,0,0,0],
-   "sat": [2,2,1,0,-1,-1,-2,-2,-2,-1,0,2],
+   "hue": [0,0,0,0,0,0,0,0,0,0,0,0],
+   "light": [0,0,0,0,0,0,-1,-1,0,0,-1,0],
+   "sat": [1,1,1,1,0,1,2,2,1,0,1,0],
    "grain": "fine",
-   "wb": {
-    "a_b": 2,
-    "g_m": 0
-   },
+   "wb": null,
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
    "tone": {
-    "highlights": -2,
-    "shadows": 1,
-    "midtones": 1,
-    "blacks": 1,
-    "whites": -1
+    "highlights": 0,
+    "shadows": -2,
+    "midtones": 0,
+    "blacks": -1,
+    "whites": 0
    },
    "advice": {
     "tone": {
-     "highlights": -2,
-     "shadows": 1,
-     "midtones": 1
+     "highlights": 0,
+     "shadows": -2,
+     "midtones": 0
     },
-    "contrast": -1
+    "contrast": 1
    }
   },
   {

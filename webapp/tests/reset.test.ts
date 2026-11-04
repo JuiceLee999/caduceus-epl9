@@ -9,7 +9,7 @@ import { blankLook, toneIsZero, zeroTone } from '../src/pack';
 import libraryJson from '../src/data/library.json';
 
 const LIB = parsePack(libraryJson);
-const RELEASE_LOOKS = join(__dirname, '../../releases/v0.22/card/EP7MOD/LOOKS.BIN');
+const RELEASE_LOOKS = join(__dirname, '../../releases/v0.23/card/EP7MOD/LOOKS.BIN');
 const hex = (b: Uint8Array) => Buffer.from(b).toString('hex');
 const names = (p: { looks: { name: string }[] }, skip: number) => p.looks.filter((_, k) => k !== skip).map((l) => l.name);
 
@@ -21,6 +21,33 @@ function mangle(p: ReturnType<typeof standardPack>, i: number) {
 }
 
 describe('reset', () => {
+  describe('replaced library look (Nostalgic -> Provia 400)', () => {
+    const oldPack = (edit = false) => {
+      const p = standardPack(LIB);
+      const i = p.looks.findIndex((l) => l.name === 'Provia 400');
+      const old = { ...p.looks[i], name: 'Nostalgic', origin: 'Nostalgic', wb: { a_b: 2, g_m: 0 } };
+      p.looks[i] = { ...old, lib: lookFingerprint(old) };
+      if (edit) p.looks[i].sat = p.looks[i].sat.map(() => 3);
+      return { p, i };
+    };
+    const prev = LIB.looks.map((l) => (l.name === 'Provia 400' ? 'Nostalgic' : l.name));
+    it('an unedited saved copy becomes the new look in place, in a full pack', () => {
+      const { p, i } = oldPack();
+      const m = migratePack(p, LIB, prev);
+      expect(m.pack.looks.length).toBe(LIB.looks.length);
+      expect(m.pack.looks[i].name).toBe('Provia 400');
+      expect(m.pack.looks[i].wb).toEqual(LIB.looks[i].wb);
+      expect(m.pack.looks.filter((l) => l.name === 'Nostalgic')).toEqual([]);
+      expect(m.updated).toBe(1);
+    });
+    it('an edited saved copy is kept', () => {
+      const { p, i } = oldPack(true);
+      const m = migratePack(p, LIB, prev);
+      expect(m.pack.looks[i].name).toBe('Nostalgic');
+      expect(m.pack.looks[i].sat[0]).toBe(3);
+    });
+  });
+
   it('standard pack encodes to the shipped LOOKS.BIN', () => {
     expect(hex(encodeLooksBin(standardPack(LIB)))).toBe(hex(new Uint8Array(readFileSync(RELEASE_LOOKS))));
   });

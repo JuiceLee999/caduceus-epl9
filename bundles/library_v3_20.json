@@ -109,11 +109,11 @@
    "grain": "low",
    "notes": "Fujicolor C200 (J. Bloomer, om-recipes): warm yellows, fresh greens, soft contrast."
   },
-  "nostalgic": {
-   "name": "Nostalgic",
-   "recipe": "lib2_nostalgic",
+  "provia400": {
+   "name": "Provia 400",
+   "recipe": "lib2_provia400",
    "grain": "low",
-   "notes": "Amber 1970s print: warm highlights, soft tones, faded blues."
+   "notes": "Fujichrome Provia 400X slide: true, neutral colour, denser skies and greens, firm but smooth contrast, fine grain. Advice: sat +1 warm, +2 blue; contrast +1."
   },
   "eterna": {
    "name": "Eterna",

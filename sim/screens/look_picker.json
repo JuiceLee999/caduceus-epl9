@@ -24,7 +24,7 @@
   {"type": "text", "text": "Astia", "x": 330, "y": 152, "scale": 0.85},
   {"type": "text", "text": "Cl. Chrome", "x": 330, "y": 208, "scale": 0.85},
   {"type": "text", "text": "Classic Neg", "x": 330, "y": 264, "scale": 0.85},
-  {"type": "text", "text": "Nostalgic", "x": 330, "y": 320, "scale": 0.85},
+  {"type": "text", "text": "Provia 400", "x": 330, "y": 320, "scale": 0.85},
   {"type": "text", "text": "Reala Ace", "x": 330, "y": 376, "scale": 0.85},
   {"type": "bitmap", "id": 4795, "x": 436, "y": 436},
   {"type": "text", "text": "2/21", "x": 704, "y": 12, "scale": 0.6, "anchor": "tr"},
