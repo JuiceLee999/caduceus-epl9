@@ -28,6 +28,7 @@ const SWATCH = ['#e3c22f', '#e8932e', '#e0602a', '#d03434', '#c43c92', '#8a52c6'
   '#2fb28c', '#45a845', '#9fc63b'];
 type Tab = 'hue' | 'light' | 'sat';
 
+let libNotice = '';   // before S: startPack() sets it
 const S = {
   pack: startPack(),
   sel: 0,
@@ -38,7 +39,6 @@ const S = {
 };
 
 /** The saved pack brought up to the current built-in library (or the library itself for a first visit). */
-let libNotice = '';
 function startPack(): Pack {
   const stored = loadStored();
   const swap = stored ? replaceRetiredLooks(stored, LIBRARY) : null;
