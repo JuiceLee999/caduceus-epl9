@@ -28,5 +28,5 @@ Notation: **[V]** read in the disassembly; **[I]** inference.
 ## Difficulty (estimate)
 
 Moderate. If `Sf` for Super Fine is a constant or a one-entry table, changing it is a few data bytes. The work is items 1-3 above,
-then a camera test measuring file size, decoded quality and burst speed. It also needs a body to try it on. Risk is
-medium (buffers), so test with SD-card-only changes first and keep the restore file ready.
+then a test on the E-P7 itself (the maintainer has one): measure file size, decoded quality and burst speed. Risk is medium
+(buffers), so try one quality setting first and keep the restore file ready.
