@@ -426,28 +426,52 @@ def pause():
         pass
 
 
+def copy_synced(src, dst):
+    """Copy src to dst and force the data out to the card (macOS in particular caches FAT writes, so a card
+    pulled without ejecting can hold truncated files, which the camera's loader silently ignores)."""
+    with open(src, 'rb') as i, open(dst, 'wb') as o:
+        shutil.copyfileobj(i, o, 1 << 20)
+        o.flush()
+        try:
+            if sys.platform == 'darwin':
+                import fcntl
+                fcntl.fcntl(o.fileno(), fcntl.F_FULLFSYNC)
+            else:
+                os.fsync(o.fileno())
+        except (OSError, ImportError, AttributeError):
+            pass
+
+
 def copy_to_card(build, card):
     """DCOLYMP/E1429999.BIN + LOOKS.BIN always; BUNDLES.BIN only if the card has none (it holds the user's looks)."""
     dco = card / 'DCOLYMP'
-    dco.mkdir(exist_ok=True)
+    try:
+        dco.mkdir(exist_ok=True)
+    except PermissionError:
+        raise Refuse(f'not allowed to write to {card}.' + (
+            ' On macOS: System Settings > Privacy & Security > Files and Folders (or Full Disk Access), allow '
+            'Terminal to access Removable Volumes, then run this again, or drag the folders across in Finder.'
+            if sys.platform == 'darwin' else ' Check the card is not write-locked (the small switch on the card).'))
     for old in dco.glob('*.BIN'):
         if old.name.upper() != 'E1429999.BIN':
             print(f'  note: {old} is another update file; remove it before flashing.')
     print('  copying the update (about 100 MB) ...')
-    shutil.copyfile(build / 'DCOLYMP' / 'E1429999.BIN', dco / 'E1429999.BIN')
+    copy_synced(build / 'DCOLYMP' / 'E1429999.BIN', dco / 'E1429999.BIN')
     mod = card / 'EP7MOD'
     mod.mkdir(exist_ok=True)
-    shutil.copyfile(build / 'EP7MOD' / 'LOOKS.BIN', mod / 'LOOKS.BIN')
+    copy_synced(build / 'EP7MOD' / 'LOOKS.BIN', mod / 'LOOKS.BIN')
     check = ['DCOLYMP/E1429999.BIN', 'EP7MOD/LOOKS.BIN']
     if (mod / 'BUNDLES.BIN').exists():
         print('  kept your existing EP7MOD/BUNDLES.BIN (your saved looks)')
     else:
-        shutil.copyfile(build / 'EP7MOD' / 'BUNDLES.BIN', mod / 'BUNDLES.BIN')
+        copy_synced(build / 'EP7MOD' / 'BUNDLES.BIN', mod / 'BUNDLES.BIN')
         check.append('EP7MOD/BUNDLES.BIN')
     for rel in check:
         if sha((card / rel).read_bytes()) != sha((build / rel).read_bytes()):
             raise Refuse(f'copy check failed for {card / rel}; copy it again by hand. Do not flash.')
     print(f'  copied and checked on {card}')
+    print('  IMPORTANT: eject the card from the computer (Finder eject button / Windows "Eject" / Unmount) before '
+          'removing it, or the files can be cut short and the camera will quietly ignore them.')
 
 
 def open_folder(p):
@@ -510,8 +534,15 @@ def cmd_easy(a):
         cmd_build(argparse.Namespace(out=str(out), release=rel, stock=str(stock) if stock else None))
     print('\nLooking for a camera SD card ...')
     cards = sd_cards()
+    copied = False
     if len(cards) == 1 and ask(f'Copy the update to the SD card at {cards[0]}?'):
-        copy_to_card(out, cards[0])
+        try:
+            copy_to_card(out, cards[0])
+            copied = True
+        except (Refuse, OSError) as e:
+            print(f'\nCould not copy to the card: {e}\nThe build itself is fine. Copy the DCOLYMP and EP7MOD folders by hand '
+                  '(below), then eject the card properly.')
+    if copied:
         print('\nNow eject the card, put it in the camera, then: full battery, hold OK and switch on.\n'
               'LED steady = writing (do not switch off), ~2 Hz blink = done. See docs/INSTALL.md.')
     else:

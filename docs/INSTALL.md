@@ -142,6 +142,24 @@ See the [README](../README.md#using-it) for the full feature list.
 The restore file rewrites the whole main firmware, so it also recovers from a bad patched flash, including a
 camera that will not boot (proven on an E-P7).
 
+## Colour wheel looks stock after updating (no film names, INFO only toggles all colours / one colour)
+
+The firmware reads `EP7MOD/LOOKS.BIN` and `EP7MOD/BUNDLES.BIN` from the card at the first half-press. If it
+cannot read them, it quietly falls back to stock behaviour. Check, in order:
+
+1. **Setup > Firmware shows a `Caduceus` row with the version?** If not, the update did not run or you flashed
+   `restore/E1429999.BIN` (the stock file, which has the same name). Flash `DCOLYMP/E1429999.BIN` from the build.
+2. **Card layout:** on the card's top level, next to `DCIM`, there must be `DCOLYMP` and `EP7MOD` (not inside
+   another folder such as `Caduceus-v0.23`), with `EP7MOD/LOOKS.BIN` (2112 bytes) and `EP7MOD/BUNDLES.BIN` (680 bytes).
+3. **Eject properly.** On macOS use the eject button in Finder; on Windows "Eject"; on Linux "Unmount". Pulling the
+   card early can leave the files cut short, which the camera ignores. Copy them again and eject first.
+4. **Half-press the shutter once** after switching on, then reopen the colour wheel.
+5. **macOS: "not allowed to write to ..."** when the builder copies to the card: System Settings > Privacy & Security >
+   Files and Folders (or Full Disk Access), allow Terminal to access Removable Volumes, and run it again, or drag
+   `DCOLYMP` and `EP7MOD` across in Finder.
+
+If it still looks stock, open an issue with the answers to 1–3 and the card's size and format.
+
 ## Known issues
 
 - Art Effects on colour profiles: the live-view preview does not always update straight away. The photo is right.
