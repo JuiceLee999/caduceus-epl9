@@ -54,13 +54,13 @@
    "name": "Provia 400",
    "recipe": "lib2_provia400",
    "grain": "low",
-   "notes": "Fujichrome Provia 400X slide: magenta-red cast, lavender skies, redder warm tones, dark muted greens, lowered whites, fine grain. Fitted to real 400X vs 100F slide pairs.",
+   "notes": "Fujichrome Provia 400X slide: magenta-red cast, lavender skies, rich blues, deep reds, dark greens, fast fall to black, fine grain. Advice: sat +1 warm, +2 blue; contrast +1.",
    "tone": {
     "highlights": 0,
-    "shadows": 0,
+    "shadows": -1,
     "midtones": -1,
-    "blacks": 0,
-    "whites": -4
+    "blacks": -1,
+    "whites": -3
    }
   },
   "reala": {

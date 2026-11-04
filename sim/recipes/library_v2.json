@@ -288,18 +288,18 @@
   },
   "lib2_provia400": {
    "name": "Provia 400",
-   "description": "Fujichrome Provia 400X slide film: magenta-red cast, lavender skies, redder warm tones, dark muted greens, lowered whites, fine grain, no glow.",
+   "description": "Fujichrome Provia 400X slide film: magenta-red cast, lavender skies, rich blues, deep reds, dark greens, fast fall to black, fine grain, no glow.",
    "base": "Color Profile",
    "sat": [
     0,
+    1,
+    1,
+    1,
     0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    1,
+    2,
+    2,
+    1,
     0,
     0,
     0
@@ -311,7 +311,7 @@
     0,
     0,
     0,
-    0,
+    1,
     0,
     0,
     0,
@@ -322,27 +322,28 @@
     0,
     0,
     0,
+    -1,
     0,
     0,
+    -1,
+    -1,
     0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
+    -1,
+    -2,
+    -1
    ],
    "tone": {
     "highlights": 0,
-    "shadows": 0,
+    "shadows": -1,
     "midtones": -1
    },
    "grain": "low",
-   "source": "Fitted with the Control Panel colour engine to Oleg Novikov's six tripod pairs of Provia 100F and 400X slides, using 100F as the stand-in for the neutral starting image; settings were near-identical in leave-one-out folds. No skin or strongly saturated subjects in the pairs. Slide film: no bloom.",
+   "source": "Designed from Oleg Novikov's tripod pairs of Provia 100F and 400X slides (darker, narrower range, magenta-red cast, lavender skies, darker greens), Fujifilm's bulletin and reviews (saturated yet realistic, contrasty, strong blues, dark greens). WB, warm hue and whites informed by a fit to the pairs; light, sat and contrast set by hand. No bloom.",
    "wb_shift": {
     "a_b": 0,
-    "g_m": -4
-   }
+    "g_m": -3
+   },
+   "contrast": 1
   },
   "lib2_reala": {
    "name": "Reala Ace",

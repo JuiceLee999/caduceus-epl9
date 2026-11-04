@@ -1,7 +1,7 @@
 {
  "schema": "caduceus-pack/1",
  "name": "Caduceus library",
- "version": "d965f80c",
+ "version": "2a50798b",
  "looks": [
   {
    "name": "Velvia",
@@ -117,32 +117,33 @@
   },
   {
    "name": "Provia 400",
-   "notes": "Fujichrome Provia 400X slide: magenta-red cast, lavender skies, redder warm tones, dark muted greens, lowered whites, fine grain. Fitted to real 400X vs 100F slide pairs.",
+   "notes": "Fujichrome Provia 400X slide: magenta-red cast, lavender skies, rich blues, deep reds, dark greens, fast fall to black, fine grain. Advice: sat +1 warm, +2 blue; contrast +1.",
    "kind": "colour",
-   "hue": [-3,-2,-2,0,0,0,0,0,0,0,0,0],
-   "light": [0,0,0,0,0,0,0,0,0,0,0,0],
-   "sat": [0,0,0,0,0,0,0,0,0,0,0,0],
+   "hue": [-3,-2,-2,0,0,0,1,0,0,0,0,0],
+   "light": [0,0,0,-1,0,0,-1,-1,0,-1,-2,-1],
+   "sat": [0,1,1,1,0,1,2,2,1,0,0,0],
    "grain": "fine",
    "wb": {
     "a_b": 0,
-    "g_m": -4
+    "g_m": -3
    },
    "effect": null,
    "vignette": 0,
    "art_effect": "off",
    "tone": {
     "highlights": 0,
-    "shadows": 0,
+    "shadows": -1,
     "midtones": -1,
-    "blacks": 0,
-    "whites": -4
+    "blacks": -1,
+    "whites": -3
    },
    "advice": {
     "tone": {
      "highlights": 0,
-     "shadows": 0,
+     "shadows": -1,
      "midtones": -1
-    }
+    },
+    "contrast": 1
    }
   },
   {
