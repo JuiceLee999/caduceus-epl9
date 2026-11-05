@@ -1,9 +1,11 @@
 # Changelog
 
-Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). All releases are early-development
-pre-releases: use at your own risk (see the README).
+Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). Releases from v0.25 are betas; earlier ones
+were early-development pre-releases. Use at your own risk (see the README).
 
-## v0.25 — 2026-11-06
+## v0.25 — 2026-11-06 (beta)
+
+First beta release. E-M10 IV firmware is in development and needs a volunteer to test it and report issues ([issue #21](https://github.com/cakelesscoder/caduceus-ep7/issues/21)).
 
 Flashed and used on an E-P7. **Reports wanted:** whether the vignette change alters photos hasn't been confirmed yet ([how to test](README.md#vignette-correction-reports-wanted)).
 NR is confirmed in each photo's recorded settings; a side-by-side pixel comparison is still to do.

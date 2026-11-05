@@ -6,7 +6,7 @@ Status: only the **PEN E-P7** has been run and tested. Nothing here has been tri
 
 | Body | Closeness to the E-P7 | Home for looks | Status |
 |---|---|---|---|
-| **E-M10 IV** | Closest: same file size and load address, 47% of edits match by signature | No COLOR profiles, so looks need a new home | **First target.** Analysis has started (`docs/PORT_EM10IV.md`) |
+| **E-M10 IV** | Closest: same file size and load address, 47% of edits match by signature | No COLOR profiles, so looks need a new home | **First target.** In development, not yet run on a camera. **Needs a volunteer to test and report issues:** [issue #21](https://github.com/cakelesscoder/caduceus-ep7/issues/21) (`docs/PORT_EM10IV.md`) |
 | **E-M5 III** | 36% match; SD loader and log hook don't match | None | Second choice (`docs/PORT_EM5III.md`) |
 | **E-M1 III** | Larger file and different load address; match not worked out | None | Firmware analysed on disk only |
 | **E-M10 III, E-PL9** | Same main size; match not run | Probably none | Not analysed |

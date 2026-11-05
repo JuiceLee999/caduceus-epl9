@@ -13,7 +13,7 @@ recording.
 **[Install guide](docs/INSTALL.md)** · **[Changelog](CHANGELOG.md)** · **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** (make and share looks in your browser) · The camera's Setup › Firmware screen shows the Caduceus version.
 
 > [!WARNING]
-> **Early development, use at your own risk.** Caduceus is unofficial, experimental firmware modification.
+> **Beta, use at your own risk.** Caduceus is unofficial, experimental firmware modification.
 > Bugs will turn up, and flashing modified firmware can crash, freeze or brick your camera, corrupt photos or
 > damage your SD card's data. **The author accepts no responsibility for any damage, data loss or other harm**
 > to your camera, cards, files or anything else. It is provided "as is", without warranty of any kind (see the
@@ -22,6 +22,8 @@ recording.
 > Every patch is checked in an emulator of the camera's CPU before it goes on a camera, the SD update and
 > restore path is proven on a real E-P7 (including recovery from a bootloop), and features marked
 > **camera-tested** below have run on a real camera. Read [Safety](#safety) before flashing.
+
+**E-M10 IV: testers wanted.** A port is in development, but it hasn't run on a camera yet and no build is public. If you own one and are willing to test on it and report any issues, say so on [issue #21](https://github.com/cakelesscoder/caduceus-ep7/issues/21). Please don't flash an E-P7 build on an E-M10 IV.
 
 ![Film looks on four scenes](docs/img/film_looks_v3.jpg)
 
@@ -277,8 +279,7 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
 - Highlight-weighted metering and snap focus (Ricoh GR-style).
 - Picture-in-picture focus assist (GM1-style magnified window over the full view, issue #18): no second LV window in
   stock; needs a second, cropped output from the LV job (`docs/PIP_FOCUS.md`).
-- E-M10 IV port: same container and CPU, ~48 % of v0.20 edits relocate by signature, but it has no Colour/Mono
-  profiles (looks need a new host) and no test body (`docs/PORT_EM10IV.md`).
+- E-M10 IV port: in development, and **needs a volunteer with the camera to test it and report issues** ([issue #21](https://github.com/cakelesscoder/caduceus-ep7/issues/21)). It has no Colour/Mono profiles, so looks need a new home (`docs/PORT_EM10IV.md`).
 - E-M5 III port: ~36 % of v0.20 edits relocate by signature (recording limit and LCD tint do; SD loader and log hook do
   not), and it has no Colour/Mono profiles. **Needs an owner of the camera to try it and test on the body**
   (`docs/PORT_EM5III.md`, checker `tools/port_sigmatch.py`). More body assessments are welcome.
@@ -309,7 +310,7 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
 ## Safety
 
 - **No responsibility is accepted for damage of any kind.** You flash this at your own risk. This is
-  early-development software: expect bugs.
+  beta software: expect bugs.
 - Only the E-P7 on firmware **1.1** is supported.
 - The camera's SD updater (hold **OK** while switching on, file at `DCOLYMP/E1429999.BIN`) is confirmed working:
   LED steady while writing, then a ~2 Hz blink when done. It rejects corrupt files without writing, and stock

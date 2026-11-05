@@ -1,7 +1,7 @@
 # Installing Caduceus
 
 > [!WARNING]
-> **Use at your own risk.** Caduceus is early-development, unofficial firmware modification: bugs will appear,
+> **Use at your own risk.** Caduceus is beta, unofficial firmware modification: bugs will appear,
 > and flashing can brick your camera or lose data. The author accepts **no responsibility for any damage**.
 > Without the `EP7MOD` folder on the card the camera is almost stock; the restore file returns it fully to stock.
 
