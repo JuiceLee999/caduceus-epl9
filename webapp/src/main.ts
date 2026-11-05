@@ -1,6 +1,6 @@
 import './style.css';
 import libraryJson from './data/library.json';
-import { decodeLooksBin, encodeBundlesBin, hasTone, nameProblem, PackError, validatePack, type Problem } from './format';
+import { decodeLooksBin, encodeBundlesBin, hasTone, nameProblem, PackError, validatePack, type Problem, FW_LATEST, firmware, setFirmware, type Fw } from './format';
 import {
   ARTS, MAX_LOOKS, MONO_FILTERS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SECTORS, SLOT_NAMES, TINTS, TONE_KEYS, blankLook, cloneLook,
   exportable, parsePack, toneIsZero, toneLimit, type Look, type Pack, type SlotName, type Tone,
@@ -184,6 +184,7 @@ function shell() {
         h('button', { onclick: openFile }, 'Open…'),
         h('button', { onclick: pasteDialog }, 'Paste code'),
         h('button', { onclick: sharePack }, 'Share pack'),
+        h('button', { id: 'fw-btn', onclick: () => firmwareDialog() }, fwLabel()),
         h('button', { onclick: installDialog }, 'Install firmware'),
         h('button', { class: 'primary', onclick: exportDialog }, 'Export'))),
     h('main', { class: 'layout' },
@@ -377,6 +378,12 @@ function renderEditor() {
       seg('Noise reduction', [['off', 'Camera'], ['standard', 'Standard'], ['fine', 'Low'], ['film', 'Off (most texture)']], l.grain, (v) => { l.grain = v as Look['grain']; renderEditor(); changed(); })),
     effectPanel(l, changed),
     wbPanel(l, changed),
+    ...(l.kind === 'colour' ? [h('div', { class: 'group' },
+      seg('Lens vignette correction', [['off', 'Off (default)'], ['on', 'Keep camera\'s']], l.lens_correction ? 'on' : 'off', (v) => {
+        if (v === 'on') l.lens_correction = true; else delete l.lens_correction;
+        renderEditor(); changed();
+      }),
+      h('span', { class: 'help' }, 'Picking this look on the camera turns the lens\'s vignette correction off, so corners stay natural, unless you keep it here. Needs Caduceus v0.25 or later. Change it on the camera in Extras sector 8. Not shown in the preview.'))] : []),
     ...(l.kind === 'colour' ? [h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Art Effect'),
       h('select', { onchange: (e: Event) => { l.art_effect = (e.target as HTMLSelectElement).value as Look['art_effect']; changed(); } },
         ...ARTS.filter((a) => ['off', 'star_light', 'pin_hole'].includes(a) || a === l.art_effect).map((a) =>
@@ -865,6 +872,34 @@ function installDialog() {
   ]);
 }
 
+const STORE_FW = 'caduceus.firmware';
+const FW_OPTIONS: [Fw, string, string][] = [
+  [25, 'v0.25 or later', 'Everything works, including a look\'s lens vignette correction choice.'],
+  [24, 'v0.24', 'Files work. Lens vignette correction choices are left out of them.'],
+  [23, 'v0.23 or v0.22', 'Files work. Saturation and lens vignette correction choices are left out of them.'],
+];
+function fwLabel() { return `Firmware: v0.${firmware()}${firmware() === FW_LATEST ? '+' : ''}`; }
+function firmwareDialog(first = false) {
+  const body = h('div', { class: 'export' },
+    h('p', {}, 'Which Caduceus version is on your camera? Card files are made to match it. The firmware screen in the camera\'s setup menu shows it. On anything older than v0.22, install the latest release first.'),
+    ...FW_OPTIONS.map(([f, label, help]) => h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, label), h('p', { class: 'help' }, help)),
+      h('button', { class: f === firmware() ? 'primary' : '', onclick: () => {
+        setFirmware(f);
+        try { localStorage.setItem(STORE_FW, String(f)); } catch { /* private mode */ }
+        $('#fw-btn').textContent = fwLabel();
+        dlg.close();
+      } }, 'Use this'))));
+  const dlg = modal(first ? 'Welcome to the Caduceus Control Panel' : 'Your firmware', body);
+}
+function loadFirmware() {
+  let v: string | null = null;
+  try { v = localStorage.getItem(STORE_FW); } catch { return; }          // storage blocked: latest, no pop-up
+  if (v === null) { firmwareDialog(true); return; }
+  const f = Number(v) as Fw;
+  if (FW_OPTIONS.some(([x]) => x === f)) { setFirmware(f); $('#fw-btn').textContent = fwLabel(); }
+}
+
 const STORE_TARGET = 'caduceus.target';
 // Camera selector stays hidden until other cameras have known-good builds (the E-P7 export is used meanwhile).
 const SHOW_CAMERA_SELECTOR = false;
@@ -939,7 +974,7 @@ function ep7Body(): HTMLElement {
         h('ul', { class: 'problems' }, ...probs.slice(0, 12).map((p) => h('li', {}, fmtProblem(p)))))
       : h('p', { class: 'ok' }, `✓ ${S.pack.looks.length} looks pass the camera's LOOKS.BIN checks (v0.19 firmware).`),
     h('div', { class: 'ex-row' },
-      h('div', {}, h('b', {}, 'LOOKS.BIN'), h('p', { class: 'help' }, 'The looks the camera\'s Film page offers (needs Caduceus v0.24 or later). The firmware install already puts the 32 built-in looks on the card; download this only to use your own edits. Copy it to EP7MOD/ on the card (replacing LOOKS.BIN there) and half-press. No re-flash needed.')),
+      h('div', {}, h('b', {}, 'LOOKS.BIN'), h('p', { class: 'help' }, 'The looks the camera\'s Film page offers (made for the firmware you chose: see the Firmware button). The firmware install already puts the 32 built-in looks on the card; download this only to use your own edits. Copy it to EP7MOD/ on the card (replacing LOOKS.BIN there) and half-press. No re-flash needed.')),
       h('button', { class: 'primary', disabled: probs.length > 0, onclick: () => { const b = looksBin(); if (b) download('LOOKS.BIN', b); } }, 'Download')),
     h('div', { class: 'ex-row' },
       h('div', {}, h('b', {}, 'Pack file (.json)'), h('p', { class: 'help' }, 'Everything, including notes and advice. Open it here later or send it to someone.')),
@@ -984,6 +1019,7 @@ async function handleHash() {
 }
 
 shell();
+loadFirmware();
 renderAll();
 if (libNotice) toast(libNotice);
 undoUi();

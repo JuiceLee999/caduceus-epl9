@@ -9,7 +9,7 @@ recording.
 
 *Named after the caduceus, the staff of Hermes: messenger between gods and mortals and guide of travellers.*
 
-**Latest release: [v0.24](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.24)** ·
+**Latest release: [v0.25](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.25)** ·
 **[Install guide](docs/INSTALL.md)** · **[Changelog](CHANGELOG.md)** · **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** (make and share looks in your browser) · The camera's Setup › Firmware screen shows the Caduceus version.
 
 > [!WARNING]
@@ -35,11 +35,12 @@ recording.
 | **Tone per look** | Every film look carries its own tone curve: Highlights, Midtones and Shadows (applied through the camera's own tone control) plus new **Blacks** and **Whites** that move the very ends of the curve (crushed slide-film blacks, faded instant-film blacks, rolled-off negative highlights). Picking a look applies it, and from v0.24 sets the look's per-colour saturation too; Blacks/Whites are also adjustable per profile (Extras 6/7). Shown in live view too. | New in v0.20 |
 | **LCD colour fix** | The rear screen no longer looks slightly pink (+8 % green by default), and Monitor Adjust's colour slider becomes a green ↔ magenta slider (−7..+7, about 2.3 % per step) instead of warm/cool. Display only: photos, movies and HDMI are unchanged. | New in v0.20 |
 | **Extras per profile** | Bloom ↔ clarity (one slider), WB amber/blue and green/magenta shift, and Art Effects (Star Light, Pin Hole; Blur removed in v0.21, it could restart the camera). | Camera-tested |
-| **Noise reduction per look** | Each colour look can set the camera's own noise reduction (Noise Filter). Less noise reduction keeps the sensor's natural fine texture instead of smoothing it away. Extras sector 1 **NR**: **Camera** (leave the camera's setting alone), **Std**, **Low** or **Off** (most texture). It is set when you pick a look or change sector 1. The Noise Filter is one camera-wide setting, so it stays at the last value when you switch to another profile. The difference shows mostly at higher ISO. True film grain is on the roadmap (the camera's grain stages add nothing visible to colour photos). | ✅ v0.22 |
+| **Noise reduction per look** | Each colour look can set the camera's own noise reduction (Noise Filter) per profile. Less noise reduction keeps the sensor's natural fine texture instead of smoothing it away. Extras sector 1 **NR**: **Camera** (use the camera's setting), **Std**, **Low** or **Off** (most texture). It applies at each photo and follows a profile switch, without changing the menu setting. The difference shows mostly at higher ISO. True film grain is on the roadmap (the camera's grain stages add nothing visible to colour photos). | Camera-tested (setting recorded in the photo; pixel comparison still to do) |
+| **Lens vignette correction off per look** | Picking a look turns the camera's lens shading correction off for that profile, for natural corners, without changing the menu setting. Extras sector 8 changes it (**VigFix Off** / **VigFix Camera**), and a look can keep the correction in the Control Panel. | **New in v0.25, please report:** not yet confirmed on photos. See [how to test](#vignette-correction-reports-wanted) |
 | **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profiles, built from OM's own mono settings. Label `<name>`, `*` when modified. | Camera-tested |
 | **Live-view preview** | Hue, lightness and bloom show in live view, not only in the saved photo. | Camera-tested |
 | **True log video** | A log curve Olympus left hidden in the firmware, switched on with the **movie** picture mode set to Muted. | Camera-tested |
-| **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel, with matching live view and playback framing and `XPAN`/`UW` size labels. Boots back to 4:3 each power-on, for safety. | Camera-tested |
+| **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel, with matching live view and playback framing, `XP` and `21:9` icons in the Super Control Panel option strip, and `XPAN`/`UW` size labels. Boots back to 4:3 each power-on, for safety. | Camera-tested |
 | **Recording limit** | 29-minute and 2-hour caps raised to 9 hours (file, chapter and heat limits still apply). | Camera-tested |
 
 ## Install
@@ -60,8 +61,8 @@ The builder downloads OM's official 1.1 firmware from OM's server, checks it, an
   - Windows: `Build Caduceus (Windows).bat`
   - macOS: `Build Caduceus (Mac).command` (the first time: right-click › **Open**)
   - Linux: `build-caduceus-linux.sh`
-- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.24`
-  (Windows: `py caduceus.py build --release v0.24`).
+- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.25`
+  (Windows: `py caduceus.py build --release v0.25`).
 
 It creates a folder with:
 
@@ -149,7 +150,7 @@ Saturation stays yours. A `*` after the name means you've changed something sinc
 | Saturation (· All) | stock per-colour saturation (INFO also toggles single colour / all colours) |
 | Hue / Light | shift or brighten/darken one colour sector (pick the sector with the other dial) |
 | Film | choose a look from the library |
-| Extras | sector 1 NR Camera / Std / Low / Off (noise reduction) · 2 glow ← → clarity · 3 WB amber/blue · 4 WB green/magenta · 5 Art Effect · 6 Blacks · 7 Whites |
+| Extras | sector 1 NR Camera / Std / Low / Off (noise reduction) · 2 glow ← → clarity · 3 WB amber/blue · 4 WB green/magenta · 5 Art Effect · 6 Blacks · 7 Whites · 8 VigFix Off / Camera (lens vignette correction) |
 
 Highlights/Midtones/Shadows are on the camera's normal tone-curve screen; picking a look sets them for you.
 
@@ -175,7 +176,16 @@ boots back to 4:3 each time, on purpose.
 - *Live view vs photo:* Star Light and some effects only show in the saved photo.
 - *Black screen during Rec View on bloom/clarity looks?* Known issue: the review goes dark while the effect is
   processed. The photo is fine: set Rec View to **Auto ▶** or press **▶** to see it.
-- *Sector 1 "NR"?* It sets the camera's noise reduction (Noise Filter), not film grain; Off keeps the most texture. It shows mostly at higher ISO, and it applies when you pick a look or edit sector 1 (switching profiles keeps the last Noise Filter value).
+- *Sector 1 "NR"?* It sets the camera's noise reduction (Noise Filter), not film grain; Off keeps the most texture. It shows mostly at higher ISO and applies per profile at each photo.
+- *Super Control Panel shows 4:3 on Panorama or Wide?* Known issue: the option strip shows `XP` and `21:9`, but the current-value cell still shows the 4:3 icon. The setting and the photo are right.
+
+### Vignette correction: reports wanted
+
+v0.25 turns the camera's lens vignette correction off for each look. The firmware setting is confirmed, but whether it changes the corners of a photo isn't yet. If you try it, a report helps a lot, as an [issue](https://github.com/cakelesscoder/caduceus-ep7/issues) with your lens and the two photos if you can:
+
+1. Use M mode on a tripod, with an evenly lit plain wall, at the lens's widest focal length and aperture.
+2. Take one photo with Extras sector 8 on `VigFix Off` and one on `VigFix Camera`, at the same exposure.
+3. Compare the corners: with correction off they should be darker, and should match the camera's Shading Comp. Off menu setting.
 
 ### On-camera UI
 
@@ -238,23 +248,25 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
 `docs/VIDEO_HIDDEN.md`.
 
 **Likely / easy**
-- Clean HDMI output: stock Record Mode (sid 1276) exists but is gated to movie mode at `0x60d1cb42`; drop the gate.
-- Per-profile "vignette correction off": stock Shading Comp. is sid 61; override it per slot like the Art Effect flag.
 - Art Effect live-view preview that updates immediately.
-- Rec View that shows the photo and then updates it with bloom/clarity (as stock Art mode does), instead of a
-  black screen.
 - More film looks, and a cross-platform web app to build and share `LOOKS.BIN` files.
 - Control Panel camera selector: export the same looks for other cameras (built, hidden until other cameras have known-good builds).
 
 **Possible / medium effort**
+- Super Control Panel current-value cell: show `XP` / `21:9` instead of 4:3 on Panorama and Wide.
+- Clean HDMI output: stock Record Mode (sid 1276) exists, but more than one gate is involved (`docs/VIDEO_HIDDEN.md` §1).
+- Rec View that shows the photo and then updates it with bloom/clarity, instead of a black screen (`docs/ISSUES_19_20.md`).
 - **True film grain on colour photos** (the camera's own grain stages add nothing visible to colour; needs a new approach).
-- **Noise reduction on profile switch:** re-apply the slot's Noise Filter value when a profile is selected (today it is
-  set on a look pick or a sector-1 edit; the Noise Filter itself is camera-wide).
 - ISO Auto in movie M: the movie ISO list already includes Auto; the dynamic gate in the AE code still has to be found.
-- Vignette on colour profiles as Extras sector 8 (−5..+5, finer than stock), using the stock shading stage (`docs/VIGNETTE.md`).
 - Blacks/Whites page on the camera's own tone-curve screen (today they live on Extras 6/7; `docs/TONE_ENDS.md` §8).
+- An added vignette for colour profiles, using the stock shading stage (`docs/VIGNETTE.md`).
 - Tinted halation (red glow around white lights), probably via a mask built from the exposure meter grid.
 - Maybe: use the ART position on the mode dial as a quick "silent shutter" switch.
+- **Lens buttons (L-Fn / AF stop on Pro lenses):** the key events, the button settings (sids 54-56 with 28-29-function lists)
+  and the movie-mode key gate all exist in the E-P7 firmware; whether the Button Function menu shows a lens row, and
+  whether the body receives the lens key, needs a camera probe. If only the row is hidden this moves to "easy"
+  (`docs/LENS_BUTTONS.md`). Next step is tracing which Button Function row is the lens button and what gates it (a few hours,
+  then a small patch if gated, about half a day if a row has to be added); testing needs an OM Pro lens with an L-Fn button.
 - Canon 1100D (Rebel T3): no firmware hack; export looks as Canon Picture Style (.PF2) files, if the PF2 checksum can be
   solved, else as recipe cards (`docs/PORT_CANON_1100D.md`).
 
@@ -271,11 +283,10 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
   not), and it has no Colour/Mono profiles. **Needs an owner of the camera to try it and test on the body**
   (`docs/PORT_EM5III.md`, checker `tools/port_sigmatch.py`). More body assessments are welcome.
 
-- Finer JPEGs: not possible as imagined. Stock Super Fine already uses quantiser step 1 (the minimum) for luma and chroma
-  (`docs/JPEG_QUALITY.md`). Only chroma 4:4:4 (hardware support unknown) could improve it.
-
 **Parked**
+- Finer JPEGs: measured, and the gain left is very small, not worth the file-size and buffer risk (`docs/JPEG_QUALITY.md`).
 - Live ND: the code exists only on E-M1-class bodies, not in the E-P7 or E-M5 III; it would mean new ISP code.
+- Panasonic/Leica aperture ring (issue #14): needs a redesign, starting with a read-only probe, and a ring lens to test with; the old patch is not safe to flash (`docs/APERTURE_RING.md`).
 - Colour looks on Monochrome slots or extra profile slots; a list-style menu instead of the wheel; 4:3 "open gate" video.
 
 ## How it works

@@ -21,7 +21,9 @@ export const LOOK_VERSION_G6 = '3';     // v1 + grain radix 6
 export const LOOK_VERSION_G6_TONE = '4';  // v2 + grain radix 6
 export const LOOK_VERSION_G7 = '5';       // v0.22: v1 + grain radix 7 (digit 6 = standard / camera "Off")
 export const LOOK_VERSION_G7_TONE = '6';  // v0.22: v2 + grain radix 7
-const KNOWN_VERSIONS = [LOOK_VERSION, LOOK_VERSION_TONE, LOOK_VERSION_G6, LOOK_VERSION_G6_TONE, LOOK_VERSION_G7, LOOK_VERSION_G7_TONE];
+export const LOOK_VERSION_LC = '7';       // v0.25: v5 fields, the look keeps the camera's lens correction
+export const LOOK_VERSION_LC_TONE = '8';  // v0.25: v6 fields, the same
+const KNOWN_VERSIONS = [LOOK_VERSION, LOOK_VERSION_TONE, LOOK_VERSION_G6, LOOK_VERSION_G6_TONE, LOOK_VERSION_LC, LOOK_VERSION_LC_TONE, LOOK_VERSION_G7, LOOK_VERSION_G7_TONE];
 export const PACK_PREFIX = 'pk1_';
 const NAME_CHARS = (() => {
   let s = '';
@@ -197,8 +199,9 @@ export function encodeLookCode(l: Look, group = false): string {
     if (!Number.isInteger(v) || Math.abs(v) > L) throw new Error(`share code: tone ${k} must be a whole number in -${L}..${L}`);
   }
   const withTone = !!l.tone && !toneIsZero(l.tone);
-  const g7 = l.grain === 'standard';                 // only "standard" needs the radix-7 grain digit
-  const ver = g7 ? (withTone ? LOOK_VERSION_G7_TONE : LOOK_VERSION_G7) : (withTone ? LOOK_VERSION_TONE : LOOK_VERSION);
+  const lc = !!l.lens_correction && l.kind === 'colour';
+  const g7 = lc || l.grain === 'standard';           // "standard" and the correction codes use the radix-7 grain digit
+  const ver = lc ? (withTone ? LOOK_VERSION_LC_TONE : LOOK_VERSION_LC) : g7 ? (withTone ? LOOK_VERSION_G7_TONE : LOOK_VERSION_G7) : (withTone ? LOOK_VERSION_TONE : LOOK_VERSION);
   const syms = [ALPHABET.indexOf(ver), ...toSymbols(lookToBigInt(l, withTone, g7 ? 7 : 4))];
   const c = crc15(syms);
   syms.push((c >> 10) & 31, (c >> 5) & 31, c & 31);
@@ -220,7 +223,7 @@ export function decodeLookCode(input: string): Look {
   const bad = syms.indexOf(-1);
   if (bad >= 0) throw new Error(`"${s[bad]}" is not a code character.`);
   if (!KNOWN_VERSIONS.includes(s[0])) {
-    if (/[7-9]/.test(s[0])) throw new Error(`This is a version-${s[0]} code from a newer Caduceus app. Update the app (or ask for a pack link).`);
+    if (s[0] === '9') throw new Error(`This is a version-${s[0]} code from a newer Caduceus app. Update the app (or ask for a pack link).`);
     throw new Error('This is not a Caduceus look code.');
   }
   const body = syms.slice(0, -3), chk = syms.slice(-3);
@@ -229,8 +232,10 @@ export function decodeLookCode(input: string): Look {
     throw new Error('Check failed: the code has a typo (or is incomplete).');
   let n = 0n;
   for (const v of body.slice(1)) n = (n << 5n) | BigInt(v);
-  const gr = s[0] === LOOK_VERSION_G7 || s[0] === LOOK_VERSION_G7_TONE ? 7 : s[0] === LOOK_VERSION_G6 || s[0] === LOOK_VERSION_G6_TONE ? 6 : 4;
-  return lookFromBigInt(n, [LOOK_VERSION_TONE, LOOK_VERSION_G6_TONE, LOOK_VERSION_G7_TONE].includes(s[0]), gr);
+  const lc = s[0] === LOOK_VERSION_LC || s[0] === LOOK_VERSION_LC_TONE;
+  const gr = lc || s[0] === LOOK_VERSION_G7 || s[0] === LOOK_VERSION_G7_TONE ? 7 : s[0] === LOOK_VERSION_G6 || s[0] === LOOK_VERSION_G6_TONE ? 6 : 4;
+  const l = lookFromBigInt(n, [LOOK_VERSION_TONE, LOOK_VERSION_G6_TONE, LOOK_VERSION_G7_TONE, LOOK_VERSION_LC_TONE].includes(s[0]), gr);
+  return lc ? { ...l, lens_correction: true } : l;
 }
 
 // ---- pack codes

@@ -51,6 +51,8 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | 0x601e1e3c–0x601e283c | 1 | **v0.15 MONO-colour UI** `mc` (patches/mono_colour/mc_ui.s.in + build_v15.py, docs/MONO_COLOUR.md §v0.15): MONO-slot colour editor routing, virtual S/H/L for colour MONO slots, Film page across slot types. Dead EVF gamma step-9 G/B, step-8 R/G/B, step-7 R/G/B, step-6 R/G tables (only refs: step-table words 0x601e3d14/18, 0x601e3d00/04/08, 0x601e3cf0/f4/f8, 0x601e3ce0/e4; three mid-instruction false positives 0x6002084b / 0x603e8ae2 / 0x606d9029 (call rel32 bytes), dis-checked). Step-9 R (art stub 0x601e1d3c) and step-6 B (mono presets 0x601e283c) untouched. The v0.14-removed video-log probe / bloom-colour stubs held parts of this range. Heap P+928..959 (session +928, Film positions +932..935, 'EP7C' +956) | built v0.15 |
 | 0x601e383c–0x601e38a0 | 1 | **v0.21 grain labels** (patches/v021): 6-pointer table at 0x601e3840 (Off = the old ex_ui string) + "1 Grain 1".."1 Grain 5" (74 B). Dead EVF step-0 R table (only ref: step-table word 0x601e3c80); rest stock. Inside the old v0.15 mc data claim (not in v0.16+ releases) | built + emulator-verified (v0.21) |
 | 0x601e3890–0x601e38f9 | 1 | **v0.22 noise filter** ng_set / ng_get (patches/v022, 105 B; Noise Filter 1334); ng_pick / ng_put + maps at 0x601e1b90–0x601e1bec (92 B, dead EVF step-10 R after ex_rs; only ref 0x601e3d24 → 0x601e1b3c). Dead EVF step-0 R table after the grain labels; only ref: step-table word 0x601e3c80. (The dropped grain C probe used the same range.) | built + emulator-verified (v0.22) |
+| 0x601e393c–0x601e3ae4 | 1 | **v0.25** sc_get / nr_get / sc_slot + Extras sector 8 sg / ss / su + sl_pick (patches/v025, 424 B; dead EVF step-0 G, B: only refs 0x601e3c84, 0x601e3c88). Free to 0x601e3b3c |
+| 0x60303093, 0x602ab488, 0x60299b75, 0x6029fe64, 0x605554bc; 0x602a8095, 0x6028d08a | 4 each | v0.25: getter rel32 of the Shading Comp. (key 0x8c21) reads -> sc_get; stills Noise Filter (key 0x9719) reads -> nr_get |
 | 0x601e383c–0x601e3a3c | 1 | **v0.15 mc data** (407 B: GetValue(111) return addresses, keys, MONO preset ids/values/names, label texts). Dead EVF gamma step-0 R/G tables (only refs: step-table words 0x601e3c80/84; false positive 0x608ec4b7 dis-checked). Step-0 B stays stock | built v0.15 |
 | 0x601e103c–0x601e113c | 1 | **v0.19 Blacks/Whites** `tone` piece A, gate (patches/tone_ends, docs/TONE_ENDS.md §6; 212 B used, 0x601e103c–0x601e1110, rest stock). Dead EVF gamma step-14 B table; only ref: step-table word 0x601e3d68 (brute-force abs32 false positives 0x606209a4 / 0x6064475d are instruction bytes, pinned + dis-checked in build.py). Step-14 R/G = lv, step-13 R = lv_art | built + emulator-verified (stage 1, not released) |
 | 0x601e123c–0x601e133b | 1 | **v0.19 Extras sectors 6/7** `tone_x` (patches/v019/tone_x.s.in, docs/TONE_ENDS.md §7; 255 B). Dead EVF gamma step-13 G table (the reverted v0.17 hl_ext LUTs are not in v0.18/v0.19); only ref: step-table word 0x601e3d54 (build-checked by brute scan) | built + emulator-verified (v0.19) |
@@ -124,3 +126,16 @@ Verified loaded FF tails (docs/HSL_PORT.md; section 2 range re-verified via load
 | 0x603b02de | 6 | live-view bundle H/L: selector resume `mov (60,a2),d0; btst 2,d0` → `jmp lv; nop` (resumes 0x603b02e4; bundles `hl` and MONO-colour still jump to 0x603b02de) |
 | 0x60353c6f | 6 | lv_art: job constructor pre-dispatch `mov a3,a0; call 0x60354709,[d2,a2,a3],16` → `jmp lv_art; nop` (replayed; gate = return word 0x60321eaf) |
 | 0x603b14ff | 7 | v0.19 Blacks/Whites: stage list after the luminance-LUT builder `mov d3,a0; call 0x603b0c66,[d2,d3,a2,a3],72` → `call tone,[d2,d3,a2,a3],72` (d32 form; same mask/frame/return address 0x603b1506; tone replays `mov d3,a0` and jumps to 0x603b0c66) |
+
+## E-M10 IV 1.1 (separate image, generated/em10iv_vivid; not camera-tested)
+
+Every row above is E-P7 only. **Do not reuse the E-P7 dead EVF gamma tables here: this body has an EVF.** Only FF tails. Full table: docs/PORT_EM10IV.md section 4.
+
+| Range or site | Section | Owner |
+|---|---|---|
+| 0x60210100–0x60210680 | 1 | patches/em10iv_vivid host: pick, m_get, cap_over, conv1/2, hl, wb_get, sc_get, nr_get, tone (1408 B). Guards 0x60210078–0x60210100, then FF to 0x60210800 (520 B free) |
+| 0x605b1900–0x605b1c05 | 3 | LOOKS.BIN loader (773 B). Guards 0x605b18c0–0x605b1900, then FF to 0x605b2000 |
+| 0x622ca682 | .bss | Loader state, u16: 0, 0xFFFF, or (L - 0xa1dd8d40) / 16 + 1. Same object offset as the E-P7's 0x622cbcc2 |
+| 0x602d70a1 (5), 0x602b77a8 (5), 0x603f351c (6), 0x603f6055 (6), 0x603bd332 (5), 0x603be45b (7) | hooks | sd_hook, cap_over, conv1, conv2, hl, tone |
+| 0x602b7627; 10 WB; 5 shading; 2 NR (4 B each, rel32) | hooks | m_get; wb_get; sc_get; nr_get: addresses in patches/em10iv_vivid/build.py |
+| 0x6036164c (3), 0x60361769 (2) | data | Job size 15484 → 15508; tail memset 16 → 40 |

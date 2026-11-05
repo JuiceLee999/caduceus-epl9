@@ -4,7 +4,7 @@ import { MAX_LOOKS, blankLook, cloneLook, toneIsZero, type Look, type Pack } fro
 /** Fingerprint of what the user can edit in a look (everything but the app-only fields and the advice). */
 export function lookFingerprint(l: Look, withTone = true): string {
   const v = [l.name, l.notes, l.kind, l.hue, l.light, l.sat, l.grain, l.wb, l.effect, l.vignette, l.art_effect,
-    withTone ? l.tone : null];
+    withTone ? l.tone : null, ...(l.lens_correction ? [true] : [])];
   const s = JSON.stringify(v);
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193);

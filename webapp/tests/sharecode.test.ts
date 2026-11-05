@@ -73,7 +73,7 @@ describe('look codes', () => {
     const code = encodeLookCode({ ...pack.looks[1], tone: zeroTone() });
     expect(code[0]).toBe('1');
     expect(() => decodeLookCode('2' + code.slice(1))).toThrow(/Check failed/);
-    expect(() => decodeLookCode('7' + code.slice(1))).toThrow(/newer/);
+    expect(() => decodeLookCode('9' + code.slice(1))).toThrow(/newer/);
     expect(() => decodeLookCode('X' + code.slice(1))).toThrow(/not a Caduceus/);
     expect(() => decodeLookCode('1U23456')).toThrow(/not a code character/);
     expect(() => decodeLookCode('12')).toThrow(/too short/);
@@ -184,5 +184,20 @@ describe('pack codes', () => {
     await expect(decodePackCode(code.slice(0, -10))).rejects.toThrow();
     await expect(decodePackCode('pk2_abc')).rejects.toThrow(/newer/);
     await expect(decodePackCode('hello')).rejects.toThrow(/not a Caduceus/);
+  });
+});
+
+describe('v0.25 lens correction codes', () => {
+  it('round-trips, with and without a tone; default looks keep their old codes', () => {
+    const base = blankLook('colour', 'Lens');
+    expect(decodeLookCode(encodeLookCode(base)).lens_correction).toBeUndefined();
+    expect(encodeLookCode(base)[0]).toBe('1');
+    const on = { ...base, lens_correction: true };
+    expect(encodeLookCode(on)[0]).toBe('7');
+    expect(decodeLookCode(encodeLookCode(on)).lens_correction).toBe(true);
+    const t = { ...on, tone: { ...zeroTone(), shadows: 2 } };
+    expect(encodeLookCode(t)[0]).toBe('8');
+    const d = decodeLookCode(encodeLookCode(t));
+    expect(d.lens_correction).toBe(true); expect(d.tone.shadows).toBe(2);
   });
 });

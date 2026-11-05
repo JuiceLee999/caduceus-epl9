@@ -60,6 +60,7 @@ export interface Look {
   wb: { a_b: number; g_m: number } | null;
   effect: Effect | null;
   vignette: number;    // -5..5 (stored only)
+  lens_correction?: boolean;  // v0.25: true = a Film pick keeps the camera's lens vignette correction (default: off for the look)
   art_effect: Art;     // COLOR slots of BUNDLES.BIN only: LOOKS.BIN has no field for it
   tone: Tone;          // LOOKS.BIN tone block when non-zero (H/S/M/B/W); B/W also go into COLOR slots of BUNDLES.BIN
   advice: Advice;      // camera settings the look recommends (preview only; not in any card file)
@@ -147,6 +148,7 @@ export function parseLook(v: unknown, what = 'look'): Look {
     effect,
     vignette: int(v.vignette, `${what} vignette`),
     art_effect: oneOf(v.art_effect, ARTS, `${what} art_effect`, 'off'),
+    ...(v.lens_correction === true ? { lens_correction: true } : {}),
     tone,
     advice: adv,
     ...(typeof v.origin === 'string' ? { origin: v.origin } : {}),

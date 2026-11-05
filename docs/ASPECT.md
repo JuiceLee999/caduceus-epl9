@@ -174,6 +174,29 @@ Camera result on test13 (v6): Panorama/Wide preview and capture right, but the s
   callee-saved regs/sp intact); O0-O4 (patched OSD re-parses with osd_extract, new ids decode with valid fmt-14/mode-11 headers to the new pixels,
   only 4 table words changed, stock aspect icons byte-identical, loader bound); P1/R/I (SCP + info lists: 6/7 -> new ids, 1-4/9 unchanged).
 
+### 1h. Why the v8 icons never showed, and a second attempt (2026-11-06)
+
+[V] read in code/bytes/session logs, [I] inference. **Camera result (v0.25, 2026-11-06): the option strip shows XP and 21:9 correctly, so the in-place bitmaps draw. The current-value cell still shows 4:3 on either, so it does not use row 16 or the patched lists as expected: open.**
+
+**What was on the camera [V].** The session log has the copy: `releases/v0.15/patched.pkg.bin` (52 MB, patched sha `c32c84b6`, the 809744b build.json; OSD edits 6, 0x101 component present) was copied to the card and `cmp`-verified. Main features in that same package were then reported on, and main is flashed after OSD with a failed component aborting the rest (docs/SD_UPDATE.md), so the OSD was written. "The words are okay" = the new `XPAN WxH` / `UW WxH` size text (the camera report's own context), not SCP text entries; there is no contradiction with type-3 SCP entries.
+**Correction:** a 0x101 edit **has** reached the display: the 2026-11-01 OSD probe changed Setup `Firmware` to `FIRMWARE` (WORKLOG). That is a string resource; no bitmap edit has been proven.
+
+**The v8 data path is sound in code [V].** Traced for the first time:
+- Directory: 0x6015ab7c reads 2048 B from 0x421a0000 to RAM (dir = +32), so the size patched at component offset 0x454 is what the loader sees. Bank loader 0x6015ad92: resource 0 → 0xa3091000, else 0xa3611000; size from the directory, bound 0xf26140 only; 0x6015b7bb copies `size` bytes from flash with no CRC. So the appended bytes do reach RAM at 0xa3e22600. Bank 69 is requested once at boot (0x60044ed8, flag 0xa272c3f9).
+- Pool layout from the bounds: bitmaps 0xa3091000 + 0xf26140 + 0x400 = fonts 0xa3fb7540; fonts + 0xc7c00 + 0x400 = strings 0xa407f540; strings + 0x5fc00 + 0x400 = 0xa40df540 (a code immediate). No immediate points into 0xa3e22600..0xa3fb7540. Appended data was inside a free part of the pool [I].
+- Getter: 0x60eac846 stores bank-0 header +16 in 0x61fc1734; **0x60d10ba1(id)** returns `&table[id]` (id 0 → NULL). There is no bank-by-id lookup, id bound, hash or per-resource count. Widgets keep `&table[id]` (0x60d48dbf). Draw 0x60d145bf reads fmt/w/h/colour key from `*entry`; 0x60bafbb2 takes the mode from the stream header. So a placeholder id with a repointed table entry is not hidden.
+
+**Cause: a third aspect list was never patched [V for the list, I for it being what was looked at].** §1b's "every list" missed it. The 74-row, 52-B item table 0x6116ae1c has **row 16 at 0x6116b190 `{16, A 0x611670f4, B 0x61167130, count 5}`**: type-3 white/green aspect icons, values 1,3,2,9,4 only, unchanged in every release. `0x60e0a6ff → 0x60e0af25` maps setting **270 → row 16** in `Lv_Control_Mode_Viewer`, stored at self+8528 by 0x60dfc556. Layout table 0x61162d9c has no list function for key 16, so slot 4 stays the default 0x60dfae97 (init image 0x6025ac28) → 0x60dfc1f6, whose loop 0x60dfc27d walks the options and looks each value up in row +8 (selected) or +4 (others), count +12 (0x60dfc367/c3c6/c44c). Values 6/7 miss, and a miss leaves that cell's label empty (0x60df250b falls off the end; the fallback row +20/+24 is null here). So on this layout v8 could not show any icon, whatever the OSD held, and v0.25 still draws nothing there.
+Not explained: the report doesn't say which screen, or blank vs 16:9. Record 0x61176fc0 and the info lists did point at the new ids. Either the report was about the row-16 layout, or v8's appended data also failed for a reason not visible in code. The new build removes both.
+
+**Second attempt** (`patches/aspect_icons/build.py`, output `generated/aspect_icons/`, on releases/v0.25/edits.json, read only; 11 edits added, 4 changed):
+- Main: row 16 → the 7-entry SCP lists, count 7 (12 B at 0x6116b194; lookups are by value and the resolver ignores the +8 word for type 3 [V], so the different stock order and cond don't matter). SCP lists 6/7 type 4 text → type 3; info lists 6/7 → new ids. The SCP strip loses the words Panorama/Wide; the main menu keeps them.
+- OSD, in place, no table/directory/bank change: **3732** white and **3725** green = XP; **5528** white and **5535** green = 21:9. These four are headphone icons; the E-P7 has no headphone jack. Unused on this body is [I]: a reference scan is not proof (some real icons such as LIVE TIME show zero references, so ids can be computed); 5535 is immediate-loaded by touch movie code 0x6086ea8c. Worst case if a stock screen does draw one: it shows the wrong icon.
+- Streams 649/692, 1122/1151, 678/692, 1135/1151 B. Descriptor size set exact, colour key 0, remainder zeroed. To fit, the green gradient's dither is flattened on 2 rows (XP) and 4 rows (21:9); glyphs untouched. XP = Fira Sans SemiBold stretched to two half-spans of the 16:9 label; 21:9 = stock glyphs (§1g).
+- Checks (12/12, `generated/aspect_icons/checks.json`): package parses; decoded == stock + edits; restore == stock main + stock OSD, sha = v0.25 restore; patched OSD reparses, all 7576 strict; the other 7572 identical; no directory/table edit; new ids decode to the intended pixels; lists and row point at them, stock values unchanged. Not emulated: the draw itself.
+- **Bad OSD and boot [V code, I effect]:** the loaders only copy bytes and check size; nothing found decodes bitmaps during boot. A bad stream affects that icon's draw. A bad directory size logs and leaves the bank null, and a bad table pointer would read wild at draw time, so the UI could fault; this build edits neither. The SD updater path is LED-only and draws no OSD (docs/SD_UPDATE.md), and restore has worked from a bootloop.
+- **On camera:** with Panorama and Wide, in the SCP cell, the option strip and the info display. No separate diagnostic was built: this build discriminates. If 3:2 etc. still draw but XP/21:9 are blank everywhere, in-place bitmap edits or those ids are at fault; if only one surface is blank, it reads a list still unfound.
+
 ## 2. Consumers of the aspect id
 
 | # | Site | What it does | Status |
@@ -188,7 +211,7 @@ Camera result on test13 (v6): Panorama/Wide preview and capture right, but the s
 | 8 | "Image Aspect" icon (display resources) | Lists of (value, bitmap) pairs at 0x6123dbc4 (white 477/476/478/479/2422) and 0x6123dbec (green 472/471/473/475/2421), duplicated at 0x6123ed6c/0x6123ed94; records `{id 0x1ff/0x200, listA, listB, count 5}` at 0x6123dd04/0x6123ddb4/0x6123f17c/0x6123f438 (table 0x6123dc94, user 0x60ed8885). **Only ids 1,3,2,9,4**. The SCP/Live Control strip has its own lists (§1b) | [V] data |
 | 9 | Menu label | String id taken from the option list (sec-6 data) | [V] |
 | 10 | Playback edit "Aspect" (string 563) | Separate list at 0x61241ddc (3:2/16:9/1:1/3:4); crops an existing JPEG; not the setting | [V] data; [I] role |
-| 11 | LV grid bitmaps 5996–6143 (720×480 / 640×480 / 720×405 / 480×480 / 360×480) | Selection code **not located** | [?] |
+| 11 | LV grid bitmaps 5996–6143 (720×480 / 640×480 / 720×405 / 480×480 / 360×480) | Selection code `0x60e32406..0x60e32702`, see §7.3 | [V] |
 | 12 | Art Filter / bracketing | **Not traced.** The bracket variant copy (docs/PROFILE_INDEX_WB.md) doesn't list the aspect | [?] |
 | 13 | Other key-0x3081 getter sites | 18 `mov 0x3081,d0` candidates: capture 0x602a83ab, 0x60303617, RAW develop 0x60c66f4b/0x60c73029, sec-9 0x613f32ed, … (not each traced) | [V] list, [?] roles |
 
@@ -337,3 +360,79 @@ camera with JPEG+ORF in each new aspect (check the JPEG dims, the ORF 0x1113 fra
 6. **Back to stock**: select 4:3 and take a shot: 5184×3888, the same as before. Check 3:2 and 16:9 once: 5184×3456 / 5184×2920 (stock sizes).
 Escape: if live view or the camera hangs in Panorama/Wide, pull the battery. The next boot is 4:3. If it does not boot,
 do the OK+power stock restore.
+
+## 7. Video XPan and 21:9: routes compared (researched 2026-11-05)
+
+Static reads only; nothing built, emulated or run. **[V]** = disassembly or bytes, **[I]** = inference.
+
+**Verdict: land the frame-line overlay tonight (§7.3). A true crop encode is not a one-night job (§7.1).**
+
+| Route | Result in the file | Main edits | Size | Effort | Risk |
+|---|---|---|---|---|---|
+| (a) True crop encode | Real 1920×816 etc. | Encoder config, frame start offset, about 37 job-layer sites, playback gates | Unknown, several stubs | Several nights plus many test flashes | Hang while recording; ruined clips |
+| (b1) Burnt-in bars | 16:9 file with black bars | No stage or hook found | Unknown | Not a night | Dropped frames, cache faults |
+| **(b2) Frame lines in live view** | Normal 16:9 file, crop in post | 3 u32 in sec 6, 3 OSD bitmaps | About 12 B main, about 5–15 KB OSD | **About 2 hours** | **Display only** |
+| (c) Metadata crop | Full frame coded, players crop | No crop atom exists; SPS writer not found | Unknown | Research first | Clip displayed wrong |
+
+### 7.1 Route (a): what a true crop touches
+
+**The encoder is generic below one hard-coded layer.**
+
+| Layer | Site | Finding | |
+|---|---|---|---|
+| Config dump | `0x603d3780..` | Names the struct fields. Video block at cfg+96: `ulBitRate` +0, `ulMaxBitrate` +4, `ulHsize` +16, `ulVsize` +20, `ulMaxHsize` +24, `ulMaxVsize` +28, then `eSamplingYcData`, `usSplitSliceNum`, `ulMaxCodeSize` | [V] |
+| **Config builder** | **`0x603d1620`** (called from `0x603d13fb`) | One function, not a table. Size enum at arg+22: 5 C4K, 6 4K, 1 1080, 2 720, 3 640×480, 4 640×360. W/H at `0x603d1742..0x603d17b2`; max code size = W×H×3/8 at (56,a2); max W/H at `0x603d17c7` | [V] |
+| H.264 plugin | `0x6131ba3e` (progressive, also `0x6131967a`), `0x61317eb7` (interlace) | W and H rounded up to 16 in code, no size list. So a smaller Vsize is accepted at this level | [V] code; result [I] |
+| Rate control | `0x6131b563..0x6131b5e5`, `0x6131cff6`, `0x6131ab61` | Tests Vsize == 2160 and Hsize == 1920, with fallthrough cases and no error return | [V] |
+| Size check | `0x6133c5a0..0x6133c6e5` | Timescale and size list (1920×1080, 1280×720, 640×480/360, 3840/4096×2160), otherwise 0x80000007. Caller not traced; decoder side likely | [V] code; role [I] |
+| Job layer | `0x603210f7` (W, H from A+878), `0x60315f90`, `0x603160a7`, `0x6031ff83`, `0x60320a02`, `0x6032aec9` and others | Hard-coded switches on the size code at A+878 (6, 3, 4, 8, 9, 7), each setting buffer sizes. **44 candidate `878` immediates, about 37 in `0x6030..0x6041`** | [V] sites; count is a byte scan |
+| Aspect from size | `0x603088a0` | 4096×2160 → 10, 3840/1920/1280 → 3, others → 1 | [V] |
+| Movie size source | `0x602ccf0b` | Sid 699 picks a slot, sids 700–707/852 hold the size code. It is a setting, not derived | [V] |
+| MOV header | Atom names at `0x61370d98..0x613715a4` (`moov`, `tkhd`, `stsd`, `avc1`, `avcC`) | No W/H in those tables. Written from the config by the mux [I] | [V] names |
+| Playback parser | **`0x603d80a0..0x603d8119`** | Only the 6 stock W×H pairs map to an enum; anything else takes the error at `0x603d8119` | [V] |
+| Playback/edit UI | `0x608379f1`, `0x60a00b20` | Only 1280×720, 1920×1080, 3840×2160; otherwise a log path | [V] |
+
+**Not found:** where the encoder's YC frame address comes from. Changing `ulVsize` alone would encode the top of the frame, not the centre [I]. A centre crop also needs Y and C start offsets (pitch × top row). Without that site the route has no working first build.
+
+Heights would be multiples of 16: 1920×704 and 1920×816, 3840×1408 and 3840×1632 (the ASPECT 1920 row).
+
+**What can go wrong, and whether it lasts [I, except where marked]:**
+- Nothing here writes flash. The config is RAM, rebuilt for each recording.
+- `0x603d4ea7`, the AVM failure helper, only logs and returns [V]. A bad setup is more likely to end in a hung encoder task or a stopped recording than a clean error. A battery pull clears it.
+- Clips: an interrupted recording leaves a MOV without `moov`. Stock's own card-full and power-loss cases are the same kind of damage.
+- **The one lasting trap is a saved setting.** A new movie size stored through sids 700–707/852 could make live view fault every time the dial is on Movie. That needs a boot clamp like §3(c), and a recovery path through the stock restore.
+- With the sensor mode left alone, nothing changes on the sensor side. Heat and card load stay at or below stock.
+
+### 7.2 Routes (b1) and (c)
+
+- **(b1) Burnt-in bars:** no stage that draws into movie YC was found [I]. A CPU fill of 25–35 % of every frame needs a per-frame hook on the encoder input, which is the same missing site as §7.1, plus cache handling at 4K30. Rejected.
+- **(c) Metadata:** `clap`, `pasp` and `tapt` occur nowhere in main [V]. New atoms change `moov` layout. Changing `tkhd` W/H alone scales rather than crops [I]. An SPS crop would be a clean file-level answer, but the code that writes the SPS was not found. Changing stored W/H also trips the playback parser above [V]. Worth one research session; not tonight.
+
+### 7.3 Route (b2): frame lines, recommended
+
+**Replaces the §2 #11 open question: the LV grid selector is `0x60e32406..0x60e32702`.** [V]
+
+- Sid 44 == 1 (movie) forces aspect 3 (16:9), or 1 for movie slot 6 (`0x60e32423..0x60e3245d`). Stills read sid 270.
+- The grid value comes from sid 155 (LCD) or sid 447 (EVF), key `0x97f1` for sid 155 (`0x60e3258d..0x60e325ab`).
+- Grid value 9 is cleared in movie mode (`0x60e325fe`), so **no aspect frame exists in movie today**. The other values continue to the lookup.
+- The lookup at `0x60e326c3` finds `{aspect, list, count}` by aspect, then `{value, bitmap}` by grid value, and draws with `0x60df24d7`. No test for "recording" appears in that path. Whether the recording page calls it is not traced [I].
+
+| Row for aspect 3 | List | `{value, bitmap}` |
+|---|---|---|
+| `0x6118cc18` | `0x6118c868` | 8/5998, 6/6004, 5/6765, 7/6012, 1/6018 (720×405 class) |
+| `0x6118cc60` | `0x6118c958` | 8/6084, 6/6090, 5/6096, 7/6102, 1/6108 (720×480 class) |
+| `0x6118cca8` | `0x6118ca98` | 8/6028, 6/6034, 5/6040, 7/6046, 1/6052 (640×360 class) |
+
+The table is chosen by display state at `0x60e32673..0x60e326bd`: `0x6118cc48` when (1020,this) == 1, `0x6118cc00` for state 1 or state 5 with (56,..) 1 or 2, otherwise `0x6118cc90` [V]. Which state the LCD is in during movie mode was not traced, so patch all three.
+
+Value 8 is the diagonal grid (checked on a contact sheet), the least useful one to lose [I]. All three list slots are free in `releases/v0.25/edits.json` [V].
+
+**Patch, data only:**
+- 3 new bitmaps, same mode-11 format and index 124 as the stock grids: full-width lines at 65:24 and 21:9 in one image, with a small tick to tell them apart. Add through `patches/aspect/osd_icons.py`, which already encodes this format and takes unused placeholder ids. Bank bound per §1g [V].
+- 3 u32 edits: the bitmap of value 8 in the three lists.
+- Use: Displayed Grid = the diagonal option, in Movie mode. 16:9 stills get the same lines, which is harmless. Stock files; crop in post.
+- Lines first. Solid bars depend on how this layer blends, which is unknown.
+
+**Risk:** display only. No encoder, settings or boot-path change. The worst case is a wrong or missing grid, and Grid Off escapes it [I].
+
+**Camera test:** Movie mode, Displayed Grid diagonal. Lines visible on standby? While recording? Check the line positions against a crop of the recorded file. Grid Off: no lines. 16:9 stills: lines shown; 4:3: stock grid.

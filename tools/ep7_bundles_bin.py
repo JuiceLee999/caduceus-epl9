@@ -108,6 +108,8 @@ def check_file(data, tone=False, mono_rule=True):
         p.append(f'crc32 {struct.unpack_from("<I", data, 16)[0]:#010x} != {crc:#010x}')
     lo, span, who = SB.range_table(SB.layout(), tone=tone)
     tab = data[SB.HDR_LEN:]
+    if tone:
+        span[49], who[49] = 1, 'shading (v0.25: 1 = lens correction off, older firmware rejects it)'
     if tone and mono_rule:
         bad = [(k, o) for k in range(4, 8) for o in SB.mono_tone_bytes() if tab[64 * k + o]]
         if bad:

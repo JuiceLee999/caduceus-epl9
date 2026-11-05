@@ -30,6 +30,13 @@ export function crc32(...parts: Uint8Array[]): number {
   return (c ^ 0xffffffff) >>> 0;
 }
 
+// ---- firmware the card files are made for (Control Panel selector). 25 = v0.25 or later.
+export type Fw = 25 | 24 | 23;
+export const FW_LATEST: Fw = 25;
+let FW: Fw = FW_LATEST;
+export const setFirmware = (f: Fw) => { FW = f; };
+export const firmware = () => FW;
+
 // ---- constants (Python names in comments)
 const MAGIC = [0x45, 0x50, 0x37, 0x42];                 // 'EP7B'
 const FW_BUILD = 1100;                                  // SB.FW_BUILD
@@ -41,7 +48,8 @@ const LOOKS_VERSION = 3, HDR_LEN = 64, REC_LEN = 64;
 // v0.19 tone block in a COLOR record: +32 flag, then the values at these offsets
 const TONE_FLAG = 32;
 const TONE_OFF = { blacks: 33, whites: 34, highlights: 35, midtones: 36, shadows: 37 } as const;
-const B_BLACKS = 47, B_WHITES = 48;
+const B_BLACKS = 47, B_WHITES = 48, B_SHADING = 49;
+const MASK_KEEP_CORRECTION = 4;                         // v0.25 record slot mask bit 2
 const BUNDLE_USED = 45, CLASS_OFF = 45, MASK_OFF = 46, TINT_OFF = 47, NAME_OFF = 48;
 const B_TINT = 45, B_ART = 46, B_COLOUR = 32, B_SAT = 33, B_FLAGS = 31;
 const FLAG_RENDER_COLOUR = 1, FLAG_HL = 2;
@@ -54,7 +62,7 @@ const FIELDS: [number, number, number, number][] = [   // off, len, lo, hi
   [0, 12, -HL_MAX, HL_MAX], [12, 12, -HL_MAX, HL_MAX], [24, 1, 0, 6], [25, 1, 0, 1], [26, 1, -WB_MAX, WB_MAX],
   [27, 1, -WB_MAX, WB_MAX], [28, 1, 0, 3], [29, 1, 0, 5], [30, 1, -VIG_MAX, VIG_MAX], [31, 1, 0, 3], [32, 1, 0, 1],
   [33, 12, -SAT_MAX, SAT_MAX], [45, 1, 0, 4], [46, 1, 0, 5],
-  [B_BLACKS, 1, -TONE_BW_MAX, TONE_BW_MAX], [B_WHITES, 1, -TONE_BW_MAX, TONE_BW_MAX]];
+  [B_BLACKS, 1, -TONE_BW_MAX, TONE_BW_MAX], [B_WHITES, 1, -TONE_BW_MAX, TONE_BW_MAX], [B_SHADING, 1, 0, 1]];
 export const RANGE_LO = new Int8Array(64), RANGE_HI = new Int8Array(64);   // unclaimed bytes: 0..0
 for (const [off, n, lo, hi] of FIELDS) for (let k = off; k < off + n; k++) { RANGE_LO[k] = lo; RANGE_HI[k] = hi; }
 const s8 = (b: number) => (b >= 128 ? b - 256 : b);
@@ -153,12 +161,15 @@ export function lookRecord(l: Look): Uint8Array {
     r[TONE_FLAG] = 1;
     for (const k of TONE_KEYS) r[TONE_OFF[k]] = u8(l.tone[k]);
     r[MASK_OFF] = 1;
-    for (let k = 0; k < 12; k++) r[38 + (k >> 1)] |= (l.sat[k] & 15) << (4 * (k & 1));   // v0.24: a Film pick sets saturation
-    r[44] = 1;
+    if (FW >= 24) {
+      for (let k = 0; k < 12; k++) r[38 + (k >> 1)] |= (l.sat[k] & 15) << (4 * (k & 1));   // v0.24: a Film pick sets saturation
+      r[44] = 1;
+    }
   } else {
     if (!mono) for (let k = 0; k < 12; k++) r[B_SAT + k] = u8(l.sat[k]);
     r[MASK_OFF] = mono ? 2 : 3;         // colour looks without tone carry sat (-5..5), so they may go in MONO slots
   }
+  if (!mono && l.lens_correction && FW >= 25) r[MASK_OFF] |= MASK_KEEP_CORRECTION;
   const nm = new TextEncoder().encode(l.name);
   r.set(nm.subarray(0, 15), NAME_OFF);
   return r;
@@ -227,7 +238,7 @@ export function checkLooksBin(d: Uint8Array): string[] {
       if (v < LOOK_LO[k] || v > LOOK_HI[k]) { p.push(`look ${j} byte ${k} = ${v} out of range`); break; }
     }
     const cls = r[CLASS_OFF], mask = r[MASK_OFF];
-    if (!((cls === 0 && (mask === 1 || mask === 3)) || (cls === 1 && mask === 2)) || r[TINT_OFF] > 4)
+    if (!((cls === 0 && ((mask & ~MASK_KEEP_CORRECTION) === 1 || (mask & ~MASK_KEEP_CORRECTION) === 3)) || (cls === 1 && mask === 2)) || r[TINT_OFF] > 4)
       p.push(`look ${j} class/mask/tint ${cls}/${mask}/${r[TINT_OFF]}`);
     if (!nameOk(r.subarray(NAME_OFF, NAME_OFF + 16))) p.push(`look ${j} name`);
   }
@@ -256,6 +267,7 @@ export function decodeLooksBin(d: Uint8Array, name = 'Imported LOOKS.BIN'): Pack
       if (r[TINT_OFF]) l.effect.tint = TINTS[r[TINT_OFF]];
     }
     l.vignette = s8(r[30]);
+    if (!mono && r[MASK_OFF] & MASK_KEEP_CORRECTION) l.lens_correction = true;
     l.tone = zeroTone();
     if (tone) for (const k of TONE_KEYS) l.tone[k] = s8(r[TONE_OFF[k]]);
     if (tone && r[44] === 1) for (let k = 0; k < 12; k++) { const v = (r[38 + (k >> 1)] >> (4 * (k & 1))) & 15; l.sat[k] = v > 7 ? v - 16 : v; }
@@ -278,6 +290,7 @@ export function placeLook(l: Look, slot: string): Uint8Array {
     b[B_COLOUR] = 0;
     b[B_FLAGS] = FLAG_HL;
     b[B_ART] = ARTS.indexOf(l.art_effect);
+    if (FW >= 25 && !l.lens_correction) b[B_SHADING] = 1;   // v0.25: lens vignette correction off, as a Film pick does
     if (hasTone(l)) { b[B_BLACKS] = u8(l.tone.blacks); b[B_WHITES] = u8(l.tone.whites); }
   } else if (l.kind === 'colour') {
     if (hasTone(l)) throw new Error(`${slot}: a look with a tone cannot go in a MONO slot`);

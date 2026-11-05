@@ -326,3 +326,7 @@ Every step, check and decision, newest last. "Verified" = checked by hash or rep
 - v0.17 Extras guide label: same stock blank (values touching −5 and +5); ed_guide puts the blanked ALL-off id back to 2755 on
   the Extras page so ex_guide labels it (ed_view 556 B). hl_ext verify 84/84 (labels == v0.16, blanked S/H/L/Extras labelled,
   no card table == stock). Vignette (Extras 6) not built: needs the shading work-list + mask on key 11; plan in docs/VIGNETTE.md.
+- **v0.25** (patches/v025 + patches/aspect_icons, flashed 2026-11-06; strip icons OK, SCP value cell still 4:3, vignette pixels unconfirmed): shading off per COLOR slot (+49, Extras sector 8, 5 reads of 0x8c21 incl. 0x605554bc which the first scan missed). A pick sets +49 = 1 unless the
+  record's mask has bit 2 (fm_check accepts it from v0.25; sl_pick replaces ng_pick at lt_post); own restores its snapshot, Stock 0; lt_mod ignores +49. NR via read-site override of sid 143 (0x602a8095 capture,
+  0x6028d08a MakerNote), 1334 writes gone. Flat tried and removed (user: log already covers it, costs Portrait). verify.py: U shading 26880 + NR 13440, W 56, P 175 steps + masks, R, D, K. tools/ep7_verify_v025_extras.py G 936, V 1656, W 6160.
+  Open: the stills NR claim is static; camera_v022 PB031626/27 have MakerNote NF 0 among -2s (menu change, or 1334 reaching stills). The override is right either way. Where correction reaches pixels is not found: wall test decides.

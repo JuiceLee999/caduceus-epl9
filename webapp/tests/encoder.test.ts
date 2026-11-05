@@ -3,7 +3,9 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { FW_LATEST, placeLook, setFirmware } from '../src/format';
+import { blankLook as blankLook25, zeroTone as zeroTone25 } from '../src/pack';
 import { resolveRepoLibrary } from '../scripts/library.mjs';
 import {
   checkBundlesBin, checkLooksBin, crc32, decodeLooksBin, encodeBundlesBin, encodeLooksBin, hasTone, lookRecord, PackError, validatePack,
@@ -270,7 +272,9 @@ describe.skipIf(!python)('cross-check with the repo\'s Python tools (v3 + v0.19 
       expect(out[i].looks_check).toEqual([]);
       expect(out[i].bundles_check).toEqual([]);
       expect(hex(encodeLooksBin(p))).toBe(out[i].looks);
+      setFirmware(24);                                  // the Python tool writes the pre-v0.25 slot (no +49)
       expect(hex(encodeBundlesBin(p))).toBe(out[i].bundles);
+      setFirmware(FW_LATEST);
     });
   });
 
@@ -305,5 +309,29 @@ describe('card zip', () => {
       'print(";".join(f"{i.filename}:{hashlib.sha256(z.read(i)).hexdigest()}" for i in z.infolist()))'], { input: Buffer.from(z) }).toString().trim();
     const sha = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
     expect(out).toBe(`EP7MOD/LOOKS.BIN:${sha(lb)};EP7MOD/BUNDLES.BIN:${sha(bb)}`);
+  });
+});
+
+describe('v0.25 lens correction and the firmware selector', () => {
+  const look = () => ({ ...blankLook25('colour', 'Test'), tone: { ...zeroTone25(), shadows: 1 }, sat: new Array(12).fill(2) });
+  afterEach(() => setFirmware(FW_LATEST));
+  it('default: no bit in LOOKS.BIN, starter COLOR slot has correction off', () => {
+    expect(lookRecord(look())[46]).toBe(1);
+    expect(placeLook(look(), 'COLOR1')[49]).toBe(1);
+  });
+  it('keep correction: bit 2, accepted, round-trips, starter slot follows the camera', () => {
+    const l = { ...look(), lens_correction: true };
+    expect(lookRecord(l)[46]).toBe(5);
+    expect(placeLook(l, 'COLOR1')[49]).toBe(0);
+    const bin = encodeLooksBin({ schema: 'caduceus-pack/1', name: 'x', looks: [l], slots: {} });
+    expect(decodeLooksBin(bin).looks[0].lens_correction).toBe(true);
+  });
+  it('older firmware: what it would reject is left out', () => {
+    const l = { ...look(), lens_correction: true };
+    setFirmware(24);
+    expect(lookRecord(l)[46]).toBe(1); expect(lookRecord(l)[44]).toBe(1); expect(placeLook(l, 'COLOR1')[49]).toBe(0);
+    setFirmware(23);
+    const r = lookRecord(l);
+    expect(r[44]).toBe(0); expect([...r.subarray(38, 44)]).toEqual([0, 0, 0, 0, 0, 0]);
   });
 });

@@ -3,6 +3,24 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). All releases are early-development
 pre-releases: use at your own risk (see the README).
 
+## v0.25 — 2026-11-06
+
+Flashed and used on an E-P7. **Reports wanted:** whether the vignette change alters photos hasn't been confirmed yet ([how to test](README.md#vignette-correction-reports-wanted)).
+NR is confirmed in each photo's recorded settings; a side-by-side pixel comparison is still to do.
+
+- **`XP` and `21:9` icons:** the Super Control Panel option strip shows them for Panorama and Wide. They are drawn over four headphone icons the E-P7 appears not to use.
+  **Known issue:** the current-value cell in the Super Control Panel still shows the 4:3 icon when either is selected. The setting and the photo are right.
+- **Lens vignette correction off by default for looks:** picking a look turns the camera's lens shading correction (Shading Comp.) off for that colour
+  profile, without changing the menu setting. A look can keep the correction (Control Panel). Extras sector 8 changes it on the camera: `8 VigFix Off` (natural corners) or
+  `8 VigFix Camera` (follow the camera's Shading Comp. setting). It follows a profile switch. Profiles already set up keep following the camera until you pick a look or change sector 8.
+  A `BUNDLES.BIN` saved with Shading Off, or a `LOOKS.BIN` with a look that keeps correction, is rejected by v0.24 and older.
+- **Look NR now reaches photos:** Extras sector 1 and a look's NR now apply to stills at each shot, and follow a profile switch. v0.22-v0.24
+  wrote setting 1334, whose reader is the live-view/movie path, and the camera's stills value is a different setting. Looks no longer change
+  a camera setting; if a past look changed your movie Noise Filter, set it again in the menu. Looks with NR Low or Off (for example
+  Provia 400) can now look different at high ISO.
+- **Control Panel:** a look can keep the lens correction, and a firmware selector (asked on first visit, then the Firmware button) makes card files for your version.
+- Firmware screen shows `Caduceus: 0.25`.
+
 ## v0.24 — 2026-11-05
 
 - **A Film pick now sets the look's saturation:** picking a look writes its 12 per-colour values to the profile's
