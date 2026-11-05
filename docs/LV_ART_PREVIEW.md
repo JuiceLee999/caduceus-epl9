@@ -183,3 +183,50 @@ bloom slot. Watch frame rate, AF and the recorded file. (4) Grain build only aft
 | 2b | LV clarity: `bloom_w` c12 path returns w > 1024 only for type 0x3x jobs; flag clarity slots in H1 | ~20 B in patches/bloom | medium-low (input order, sign) | design |
 | 3 | grain in LV (`--features hl,bloom,grain`) | built | medium | after phase 1 on camera |
 | 4 | larger LV glow radius / halation preview | – | low | not planned |
+
+## 7. Refresh trace: why the preview goes stale, and the smallest trigger (answers §4 item 6)
+
+Static only; nothing built or run. Labels as above. Function "entries" are the address after the `call`-saved frame.
+
+**Answer to §4.6: neither per frame nor per settings change.** The job is rebuilt only when a stock comparator says so.
+
+| Step | Site | Fact |
+|---|---|---|
+| Rebuild comparator | **`0x60311278`** (only caller `0x60329b9b`, in the slot loop `0x60329b2e` ← `0x6032a257`, when rec+832 == 0) | Compares current record `0x60309eb9(1)` with previous `0x60309eab`. Result per slot: 0 no job, 1 unchanged, **2 rebuild**. Q+53 == 2 → 2; Q+53 ≥ 3 → 1 [V] |
+| **What stock tests for Art Effect** | **`0x603113cc`** | **rec+296 (Art Effect id) differs → 2**; if id ≠ 0, also rec+808+19/+20 [V]. Others in the chain: `0x603135ee`, `0x603136d9`, `0x603138f0`, `0x603136f5`, rec+652, `0x60313809`, `0x6031385b` (not read) |
+| Store | `0x60329bb0..bc8` | Only if the state word is 1: Q+24 (slot 0) / Q+26 (slot 1) = comparator result; Q+28/+30 = its second output [V] |
+| Act | `0x6032a706` (← `0x6032a6d8` ← `0x6032b7dd` ← `0x6032b72f` ← `0x6032b2d9` ← `0x6032a958` ← `0x6032a1d6` ← `0x6032936a`) | Word 1 → return, no build (`0x6032a741`). Word 2 → delete `0x60311440` (`0x6032a7df`) then build `0x603114e0` (`0x6032a830`). Other → build (`0x6032a88b`). Then word = 1 [V] |
+| Build | `0x603114e0` → `0x6031178a` → IPCR `0x60321d3b` → constructor `0x60321ea8` → lv_art H1 | Other `0x60321d3b` callers: `0x6031b38b` (`0x6031b1a7`, from `0x6032fe40/51`), `0x60313354` (`0x603132ca`, a fixed job for Rec View, no record key seen), `0x6030ff78` [V] |
+| Unchanged path | `0x603118d6` (from `0x6032b3db`, `0x6032b9cb`) → `0x60321f75` (reads job+4 **including the job flags**) → `0x603220e5` (writes job+36) | New image parameters on the **existing** job. No constructor, so no work-list or flag change [V] |
+| Event 0 | Record state table rows `0x604e3190` + 0xE0·n, 28 events × 8 B; event 0 = `0x6032dd61` / `0x6032ddb2` / `0x6032de23` / `0x6032de8e` / `0x6032dee6`, each starting with `0x6032cba8` | `0x6032cba8` → `0x6030ba2b` is the only LV reader chain of the effective S (LV_BUNDLES §2.3), so a visible S edit implies event 0 [I] |
+
+**Why it goes stale [V code, I that this is the camera symptom]:** lv_art sets flags in the constructor. The art byte is not in
+the record, so the comparator says "unchanged" (1) and the job is never rebuilt. A capture rebuilds it. The S nudge in
+`patches/lv_art_refresh` does cause event 0, but S is not one of the comparator's rebuild causes as far as read, so it reaches
+only `0x603118d6`. H/L still updates because it does not depend on the job flags [I].
+
+**What stock does for a real Art Effect in ART mode [V code]:** the record gets the new rec+296; on event 0 the comparator
+returns 2; `0x6032a706` deletes and rebuilds; `0x60312f42` maps the id to flag bits inside `0x603114e0` (`0x60311661`).
+
+**Corrections to the `art_rf.s.in` header [V]:**
+- `0x6266a354` = 1 does not trigger a reissue. It means "Rec View developing" (set `0x60332799`, cleared `0x6033289c`), and it makes
+  the gate `0x6031d189` **skip** ("E_skip recview", `0x604e2468`).
+- `0x6032b997` / `0x6032ba6d` / `0x6031c883(1)` do not reissue the LV job. They post to the Rec View mailbox `0x600410be`
+  (ISSUES_19_20).
+
+### Smallest correct trigger (design, not built)
+
+Stateless hook after the comparator, so stock's own rebuild path does the work:
+
+| Item | Value |
+|---|---|
+| Site | **`0x60329ba2`**, 6 B `f1 e1 81 1d a5 00` (`mov d0,a1; mov d0,d1; exthu d1; cmp 0,d1`) [V bytes]. Replay, then resume at `0x60329ba8` (the `bne`). No branch target in the span by the listing; check with `ep7_xref.py --short` when building |
+| In scope | d3 = slot index, a2 = &result (`(a2)` = 1 unchanged, 2 rebuild), d0 = error. Keep d0/d1/a1/PSW for the replay |
+| Logic | if d0 == 0, `(a2)` == 1, rec+294 == 11: job = `(0x626693e8 + 8·d3)`; same gate as lv_art (job key 11, type nibble 0x30, not 0x1xx); want = lv_art's flags for the current slot (`0xF6B1` + `tbl_idx`; bloom 0x80, Pin Hole 0x400); if `job+16 & 0x480` ≠ want → `(a2)` = 2 |
+| Size | 6 B hook + about 80–110 B stub; no RAM state. Keep lv_art_refresh's nudge as the event-0 source |
+| Unverified | job handle in the table == job pointer, as `0x60353cf5` suggests [I]; rec+832 == 0 in stills LV [I]; stub must mirror lv_art's build features exactly |
+| Risk | A mismatch that never clears rebuilds the job on every event 0 (LV flicker, not per frame). Stock's own delete + rebuild path, so failure is an LV job error, not a write. Exclude recording (type gate). Emulator check: stub want == lv_art result for every slot/table |
+| Alternative | Make `art_rf` nudge the real Art Effect property so rec+296 changes. No hook, but unproven that COLOR's record carries +296, and it touches the user's ART setting. Second choice |
+
+**Camera test:** change Art to Pin Hole in Extras and back to live view: vignette appears at once, without a shot. Same for a Film
+pick with/without bloom. Then half-press, burst and a 4K clip on that slot.

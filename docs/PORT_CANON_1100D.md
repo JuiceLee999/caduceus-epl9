@@ -54,8 +54,90 @@ Build **`caduceus-canon`**: share code / look JSON → `.PF2`, plus a Control Pa
 Effort: medium for step 2, low for step 3. Firmware risk on the camera: none in either case (stock EOS Utility
 and stock file format).
 
+## 4. Deeper pass (2026-11-05): routes compared
+
+Desk research again. **No Canon firmware was fetched.** Labels: [V] verified here, [R] reported, [I] inference.
+
+**This changes section 1 and section 3 in two ways.** The checksum looks solved rather than stalled, and hand-made
+files are a better first step than a writer.
+
+### What a Picture Style can express
+
+- [R] Specific Colors in Picture Style Editor (PSE): **up to 100 adjustment points**, each with hue, saturation and luminosity
+  shifts. Affected range: hue 30–180°, saturation 30–100, luminosity 30–100 ([PSE manual][pse-sc]). Older docs give a default
+  of 60° hue, 30° either side [R].
+- [I] **So 12 sectors fit:** 12 points at sector centres, each with a 30° hue range, inside the 100-point limit. It is an
+  approximation, not a copy:
+  - A point is centred on one colour with limited saturation and luminosity reach, so very pale or very dark colours in a
+    sector may be untouched.
+  - Overlapping regions trigger a warning in PSE [R], so wider blends may need narrow ranges or more points.
+  - Units differ from Caduceus, so a calibration table is required.
+  - Canon recommends Basic, then Six Color-Axes, then Specific Colors [R]. Six Color-Axes does not survive PF2 [R].
+- [R] Not possible in PF2: RGB per-channel tone curve (approximate only), Six Color-Axes, sharpness fineness. Grain, bloom, clarity,
+  vignette and WB remain absent, as the table above says.
+
+### Checksum
+
+- [R] Later posts in the [Magic Lantern thread][ml-rev]: **Pf3Decoder.jar** ([post][ml-pf3d], Java source inside, by
+  chris_overseas, plus a Python port) was updated to correct the checksum when re-encoding, so a decoded file can be hand-edited and
+  re-encoded. Another poster ties it to a "Finalize" tag. A later reply elsewhere says tooling stalled.
+- [I] Likely solved, but **unverified**. Forum pages returned 403 to my fetches, so this rests on search excerpts; I did not read
+  the code or obtain the tool. No maintained repo was found on GitHub.
+- [R] Also reported: tag 0x1009 is the base style ID; two header bytes control the "protected" state. Curve data is count, then
+  input/output pairs.
+- **Rule for the writer:** work from files PSE outputs, not from PSE itself. [R] Canon's [PSE download disclaimer][pse-dl] bars
+  disassembling or reverse engineering the content, and personal non-commercial use applies. [I] Reading files you made yourself
+  is a different act from disassembling the program, but check this if a writer ships publicly.
+
+### Routes
+
+| Route | HSL carried | Looks | Firmware risk | Licence | Effort [I] |
+|---|---|---|---|---|---|
+| **A. Hand-made PF2s** in PSE | Approx. 12 points | Library of about 29 files | None | Own output; no reversing | **About 1 week** |
+| **B. PF2 writer** (code to .PF2) | Approx., automated | Any look, Control Panel export | None | File-format work; see rule above | **1–2 days to prove, then 1–2 weeks** |
+| C. Recipe cards | User enters by hand | Any | None | None | 1–2 days |
+| D. Magic Lantern | Adds nothing beyond PF2 | Style switching only | Low–medium | See below | Not worth it |
+| E. Real firmware mod (ISP code on DIGIC IV) | In theory | In theory | High | Blocked: see below | Months, no body, not recommended |
+
+**Magic Lantern**
+
+- [R] The 1100D page lists firmware 1.0.5 with a last development build dated 2025-06-20 (search excerpt; the page returned 403 to
+  my fetch). It stays community-maintained, and some builds fail.
+- [R] Canon said in 2013 that third-party firmware does not void the warranty, but a brick it causes is not covered
+  ([PetaPixel][pp]). ML offers no warranty [R].
+- [I] It runs from the card rather than replacing the firmware, but I could not confirm the details from a primary source. It needs
+  Canon's 1.0.5 updater on the body, which is another Canon download with its own terms. I did not fetch it.
+- It still has no HSL stage. The earlier verdict stands.
+
+**Canon firmware licence**
+
+- [R] Canon's firmware updater agreement is click-to-accept. A Canon support-page excerpt bars altering, disassembling, decompiling
+  or reverse engineering. I could not read the exact 1100D agreement (the one page tried returned 403), so **treat it as banned**.
+  Nothing downloaded.
+
+### Recommendation
+
+**A, then B. Do not do D or E.**
+
+1. **A first.** Hand-build 5–8 of the most-wanted looks in PSE from a CR2, check in Digital Photo Professional, and publish. Needs
+   no format work.
+   - [I] Calibration needs a raw file, not an 1100D, because DPP applies a PF2 to any CR2. Register-on-body via EOS Utility 2.1 or
+     later still needs one owner to confirm.
+   - [R] A free community library of 550 styles already covers many film looks ([MercuryDCD][mdcd]). So measure whether anyone wants
+     ours before scaling.
+2. **B only if A is wanted.** Proof: PSE save, decode, re-encode must be byte-identical. Then one changed value must open in PSE, and
+   then register on a body.
+3. C remains the fallback if B fails.
+
+Blocking item: someone with an 1100D to register a file. The risk to them is nil beyond normal use of Canon's own tools.
+
 ## Sources
 
+- [PSE manual: Fine-Tuning Specific Colors][pse-sc]
+- [Magic Lantern forum: Reverse Engineering Picture Styles][ml-rev], [Pf3Decoder post][ml-pf3d]
+- [Canon PSE download page, disclaimer][pse-dl]
+- [PetaPixel on third-party firmware warranties][pp]
+- [MercuryDCD picture styles library][mdcd]
 - [EOS 1100D manual (Picture Style, p.24)][m]
 - [Canon: registering Picture Style files][reg]
 - [Picture Style Editor: saving files][pse-save]
@@ -71,5 +153,11 @@ and stock file format).
 [ml-pf2]: https://www.magiclantern.fm/forum/index.php?msg=172701
 [ml-builds]: https://builds.magiclantern.fm/1100D.html
 [ml-1100d]: https://www.magiclantern.fm/forum/index.php?msg=169369
+[pse-sc]: https://cam.start.canon/en/S004/manual/html/UG-03_ImageChara_0040.html
+[ml-rev]: https://www.magiclantern.fm/forum/index.php?topic=16299.0
+[ml-pf3d]: https://www.magiclantern.fm/forum/index.php?msg=172818
+[pse-dl]: https://th.canon/en/support/0200746503
+[pp]: https://petapixel.com/2013/05/27/will-custom-firmware-void-my-warranty-canon-nikon-and-panasonic-respond/
+[mdcd]: https://github.com/MercuryDCD/canon-picture-styles-pf2-pf3
 
 Canon Picture Style site (free PF2 looks): https://global.canon/en/imaging/picturestyle/file/index.html

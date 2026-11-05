@@ -412,3 +412,14 @@ CPU-readable, unlike the reduce buffer, whose read crashed (§10e).
 - Upsample the grid's highlight cells into m = 1024 − k·max(0, Y − T).
 - Feed the mask to the existing mode-0x1002 lerp toward a colour word (proven to blend and to give a red hue in 10b).
 - Open: the grid's location and resolution per capture, and whether a grid-resolution key looks like a halo.
+
+### 13. Issue #8 verdict: tinted halation (research, nothing built)
+**Hard. Feasible only through a mask, not through the blend gains.**
+- Closed [V bytes, §11]: per-channel weights in combiner 11, because they are diagonal in YCbCr, so white highlights add luma only.
+- Closed [V camera, §10e]: reading the reduce buffer on the CPU.
+- Open route: §12, a vignette-format mask (0x080C, 128×128 u16) built by the CPU from the AE metering grid, fed to the proven mode 0x1002
+  lerp toward a colour word (§10b). It reuses the stock late shading pass, so time per shot is about stock [I]; the CPU work is a few
+  thousand operations.
+- Limits [I]: 128×128 is coarse, so the result is a broad warm wash around large highlights, not a thin halo. It also takes over the
+  slot's vignette. Grid location and resolution per capture are untraced, and that is the next step.
+- Camera test: one warm and one white light; failure mode is a garbled frame (§10b), not a brick.

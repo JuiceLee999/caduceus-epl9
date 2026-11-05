@@ -352,3 +352,21 @@ Residual risks:
 3. The first camera test of `patches/video_log` must confirm that live view is in fact log (Q1
    inference).
 4. Any camera test needs the usual go-ahead and the SD_UPDATE.md risk notes.
+
+## Issue #17 re-check: was the LUT really baked into recordings?
+
+**Verdict: the VSC LUT is still the display-only path. The "baked in" finding is unproven [I].** There is no better path to look for.
+
+- [V] This doc, Q1: the recording comes from the developed image; the VSC reads a finished buffer and applies its LUT on output, as
+  with peaking. That VSC output is never written back to memory is [I]: no write-back path was searched for.
+- [V] WORKLOG line 288 and commit `4e4b7f3` ("suspected log override"): the same v0.14 build **also** fixed the log trigger (stills
+  picture mode vs movie picture mode, broken since 12e). The p1 1 → p1 13 result therefore has two changes behind it. No clip was
+  compared with only the LUT changed.
+- [V] CODE_SPACE_MAP: `0x601e383c–0x601e3a3c` (old LUT and hook) now holds v0.15 mc data, v0.21 labels and v0.22 code. The step-17
+  pointer `0x601e3c40` and hook `0x601751f4` are stock again. A return needs a new 256 B LUT + about 105 B code home, and the T-D
+  test must use the v0.14 movie-picture-mode decision, not +925 alone [I].
+
+**Decide with one A/B, before any port:** on the current build, flash a test with the LUT forced on while recording log, and compare
+the clip's p1/p50 with the same scene on the plain build. If they match, restore it with a user toggle. If not, the VSC output does
+reach the encoder on this body, and no display-only path exists. WORKLOG says it must not come back "in that form", so this is the
+user's call. Effort: small (data 12 B + 256 B, hook 5 B, stub about 105 B). Risk: cosmetic on the LCD; a recording shows the result.

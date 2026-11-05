@@ -145,6 +145,51 @@ Workaround: Auto ▶ or ▶ after the shot.
 - (b) A COLOR look with clarity but bloom 0, and one with grain only. Does the black need the 0x1061 passes?
 - (c) Raise the image size from S to L. Does the black scale with the full-size buffer?
 
+**Follow-up trace (static, nothing built) [V unless marked]:**
+
+Rec View requests are posts to mailbox `0x600410be` by `0x6031c883(kind)` (send `0x6031ca88`/`0x6031d8d0`). The Rec View task
+(`0x603324bf`..) reads them into dispatcher `0x60332607`. Event = kind − 1 is [I].
+
+| Kind | Only poster | Condition |
+|---|---|---|
+| 1 (redo / show) | **`0x6032bb25`** in `0x6032ba6d` | see below |
+| 2 (stop + clear, `0x6033293e` → `0x6031c728` → `0x603207e5`) | `0x6032dc43` in `0x6032dbc7` (record event 27) | record state word == 4 and property 0xEDD1 (`0x6031d04c`) == 1 |
+| 3 | `0x6032dadf` in `0x6032da4d` | state row entry `0x604e3500` |
+| 4 (timer end) | `0x6031d289` | callback of `0x6031c7be` |
+
+Callers of `0x6032ba6d`:
+- `0x6032b593`, d0 = 0: normal apply in `0x6032b2d9`. Effect bits **not** recomputed. Behind gate `0x6031d189` (`0x6032b4cd`).
+- `0x6032ba3d`, d0 = 65: effect bits **recomputed** by `0x60312f42` at `0x6032baa3`, from `0x6032b997` ←
+  - `0x6032a57e`, in `0x6032a1d6` when (76,sp) ≠ 0, set to 100 by Q+53 == 5 (`0x6032a345`; also deletes the LV job through `0x6032e4f8`) and to 101 by Q+54 == 1 (`0x6032a367`);
+  - `0x6032b96e` ← `0x6032b956` ← `0x6032b5dc` ("E_skip!! exe_mdl") and `0x6032b704` ("exe_mdl blackout").
+
+Q+53 writers: `0x60329e62` (4), `0x6032e35f` (5, handler `0x6032e337`, row `0x604e35f0` event 7). Q+54 = 1: `0x6032e000`, `0x6032e31e`,
+both when Q+53 is 1..3, followed by `0x6031a7ce(3)`. Cleared by `0x6032e3be/c1`, `0x6032d592/d963`.
+
+**Where stock decides for art keys:** no ≥ 100 test appears in any Q+53/+54 site read. The art gate found is inside `0x60312f42`
+(picture mode ≥ 100 at `0x60313013`): only art filters get effect bits in the Rec View request on the d0 = 65 route. So [I] the
+"update" is a re-post of Rec View with effect bits, on a route driven by the sequencer state Q+53/+54, and COLOR takes the same
+route with zero bits. What makes ART reach it is not proven, nor is it proven that a key-11 Rec View job would run the Soft Focus
+pass.
+
+**Gate `0x6031d189` [V]:** a post happens only if `0x6031a8aa` == 3, rec+660 ≠ 0, mailbox `0x600410be` empty, and `0x6266a354` ≠ 1.
+Otherwise "E_skip recview" and no post. Timer value = rec+672 in 0.1 s (`0x60332901`; rec+660..675 copied to the post at
+`0x6032bafb`) [V].
+
+**What blanks it:** still open. [I] Uniform black, not garbage, argues against the 0x1061 buffer overwriting the review yc buffer. A
+stop-and-clear (kind 2) also stops the timer, which does not fit black lasting the full Rec View time. The job `0x603132ca` built for
+Rec View sets no record key in the code read, so the lv_art gate is an unlikely cause [I].
+
+**Rating: show-then-update is medium-hard, not easy.** It needs a sequencer event to fire for COLOR + effect, effect bits on the
+Rec View request (H2 in LV_ART_PREVIEW), a Rec View job that runs the pass, and the black explained. The earlier "spread across
+several parts" reply stands, though the post itself is now a single known site.
+
+**Cheap fix for the black alone (design, not built):** hook `0x6031d1b7` (6 B `movhu (0x600410be),d0`, inside the gate, record task).
+For a COLOR slot with bloom/clarity, leave `*a3` = 0, as stock's own skip path does. No Rec View post, so [I] it behaves like Rec View
+Off (camera: short frame, no black, LV returns). About 6 B + 40–60 B, slot lookup as lv_art. Cost: those looks get no timed review;
+Auto ▶ and ▶ still show the finished photo. Risk low: a stock path, no capture code touched. It does not keep the first image up;
+that needs the black's cause first. **Camera test:** bloom look with Rec View 2 s, burst, RAW+JPEG; plain look unchanged.
+
 ## #19 (b): the camera gets hot
 
 What runs per live-view frame [V code, I rate]:

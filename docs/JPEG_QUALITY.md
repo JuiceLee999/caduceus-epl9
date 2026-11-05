@@ -1,14 +1,31 @@
 # Finer JPEGs ("more super fine"): first look
 
-Status: **closed for quantiser quality (2026-11-04): stock Super Fine is already at the minimum.** Nothing built or run on a camera.
+Status: **corrected 2026-11-05: `Sf` varies per image, so "already at the minimum" was wrong for many files, but the gain left is
+very small. Not worth building.** Nothing built or run on a camera.
 
-## Result: Super Fine cannot get finer
+## Result: measured over all full-size JPEGs in `testdata/`
 
-The DQT tables inside 12 real E-P7 JPEGs (`testdata/`, 5184x3888, 6-14 MB each) are **all 1s for both luma and chroma**
-(sum 64 = 64 entries of 1). A quantiser step of 1 is the smallest a JPEG can have, so there is no finer setting to move to
-by changing `Sf`. The other JPEG choice is chroma subsampling: these files are 4:2:2 (luma sampling 2x1, chroma 1x1);
-4:4:4 would need the JPEG engine to support it, which is unknown and unlikely. The analysis below stays for reference
-(and for anyone wanting the *lower* qualities, F/N/B, finer or coarser).
+The first look sampled 12 files and saw only all-1 tables. All 326 readable 5184x3888 files give **[V]**:
+
+| Luma / chroma DQT sum | Fitted `Sf` | Files | Size MB (min / median / max) |
+|---|---|---|---|
+| 64 / 64 (all 1s) | 0-3 | 187 | 6.0 / 10.0 / 11.6 |
+| 86 / 115 | 5 | 121 | 10.7 / 11.9 / 14.8 |
+| 96 / 117 | 6 | 7 | 14.8 / 14.8 / 15.1 |
+| 116 / 169 | 7 | 9 | 9.4 / 13.5 / 13.9 |
+| 150 / 224 | 10 | 1 | 13.9 |
+| 160 / 224 | 11 | 1 | 9.3 |
+
+- **[V]** Every table fits `max(1, min(255, (base * Sf + 128) >> 8))` exactly. So a **min-1 clamp exists** somewhere, which the
+  "no lower clamp" note below did not see (it may be outside the routine at `0x603b6120`).
+- **[I]** All-1s stop at 11.6 MB, and larger files have `Sf` 5+, which suggests a rate control that raises `Sf` for detailed scenes.
+  It is not a simple size target: `Sf` 11 occurs at 9.3 MB. The quality setting of each file is unknown (no ImageQuality2 tag
+  0x603 found in the maker-note CameraSettings), so some high-`Sf` files may be Fine rather than Super Fine.
+- **[V] The gain is tiny.** At `Sf` 5 the largest step is 2; at `Sf` 11 it is 5, and only in the highest frequencies. Forcing `Sf` to 3
+  or below would add file size and risk (buffers, burst) for a change that should not be visible.
+- Chroma stays 4:2:2 in every file (luma sampling 2x1); 4:4:4 would need the JPEG engine to support it, which is unknown.
+
+The analysis below stays for reference (and for anyone wanting the *lower* qualities, F/N/B, finer or coarser).
 
 Original notes follow. E-P7 1.1 main, addresses are CPU addresses.
 Notation: **[V]** read in the disassembly; **[I]** inference.

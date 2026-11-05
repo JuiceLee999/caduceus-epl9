@@ -192,3 +192,22 @@ Example output: `generated/grain-color-L2/{edits.json,verify.json}`.
    - movie;
    - the second builder bypass from HSL_PORT.md (it is not related to grain).
 5. Inherited from v0.1 (`docs/REVIEW_fixed_hl.md`): the update/restore path is untested, the persistence of the FF tail is unproven, and container validity does not prove the package boots.
+
+## Issue #5 verdict: own grain generation on colour (research, nothing built)
+
+**Hard. Not feasible as a CPU pass until CPU access to image memory is mapped; an ISP texture pass is unproven.**
+
+- **CPU pass over the YCC buffer:** blocked. Reading an image buffer through a job descriptor address crashed the camera (HALATION_RED
+  §10e) [V camera, I cause], and the CPU address map of image memory is unknown. Time, if it were mapped: about 20 MP × 2 planes,
+  [I] order of 1–3 s per shot on uncached memory, at several cycles per pixel. CPU clock and memory speed were not measured; this is a
+  guess, and it blocks the record task during burst. Hook point would be after development, before JPEG; not traced.
+- **Grain on the JPEG file:** not possible without a full decode and re-encode.
+- **ISP combiner + noise texture:** combiner 136 is a stock additive A + B, kind 3, with B from a request buffer (BLOOM_HALATION §4, §7)
+  [V]. Cost [I]: one full-image pass, about one Soft Focus blend, plus a buffer of about 40 MB. Blockers:
+  - who fills B: the CPU can write the vignette mask format (128×128 u16, stock generator `0x60338d49`), but that is too coarse for grain, and tiling is unproven (HALATION_RED §10b);
+  - grain needs per-pixel detail, and the upscale pass interpolates, so a low-resolution texture gives blotches [I];
+  - needs a CPU-writable address for a full-size buffer, which is the same unknown map.
+- **Stock route:** combiner 32 and the MONO route (v0.21, v0.22 test) showed nothing visible on colour at any gain [camera].
+
+**Next cheap question:** the CPU-visible address of a job buffer. Without it, no route exists. Camera tests would be needed for any of
+this; a garbled frame or crash is the failure mode, not a brick.

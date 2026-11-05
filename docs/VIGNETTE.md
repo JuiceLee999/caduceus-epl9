@@ -5,6 +5,9 @@ turning one on means new work-list entries and a stock mask buffer whose key-11 
 is the same class of change as the White Edge / Frame Art Effects (job flags 0x2000 / 0x8000), which v0.15 had to
 turn off after camera use. Offline findings so far are marked [V] (read from the decoded main) or [I] (inference).
 
+Two different features: this plan **adds** a vignette (stock MONO shading stage). Turning **off the lens's
+correction** per profile is sid 61, a much smaller patch: docs/VIDEO_HIDDEN.md §5.
+
 ## What exists
 
 - **Slot byte already in the ABI.** Bundle `+30 vignette` (s8, −5..5) is in layout.json, the SD loader v3 range
