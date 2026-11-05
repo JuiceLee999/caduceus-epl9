@@ -9,7 +9,7 @@ and no photo or pack is ever uploaded.
 - Per-look editor: 12-sector hue / lightness (±7) and saturation advice (±5), grain, glow ↔ clarity (+ glow colour),
   WB A–B / G–M, Art Effect, notes, and **Tone**: Highlights / Shadows / Midtones (±7) and Blacks / Whites (±5).
   Mono looks get the Monochrome filter advice instead of the colour sliders.
-- Live **approximate** preview on four CC0 sample photos or your own photo (decoded locally, never sent anywhere).
+- Live **approximate** preview on five CC0 sample photos or your own photo (decoded locally, never sent anywhere).
 - Open a pack file or a card `LOOKS.BIN` (looks without a tone block get tone 0).
 - Export `LOOKS.BIN`, a pack file (`*.caduceus.json`, which can be imported again), or a card zip with the
   `EP7MOD/` folder. The same validation as the desktop tools runs first.

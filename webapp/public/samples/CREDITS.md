@@ -1,14 +1,15 @@
 # Sample images
 
-Stock example images for the approximate preview. All four are **CC0 1.0 (public domain dedication)** on
+Stock example images for the approximate preview. All five are **CC0 1.0 (public domain dedication)** on
 Wikimedia Commons; they were downscaled to 1024 px wide and re-encoded as JPEG (no other edits).
 No attribution is required by CC0; it is given here anyway.
 
 | File | Source | Author | Licence |
 |---|---|---|---|
-| market.jpg | [2023 Amsterdam - a fruit market stall at the Albert Cuyp market ...](https://commons.wikimedia.org/wiki/File:2023_Amsterdam_-_a_fruit_market_stall_at_the_Albert_Cuyp_market_in_the_sunlight_with_a_lot_of_city_people_walking_and_shopping_-_free_download_photo_in_Dutch_street_photography_by_Fons_Heijnsbroek,_Netherlands.tif) | Fons Heijnsbroek | CC0 1.0 |
+| neon.jpg | [Roy's Motel & Cafe at dusk.jpg](https://commons.wikimedia.org/wiki/File:Roy%27s_Motel_%26_Cafe_at_dusk.jpg) | Blervis | CC0 1.0 |
+| harbour.jpg | [Arrival of fresh fish by boat at Jaffna Fish harbour..jpg](https://commons.wikimedia.org/wiki/File:Arrival_of_fresh_fish_by_boat_at_Jaffna_Fish_harbour..jpg) | <a href="//commons.wikimedia.org/w/index.php?title=User:Rudo | CC0 1.0 |
+| forest.jpg | [Forest sunrise.jpg](https://commons.wikimedia.org/wiki/File:Forest_sunrise.jpg) | Peter Heeling | CC0 1.0 |
+| brasserie.jpg | [500px photo (248327053).jpeg](https://commons.wikimedia.org/wiki/File:500px_photo_(248327053).jpeg) | Willem V | CC0 1.0 |
 | portrait.jpg | [Woman in a headwrap in Quebec City.jpg](https://commons.wikimedia.org/wiki/File:Woman_in_a_headwrap_in_Quebec_City.jpg) | Wilfredor | CC0 1.0 |
-| lake.jpg | [Lake Mountain Landscape.jpg](https://commons.wikimedia.org/wiki/File:Lake_Mountain_Landscape.jpg) | Bonnie Moreland | CC0 1.0 |
-| sunset.jpg | [Sunset, Lone Ranch Beach, Oregon.jpg](https://commons.wikimedia.org/wiki/File:Sunset,_Lone_Ranch_Beach,_Oregon.jpg) | Bonnie Moreland | CC0 1.0 |
 
 CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
