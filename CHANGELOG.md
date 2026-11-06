@@ -3,6 +3,14 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). Releases from v0.25 are betas; earlier ones
 were early-development pre-releases. Use at your own risk (see the README).
 
+## Control Panel — 2026-11-06
+
+- **OM-3 export:** set your camera in the setup pop-up (the **Camera** button later), and Export translates your looks to `OM3MOD/LOOKS.BIN` and `NAMES.BIN` for [Caduceus for OM-3](https://github.com/androidfanman/caduceus-om3). It shows which looks go where and what changed. The card's OM-3 `LOOKS.BIN` and OM-3 share links open here too.
+- **The editor adapts to your camera:** slider ranges, Art Effects, glow colour, monochrome, lens correction and the preview follow the selected camera, and the OM-3 gains Contrast, Sharpness and Shading sliders. A wider value from another camera is kept until you move that slider.
+- **About button:** what Caduceus is, who to go to for each camera, and credits.
+- Translator and name renderer by androidfanman. Not yet tried on an OM-3.
+- The setup pop-up appears once more for existing users, to ask for the camera.
+
 ## v0.25 — 2026-11-06 (beta)
 
 First beta release. E-M10 IV firmware is in development and needs a volunteer to test it and report issues ([issue #21](https://github.com/cakelesscoder/caduceus-ep7/issues/21)).

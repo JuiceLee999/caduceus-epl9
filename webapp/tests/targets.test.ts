@@ -14,7 +14,7 @@ describe('export target registry', () => {
   it('has unique ids, the E-P7 default, the recipe card and disabled placeholders with port docs', () => {
     expect(new Set(TARGETS.map((t) => t.id)).size).toBe(TARGETS.length);
     expect(DEFAULT_TARGET).toBe('ep7-caduceus');
-    expect(TARGETS.filter((t) => t.status === 'ready').map((t) => t.id)).toEqual(['ep7-caduceus', 'recipe-card']);
+    expect(TARGETS.filter((t) => t.status === 'ready').map((t) => t.id)).toEqual(['ep7-caduceus', 'om3-caduceus', 'recipe-card']);
     const soon = TARGETS.filter((t) => t.status === 'soon');
     expect(soon.map((t) => t.doc!.split('/').pop())).toEqual(['PORT_EM10IV.md', 'PORT_CANON_1100D.md']);
     for (const t of soon) {

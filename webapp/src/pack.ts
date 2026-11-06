@@ -38,6 +38,7 @@ export interface Effect { type: Exclude<EffectType, 'none'>; strength: number; t
 export interface Advice {
   tone?: { highlights: number; shadows: number; midtones: number };
   contrast?: number;
+  sharpness?: number;  // a real setting on the OM-3, kept when a look is opened from there
   mono_filter?: { colour: MonoFilter; strength: number };
 }
 /** Per-look tone (LOOKS.BIN v0.19 tone block, colour looks only). H/S/M -7..7: the Film pick writes them to the profile's stock tone settings.
@@ -134,6 +135,7 @@ export function parseLook(v: unknown, what = 'look'): Look {
     const a = v.advice;
     if (isObj(a.tone)) adv.tone = { highlights: int(a.tone.highlights, 'tone'), shadows: int(a.tone.shadows, 'tone'), midtones: int(a.tone.midtones, 'tone') };
     if (a.contrast !== undefined) adv.contrast = int(a.contrast, 'contrast');
+    if (a.sharpness !== undefined) adv.sharpness = int(a.sharpness, 'sharpness');
     if (isObj(a.mono_filter)) adv.mono_filter = { colour: oneOf(a.mono_filter.colour, MONO_FILTERS, 'mono filter', 'none'), strength: int(a.mono_filter.strength, 'mono filter strength', 1) };
   }
   return {

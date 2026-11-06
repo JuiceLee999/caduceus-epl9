@@ -23,6 +23,8 @@ recording.
 > restore path is proven on a real E-P7 (including recovery from a bootloop), and features marked
 > **camera-tested** below have run on a real camera. Read [Safety](#safety) before flashing.
 
+**OM-3 owners:** head to [Caduceus for OM-3](https://github.com/androidfanman/caduceus-om3) by androidfanman, a camera-tested port in the same family. Never use E-P7 firmware on an OM-3. The Control Panel exports the same looks for it: pick OM-3 in its setup pop-up.
+
 **E-M10 IV: testers wanted.** A port is in development, but it hasn't run on a camera yet and no build is public. If you own one and are willing to test on it and report any issues, say so on [issue #21](https://github.com/cakelesscoder/caduceus-ep7/issues/21). Please don't flash an E-P7 build on an E-M10 IV.
 
 ![Film looks on four scenes](docs/img/film_looks_v3.jpg)
@@ -105,6 +107,8 @@ one) and flash it exactly as in step 4. The camera is then completely stock 1.1 
 More detail, troubleshooting and FAQ: **[docs/INSTALL.md](docs/INSTALL.md)**.
 
 ## Make your own looks: Caduceus Control Panel
+
+One panel and one set of share codes for every supported camera: set your camera in the setup pop-up (the **Camera** button later), and Export translates your looks for it. E-P7 and OM-3 today; `docs/OM3_NOTES.md` lists what changes on the OM-3.
 
 **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** is where you edit the built-in looks
 and make new presets, right in your browser:
@@ -252,7 +256,6 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
 **Likely / easy**
 - Art Effect live-view preview that updates immediately.
 - More film looks, and a cross-platform web app to build and share `LOOKS.BIN` files.
-- Control Panel camera selector: export the same looks for other cameras (built, hidden until other cameras have known-good builds).
 
 **Possible / medium effort**
 - Super Control Panel current-value cell: show `XP` / `21:9` instead of 4:3 on Panorama and Wide.

@@ -3,13 +3,17 @@ import libraryJson from './data/library.json';
 import { decodeLooksBin, encodeBundlesBin, hasTone, nameProblem, PackError, validatePack, type Problem, FW_LATEST, firmware, setFirmware, type Fw } from './format';
 import {
   ARTS, MAX_LOOKS, MONO_FILTERS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SECTORS, SLOT_NAMES, TINTS, TONE_KEYS, blankLook, cloneLook,
-  exportable, parsePack, toneIsZero, toneLimit, type Look, type Pack, type SlotName, type Tone,
+  exportable, parseLook, parsePack, toneIsZero, toneLimit, type Look, type Pack, type SlotName, type Tone,
 } from './pack';
 import { History } from './history';
 import { fromLibrary, libraryOrigin, migratePack, replaceRetiredLooks, resetLook, standardPack } from './reset';
 import { renderLook } from './preview';
 import { decodeLookCode, decodePackCode, encodeLookCode, encodePackCode, isPackCode } from './sharecode';
 import { makeZip } from './zip';
+import { namesBin } from './om3names';
+import { COLORS, OM3, PER, parseBank, profilesBin, toOm3, validateBank } from './om3';
+import { CAMERAS, type Cam } from './cameras';
+import { OM3_REPO, bankToPack, decodeOm3Code, isOm3Code, looksBinToPack, packToBank } from './targets/om3';
 import { rrpreset } from './rapidraw';
 import { TARGETS, targetById } from './targets';
 import { recipeCard } from './targets/recipe';
@@ -184,8 +188,9 @@ function shell() {
         h('button', { onclick: openFile }, 'Open…'),
         h('button', { onclick: pasteDialog }, 'Paste code'),
         h('button', { onclick: sharePack }, 'Share pack'),
-        h('button', { id: 'fw-btn', onclick: () => firmwareDialog() }, fwLabel()),
-        h('button', { onclick: installDialog }, 'Install firmware'),
+        h('button', { id: 'fw-btn', onclick: () => setupDialog() }, fwLabel()),
+        h('button', { onclick: () => (CAM === 'om3' ? om3InstallDialog() : installDialog()) }, 'Install firmware'),
+        h('button', { onclick: aboutDialog }, 'About'),
         h('button', { class: 'primary', onclick: exportDialog }, 'Export'))),
     h('main', { class: 'layout' },
       h('aside', { class: 'pane list-pane', id: 'list' }),
@@ -367,18 +372,20 @@ function renderEditor() {
           title: libraryOrigin(l, LIBRARY) ? `Restore the built-in "${libraryOrigin(l, LIBRARY)!.name}" values` : 'Set every value to neutral',
         }, 'Reset look'),
         h('button', { class: 'share-btn', onclick: () => shareLook(l), title: 'Share this look as a short code' }, 'Share'))),
-    seg('Type', [['colour', 'Colour'], ['mono', 'Monochrome']], l.kind, (v) => {
+    ...(!cam().mono && l.kind === 'mono' ? [h('p', { class: 'warn' }, `The ${cam().short} editor is colour only: this look stays in your pack but is left out of the export.`)] : []),
+    ...(!cam().mono && l.kind === 'colour' ? [] : [seg('Type', [['colour', 'Colour'], ['mono', 'Monochrome']], l.kind, (v) => {
       l.kind = v as Look['kind'];
       if (l.kind === 'mono') { l.art_effect = 'off'; l.advice.mono_filter ??= { colour: 'none', strength: 1 }; }
       renderList(); renderEditor(); changed();
-    }),
+    })]),
     l.kind === 'colour' ? sectorPanel(l, changed) : monoPanel(l, changed),
     ...(l.kind === 'colour' ? [tonePanel(l, changed)] : []),
     h('div', { class: 'group' },
       seg('Noise reduction', [['off', 'Camera'], ['standard', 'Standard'], ['fine', 'Low'], ['film', 'Off (most texture)']], l.grain, (v) => { l.grain = v as Look['grain']; renderEditor(); changed(); })),
     effectPanel(l, changed),
     wbPanel(l, changed),
-    ...(l.kind === 'colour' ? [h('div', { class: 'group' },
+    ...(l.kind === 'colour' && cam().settings ? [settingsPanel(l, changed)] : []),
+    ...(l.kind === 'colour' && cam().lensCorrection ? [h('div', { class: 'group' },
       seg('Lens vignette correction', [['off', 'Off (default)'], ['on', 'Keep camera\'s']], l.lens_correction ? 'on' : 'off', (v) => {
         if (v === 'on') l.lens_correction = true; else delete l.lens_correction;
         renderEditor(); changed();
@@ -386,9 +393,9 @@ function renderEditor() {
       h('span', { class: 'help' }, 'Picking this look on the camera turns the lens\'s vignette correction off, so corners stay natural, unless you keep it here. Needs Caduceus v0.25 or later. Change it on the camera in Extras sector 8. Not shown in the preview.'))] : []),
     ...(l.kind === 'colour' ? [h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Art Effect'),
       h('select', { onchange: (e: Event) => { l.art_effect = (e.target as HTMLSelectElement).value as Look['art_effect']; changed(); } },
-        ...ARTS.filter((a) => ['off', 'star_light', 'pin_hole'].includes(a) || a === l.art_effect).map((a) =>
-          h('option', { value: a, selected: a === l.art_effect }, artLabel(a)))),
-      h('span', { class: 'help' }, 'Kept in the pack file, share codes and the starter BUNDLES.BIN (COLOR slots). LOOKS.BIN has no Art Effect field. Not shown in the preview.'))] : []),
+        ...ARTS.filter((a) => cam().arts.includes(a) || a === l.art_effect).map((a) =>
+          h('option', { value: a, selected: a === l.art_effect }, CAM === 'om3' ? artLabel(a).replace(/ \(.*\)$/, '') : artLabel(a)))),
+      h('span', { class: 'help' }, CAM === 'om3' ? 'Saved in LOOKS.BIN. Not shown in the preview.' : 'Kept in the pack file, share codes and the starter BUNDLES.BIN (COLOR slots). LOOKS.BIN has no Art Effect field. Not shown in the preview.'))] : []),
     h('label', { class: 'field' }, h('span', { class: 'lbl' }, 'Notes'),
       h('textarea', {
         rows: 3, maxlength: 400, placeholder: 'What the look is for, settings advice…', onchange: checkpoint,
@@ -466,9 +473,10 @@ function seg(label: string, opts: [string, string][], value: string, on: (v: str
 }
 
 function slider(min: number, max: number, value: number, on: (v: number) => void, fmt = (v: number) => (v > 0 ? `+${v}` : String(v)), aria = '') {
-  const out = h('output', {}, fmt(value));
+  const shown = Math.max(min, Math.min(max, value));   // another camera's wider value shows at this camera's limit
+  const out = h('output', {}, fmt(shown));
   const inp = h('input', {
-    type: 'range', min, max, step: 1, value, 'aria-label': aria,
+    type: 'range', min, max, step: 1, value: shown, 'aria-label': aria,
     oninput: (e: Event) => { const v = Number((e.target as HTMLInputElement).value); out.textContent = fmt(v); draft(() => on(v)); },
     onchange: checkpoint,
     ondblclick: () => { inp.value = '0'; out.textContent = fmt(0); on(0); },
@@ -477,7 +485,7 @@ function slider(min: number, max: number, value: number, on: (v: number) => void
 }
 
 function sectorPanel(l: Look, changed: () => void): HTMLElement {
-  const tabs: [Tab, string, number][] = [['hue', 'Hue', 7], ['light', 'Lightness', 7], ['sat', 'Saturation', 5]];
+  const tabs: [Tab, string, number][] = [['hue', 'Hue', cam().hl], ['light', 'Lightness', cam().hl], ['sat', 'Saturation', cam().sat]];
   const lim = tabs.find((t) => t[0] === S.tab)![2];
   const arr = l[S.tab];
   const rows = SECTORS.map((name, k) => {
@@ -491,9 +499,9 @@ function sectorPanel(l: Look, changed: () => void): HTMLElement {
     }, label, l[t].some((v) => v !== 0) ? h('span', { class: 'dot' }) : null))),
     h('div', { class: 'sectors' }, ...rows),
     h('div', { class: 'tab-foot' },
-      h('span', { class: 'help' }, S.tab === 'sat'
+      h('span', { class: 'help' }, ...overNote(arr, lim), CAM === 'om3' ? `±${lim} per sector on the OM-3. Double-click a slider to zero it.` : S.tab === 'sat'
         ? 'A Film pick sets the camera\'s saturation from these values on Caduceus v0.24 or later, for looks with a tone. It is also stored for MONO colour slots (looks without a tone).'
-        : `±${lim} per sector (v0.17 firmware). Double-click a slider to zero it.`),
+        : `±${lim} per sector on the E-P7. Double-click a slider to zero it.`),
       h('button', { class: 'link', onclick: () => { arr.fill(0); renderEditor(); changed(); } }, 'Reset')));
 }
 
@@ -575,7 +583,8 @@ function effectPanel(l: Look, changed: () => void): HTMLElement {
     },
   }, ...TINTS.map((t) => h('option', { value: t, selected: (e?.tint ?? (e?.type === 'halation' ? 'red' : 'neutral')) === t }, t[0].toUpperCase() + t.slice(1))));
   const tintRow = h('label', { class: 'field inline' }, h('span', { class: 'lbl' }, 'Glow colour'), tintSel);
-  tintRow.hidden = !(e && e.type !== 'clarity');
+  const showTint = () => { tintRow.hidden = !cam().tints || !(l.effect && l.effect.type !== 'clarity'); };
+  showTint();
   const { inp, out } = slider(-5, 5, v, (x) => {
     if (x === 0) l.effect = null;
     else if (x > 0) l.effect = { type: 'clarity', strength: x };
@@ -583,7 +592,7 @@ function effectPanel(l: Look, changed: () => void): HTMLElement {
       const keep = l.effect && l.effect.type !== 'clarity' ? l.effect : null;
       l.effect = { type: keep?.type ?? 'bloom', strength: -x, ...(keep?.tint ? { tint: keep.tint } : {}) };
     }
-    tintRow.hidden = !(l.effect && l.effect.type !== 'clarity');
+    showTint();
     changed();
   }, fmt, 'Glow to clarity');
   return h('div', { class: 'group' },
@@ -599,13 +608,32 @@ function wbPanel(l: Look, changed: () => void): HTMLElement {
     onchange: (e: Event) => { l.wb = (e.target as HTMLInputElement).checked ? { a_b: 0, g_m: 0 } : null; renderEditor(); changed(); },
   });
   const rows = on ? [['a_b', 'A–B', 'Amber +  /  Blue −'], ['g_m', 'G–M', 'Green +  /  Magenta −']].map(([k, label, tip]) => {
-    const { inp, out } = slider(-7, 7, l.wb![k as 'a_b'], (v) => { l.wb![k as 'a_b'] = v; changed(); }, undefined, label);
+    const { inp, out } = slider(-cam().wb, cam().wb, l.wb![k as 'a_b'], (v) => { l.wb![k as 'a_b'] = v; changed(); }, undefined, label);
     return h('div', { class: 'srow plain', title: tip }, h('span', { class: 'sname' }, label), inp, out);
   }) : [];
   return h('div', { class: 'group' },
     h('label', { class: 'check' }, box, h('span', {}, 'White balance shift'),
-      h('span', { class: 'help' }, on ? 'overrides the camera\'s WB fine-tune for this look' : 'off: your own WB fine-tune applies')),
-    ...rows);
+      h('span', { class: 'help' }, !on ? (CAM === 'om3' ? 'off: no shift' : 'off: your own WB fine-tune applies') : CAM === 'om3' ? 'added to the camera\'s own WB for this look' : 'overrides the camera\'s WB fine-tune for this look')),
+    ...rows,
+    ...(on ? overNote([l.wb!.a_b, l.wb!.g_m], cam().wb).map((n) => h('span', { class: 'help' }, n)) : []));
+}
+
+/** Tells the user when a look made for a wider camera is being limited here. */
+function overNote(vals: number[], lim: number): string[] {
+  return vals.some((v) => Math.abs(v) > lim) ? [`Some values go beyond the ${cam().short}'s ±${lim}: it uses ±${lim}. Your value is kept until you move that slider. `] : [];
+}
+
+function settingsPanel(l: Look, changed: () => void): HTMLElement {
+  const row = (label: string, lim: number, value: number, on: (v: number) => void) => {
+    const { inp, out } = slider(-lim, lim, value, on, undefined, label);
+    return h('div', { class: 'srow plain' }, h('span', { class: 'sname' }, label), inp, out);
+  };
+  return h('div', { class: 'group' },
+    h('div', { class: 'field' }, h('span', { class: 'lbl' }, 'Camera settings')),
+    row('Contrast', OM3.contrast, l.advice.contrast ?? 0, (v) => { l.advice.contrast = v; changed(); }),
+    row('Sharpness', OM3.sharpness, l.advice.sharpness ?? 0, (v) => { l.advice.sharpness = v; changed(); }),
+    row('Shading', OM3.shading, l.vignette, (v) => { l.vignette = v; changed(); }),
+    h('span', { class: 'help' }, `Saved in the look on the ${cam().short}. Sharpness and Shading aren't shown in the preview.`));
 }
 
 function refreshProblems() {
@@ -695,7 +723,7 @@ function schedulePreview() {
     const l = cur();
     if (S.compare || !l) { ctx.putImageData(srcData, 0, 0); return; }
     const out = ctx.createImageData(srcData.width, srcData.height);
-    renderLook(srcData, out, l, { advice: S.advice });
+    renderLook(srcData, out, CAM === 'om3' ? toOm3(l).look ?? l : l, { advice: S.advice });
     ctx.putImageData(out, 0, 0);
   });
 }
@@ -707,7 +735,16 @@ async function onFile(e: Event) {
   (e.target as HTMLInputElement).value = '';
   if (!f) return;
   const bytes = new Uint8Array(await f.arrayBuffer());
-  if (bytes.length >= 4 && String.fromCharCode(...bytes.subarray(0, 4)) === 'EP7B') {   // a card LOOKS.BIN
+  const magic = bytes.length >= 4 ? String.fromCharCode(...bytes.subarray(0, 4)) : '';
+  if (magic === 'OM3N') { toast('That is NAMES.BIN (name pictures). Open LOOKS.BIN instead: it holds the names too.', 'err'); return; }
+  if (magic === 'OM3P') {
+    try {
+      const p = looksBinToPack(bytes, f.name.replace(/\.bin$/i, '') || 'LOOKS.BIN');
+      replacePack(p, `Opened ${f.name} (${p.looks.length} OM-3 looks)`);
+    } catch (err) { toast((err as Error).message, 'err'); }
+    return;
+  }
+  if (magic === 'EP7B') {   // a card LOOKS.BIN
     try {
       const p = decodeLooksBin(bytes, f.name.replace(/\.bin$/i, '') || 'LOOKS.BIN');
       replacePack(p, `Opened ${f.name} (${p.looks.length} looks; LOOKS.BIN has no notes or Art Effects)`);
@@ -773,6 +810,21 @@ async function importCode(text: string, fromLink = false): Promise<boolean> {
   const t = text.trim();
   if (!t) return false;
   try {
+    if (isOm3Code(t)) {
+      const v = await decodeOm3Code(t);
+      if (/(^|#)\s*ob1_/.test(t)) {
+        const b = parseBank(v, parseLook), p = bankToPack(b.bank, b.name);
+        if (!confirm(`Open the shared OM-3 looks "${p.name}" (${p.looks.length} looks)? They replace your current pack.`)) return false;
+        replacePack(p, `Opened "${p.name}"`);
+        return true;
+      }
+      const l = parseLook(v, 'look');
+      if (S.pack.looks.length >= MAX_LOOKS) { fullDialog(l); return true; }
+      l.name = uniqueName(l.name);
+      addLook(l);
+      toast(`Added "${l.name}"`);
+      return true;
+    }
     if (isPackCode(t)) {
       const p = await decodePackCode(t);
       if (fromLink) return confirmPack(p);
@@ -878,33 +930,111 @@ const FW_OPTIONS: [Fw, string, string][] = [
   [24, 'v0.24', 'Files work. Lens vignette correction choices are left out of them.'],
   [23, 'v0.23 or v0.22', 'Files work. Saturation and lens vignette correction choices are left out of them.'],
 ];
-function fwLabel() { return `Firmware: v0.${firmware()}${firmware() === FW_LATEST ? '+' : ''}`; }
-function firmwareDialog(first = false) {
-  const body = h('div', { class: 'export' },
-    h('p', {}, 'Which Caduceus version is on your camera? Card files are made to match it. The firmware screen in the camera\'s setup menu shows it. On anything older than v0.22, install the latest release first.'),
-    ...FW_OPTIONS.map(([f, label, help]) => h('div', { class: 'ex-row' },
-      h('div', {}, h('b', {}, label), h('p', { class: 'help' }, help)),
-      h('button', { class: f === firmware() ? 'primary' : '', onclick: () => {
-        setFirmware(f);
-        try { localStorage.setItem(STORE_FW, String(f)); } catch { /* private mode */ }
-        $('#fw-btn').textContent = fwLabel();
-        dlg.close();
-      } }, 'Use this'))));
-  const dlg = modal(first ? 'Welcome to the Caduceus Control Panel' : 'Your firmware', body);
+const STORE_CAM = 'caduceus.camera';
+let CAM: Cam = 'ep7';
+const cam = () => CAMERAS[CAM];
+function fwLabel() { return CAM === 'om3' ? 'Camera: OM-3' : `Camera: E-P7, v0.${firmware()}${firmware() === FW_LATEST ? '+' : ''}`; }
+function saveSetup(cam: Cam, fw?: Fw) {
+  CAM = cam;
+  if (fw) setFirmware(fw);
+  try {
+    localStorage.setItem(STORE_CAM, cam);
+    if (fw) localStorage.setItem(STORE_FW, String(fw));
+  } catch { /* private mode */ }
+  const b = document.querySelector('#fw-btn');
+  if (b) b.textContent = fwLabel();
+  renderAll();
 }
-function loadFirmware() {
-  let v: string | null = null;
-  try { v = localStorage.getItem(STORE_FW); } catch { return; }          // storage blocked: latest, no pop-up
-  if (v === null) { firmwareDialog(true); return; }
+function setupDialog(first = false) {
+  const on = (cam: Cam, fw?: Fw) => (cam === CAM && (cam === 'om3' || fw === firmware()) ? 'primary' : '');
+  const row = (label: string, help: string, cam: Cam, fw?: Fw) => h('div', { class: 'ex-row' },
+    h('div', {}, h('b', {}, label), h('p', { class: 'help' }, help)),
+    h('button', { class: on(cam, fw), onclick: () => { saveSetup(cam, fw); dlg.close(); } }, 'Use this'));
+  const body = h('div', { class: 'export' },
+    h('p', {}, 'Which camera and Caduceus version do you have? Looks stay the same everywhere; card files are translated to match your choice. The firmware screen in the camera\'s setup menu shows the version.'),
+    h('h3', {}, 'Olympus PEN E-P7'),
+    h('p', { class: 'help' }, 'On anything older than v0.22, install the latest release first.'),
+    ...FW_OPTIONS.map(([f, label, help]) => row(label, help, 'ep7', f)),
+    h('h3', {}, 'OM SYSTEM OM-3'),
+    row('Caduceus for OM-3 v0.19 or later', 'Exports OM3MOD/LOOKS.BIN and NAMES.BIN. NR, Glow / Clarity and Art Effects need v0.20. The firmware is a separate project: never use E-P7 firmware on an OM-3.', 'om3'),
+    h('p', { class: 'help' }, 'Other bodies aren\'t supported yet: ', h('a', { href: `${GH}/blob/main/docs/BODIES.md`, target: '_blank', rel: 'noopener' }, 'see where each one stands'), '.'));
+  const dlg = modal(first ? 'Welcome to the Caduceus Control Panel' : 'Your camera', body);
+}
+function loadSetup() {
+  let cam: string | null = null, v: string | null = null;
+  try { cam = localStorage.getItem(STORE_CAM); v = localStorage.getItem(STORE_FW); } catch { return; }   // storage blocked: E-P7 latest, no pop-up
+  const q = new URLSearchParams(location.search).get('camera');
   const f = Number(v) as Fw;
-  if (FW_OPTIONS.some(([x]) => x === f)) { setFirmware(f); $('#fw-btn').textContent = fwLabel(); }
+  if (v !== null && FW_OPTIONS.some(([x]) => x === f)) setFirmware(f);
+  if (q === 'om3' || q === 'ep7') saveSetup(q);
+  else if (cam === 'om3' || cam === 'ep7') { CAM = cam; $('#fw-btn').textContent = fwLabel(); }
+  else setupDialog(true);                              // first visit, or set up before the camera choice existed
+}
+function aboutDialog() {
+  const link = (href: string, text: string) => h('a', { href, target: '_blank', rel: 'noopener' }, text);
+  const row = (name: string, who: string, repo: string) => h('div', { class: 'ex-row' },
+    h('div', {}, h('b', {}, name), h('p', { class: 'help' }, `By ${who}. Install guides and bug reports are here.`)),
+    link(repo, 'Open repo'));
+  modal('About Caduceus', h('div', { class: 'export' },
+    h('p', {}, 'Caduceus is firmware built to extend the community\'s camera capabilities and allow full creative direction over their gear. It is unofficial and not affiliated with OM Digital Solutions.'),
+    h('h3', {}, 'Your camera'),
+    row('Olympus PEN E-P7', 'cakelesscoder', GH),
+    row('OM SYSTEM OM-3', 'androidfanman', OM3_REPO),
+    h('p', { class: 'help' }, 'Other bodies: ', link(`${GH}/blob/main/docs/BODIES.md`, 'see where each one stands'), '.'),
+    h('h3', {}, 'Credits'),
+    h('p', {}, 'Inspired by ', link('https://www.reddit.com/user/fischgurke/', 'u/fischgurke'), '\'s PEN-F HSL firmware mod, and built on the PEN-F research in ', link('https://github.com/fishcu/oly_fw_analysis', 'fishcu/oly_fw_analysis'), '. ', link(`${GH}#credits`, 'Full credits'), '.')));
+}
+function om3InstallDialog() {
+  modal('Install Caduceus for OM-3', h('div', { class: 'export' },
+    h('p', { class: 'warn' }, '⚠️ Unofficial, experimental firmware. Flashing can brick your camera; you do this at your own risk. Never use E-P7 firmware on an OM-3.'),
+    h('p', {}, 'The OM-3 firmware is its own community project by androidfanman, in the Caduceus family. Follow its guide to install it, then export your looks here with the camera set to OM-3.')),
+  [h('a', { class: 'btn', href: `${OM3_REPO}/blob/main/docs/INSTALL.md`, target: '_blank', rel: 'noopener' }, 'Install guide'),
+    h('a', { class: 'btn primary', href: `${OM3_REPO}/releases/latest`, target: '_blank', rel: 'noopener' }, 'Latest release')]);
+}
+function om3Body(): HTMLElement {
+  const r = packToBank(S.pack), probs = validateBank(r.bank);
+  const fname = (S.pack.name || 'pack').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'pack';
+  const adjusted = r.placed.filter((p) => p.changed.length || p.dropped.length);
+  const notes = [
+    r.extra.length ? `Left out (only 20 fit; drag looks in the list to choose): ${r.extra.join(', ')}.` : '',
+    r.mono ? `${r.mono} monochrome look(s) left out: the OM-3 editor is COLOR only.` : '',
+    r.lens ? `${r.lens} look(s) keep the lens correction: that choice doesn't exist on the OM-3 yet.` : '',
+  ].filter(Boolean);
+  const files = async () => [
+    { name: 'OM3MOD/LOOKS.BIN', data: profilesBin(r.bank) },
+    { name: 'OM3MOD/NAMES.BIN', data: await namesBin(r.bank) as Uint8Array },
+  ];
+  const busy = (b: HTMLButtonElement, f: () => Promise<void>) => { b.disabled = true; f().catch((e) => toast((e as Error).message, 'err')).finally(() => { b.disabled = probs.length > 0; }); };
+  const zip: HTMLButtonElement = h('button', { class: 'primary', disabled: probs.length > 0, onclick: () => busy(zip, async () => {
+    const pack = { name: `${fname}.caduceus.json`, data: new TextEncoder().encode(JSON.stringify({ ...exportable(S.pack), schema: PACK_SCHEMA }, null, 1) + '\n') };
+    download(`${fname}-om3-card.zip`, makeZip([...await files(), pack]), 'application/zip');
+  }) }, 'Download');
+  const names: HTMLButtonElement = h('button', { disabled: probs.length > 0, onclick: () => busy(names, async () => download('NAMES.BIN', (await files())[1].data)) }, 'NAMES.BIN');
+  return h('div', { class: 'export' },
+    probs.length
+      ? h('div', { class: 'problems-box' }, h('b', {}, `${probs.length} problem(s) to fix first:`), h('ul', { class: 'problems' }, ...probs.slice(0, 12).map((p) => h('li', {}, p.message))))
+      : h('p', { class: 'ok' }, `✓ ${r.placed.length} looks pass the OM-3's checks.`),
+    h('p', { class: 'warn' }, 'This replaces the looks on the card, including ones made on the camera. To keep those, Open… the card\'s LOOKS.BIN first.'),
+    ...Array.from({ length: COLORS }, (_, k) => h('p', { class: 'help' }, h('b', {}, `COLOR ${k + 1}: `),
+      Array.from({ length: PER }, (_, v) => r.bank[k][v]?.name ?? 'Empty').join(' · '))),
+    ...notes.map((n) => h('p', { class: 'help' }, n)),
+    adjusted.length ? h('details', {}, h('summary', {}, `${adjusted.length} look(s) adjusted to fit the OM-3`),
+      h('ul', { class: 'problems' }, ...adjusted.map((p) => h('li', {}, `${p.name}: ${[...p.changed.map((c) => `${c} limited or changed`), ...p.dropped.map((d) => `${d} left out`)].join(', ')}`)))) : null,
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'Card folder (.zip)'), h('p', { class: 'help' }, 'OM3MOD/LOOKS.BIN, OM3MOD/NAMES.BIN and the pack file. Unzip at the card root (never into DCOLYMP/). Keep the GUIDES.BIN and LABELS.BIN from your OM-3 release.')),
+      zip),
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'Single files'), h('p', { class: 'help' }, 'Both go in OM3MOD/. NAMES.BIN holds the names the camera shows on the Film page.')),
+      h('div', { class: 'ex-btns' },
+        h('button', { disabled: probs.length > 0, onclick: () => download('LOOKS.BIN', profilesBin(r.bank)) }, 'LOOKS.BIN'),
+        names)));
 }
 
 const STORE_TARGET = 'caduceus.target';
-// Camera selector stays hidden until other cameras have known-good builds (the E-P7 export is used meanwhile).
+// The camera is chosen in setupDialog; this older per-export selector stays off.
 const SHOW_CAMERA_SELECTOR = false;
 function exportDialog() {
-  if (!SHOW_CAMERA_SELECTOR) { modal('Export', h('div', { class: 'export' }, ep7Body())); return; }
+  if (!SHOW_CAMERA_SELECTOR) { modal(CAM === 'om3' ? 'Export for the OM-3' : 'Export', CAM === 'om3' ? om3Body() : h('div', { class: 'export' }, ep7Body())); return; }
   let target = targetById((() => { try { return localStorage.getItem(STORE_TARGET); } catch { return null; } })());
   const sel = h('select', {
     'aria-label': 'Camera',
@@ -1019,8 +1149,8 @@ async function handleHash() {
 }
 
 shell();
-loadFirmware();
 renderAll();
+loadSetup();
 if (libNotice) toast(libNotice);
 undoUi();
 handleHash();
