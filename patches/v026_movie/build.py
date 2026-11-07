@@ -32,8 +32,7 @@ ROTATION = (0x601e24ec, 0x601e25ec)       # the rotation agent's
 GRANGES = {(0x601e1d3c, 0x601e233c): (0x601e3d14, 0x601e3d18, 0x601e3d00, 0x601e3d04, 0x601e3d08),
            (0x601e253c, 0x601e283c): (0x601e3cf8, 0x601e3ce0, 0x601e3ce4),
            (0x601e2a98, 0x601e2c3c): (0x601e3cd8,),
-           (0x601e0b3c, 0x601e0e3c): (0x601e3b40, 0x601e3b44, 0x601e3b48),
-           (0x601e0e3c, 0x601e103c): (0x601e3c80, 0x601e3c84)}
+           (0x601e0b3c, 0x601e0e3c): (0x601e3b40, 0x601e3b44, 0x601e3b48)}
 FALSE_POS = {0x60d37d59: '082c1e60', 0x60996fdc: 'cd2b1ea0', 0x606c0846: 'cc2a1ea0', 0x608ebdbc: 'b40c1ea0', 0x6059bdaa: 'fa0b1e60', 0x605a477a: 'ec0b1e60', 0x606d9029: 'dd221ea0ff2004', 0x6002084b: 'cd221ea018', 0x603e8ae2: 'cd271ea00c'}   # call rel32 bytes, dis-checked in build_v15
 GETTER, LV_RET, DISPATCH = 0x6005e971, 0x60321eaf, 0x60354709
 KEY_SITE, KEY_RET, KEY_OLD = 0x60316bfb, 0x60316c02, 'f84002fad19d03'
@@ -55,9 +54,6 @@ RA = [0x60e20e25, 0x60e21095, 0x60e21224, 0x60e213d4, 0x60e216b6, 0x60e2186c, 0x
 VM, VP, VH, VA, VT, FB = 960, 964, 968, 972, 980, 800     # heap P / P2 offsets (nothing else uses +688..+999); FB = file buffer in P2
 VMAGIC, VTMAGIC, VFILE = struct.unpack('<3I', b'EP7VEP7TEP7V')
 PMARK = 0x4d565032
-LB_A, LB_B, LB_A_OLD, LB_B_OLD = 0x60df255f, 0x60df25dc, 'dcb1074500cb', 'dc34084500cb'   # film-menu hook jumps at the label builders' kind-4 points
-H_AT, H_END = 0x601e0f5c, 0x601e103c    # dead EVF step-14 R/G tail, after lv
-HOOK_A, HOOK_B, RET_A, RET_B = 0x61242d10, 0x61242e10, 0x60df25b2, 0x60df2615
 FMAGIC, LSIZE = struct.unpack('<I', b'EP7F')[0], 2560   # film_menu_v2 'EP7F', L_SIZE
 ALL0, ALL1 = 1686, 1687
 EM, AXIS, DIRTY, STATUS, OLD = 680, 684, 685, 686, 688
@@ -185,11 +181,6 @@ def apply(spec, wheel=True):
         extra = dict(ep7_mv_sv=s2['mv_sv'], ep7_wb_read=WB_READ)
     code, lst, s = asm('mv.s.in', AT, END, 'mv_end', sub, dict(ep7_getter=GETTER, ep7_key_ret=KEY_RET, ep7_msg_ret=MSG_RET, ep7_wb_prop=WB_PROP, ep7_wb_pass=WB_PASS,
                        ep7_wb_slot=WB_SLOT, ep7_wb_get=WB_GET, ep7_dispatch=DISPATCH, ep7_cons_ret=CONS_RET, ep7_lv_art=LV_ART, **extra))
-    h_at = H_AT
-    if wheel:
-        check_free(spec, stock, H_AT, H_END)
-        c5, _, s5 = asm('mvh.s.in', h_at, H_END, 'mvh_end', sub2, dict(ep7_sget=0x602af887, ep7_hook_a=HOOK_A, ep7_hook_b=HOOK_B, ep7_ret_a=RET_A, ep7_ret_b=RET_B))
-        spec['edits'].append(dict(kind='0x100', addr=hex(h_at), expect=stock[h_at - BASE:h_at - BASE + len(c5)].hex(), new=c5.hex(), source=SRC, why=f'v0.26 Movie slot label ({len(c5)} B, dead EVF step-14 R/G tail)'))
     spec['edits'].append(dict(kind='0x100', addr=hex(AT), expect=stock[AT - BASE:AT - BASE + len(code)].hex(), new=code.hex(), source=SRC,
                               why=f'v0.26 movie colour stage 1 ({len(code)} B, dead EVF step-7 B / step-6 R,G)'))
     put(spec, stock, KEY_SITE, bytes.fromhex(KEY_OLD), jmp(KEY_SITE, s['mv_key'], 7), 'record -> job key: jmp mv_key')
@@ -218,10 +209,6 @@ def apply(spec, wheel=True):
         for t in TBL_SITES:
             put(spec, stock, t + 1, rel(t, TBL), rel(t, s2['mv_tbl']), 'lv / tone slot read -> mv_tbl')
         meta.update(wheel_at=hex(W_AT), wheel_len=len(c2), load_at=hex(L_AT), load_len=len(c3), save_at=hex(S_AT), save_len=len(c4), wheel_symbols={k: hex(v) for k, v in s2.items() if k.startswith('mv')}, get_next=hex(next_get))
-    if wheel:
-        put(spec, stock, LB_A, bytes.fromhex(LB_A_OLD), jmp(LB_A, s5['mv_la'], 6), 'label builder A kind-4 -> mv_la')
-        put(spec, stock, LB_B, bytes.fromhex(LB_B_OLD), jmp(LB_B, s5['mv_lc2'], 6), 'label builder B kind-4 -> mv_lc2')
-        meta.update(label_at=hex(h_at), label_len=len(c5), label_symbols={k: hex(v) for k, v in s5.items() if k.startswith('mv_')})
     spec['v026_movie'] = meta
     return spec
 

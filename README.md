@@ -45,7 +45,7 @@ recording.
 | **Live-view preview** | Hue, lightness and bloom show in live view, not only in the saved photo. | Camera-tested |
 | **True log video** | A log curve Olympus left hidden in the firmware, switched on with the **movie** picture mode set to Muted. | Camera-tested |
 | **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel, with matching live view and playback framing, `XP` and `21:9` icons in the Super Control Panel option strip, and `XPAN`/`UW` size labels. Boots back to 4:3 each power-on, for safety. | Camera-tested |
-| **Movie colour** | Movie picture mode Vivid becomes its own colour profile, separate from COLOR1-4 and saved in `EP7MOD/MOVIE.BIN`. Half-press once after switching on to load it, select Vivid in the movie Live Control (it reads `Custom - INFO for setup` once loaded), then press **INFO** to edit it. Clips shot before that half-press are stock Vivid. | Camera-tested, long recordings not yet |
+| **Movie colour** | Movie picture mode Vivid becomes its own colour profile, separate from COLOR1-4 and saved in `EP7MOD/MOVIE.BIN`. Half-press once after switching on to load it, select Vivid in the movie Live Control, then press **INFO** to edit it. Clips shot before that half-press are stock Vivid. | Camera-tested, long recordings not yet |
 | **Vertical video** | Clips shot in portrait or upside down record their rotation, so players show them the right way up. | Camera-tested, file flags checked in ffmpeg |
 | **Recording limit** | 29-minute and 2-hour caps raised to 9 hours (file, chapter and heat limits still apply). | Camera-tested |
 

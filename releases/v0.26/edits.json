@@ -248,16 +248,16 @@
    "kind": "0x100",
    "addr": "0x60df255f",
    "expect": "f063a001c826",
-   "new": "dcfde93effcb",
-   "why": "film menu: label builder A kind-4 point -> jmp hookA; nop [v0.26: label builder A kind-4 -> mv_la]",
+   "new": "dcb1074500cb",
+   "why": "film menu: label builder A kind-4 point -> jmp hookA; nop",
    "source": "generated/film_menu/menu/edits.json"
   },
   {
    "kind": "0x100",
    "addr": "0x60df25dc",
    "expect": "f063a001c812",
-   "new": "dc94e93effcb",
-   "why": "film menu: label builder B kind-4 point -> jmp hookB; nop [v0.26: label builder B kind-4 -> mv_lc2]",
+   "new": "dc34084500cb",
+   "why": "film menu: label builder B kind-4 point -> jmp hookB; nop",
    "source": "generated/film_menu/menu/edits.json"
   },
   {
@@ -2379,14 +2379,6 @@
    "new": "dc6a9aedfecb",
    "source": "patches/v026_rot",
    "why": "v0.26 video rotation: hook"
-  },
-  {
-   "kind": "0x100",
-   "addr": "0x601e0f5c",
-   "expect": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fa",
-   "new": "cd28000004a000c907dcab1d060181dc4716c100cd14000004a000c907dc971e060181dc9616c100f063a004c805cc9100f86202fac87906c805cc8500f8fef046044308470cfcacc2bc2c6228fffcc841a90000c662f8ec03c95df1e0fcd000d8f8a170fcc845503742c94cfa00c003fcc845503756c940802cddb1e80c000004a001c9338005f0739d2108852100f071210229ffc9fa9d2108fcdc1f101e6004f040a000c80af07141210244caf484f8fe10df000459045c085d0cf8fe1000df0004437573746f6d202d20494e464f20666f7220736574757000",
-   "source": "patches/v026_movie",
-   "why": "v0.26 Movie slot label (219 B, dead EVF step-14 R/G tail)"
   },
   {
    "kind": "0x100",
@@ -10361,15 +10353,7 @@
    "mv_save": "0x601e2a98",
    "mvs_end": "0x601e2b86"
   },
-  "get_next": "0x601e32a3",
-  "label_at": "0x601e0f5c",
-  "label_len": 219,
-  "label_symbols": {
-   "mv_la": "0x601e0f5c",
-   "mv_lb": "0x601e0f84",
-   "mv_lc2": "0x601e0f70",
-   "mv_ltxt": "0x601e101f"
-  }
+  "get_next": "0x601e32a3"
  },
  "fw_version": {
   "mod_version": "0.26",
