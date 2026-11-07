@@ -3,6 +3,18 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). Releases from v0.25 are betas; earlier ones
 were early-development pre-releases. Use at your own risk (see the README).
 
+## v0.27 — 2026-11-08 (beta)
+
+- **Film grain on colour photos:** Extras sector 1 **Grain** Off / Low / Med / High, per COLOR profile. It's added to the photo's brightness after development, so colour is untouched. Stills only: not in live view, movies, the Movie slot or Monochrome.
+- **Saving with grain takes a few seconds longer** (about 3–5 s per photo in tests), and burst is slow with grain on. Grain Off is as fast as v0.26. Glow, Clarity and Art Effect looks still work, and grain is added after them.
+- **NR moves to Extras sector 9**, with the same values and your saved settings kept.
+- **Grain and NR are yours:** picking a look, Own, Stock or a reset never changes them. A look's NR in `LOOKS.BIN` is ignored.
+- **Control Panel:** Grain and NR are set for each COLOR profile, not in a look. Choose "v0.27 or later" in the firmware selector to export Grain.
+- `BUNDLES.BIN` or `MOVIE.BIN` with Grain set is rejected by v0.26 and older: set Grain to Off before going back.
+- Firmware screen shows `Caduceus: 0.27`.
+
+The grain method follows androidfanman's [Caduceus for OM-3](https://github.com/androidfanman/caduceus-om3). Grain was camera-tested on an E-P7 at the earlier, finer strength; this release ships coarser, stronger grain that hasn't been shot yet, so reports on how it looks are welcome.
+
 ## v0.26 — 2026-11-07 (beta)
 
 Flashed and used on an E-P7. **Reports wanted:** long recordings haven't been tested yet, see below.

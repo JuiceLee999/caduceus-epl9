@@ -12,6 +12,9 @@ Third-party:
   (GPL-3.0 for its code); it is not needed to build or install Caduceus.
 - webapp/src/om3.ts, webapp/src/om3names.ts and webapp/tests/om3.test.ts are from Caduceus for OM-3
   (androidfanman/caduceus-om3, Apache-2.0, Copyright 2026 androidfanman), with a source line added.
+- The colour-grain method (CPU grain on the developed photo through the bus window) follows Caduceus for OM-3
+  (androidfanman/caduceus-om3, Apache-2.0), research/grain/model.py and firmware/src/xblock.s. The E-P7 code in
+  patches/grain_cpu is our own.
 - webapp/public/fonts/om3label.woff2: a renamed ASCII subset of DejaVu Sans Condensed (Bitstream Vera
   licence; DejaVu changes public domain), see webapp/public/fonts/FONT-LICENSE.txt.
 - Community film recipes are credited to their authors in docs/LIBRARY_V1.md.

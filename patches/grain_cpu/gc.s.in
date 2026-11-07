@@ -1,0 +1,478 @@
+/* CPU film grain on COLOR stills, test t1 (ep7-firmware, our own code). docs/GRAIN_PORT.md.
+ * Algorithm and structure after the OM-3 port's xb_open / xb_grain / xb_p1s / xb_p2s / xb_tbl (androidfanman/caduceus-om3,
+ * Apache-2.0, repo 41e7e8b) and its research/grain/model.py, which this stays bit-exact to. Addresses are the E-P7's own.
+ *
+ * This block sits in a section-1 dead EVF table: it already runs from cached memory, no alias needed for code.
+ * No `fb` forms. Interrupts are masked only under the firmware's lock, K = 2 rows at a time. */
+ .set HW_MAX, 5461                /* 3 Hw stays <= 16384, the malloc limit (above it malloc logs an error) */
+
+/* gc_flag: jmp from 0x603eabd7 in converter 0x603eab39: a2 = params+12, a3 = capture. Free: d0, d1, a0, a1. COLOR2-4 ordinary
+ * stills get flag 0x80 (Soft Focus passes). bloom_flag then runs as before. */
+gc_flag:
+ movhu (-2,a2),d0
+ cmp 11,d0
+ bne 9f
+ movhu (-4,a2),d0
+ cmp 0,d0
+ bne 9f
+ movbu ({cap_mode},a3),d0
+ cmp 11,d0
+ bne 9f
+ movbu ({cap_profile},a3),d0
+ add -2,d0
+ cmp 3,d0
+ bcc 9f
+ movhu (194,a3),d0                /* kinds the mapper 0x603ea909 doesn't give type 0x1000 */
+ cmp 0x2001,d0
+ beq 9f
+ cmp 0x2006,d0
+ beq 9f
+ cmp 0x1008,d0
+ beq 9f
+ cmp 0x1006,d0
+ beq 9f
+ mov (a2),d0
+ or 128,d0
+ mov d0,(a2)
+9:
+ jmp ep7_bloom_flag
+
+/* gc_gs: the work-list word 0x603579b8 (`calls`, a0 = job, (0,sp) = return) in place of blend setup 0x6035ca31 */
+gc_gs:
+ movm [d2,d3,a2,a3],(sp)
+ add -16,sp                       /* (0) call slot, (4) job, (8) level, (12) result */
+ mov a0,(4,sp)
+ movbu (15490,a0),d0
+ cmp 0xb2,d0
+ bne 90f
+ movbu (15489,a0),d0
+ cmp 11,d0
+ bne 90f
+ movhu (20,a0),d0
+ cmp 0x1000,d0
+ bne 90f
+ mov (11308,a0),d0
+ cmp 11,d0
+ bne 90f
+ movbu (15488,a0),d0
+ add -1,d0                        /* profile 2..4 -> level 1..3 */
+ beq 90f
+ cmp 4,d0
+ bcc 90f
+ mov d0,(8,sp)
+ mov ep7_sf,a1
+ calls (a1)
+ mov d0,(12,sp)
+ exthu d0
+ cmp 0,d0
+ bne 20f
+ mov (4,sp),a0
+ mov 4096,d0
+ call ep7_bufidx,[d2],4
+ exthu d0
+ cmp 48,d0
+ bcc 20f
+ asl 3,d0                         /* 88 i = 8 i + 16 i + 64 i */
+ mov d0,d1
+ add d0,d0
+ add d0,d1
+ asl 2,d0
+ add d0,d1
+ mov (4,sp),a0
+ add 6592,a0
+ add d1,a0
+ mov (8,sp),d0
+ call gc_grain,[d2,d3,a2,a3],128
+20:
+ mov (12,sp),d0
+ ret [d2,d3,a2,a3],32
+90:                               /* not ours: the stock setup, as if called directly */
+ mov (4,sp),a0
+ add 16,sp
+ movm (sp),[d2,d3,a2,a3]
+ jmp ep7_sf
+
+/* gc_open: `call gc_open,[d2,d3,a2,a3],32`, d0 = bus address. Takes the lock -> a0 = CPU address or 0, d0 = token,
+ * d1 = window mode to restore or -1. 0xa0000000..0xafffffff is direct. 0xb0000000 up needs this CPU's window mode. */
+gc_open:
+ mov d0,a3
+ clr d0
+ call ep7_lock,[d2],8
+ mov d0,a2
+ mov -1,d2
+ mov a3,d0
+ cmp 0xb0000000,d0
+ bcc 1f
+ mov a3,a0
+ bra 8f
+1:
+ lsr 27,d0
+ add -0x16,d0
+ mov d0,d3
+ call ep7_modeget,[],0
+ mov gc_mtab,a1
+ movbu (d3,a1),d1
+ cmp d1,d0
+ beq 2f
+ mov d0,d2                        /* a different mode: map, and give it back before the unlock */
+ mov a3,a0
+ call ep7_winmap,[d2,d3,a2,a3],28
+ bra 8f
+2:
+ mov gc_btab,a1
+ movbu (d3,a1),d1
+ asl 24,d1
+ mov a3,d0
+ and 0x07ffffff,d0
+ or d1,d0
+ mov d0,a0
+8:
+ mov a2,d0
+ mov d2,d1
+ ret [d2,d3,a2,a3],32
+
+/* gc_grain: `call gc_grain,[d2,d3,a2,a3],128`, a0 = buffer record, d0 = level 1..3. Locals: (0) call slot, (4) rec, (8) S,
+ * (12) T, (16) row, (20) bus, (24) pitch, (28) words, (32) groups, (36) V + 2 H, (40) token, (44) Hw, (48) rows, (52) restore,
+ * (64) V, (68) H, (72) groups, (76) r, (80) row, (84) words, (88) T, (92) K, (96) rows this pass, (100) H0, (104) H1.
+ * Any failed check leaves the image as it is. */
+gc_grain:
+ mov a0,(4,sp)
+ mov 2,d1
+ mov d1,(92,sp)
+ add -1,d0
+ add d0,d0
+ mov gc_stab,a1
+ movhu (d0,a1),d0
+ mov d0,(8,sp)
+ movhu (8,a0),d0                  /* format 0x0302, 2 B/px */
+ cmp 0x0302,d0
+ bne 99f
+ movhu (16,a0),d0                 /* no offsets */
+ cmp 0,d0
+ bne 99f
+ movhu (18,a0),d0
+ cmp 0,d0
+ bne 99f
+ movhu (12,a0),d0                 /* Hw: 4 .. HW_MAX, a multiple of 4 */
+ mov d0,(44,sp)
+ cmp 4,d0
+ bcs 99f
+ cmp HW_MAX+1,d0
+ bcc 99f
+ btst 3,d0
+ bne 99f
+ movhu (10,a0),d1                 /* stride in px >= Hw */
+ cmp d0,d1
+ bcs 99f
+ add d1,d1
+ mov d1,(24,sp)
+ movhu (14,a0),d2                 /* rows: 1 .. 8192 */
+ mov d2,(48,sp)
+ cmp 0,d2
+ beq 99f
+ cmp 8193,d2
+ bcc 99f
+ mul d2,d1                        /* the whole image inside the buffer */
+ mov (72,a0),d2
+ cmp d2,d1
+ bhi 99f
+ mov (a0),d2                      /* bus: inside one direct or window range */
+ mov d2,(20,sp)
+ cmp 0xa0000000,d2
+ bcs 99f
+ cmp 0xb0000000,d2
+ bcc 2f
+ add d1,d2
+ cmp 0xb0000001,d2
+ bcc 99f
+ bra 3f
+2:
+ cmp 0xe0000000,d2
+ bcc 99f
+ mov d2,d3
+ and 0xfc000000,d3
+ cmp 0xc0000000,d3                /* the mapper refuses 0xc0000000..0xc3ffffff */
+ beq 99f
+ and 0x07ffffff,d2
+ add d1,d2
+ cmp 0x08000001,d2
+ bcc 99f
+3:
+ mov (44,sp),d0
+ mov d0,d1
+ lsr 1,d1
+ mov d1,(28,sp)
+ mov d1,(84,sp)
+ lsr 1,d1
+ mov d1,(32,sp)
+ mov d1,(72,sp)
+ mov d0,d1                        /* V and two H rows */
+ add d0,d0
+ add d1,d0
+ call ep7_malloc,[],4
+ cmp 0,a0
+ beq 99f
+ mov a0,(36,sp)
+ mov 8192,d0                      /* T: 256 Y x 32 h */
+ call ep7_malloc,[],4
+ cmp 0,a0
+ bne 1f
+ mov (36,sp),a0
+ call ep7_free,[],4
+ bra 99f
+1:
+ mov a0,(12,sp)
+ call ep7_flush,[d2,d3],16        /* no stale lines for the work buffers' cached aliases */
+ mov (12,sp),d0
+ call gc_cach,[],0
+ mov a0,(88,sp)                   /* T, cached */
+ mov (8,sp),d3
+ mov gc_G,a1
+ call gc_tbl,[d2,d3,a2,a3],16
+ mov (36,sp),d0
+ call gc_cach,[],0
+ mov a0,(64,sp)                   /* V = 15 */
+ mov (44,sp),d1
+ mov a0,a1
+ add d1,a1
+ mov a1,(100,sp)
+ add d1,a1
+ mov a1,(104,sp)
+ mov 15,d0
+1:
+ movbu d0,(a0)
+ inc a0
+ add -1,d1
+ bne 1b
+ mov gc_seed,a0
+ mov (a0),d0
+ cmp 0,d0
+ bne 2f
+ mov 0x12345678,d0
+2:
+ mov d0,(76,sp)
+ clr d0
+ mov d0,(16,sp)
+3:                                /* K rows at a time, fewer at the end */
+ mov (48,sp),d0
+ mov (16,sp),d1
+ sub d1,d0
+ mov (92,sp),d1
+ cmp d1,d0
+ bcc 1f
+ mov d0,d1
+1:
+ mov d1,(96,sp)
+ mov (100,sp),a0
+ mov a0,(68,sp)
+ mov gc_p1,a0
+ calls (a0)
+ mov (96,sp),d0
+ cmp 2,d0
+ bcs 2f
+ mov (104,sp),a0
+ mov a0,(68,sp)
+ mov gc_p1,a0
+ calls (a0)
+2:
+ mov (16,sp),d0
+ mov (24,sp),d1
+ mul d1,d0
+ mov (20,sp),d1
+ add d1,d0
+ call gc_open,[d2,d3,a2,a3],32
+ mov d0,(40,sp)
+ mov d1,(52,sp)
+ cmp 0,a0
+ beq 6f                           /* the mapper refused: stop, the rest stays as it is */
+ mov a0,d0                        /* its cached view; lines written back before the lock goes */
+ add -0x40000000,d0
+ mov d0,(80,sp)
+ mov (100,sp),a1
+ mov a1,(68,sp)
+ mov gc_p2,a0
+ calls (a0)
+ mov (96,sp),d0
+ cmp 2,d0
+ bcs 5f
+ mov (80,sp),d0
+ mov (24,sp),d1
+ add d1,d0
+ mov d0,(80,sp)
+ mov (104,sp),a1
+ mov a1,(68,sp)
+ mov gc_p2,a0
+ calls (a0)
+5:
+ call ep7_flush,[d2,d3],16
+ mov (52,sp),d0
+ cmp -1,d0
+ beq 4f
+ call ep7_modeset,[d2,d3,a2],20
+4:
+ mov (40,sp),d0
+ call ep7_unlock,[d2],8
+ mov (16,sp),d0
+ mov (96,sp),d1
+ add d1,d0
+ mov d0,(16,sp)
+ mov (48,sp),d1
+ cmp d1,d0
+ bcs 3b
+ bra 7f
+6:
+ mov (40,sp),d0
+ call ep7_unlock,[d2],8
+7:
+ mov gc_seed,a0
+ mov (76,sp),d0
+ mov d0,(a0)
+ call ep7_flush,[d2,d3],16        /* write back the work buffers, drop the cached lines */
+ mov (12,sp),a0
+ call ep7_free,[],4
+ mov (36,sp),a0
+ call ep7_free,[],4
+99:
+ ret [d2,d3,a2,a3],128
+
+/* gc_cach: leaf, d0 -> a0 = its cached alias (0xa0000000..0xbfffffff, as stock 0x600670bc), else itself */
+gc_cach:
+ mov d0,a0
+ cmp 0xa0000000,d0
+ bcs 1f
+ cmp 0xc0000000,d0
+ bcc 1f
+ add -0x40000000,d0
+ mov d0,a0
+1:
+ retf [],0
+
+/* gc_tbl: `call gc_tbl,[d2,d3,a2,a3],16`, a0 = T, a1 = G, d3 = S. T[32 y + h] = clamp(y + (((64 h - 945) G S + 2^17) >> 18)) */
+gc_tbl:
+ clr d2
+1:
+ movbu (a1),d0
+ inc a1
+ mul d3,d0
+ mov d0,a2
+ mov -945,d1
+2:
+ mov a2,d0
+ mul d1,d0
+ add 131072,d0
+ asr 18,d0
+ add d2,d0
+ cmp 0,d0
+ bge 3f
+ clr d0
+3:
+ cmp 255,d0
+ ble 4f
+ mov 255,d0
+4:
+ movbu d0,(a0)
+ inc a0
+ add 64,d1
+ cmp 1103,d1
+ bne 2b
+ inc d2
+ cmp 256,d2
+ bne 1b
+ ret [d2,d3,a2,a3],16
+
+/* gc_p1: `calls`: V (64,sp), H (68), groups (72), r (76). One noise row, four pixels per word (model.py noise()). */
+gc_p1:
+ mov (64,sp),a0
+ mov (68,sp),a1
+ mov (72,sp),a2
+ mov (76,sp),a3
+ mov 0x0f000000,d3
+1:
+ mov a3,d0                        /* xorshift32 */
+ mov d0,d2
+ asl 13,d2
+ xor d2,d0
+ mov d0,d2
+ lsr 17,d2
+ xor d2,d0
+ mov d0,d2
+ asl 5,d2
+ xor d2,d0
+ mov d0,a3
+ mov d0,d1
+ lsr 4,d1
+ and 0x0f0f0f0f,d0
+ and 0x0f0f0f0f,d1
+ add d1,d0                        /* n */
+ mov (a0),d1                      /* V */
+ mov d1,d2
+ and d0,d2
+ xor d0,d1
+ and 0xfefefefe,d1
+ lsr 1,d1
+ add d2,d1                        /* v = (V + n) >> 1 */
+ mov d1,(a0)
+ add 4,a0
+ lsr 24,d3
+ mov d1,d2
+ asl 8,d2
+ or d3,d2                         /* v_left */
+ mov d1,d3
+ add d1,d2
+ add 0x01010101,d2
+ lsr 1,d2
+ and 0x7f7f7f7f,d2                /* h = (v + v_left + 1) >> 1 */
+ mov d2,(a1)
+ add 4,a1
+ add -1,a2
+ cmp 0,a2
+ bne 1b
+ mov a3,(76,sp)
+ rets
+
+/* gc_p2: `calls`: row (80,sp), H (68), words (84), T (88). Y0, Y1 of each word -> T[Y][h]; Cb, Cr kept. */
+gc_p2:
+ mov (80,sp),a0
+ mov (68,sp),a1
+ mov (84,sp),a2
+ mov (88,sp),a3
+1:
+ mov (a0),d0
+ mov d0,d1
+ and 0xff,d1
+ asl 5,d1
+ movbu (a1),d2
+ or d2,d1
+ movbu (d1,a3),d1
+ mov d0,d2
+ lsr 16,d2
+ and 0xff,d2
+ asl 5,d2
+ movbu (1,a1),d3
+ or d3,d2
+ movbu (d2,a3),d2
+ and 0xff00ff00,d0
+ or d1,d0
+ asl 16,d2
+ or d2,d0
+ mov d0,(a0)
+ add 4,a0
+ add 2,a1
+ add -1,a2
+ cmp 0,a2
+ bne 1b
+ rets
+
+gc_mtab:                          /* window mode for bus >> 27 = 0x16..0x1b (mapper 0x60067146) */
+ .byte 0,0,2,3,4,4
+gc_btab:                          /* top byte of the window address for each */
+ .byte 0xb0,0xb8,0xb0,0xb0,0xb0,0xb8
+ .balign 2
+gc_stab:                          /* level 1..3 -> S */
+ .hword 28,68,112
+gc_G:
+{g_bytes}
+ .balign 4
+gc_seed:
+ .long 0
+gc_end:

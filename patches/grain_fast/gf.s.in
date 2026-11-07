@@ -1,0 +1,48 @@
+/* gf_dev: COLOR grain on the image processor (test t1). Our own code; idea from the OM-3 port's xb_dev (Apache-2.0).
+ * Entered by the retargeted `call gf_dev,[d2,a2],12` at 0x60339d3c (a0 = context): the stock frame, stock mask.
+ * Runs after the stage list, so HSL, tone and chroma are already programmed. Falls through to the stock selector.
+ * Uses d0, d1, a1 only: the selector sets all three before reading them. No stack.
+ *
+ * A plain still has job type 0x1000 at request+14 and one work-list entry (the development request is the output).
+ * Glow, Clarity and Art Effects have more entries; live view and movie jobs have type 0x3x; MONO has key 12.
+ * Marker bytes are job+15488..15490, request = job+11364. Profile 2..4 -> level 1..3 (fixed in t1). */
+gf_dev:
+ mov (4,a0),a1
+ movbu (16,a1),d0                 /* kind 0 */
+ cmp 0,d0
+ bne 9f
+ movhu (14,a1),d0                 /* stills job type */
+ cmp 0x1000,d0
+ bne 9f
+ mov (52,a0),d0                   /* whole 32-bit key, so no art key passes */
+ cmp 11,d0
+ bne 9f
+ movhu (12,a1),d0                 /* stage still free */
+ cmp 0,d0
+ bne 9f
+ movhu (1838,a1),d0               /* effect 0: no Shading combiner (0x0c00) to lose */
+ cmp 0,d0
+ bne 9f
+ movhu (-50,a1),d0                /* job+11314: one work-list entry */
+ cmp 1,d0
+ bne 9f
+ movbu (4126,a1),d0               /* job+15490 marker */
+ cmp 0xb2,d0
+ bne 9f
+ movbu (4125,a1),d0               /* job+15489 mode */
+ cmp 11,d0
+ bne 9f
+ movbu (4124,a1),d0               /* job+15488 profile 1..4 */
+ add -1,d0
+ beq 9f
+ cmp 4,d0
+ bcc 9f
+ movbu d0,(1828,a1)               /* grain level */
+ mov 0x0902,d1                    /* stage: the E-P7 selector needs it (0x603b531a) */
+ movhu d1,(12,a1)
+ mov 12,d1
+ movhu d1,(10,a1)                 /* key 12 in the request and the context */
+ mov d1,(52,a0)
+9:
+ jmp ep7_sel
+gf_end:

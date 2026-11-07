@@ -1,0 +1,659 @@
+/* grain_cpu d1: t1 + a readout of the last capture and a dark band on COLOR4. docs/GRAIN_PORT.md. Our own code.
+ * Diagnostic block: 64 B from malloc (uncached heap, 0xa...), pointer at heap P+1000, magic at +0. Written and read only
+ * through that uncached address, so any CPU sees it. Lives until power off.
+ *  +4 guard, +5 stage, +6 read flag, +7 next page, +8 counts F<<8 | G<<4 | R, +12 blend result, +14 rows done,
+ *  +16 format, +18 stride, +20 Hw, +22 rows, +24 x | y, +28 bus, +32 size, +36 band<<4 | mode, +37 class, +40 CPU address, +44 seed
+ * Stage keeps the highest value since the block was last cleared; the first capture after a read clears it. */
+ .set HW_MAX, 5461
+ .set GDIA, 0x41494447
+ .set NPAGE, 14
+
+gc_pp:                            /* leaf, MDR return: a0 = heap P or 0. Uses d0 */
+ mov 0,a0
+ movhu ({state}),d0
+ add -1,d0
+ cmp {lim},d0
+ bcc 9f
+ btst 3,d0
+ bne 9f
+ mov d0,a0
+ add {pool},a0
+ mov (a0),d0
+ cmp {bmagic},d0
+ beq 8f
+ mov 0,a0
+ retf [],0
+9:
+ mov 0,a0
+8:
+ retf [],0
+
+gc_blk:                           /* `call gc_blk,[],8`: a1 = block or 0. Uses d0, a0 */
+ mov 0,a1
+ call gc_pp,[],0
+ cmp 0,a0
+ beq 9f
+ mov (1000,a0),a0
+ mov a0,d0
+ cmp 0xa0000000,d0
+ bcs 9f
+ cmp 0xb0000000,d0
+ bcc 9f
+ btst 3,d0
+ bne 9f
+ mov (a0),d0
+ cmp GDIA,d0
+ bne 9f
+ mov a0,a1
+9:
+ ret [],8
+
+gc_clr:                           /* leaf: clear the block's +4..+43 and +48..+63 at a1. Uses d0, d1, a0 */
+ mov a1,a0
+ add 4,a0
+ mov 15,d1
+ clr d0
+1:
+ cmp 5,d1                         /* +44, the seed, stays */
+ beq 2f
+ mov d0,(a0)
+2:
+ add 4,a0
+ add -1,d1
+ bne 1b
+ retf [],0
+
+gc_mark:                          /* `call gc_mark,[d2,d3,a2,a3],32`, d0 = stage, d1 = guard. Uses d0, d1, a0, a1 */
+ mov d0,d2
+ mov d1,d3
+ call gc_blk,[],8
+ cmp 0,a1
+ bne 2f
+ call gc_pp,[],0
+ cmp 0,a0
+ beq 9f
+ mov 64,d0
+ call ep7_malloc,[],4
+ cmp 0,a0
+ beq 9f
+ mov a0,a1
+ call gc_clr,[],0
+ clr d0
+ mov d0,(44,a1)
+ mov GDIA,d0
+ mov d0,(a1)
+ call gc_pp,[],0
+ mov a1,(1000,a0)
+2:
+ movbu (5,a1),d0
+ cmp d0,d2
+ bcs 9f
+ movbu d2,(5,a1)
+ movbu d3,(4,a1)
+9:
+ ret [d2,d3,a2,a3],32
+
+gc_cnt:                           /* `call gc_cnt,[d2],12`, d0 = what to add to the counts. Uses d0, a0, a1 */
+ mov d0,d2
+ call gc_blk,[],8
+ cmp 0,a1
+ beq 9f
+ movhu (8,a1),d0
+ add d2,d0
+ movhu d0,(8,a1)
+9:
+ ret [d2],12
+
+/* gc_flag: as t1, every exit has its own id. Stage 1. a2 = params+12, a3 = capture. */
+gc_flag:
+ clr d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32    /* makes the block on the first capture */
+ call gc_blk,[],8
+ cmp 0,a1
+ beq 1f
+ movbu (6,a1),d0
+ cmp 0,d0
+ beq 1f
+ call gc_clr,[],0
+1:
+ mov 0x100,d0
+ call gc_cnt,[d2],12
+ movhu (-2,a2),d0
+ mov 0x01,d1
+ cmp 11,d0
+ bne 9f
+ movhu (-4,a2),d0
+ mov 0x02,d1
+ cmp 0,d0
+ bne 9f
+ movbu ({cap_mode},a3),d0
+ mov 0x03,d1
+ cmp 11,d0
+ bne 9f
+ movbu ({cap_profile},a3),d0
+ mov 0x04,d1
+ add -2,d0
+ cmp 3,d0
+ bcc 9f
+ movhu (194,a3),d0
+ mov 0x05,d1
+ cmp 0x2001,d0
+ beq 9f
+ mov 0x06,d1
+ cmp 0x2006,d0
+ beq 9f
+ mov 0x07,d1
+ cmp 0x1008,d0
+ beq 9f
+ mov 0x08,d1
+ cmp 0x1006,d0
+ beq 9f
+ mov (a2),d0
+ or 128,d0
+ mov d0,(a2)
+ clr d1
+9:
+ mov 1,d0
+ call gc_mark,[d2,d3,a2,a3],32
+ jmp ep7_bloom_flag
+
+/* gc_gs: the work-list word (`calls`, a0 = job). Stages 2 and 3. No block: stock, nothing to report with. */
+gc_gs:
+ movm [d2,d3,a2,a3],(sp)
+ add -16,sp
+ mov a0,(4,sp)
+ mov 0x10,d0
+ call gc_cnt,[d2],12
+ mov (4,sp),a0
+ movbu (15490,a0),d0
+ mov 0x10,d1
+ cmp 0xb2,d0
+ bne 80f
+ movbu (15489,a0),d0
+ mov 0x11,d1
+ cmp 11,d0
+ bne 80f
+ movhu (20,a0),d0
+ mov 0x12,d1
+ cmp 0x1000,d0
+ bne 80f
+ mov (11308,a0),d0
+ mov 0x13,d1
+ cmp 11,d0
+ bne 80f
+ movbu (15488,a0),d0
+ mov 0x14,d1
+ add -1,d0
+ beq 80f
+ cmp 4,d0
+ bcc 80f
+ mov d0,(8,sp)
+ mov 2,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ call gc_blk,[],8
+ cmp 0,a1
+ beq 90f
+ mov (4,sp),a0
+ mov ep7_sf,a1
+ calls (a1)
+ mov d0,(12,sp)
+ call gc_blk,[],8
+ mov (12,sp),d0
+ movhu d0,(12,a1)
+ exthu d0
+ mov 0x15,d1
+ cmp 0,d0
+ bne 70f
+ mov (4,sp),a0
+ mov 4096,d0
+ call ep7_bufidx,[d2],4
+ exthu d0
+ mov 0x16,d1
+ cmp 48,d0
+ bcc 70f
+ asl 3,d0
+ mov d0,d1
+ add d0,d0
+ add d0,d1
+ asl 2,d0
+ add d0,d1
+ mov (4,sp),a0
+ add 6592,a0
+ add d1,a0
+ mov a0,(4,sp)
+ mov 3,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ mov (4,sp),a0
+ mov (8,sp),d0
+ call gc_grain,[d2,d3,a2,a3],128
+ bra 20f
+70:
+ mov 3,d0
+ call gc_mark,[d2,d3,a2,a3],32
+20:
+ mov (12,sp),d0
+ ret [d2,d3,a2,a3],32
+80:
+ mov 2,d0
+ call gc_mark,[d2,d3,a2,a3],32
+90:
+ mov (4,sp),a0
+ add 16,sp
+ movm (sp),[d2,d3,a2,a3]
+ jmp ep7_sf
+
+{gc_open}
+/* gc_grain: as t1, with its own id on every exit. Stage 4 checks, 5 buffers, 6 rows, 7 done. COLOR4: the first 128 rows get the band.
+ * Locals as t1, plus (56) block, (60) level, (108) row routine. */
+gc_grain:
+ mov a0,(4,sp)
+ mov d0,(60,sp)
+ mov 2,d1
+ mov d1,(92,sp)
+ add -1,d0
+ add d0,d0
+ mov gc_stab,a1
+ movhu (d0,a1),d0
+ mov d0,(8,sp)
+ mov 1,d0
+ call gc_cnt,[d2],12
+ call gc_blk,[],8
+ mov a1,(56,sp)
+ mov (4,sp),a0
+ movhu (8,a0),d0
+ movhu d0,(16,a1)
+ movhu (10,a0),d0
+ movhu d0,(18,a1)
+ movhu (12,a0),d0
+ movhu d0,(20,a1)
+ movhu (14,a0),d0
+ movhu d0,(22,a1)
+ movhu (16,a0),d0
+ movhu (18,a0),d1
+ or d1,d0
+ movhu d0,(24,a1)
+ mov (a0),d0
+ mov d0,(28,a1)
+ mov (72,a0),d0
+ mov d0,(32,a1)
+ mov 4,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ mov (4,sp),a0
+ movhu (8,a0),d0
+ mov 0x20,d1
+ cmp 0x0302,d0
+ bne 60f
+ movhu (16,a0),d0
+ mov 0x21,d1
+ cmp 0,d0
+ bne 60f
+ movhu (18,a0),d0
+ mov 0x22,d1
+ cmp 0,d0
+ bne 60f
+ movhu (12,a0),d0
+ mov d0,(44,sp)
+ mov 0x23,d1
+ cmp 4,d0
+ bcs 60f
+ mov 0x24,d1
+ cmp HW_MAX+1,d0
+ bcc 60f
+ mov 0x25,d1
+ btst 3,d0
+ bne 60f
+ movhu (10,a0),d1
+ mov d1,d3
+ mov 0x26,d1
+ cmp d0,d3
+ bcs 60f
+ add d3,d3
+ mov d3,(24,sp)
+ movhu (14,a0),d2
+ mov d2,(48,sp)
+ mov 0x27,d1
+ cmp 0,d2
+ beq 60f
+ mov 0x28,d1
+ cmp 8193,d2
+ bcc 60f
+ mov d3,d0
+ mul d2,d0
+ mov d0,d3                        /* the whole image, bytes */
+ mov (72,a0),d2
+ mov 0x29,d1
+ cmp d2,d3
+ bhi 60f
+ mov (a0),d2
+ mov d2,(20,sp)
+ mov 0x2a,d1
+ cmp 0xa0000000,d2
+ bcs 60f
+ cmp 0xb0000000,d2
+ bcc 2f
+ add d3,d2
+ mov 0x2b,d1
+ cmp 0xb0000001,d2
+ bcc 60f
+ bra 3f
+2:
+ mov 0x2c,d1
+ cmp 0xe0000000,d2
+ bcc 60f
+ mov d2,d0
+ and 0xfc000000,d0
+ mov 0x2d,d1
+ cmp 0xc0000000,d0
+ beq 60f
+ and 0x07ffffff,d2
+ add d3,d2
+ mov 0x2e,d1
+ cmp 0x08000001,d2
+ bcc 60f
+3:
+ mov (44,sp),d0
+ mov d0,d1
+ lsr 1,d1
+ mov d1,(28,sp)
+ mov d1,(84,sp)
+ lsr 1,d1
+ mov d1,(32,sp)
+ mov d1,(72,sp)
+ mov d0,d1
+ add d0,d0
+ add d1,d0
+ call ep7_malloc,[],4
+ mov 0x2f,d1
+ cmp 0,a0
+ beq 60f
+ mov a0,(36,sp)
+ mov 8192,d0
+ call ep7_malloc,[],4
+ cmp 0,a0
+ bne 1f
+ mov (36,sp),a0
+ call ep7_free,[],4
+ mov 0x30,d1
+ bra 60f
+1:
+ mov a0,(12,sp)
+ mov 5,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ call ep7_flush,[d2,d3],16
+ mov (12,sp),d0
+ call gc_cach,[],0
+ mov a0,(88,sp)
+ mov (8,sp),d3
+ mov gc_G,a1
+ call gc_tbl,[d2,d3,a2,a3],16
+ mov (36,sp),d0
+ call gc_cach,[],0
+ mov a0,(64,sp)
+ mov (44,sp),d1
+ mov a0,a1
+ add d1,a1
+ mov a1,(100,sp)
+ add d1,a1
+ mov a1,(104,sp)
+ mov 15,d0
+1:
+ movbu d0,(a0)
+ inc a0
+ add -1,d1
+ bne 1b
+ mov (56,sp),a1
+ mov (44,a1),d0
+ cmp 0,d0
+ bne 2f
+ mov 0x12345678,d0
+2:
+ mov d0,(76,sp)
+ clr d0
+ mov d0,(16,sp)
+3:
+ mov (48,sp),d0
+ mov (16,sp),d1
+ sub d1,d0
+ mov (92,sp),d1
+ cmp d1,d0
+ bcc 1f
+ mov d0,d1
+1:
+ mov d1,(96,sp)
+ mov (100,sp),a0
+ mov a0,(68,sp)
+ mov gc_p1,a0
+ calls (a0)
+ mov (96,sp),d0
+ cmp 2,d0
+ bcs 2f
+ mov (104,sp),a0
+ mov a0,(68,sp)
+ mov gc_p1,a0
+ calls (a0)
+2:
+ mov gc_p2,a0                     /* COLOR4, first 128 rows: the band instead of the grain */
+ mov (60,sp),d0
+ cmp 3,d0
+ bne 1f
+ mov (16,sp),d0
+ cmp 128,d0
+ bcc 1f
+ mov gc_p3,a0
+1:
+ mov a0,(108,sp)
+ call ep7_modeget,[],0
+ mov (56,sp),a1
+ movbu (36,a1),d1
+ and 0xf0,d1
+ and 7,d0
+ or d1,d0
+ movbu d0,(36,a1)
+ mov (16,sp),d0
+ mov (24,sp),d1
+ mul d1,d0
+ mov (20,sp),d1
+ add d1,d0
+ mov d0,d3
+ call gc_open,[d2,d3,a2,a3],32
+ mov d0,(40,sp)
+ mov d1,(52,sp)
+ mov (56,sp),a1                   /* class: 0 direct, 1 window, 2 window after a mapper call, 3 refused */
+ mov a0,(40,a1)
+ mov 3,d0
+ cmp 0,a0
+ beq 1f
+ mov 2,d0
+ cmp -1,d1
+ bne 1f
+ mov 1,d0
+ cmp 0xb0000000,d3
+ bcc 1f
+ clr d0
+1:
+ movbu d0,(37,a1)
+ cmp 0,a0
+ beq 6f
+ mov a0,d0
+ add -0x40000000,d0
+ mov d0,(80,sp)
+ mov 6,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ mov (108,sp),d0
+ cmp gc_p3,d0
+ bne 1f
+ mov (56,sp),a1
+ movbu (36,a1),d0
+ or 0x10,d0
+ movbu d0,(36,a1)
+1:
+ mov (100,sp),a1
+ mov a1,(68,sp)
+ mov (108,sp),a0
+ calls (a0)
+ mov (96,sp),d0
+ cmp 2,d0
+ bcs 5f
+ mov (80,sp),d0
+ mov (24,sp),d1
+ add d1,d0
+ mov d0,(80,sp)
+ mov (104,sp),a1
+ mov a1,(68,sp)
+ mov (108,sp),a0
+ calls (a0)
+5:
+ call ep7_flush,[d2,d3],16
+ mov (52,sp),d0
+ cmp -1,d0
+ beq 4f
+ call ep7_modeset,[d2,d3,a2],20
+4:
+ mov (40,sp),d0
+ call ep7_unlock,[d2],8
+ mov (16,sp),d0
+ mov (96,sp),d1
+ add d1,d0
+ mov d0,(16,sp)
+ mov (56,sp),a1
+ movhu d0,(14,a1)
+ mov (48,sp),d1
+ cmp d1,d0
+ bcs 3b
+ mov 7,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ bra 7f
+6:
+ mov (40,sp),d0
+ call ep7_unlock,[d2],8
+ mov 6,d0
+ mov 0x31,d1
+ call gc_mark,[d2,d3,a2,a3],32
+7:
+ mov (56,sp),a1
+ mov (76,sp),d0
+ mov d0,(44,a1)
+ call ep7_flush,[d2,d3],16
+ mov (12,sp),a0
+ call ep7_free,[],4
+ mov (36,sp),a0
+ call ep7_free,[],4
+ bra 99f
+60:
+ mov 4,d0
+ call gc_mark,[d2,d3,a2,a3],32
+99:
+ ret [d2,d3,a2,a3],128
+
+/* gc_p3: `calls`, as gc_p2: Y0, Y1 -> 16, Cb and Cr kept */
+gc_p3:
+ mov (80,sp),a0
+ mov (84,sp),a2
+1:
+ mov (a0),d0
+ and 0xff00ff00,d0
+ or 0x00100010,d0
+ mov d0,(a0)
+ add 4,a0
+ add -1,a2
+ cmp 0,a2
+ bne 1b
+ rets
+
+/* gc_fw: the Firmware view's Body value setter calls (`call gc_fw,[d2,d3,a2,a3],88`, a0 = widget, a1 = text). A non-empty value becomes
+ * one page, "<letter><3 hex>"; each opening shows the next page. No block: "----". */
+gc_fw:
+ mov a0,a3
+ cmp 0,a1
+ beq 8f
+ movhu (a1),d0
+ cmp 0,d0
+ beq 8f
+ call gc_blk,[],8
+ cmp 0,a1
+ bne 1f
+ mov gc_none,a1
+ bra 8f
+1:
+ movbu (7,a1),d2
+ cmp NPAGE,d2
+ bcs 2f
+ clr d2
+2:
+ mov d2,d0
+ inc d0
+ movbu d0,(7,a1)
+ mov 1,d0
+ movbu d0,(6,a1)
+ mov d2,d0
+ add d0,d0
+ add d2,d0
+ mov gc_pg,a0
+ add d0,a0
+ movbu (a0),d0
+ add a1,d0
+ mov d0,a2
+ movbu (1,a0),d1
+ movbu (2,a0),d3
+ cmp 4,d1
+ beq 3f
+ movhu (a2),d0
+ bra 4f
+3:
+ mov (a2),d0
+4:
+ lsr d3,d0
+ mov sp,a2
+ add 4,a2
+ mov d2,d1
+ add 97,d1
+ movhu d1,(a2)
+ mov 8,d3
+5:
+ mov d0,d1
+ lsr d3,d1
+ and 15,d1
+ cmp 10,d1
+ bcs 6f
+ add 39,d1
+6:
+ add 48,d1
+ add 2,a2
+ movhu d1,(a2)
+ cmp 0,d3
+ beq 7f
+ add -4,d3
+ bra 5b
+7:
+ add 2,a2
+ clr d1
+ movhu d1,(a2)
+ mov sp,a1
+ add 4,a1
+8:
+ mov a3,a0
+ call ep7_setter,[d2,d3,a2,a3],24
+ ret [d2,d3,a2,a3],88
+
+{gc_shared}
+gc_pg:                            /* page -> offset, size, shift */
+ .byte 4,2,0, 8,2,0, 16,2,0, 20,2,2, 18,2,2, 22,2,2, 28,4,20, 28,4,8, 36,2,0, 40,4,20, 14,2,1, 24,2,0, 12,2,0, 32,4,20
+gc_btab:
+ .byte 0xb0,0xb8,0xb0,0xb0,0xb0,0xb8
+gc_mtab:
+ .byte 0,0,2,3,4,4
+ .balign 2
+gc_stab:
+ .hword 28,68,112
+gc_none:
+ .hword 45,45,45,45,0
+gc_G:
+{g_bytes}
+gc_end:

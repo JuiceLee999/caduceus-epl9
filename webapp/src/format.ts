@@ -10,8 +10,8 @@
 // Blacks/Whites at +47/+48 (MONO slots keep 0). The app writes the tone block when the look's tone is not all zero.
 // tests/encoder.test.ts checks the output against the Python tools and the released card files.
 import {
-  ARTS, EFFECTS, GRAINS, GRAIN_BYTE, grainFromByte, MAX_LOOKS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SLOT_NAMES, TINTS, TONE_BW_MAX, TONE_KEYS,
-  blankLook, toneIsZero, toneLimit, zeroTone, type Look, type Pack,
+  ARTS, EFFECTS, FILM_GRAINS, GRAINS, GRAIN_BYTE, grainFromByte, defaultProfile, profileOf, MAX_LOOKS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SLOT_NAMES, TINTS, TONE_BW_MAX, TONE_KEYS,
+  blankLook, toneIsZero, toneLimit, zeroTone, type Look, type Pack, type ProfileSettings,
 } from './pack';
 
 // ---- CRC-32 (zlib)
@@ -30,9 +30,9 @@ export function crc32(...parts: Uint8Array[]): number {
   return (c ^ 0xffffffff) >>> 0;
 }
 
-// ---- firmware the card files are made for (Control Panel selector). 25 = v0.25 or later.
-export type Fw = 25 | 24 | 23;
-export const FW_LATEST: Fw = 25;
+// ---- firmware the card files are made for (Control Panel selector). 27 = v0.27 or later, 25 = v0.25 / v0.26.
+export type Fw = 27 | 25 | 24 | 23;
+export const FW_LATEST: Fw = 27;
 let FW: Fw = FW_LATEST;
 export const setFirmware = (f: Fw) => { FW = f; };
 export const firmware = () => FW;
@@ -48,7 +48,7 @@ const LOOKS_VERSION = 3, HDR_LEN = 64, REC_LEN = 64;
 // v0.19 tone block in a COLOR record: +32 flag, then the values at these offsets
 const TONE_FLAG = 32;
 const TONE_OFF = { blacks: 33, whites: 34, highlights: 35, midtones: 36, shadows: 37 } as const;
-const B_BLACKS = 47, B_WHITES = 48, B_SHADING = 49;
+const B_BLACKS = 47, B_WHITES = 48, B_SHADING = 49, B_GRAIN = 50, B_NR = 24;
 const MASK_KEEP_CORRECTION = 4;                         // v0.25 record slot mask bit 2
 const BUNDLE_USED = 45, CLASS_OFF = 45, MASK_OFF = 46, TINT_OFF = 47, NAME_OFF = 48;
 const B_TINT = 45, B_ART = 46, B_COLOUR = 32, B_SAT = 33, B_FLAGS = 31;
@@ -62,7 +62,7 @@ const FIELDS: [number, number, number, number][] = [   // off, len, lo, hi
   [0, 12, -HL_MAX, HL_MAX], [12, 12, -HL_MAX, HL_MAX], [24, 1, 0, 6], [25, 1, 0, 1], [26, 1, -WB_MAX, WB_MAX],
   [27, 1, -WB_MAX, WB_MAX], [28, 1, 0, 3], [29, 1, 0, 5], [30, 1, -VIG_MAX, VIG_MAX], [31, 1, 0, 3], [32, 1, 0, 1],
   [33, 12, -SAT_MAX, SAT_MAX], [45, 1, 0, 4], [46, 1, 0, 5],
-  [B_BLACKS, 1, -TONE_BW_MAX, TONE_BW_MAX], [B_WHITES, 1, -TONE_BW_MAX, TONE_BW_MAX], [B_SHADING, 1, 0, 1]];
+  [B_BLACKS, 1, -TONE_BW_MAX, TONE_BW_MAX], [B_WHITES, 1, -TONE_BW_MAX, TONE_BW_MAX], [B_SHADING, 1, 0, 1], [B_GRAIN, 1, 0, 3]];
 export const RANGE_LO = new Int8Array(64), RANGE_HI = new Int8Array(64);   // unclaimed bytes: 0..0
 for (const [off, n, lo, hi] of FIELDS) for (let k = off; k < off + n; k++) { RANGE_LO[k] = lo; RANGE_HI[k] = hi; }
 const s8 = (b: number) => (b >= 128 ? b - 256 : b);
@@ -278,11 +278,13 @@ export function decodeLooksBin(d: Uint8Array, name = 'Imported LOOKS.BIN'): Pack
 
 // ---- BUNDLES.BIN (starter slot file)
 /** P(look, slot): the 64-byte table entry a slot gets (tools/ep7_library.place) + the COLOR-slot Art Effect and
- *  Blacks/Whites (+47/+48; MONO slots keep 0). */
-export function placeLook(l: Look, slot: string): Uint8Array {
+ *  Blacks/Whites (+47/+48; MONO slots keep 0). NR (+24) and Grain (+50) are the profile's own settings, never the
+ *  look's: `prof` for a COLOR slot (default NR Camera, Grain Off), Camera for a MONO slot. Grain needs v0.27. */
+export function placeLook(l: Look, slot: string, prof: ProfileSettings = defaultProfile()): Uint8Array {
   const rec = lookRecord(l);         // with a tone block, +32..44 are cleared below (COLOR) like LIB.place
   const b = new Uint8Array(64);
   b.set(rec.subarray(0, BUNDLE_USED));
+  b[B_NR] = 0;
   b[B_TINT] = rec[TINT_OFF];
   if (slot.startsWith('COLOR')) {
     if (l.kind === 'mono') throw new Error(`${slot}: a mono look cannot go in a COLOR slot`);
@@ -292,6 +294,8 @@ export function placeLook(l: Look, slot: string): Uint8Array {
     b[B_ART] = ARTS.indexOf(l.art_effect);
     if (FW >= 25 && !l.lens_correction) b[B_SHADING] = 1;   // v0.25: lens vignette correction off, as a Film pick does
     if (hasTone(l)) { b[B_BLACKS] = u8(l.tone.blacks); b[B_WHITES] = u8(l.tone.whites); }
+    b[B_NR] = GRAIN_BYTE[prof.nr] ?? 0;
+    if (FW >= 27) b[B_GRAIN] = Math.max(0, FILM_GRAINS.indexOf(prof.grain));
   } else if (l.kind === 'colour') {
     if (hasTone(l)) throw new Error(`${slot}: a look with a tone cannot go in a MONO slot`);
     b[B_COLOUR] = 1;
@@ -313,8 +317,13 @@ export function encodeBundlesBin(pack: Pack, withNames = true): Uint8Array {
   dv.setUint32(8, FW_BUILD, true); dv.setUint32(12, B_PAYLOAD, true);
   out.set(SHA_PREFIX, 20);
   SLOT_NAMES.forEach((s, k) => {
-    const i = pack.slots[s];
-    if (i !== undefined) out.set(placeLook(pack.looks[i], s), B_HDR_LEN + 64 * k);
+    const i = pack.slots[s], o = B_HDR_LEN + 64 * k;
+    if (i !== undefined) out.set(placeLook(pack.looks[i], s, profileOf(pack, s)), o);
+    else if (k < 4) {                  // an empty COLOR slot (stock rendering) still carries its profile's Grain / NR
+      const pf = profileOf(pack, s);
+      out[o + B_NR] = GRAIN_BYTE[pf.nr] ?? 0;
+      if (FW >= 27) out[o + B_GRAIN] = Math.max(0, FILM_GRAINS.indexOf(pf.grain));
+    }
   });
   dv.setUint32(16, crc32(out.subarray(0, 16), out.subarray(20, B_FILE)), true);
   if (withNames) {
@@ -348,6 +357,7 @@ export function checkBundlesBin(d: Uint8Array): string[] {
     const v = s8(d[B_HDR_LEN + k]);
     if (v < RANGE_LO[k % 64] || v > RANGE_HI[k % 64]) { p.push(`slot ${k >> 6} byte ${k % 64} = ${v} out of range`); break; }
   }
+  if (FW < 27) for (let k = 0; k < 8; k++) if (d[B_HDR_LEN + 64 * k + B_GRAIN]) { p.push(`slot ${k}: Grain needs v0.27 or later`); break; }
   for (let k = 4; k < 8; k++) if (d[B_HDR_LEN + 64 * k + B_BLACKS] || d[B_HDR_LEN + 64 * k + B_WHITES]) { p.push(`slot ${k}: Blacks/Whites are COLOR-only`); break; }
   if (d.length === B_FILE_N) {
     if (!NMAGIC.every((c, i) => d[B_FILE + 128 + i] === c)) p.push('name marker');

@@ -16,6 +16,15 @@ export const grainFromName = (v: string): Grain | undefined =>
   (GRAINS as readonly string[]).includes(v) ? (v as Grain) : v === 'med' ? 'film'
     : v === 'global' ? 'off'
     : (LEGACY_GRAINS as readonly string[]).includes(v) ? grainFromByte(LEGACY_GRAINS.indexOf(v as never)) : undefined;
+// v0.27 per-COLOR-profile settings (the user's, never a look's): Grain (BUNDLES.BIN +50: 0 off, 1 low, 2 med, 3 high;
+// camera Extras sector 1) and NR (+24, the Grain values above; camera Extras sector 9). A look's own grain field is NR,
+// kept in the data for old share codes and files, but the v0.27 camera ignores it.
+export const FILM_GRAINS = ['off', 'low', 'med', 'high'] as const;
+export type FilmGrain = (typeof FILM_GRAINS)[number];
+export const COLOR_SLOTS = ['COLOR1', 'COLOR2', 'COLOR3', 'COLOR4'] as const;
+export type ColorSlot = (typeof COLOR_SLOTS)[number];
+export interface ProfileSettings { grain: FilmGrain; nr: Grain }
+export const defaultProfile = (): ProfileSettings => ({ grain: 'off', nr: 'off' });
 export const EFFECTS = ['none', 'bloom', 'halation', 'clarity'] as const;
 export const TINTS = ['neutral', 'red', 'amber', 'warm', 'cool'] as const;
 // art_effect +46 (patches/bundles ART). 4/5 (white edge, frame) are legacy values the v0.15+ camera treats as Off.
@@ -73,7 +82,9 @@ export interface Pack {
   name: string;
   looks: Look[];
   slots: Partial<Record<SlotName, number>>;   // starter BUNDLES.BIN: slot -> look index
+  profiles?: Partial<Record<ColorSlot, ProfileSettings>>;   // starter BUNDLES.BIN: Grain / NR per COLOR profile (missing = Off / Camera)
 }
+export const profileOf = (p: Pack, s: string): ProfileSettings => ({ ...defaultProfile(), ...(p.profiles?.[s as ColorSlot] ?? {}) });
 
 export const zeros12 = () => new Array<number>(12).fill(0);
 
@@ -176,5 +187,13 @@ export function parsePack(v: unknown): Pack {
       slots[k as SlotName] = i as number;
     }
   }
-  return { schema: PACK_SCHEMA, name: typeof v.name === 'string' ? v.name : 'My pack', looks, slots };
+  const profiles: NonNullable<Pack['profiles']> = {};
+  if (isObj(v.profiles)) {
+    for (const [k, ps] of Object.entries(v.profiles)) {
+      if (!(COLOR_SLOTS as readonly string[]).includes(k)) throw new Error(`pack: profiles: unknown COLOR profile ${k}`);
+      if (!isObj(ps)) throw new Error(`pack: profiles ${k} must be {"grain", "nr"}`);
+      profiles[k as ColorSlot] = { grain: oneOf(ps.grain, FILM_GRAINS, `${k} grain`, 'off'), nr: oneOf(ps.nr, GRAINS, `${k} NR`, 'off') };
+    }
+  }
+  return { schema: PACK_SCHEMA, name: typeof v.name === 'string' ? v.name : 'My pack', looks, slots, ...(Object.keys(profiles).length ? { profiles } : {}) };
 }

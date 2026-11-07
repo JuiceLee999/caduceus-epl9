@@ -5,7 +5,7 @@
   .venv/bin/python -I tools/ep7_movie_bin.py --check path/to/MOVIE.BIN
 
 96 B: 'EP7V', u32 version 1, u32 80, u32 CRC-32 of bytes 16..95; +16 slot (64 B, COLOR slot layout, patches/bundles/layout.json); +80 name (15 chars + NUL).
-Same limits as the camera's loader: hue/light +0..23 and WB +26/27 -7..7; sat +33..44 and blacks/whites +47/48 -5..5; +49 anything (a Film pick sets it), +50..63 zero.
+Same limits as the camera's loader (+50 Grain 0..3 from 0.27s1; older firmware rejects a non-zero one): hue/light +0..23 and WB +26/27 -7..7; sat +33..44 and blacks/whites +47/48 -5..5; +49 anything (a Film pick sets it), +50..63 zero.
 """
 import argparse, struct, sys, zlib
 from pathlib import Path
@@ -24,7 +24,7 @@ def check(d):
     if len(d) != 96 or d[:4] != b'EP7V' or struct.unpack_from('<II', d, 4) != (1, 80) or struct.unpack_from('<I', d, 12)[0] != zlib.crc32(d[16:96]):
         return 'bad size, header or CRC'
     s = d[16:80]
-    if any(abs(s8(x)) > 7 for x in s[:24] + s[26:28]) or any(abs(s8(x)) > 5 for x in s[33:45] + s[47:49]) or any(s[50:64]) or d[95]:
+    if any(abs(s8(x)) > 7 for x in s[:24] + s[26:28]) or any(abs(s8(x)) > 5 for x in s[33:45] + s[47:49]) or s[50] > 3 or any(s[51:64]) or d[95]:
         return 'value out of range'
 
 

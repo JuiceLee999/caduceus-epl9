@@ -5,7 +5,7 @@
 // The look's tone (H/S/M/B/W, card data) is a luminance LUT in the display domain after the base curve (src/tone.ts);
 // the contrast advice bends the input to it first. The old recipe tone advice (advice.tone) is not previewed: on
 // v0.19 the Film pick sets the profile's H/S/M from the look's own tone.
-import { GRAINS, toneIsZero, type Look } from './pack';
+import { FILM_GRAINS, GRAINS, toneIsZero, type FilmGrain, type Look } from './pack';
 import { previewToneLut } from './tone';
 
 // Firmware COLOR table (generated/color/ep7_color_table.json, UI order): sector centre / width (0..32767 = 360 deg)
@@ -19,6 +19,7 @@ const L_LUT = [-300, -250, -200, -150, -100, -50, -25, 0, 25, 50, 100, 150, 200,
 const WB_STEP = 0.015, CONTRAST_STEP = 0.035;
 const BLOOM_SHARE = [0.08, 0.14, 0.2, 0.27, 0.35];
 const COLOUR_GRAIN = [0, 40, 80, 0], MONO_GRAIN = [0, 110, 300, 0];   // v0.22: colour = a hint of sensor-like texture (Noise Filter Low/Off)
+const PROFILE_GRAIN = [0, 110, 300, 600];   // v0.27 COLOR-profile Grain Off/Low/Med/High (stock MONO grain gains; approximate)
 const CLARITY = [0.12, 0.22, 0.32, 0.42, 0.52];
 const TINT_RGB: Record<string, [number, number, number]> = {
   neutral: [1, 1, 1], red: [1, 0.5, 0.38], amber: [1, 0.75, 0.42], warm: [1, 0.87, 0.72], cool: [0.78, 0.9, 1.1],
@@ -122,7 +123,11 @@ function blurredCopy(src: Float32Array, w: number, h: number, sw: number, sigma:
   return big;
 }
 
-export interface PreviewOptions { advice: boolean }
+export interface PreviewOptions {
+  advice: boolean;
+  nr?: boolean;        // draw the look's own NR as texture (OM-3: NR is per look). E-P7 v0.27: NR is the profile's, not drawn
+  grain?: FilmGrain;   // E-P7 v0.27 COLOR-profile Grain, chosen in the preview (colour looks only)
+}
 
 /** Render `look` from `src` (8-bit sRGB RGBA) into `dst` (same size). */
 export function renderLook(src: ImageData, dst: ImageData, look: Look, opt: PreviewOptions) {
@@ -196,8 +201,9 @@ export function renderLook(src: ImageData, dst: ImageData, look: Look, opt: Prev
     }
   }
   // 6. grain (Olympus xorshift32 luma grain with brightness mask; v0.4 colour gains / stock mono gains)
-  const gi = GRAINS.indexOf(look.grain);
-  const gain = gi > 0 ? (mono ? MONO_GRAIN : COLOUR_GRAIN)[gi] : 0;
+  const gi = opt.nr ? GRAINS.indexOf(look.grain) : 0;
+  const pg = mono ? 0 : PROFILE_GRAIN[Math.max(0, FILM_GRAINS.indexOf(opt.grain ?? 'off'))];
+  const gain = Math.max(gi > 0 ? (mono ? MONO_GRAIN : COLOUR_GRAIN)[gi] : 0, pg);
   const scale = Math.min(1, w / FULL_WIDTH) * 2.2;   // a little stronger than full-res-viewed-small, so it stays visible
   for (let i = 0; i < n; i++) {
     const q = i * 3, p = i * 4;

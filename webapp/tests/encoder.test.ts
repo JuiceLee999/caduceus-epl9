@@ -266,15 +266,16 @@ describe.skipIf(!python)('cross-check with the repo\'s Python tools (v3 + v0.19 
   it('random packs with tone: LOOKS.BIN and BUNDLES.BIN are byte-identical', () => {
     const packs = randomPacks(19, 40);
     packs.push(library());
-    const out = runPy(ROOT, packs.map(toPython));
+    // v0.27: slots take NR from the profile (default Camera), not the look, so Python gets the looks with NR Camera for BUNDLES.BIN
+    const camNr = packs.map((p) => ({ ...p, looks: p.looks.map((l) => ({ ...l, grain: 'off' as const })) }));
+    const out = runPy(ROOT, packs.map(toPython)), outB = runPy(ROOT, camNr.map(toPython));
     packs.forEach((p, i) => {
       expect(out[i].error).toBeUndefined();
       expect(out[i].looks_check).toEqual([]);
-      expect(out[i].bundles_check).toEqual([]);
+      expect(outB[i].bundles_check).toEqual([]);
       expect(hex(encodeLooksBin(p))).toBe(out[i].looks);
       setFirmware(24);                                  // the Python tool writes the pre-v0.25 slot (no +49)
-      expect(hex(encodeBundlesBin(p))).toBe(out[i].bundles);
-      setFirmware(FW_LATEST);
+      try { expect(hex(encodeBundlesBin(p))).toBe(outB[i].bundles); } finally { setFirmware(FW_LATEST); }
     });
   });
 
@@ -333,5 +334,38 @@ describe('v0.25 lens correction and the firmware selector', () => {
     setFirmware(23);
     const r = lookRecord(l);
     expect(r[44]).toBe(0); expect([...r.subarray(38, 44)]).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+});
+
+describe('v0.27 Grain and NR per COLOR profile', () => {
+  afterEach(() => setFirmware(FW_LATEST));
+  const c = () => { const l = blankLook('colour', 'C'); l.grain = 'film'; return l; };   // a look's stored NR (ignored)
+  const m = () => { const l = blankLook('mono', 'M'); l.grain = 'fine'; return l; };
+  const slot = (b: Uint8Array, k: number) => b.subarray(32 + 64 * k, 32 + 64 * (k + 1));
+  it('a look\'s NR is not applied: default profiles are NR Camera, Grain Off', () => {
+    const b = encodeBundlesBin(pack([c(), m()], { COLOR1: 0, MONO1: 1 }));
+    expect(checkBundlesBin(b)).toEqual([]);
+    for (const k of [0, 1, 4]) expect([slot(b, k)[24], slot(b, k)[50]]).toEqual([0, 0]);
+    expect(lookRecord(c())[24]).toBe(2);              // LOOKS.BIN keeps the stored value (v0.27 ignores it)
+  });
+  it('profile Grain at +50 and NR at +24, also for an empty COLOR slot; old firmware writes Grain 0', () => {
+    const p = pack([c()], { COLOR1: 0 });
+    p.profiles = { COLOR1: { grain: 'high', nr: 'standard' }, COLOR3: { grain: 'low', nr: 'film' } };
+    const b = encodeBundlesBin(p);
+    expect(checkBundlesBin(b)).toEqual([]);
+    expect([slot(b, 0)[24], slot(b, 0)[50], slot(b, 2)[24], slot(b, 2)[50]]).toEqual([6, 3, 2, 1]);
+    setFirmware(25);
+    const o = encodeBundlesBin(p);
+    expect([slot(o, 0)[24], slot(o, 0)[50], slot(o, 2)[24], slot(o, 2)[50]]).toEqual([6, 0, 2, 0]);
+    expect(checkBundlesBin(b).join()).toMatch(/Grain needs v0.27/);
+  });
+  it('profiles survive the pack file; old packs without them still load', async () => {
+    const { decodePackCode, encodePackCode } = await import('../src/sharecode');
+    const p = pack([c()], { COLOR1: 0 });
+    p.profiles = { COLOR2: { grain: 'med', nr: 'fine' } };
+    expect(parsePack(JSON.parse(JSON.stringify(p))).profiles).toEqual(p.profiles);
+    expect((await decodePackCode(await encodePackCode(p))).profiles).toEqual(p.profiles);
+    expect(parsePack({ schema: 'caduceus-pack/1', looks: [{ name: 'x', grain: 'film' }] }).profiles).toBeUndefined();
+    expect(() => parsePack({ ...p, profiles: { MONO1: { grain: 'low' } } })).toThrow(/profile/);
   });
 });

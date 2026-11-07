@@ -10,8 +10,9 @@ export interface CameraProfile {
   mono: boolean; tints: boolean; lensCorrection: boolean;
   arts: readonly Look['art_effect'][];
   settings: boolean;                       // Contrast, Sharpness and Shading are saved in the look
+  lookNr: boolean;                         // NR is saved in the look (OM-3); E-P7 v0.27: Grain and NR belong to each COLOR profile
 }
 export const CAMERAS: Record<Cam, CameraProfile> = {
-  ep7: { short: 'E-P7', hl: 7, sat: 5, wb: 7, mono: true, tints: true, lensCorrection: true, arts: ['off', 'star_light', 'pin_hole'], settings: false },
-  om3: { short: 'OM-3', hl: OM3.hl, sat: OM3.sat, wb: OM3.wb, mono: false, tints: false, lensCorrection: false, arts: OM3_ARTS, settings: true },
+  ep7: { short: 'E-P7', hl: 7, sat: 5, wb: 7, mono: true, tints: true, lensCorrection: true, arts: ['off', 'star_light', 'pin_hole'], settings: false, lookNr: false },
+  om3: { short: 'OM-3', hl: OM3.hl, sat: OM3.sat, wb: OM3.wb, mono: false, tints: false, lensCorrection: false, arts: OM3_ARTS, settings: true, lookNr: true },
 };

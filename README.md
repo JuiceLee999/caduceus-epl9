@@ -9,7 +9,7 @@ recording.
 
 *Named after the caduceus, the staff of Hermes: messenger between gods and mortals and guide of travellers.*
 
-**Latest release: [v0.26](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.26)** ·
+**Latest release: [v0.27](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.27)** ·
 **[Install guide](docs/INSTALL.md)** · **[Changelog](CHANGELOG.md)** · **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** (make and share looks in your browser) · The camera's Setup › Firmware screen shows the Caduceus version.
 
 > [!WARNING]
@@ -39,7 +39,8 @@ recording.
 | **Tone per look** | Every film look carries its own tone curve: Highlights, Midtones and Shadows (applied through the camera's own tone control) plus new **Blacks** and **Whites** that move the very ends of the curve (crushed slide-film blacks, faded instant-film blacks, rolled-off negative highlights). Picking a look applies it, and from v0.24 sets the look's per-colour saturation too; Blacks/Whites are also adjustable per profile (Extras 6/7). Shown in live view too. | New in v0.20 |
 | **LCD colour fix** | The rear screen no longer looks slightly pink (+8 % green by default), and Monitor Adjust's colour slider becomes a green ↔ magenta slider (−7..+7, about 2.3 % per step) instead of warm/cool. Display only: photos, movies and HDMI are unchanged. | New in v0.20 |
 | **Extras per profile** | Bloom ↔ clarity (one slider), WB amber/blue and green/magenta shift, and Art Effects (Star Light, Pin Hole; Blur removed in v0.21, it could restart the camera). | Camera-tested |
-| **Noise reduction per look** | Each colour look can set the camera's own noise reduction (Noise Filter) per profile. Less noise reduction keeps the sensor's natural fine texture instead of smoothing it away. Extras sector 1 **NR**: **Camera** (use the camera's setting), **Std**, **Low** or **Off** (most texture). It applies at each photo and follows a profile switch, without changing the menu setting. The difference shows mostly at higher ISO. True film grain is on the roadmap (the camera's grain stages add nothing visible to colour photos). | Camera-tested (setting recorded in the photo; pixel comparison still to do) |
+| **Film grain** | Real film-like grain on colour photos, per COLOR profile: Extras sector 1 **Grain** Off / Low / Med / High. It's added to the finished photo's brightness, so colour is untouched. Photos with grain take a few seconds longer to save; Off costs nothing. Stills only. | **New in v0.27** |
+| **Noise reduction per profile** | The camera's own noise reduction (Noise Filter) per COLOR profile: Extras sector 9 **NR** Camera / Std / Low / Off (most texture). It applies at each photo and follows a profile switch, without changing the menu setting. | Camera-tested |
 | **Lens vignette correction off per look** | Picking a look turns the camera's lens shading correction off for that profile, for natural corners, without changing the menu setting. Extras sector 8 changes it (**VigFix Off** / **VigFix Camera**), and a look can keep the correction in the Control Panel. | **New in v0.25, please report:** not yet confirmed on photos. See [how to test](#vignette-correction-reports-wanted) |
 | **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profiles, built from OM's own mono settings. Label `<name>`, `*` when modified. | Camera-tested |
 | **Live-view preview** | Hue, lightness and bloom show in live view, not only in the saved photo. | Camera-tested |
@@ -67,8 +68,8 @@ The builder downloads OM's official 1.1 firmware from OM's server, checks it, an
   - Windows: `Build Caduceus (Windows).bat`
   - macOS: `Build Caduceus (Mac).command` (the first time: right-click › **Open**)
   - Linux: `build-caduceus-linux.sh`
-- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.26`
-  (Windows: `py caduceus.py build --release v0.26`).
+- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.27`
+  (Windows: `py caduceus.py build --release v0.27`).
 
 It creates a folder with:
 
@@ -115,7 +116,7 @@ One panel and one set of share codes for every supported camera: set your camera
 **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** is where you edit the built-in looks
 and make new presets, right in your browser:
 
-- Tweak any look (per-colour hue, lightness and saturation, noise reduction, glow/clarity, WB shift, Art Effect), or
+- Tweak any look (per-colour hue, lightness and saturation, glow/clarity, WB shift, Art Effect), or
   start a new one, with a live preview on example photos or your own (your photo never leaves your browser).
 - **Share a look with a short code:** press *Share*, send the code or link, and anyone can paste it into the
   Control Panel to get the same look.
@@ -148,7 +149,7 @@ read at boot). No `EP7MOD` folder = the camera behaves almost stock.
 2. Open that profile's colour wheel, press **INFO** until the page shows `Film: <name>` (the Film page).
 3. Turn the dial to scroll looks (`Film: Velvia`, `Film: Portra 400`, … `Stock`). Leave the editor and **half-press** to save.
 
-Picking a look sets that profile's colours, noise reduction, glow/clarity, WB shift, Art Effect and tone curve.
+Picking a look sets that profile's colours, glow/clarity, WB shift, Art Effect and tone curve. Grain and NR stay as you set them for each profile.
 Saturation stays yours. A `*` after the name means you've changed something since picking it.
 
 **Fine-tune a look** (same colour wheel, **INFO** cycles the pages):
@@ -158,7 +159,7 @@ Saturation stays yours. A `*` after the name means you've changed something sinc
 | Saturation (· All) | stock per-colour saturation (INFO also toggles single colour / all colours) |
 | Hue / Light | shift or brighten/darken one colour sector (pick the sector with the other dial) |
 | Film | choose a look from the library |
-| Extras | sector 1 NR Camera / Std / Low / Off (noise reduction) · 2 glow ← → clarity · 3 WB amber/blue · 4 WB green/magenta · 5 Art Effect · 6 Blacks · 7 Whites · 8 VigFix Off / Camera (lens vignette correction) |
+| Extras | sector 1 Grain Off / Low / Med / High · 2 glow ← → clarity · 3 WB amber/blue · 4 WB green/magenta · 5 Art Effect · 6 Blacks · 7 Whites · 8 VigFix Off / Camera (lens vignette correction) · 9 NR Camera / Std / Low / Off (noise reduction) |
 
 Highlights/Midtones/Shadows are on the camera's normal tone-curve screen; picking a look sets them for you.
 
@@ -184,7 +185,7 @@ boots back to 4:3 each time, on purpose.
 - *Live view vs photo:* Star Light and some effects only show in the saved photo.
 - *Black screen during Rec View on bloom/clarity looks?* Known issue: the review goes dark while the effect is
   processed. The photo is fine: set Rec View to **Auto ▶** or press **▶** to see it.
-- *Sector 1 "NR"?* It sets the camera's noise reduction (Noise Filter), not film grain; Off keeps the most texture. It shows mostly at higher ISO and applies per profile at each photo.
+- *Grain vs NR?* Sector 1 **Grain** adds film grain to the photo. Sector 9 **NR** sets the camera's noise reduction (Noise Filter); Off keeps the most sensor texture, mostly visible at higher ISO. Both belong to the COLOR profile: picking a look never changes them.
 - *Super Control Panel shows 4:3 on Panorama or Wide?* Known issue: the option strip shows `XP` and `21:9`, but the current-value cell still shows the 4:3 icon. The setting and the photo are right.
 
 ### Vignette correction: reports wanted
@@ -263,7 +264,7 @@ Grouped by how likely and how hard each item is. Feasibility notes for the video
 - Super Control Panel current-value cell: show `XP` / `21:9` instead of 4:3 on Panorama and Wide.
 - Clean HDMI output: stock Record Mode (sid 1276) exists, but more than one gate is involved (`docs/VIDEO_HIDDEN.md` §1).
 - Rec View that shows the photo and then updates it with bloom/clarity, instead of a black screen (`docs/ISSUES_19_20.md`).
-- **True film grain on colour photos** (the camera's own grain stages add nothing visible to colour; needs a new approach).
+- Faster grain saves.
 - ISO Auto in movie M: the movie ISO list already includes Auto; the dynamic gate in the AE code still has to be found.
 - Blacks/Whites page on the camera's own tone-curve screen (today they live on Extras 6/7; `docs/TONE_ENDS.md` §8).
 - An added vignette for colour profiles, using the stock shading stage (`docs/VIGNETTE.md`).

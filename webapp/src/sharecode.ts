@@ -8,6 +8,7 @@
 // Look code v3 / v4: v1 / v2 with the grain digit in radix 6 (v0.21 apps: grain 0..5). Decoded only; v0.22 apps
 //   write grain as the old digit (off 0, fine = old low 1, film = old medium 2), so they always make v1/v2 codes.
 // Pack code v1:  "pk1_" + base64url(zlib-deflate(UTF-8 JSON of the pack file, schema caduceus-pack/1))
+//   (v0.27: an optional "profiles" key with Grain / NR per COLOR profile; older apps ignore it)
 //   (zlib's Adler-32 catches corruption; base64url is case-sensitive, so pack codes are for links, not typing)
 import {
   ARTS, EFFECTS, GRAIN_BYTE, grainFromByte, MONO_FILTERS, TINTS, TONE_KEYS, exportable, parsePack, toneIsZero, toneLimit, zeroTone,
@@ -255,7 +256,8 @@ async function pipe(data: Uint8Array, stream: CompressionStream | DecompressionS
 }
 
 export async function encodePackCode(pack: Pack): Promise<string> {
-  const json = JSON.stringify({ schema: pack.schema, name: pack.name, looks: exportable(pack).looks, slots: pack.slots });
+  const json = JSON.stringify({ schema: pack.schema, name: pack.name, looks: exportable(pack).looks, slots: pack.slots,
+    ...(pack.profiles && Object.keys(pack.profiles).length ? { profiles: pack.profiles } : {}) });
   return PACK_PREFIX + b64url(await pipe(new TextEncoder().encode(json), new CompressionStream('deflate')));
 }
 

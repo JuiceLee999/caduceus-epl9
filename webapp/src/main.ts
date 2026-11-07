@@ -3,7 +3,7 @@ import libraryJson from './data/library.json';
 import { decodeLooksBin, encodeBundlesBin, hasTone, nameProblem, PackError, validatePack, type Problem, FW_LATEST, firmware, setFirmware, type Fw } from './format';
 import {
   ARTS, MAX_LOOKS, MONO_FILTERS, NAME_MAX, NOTE_MAX, PACK_SCHEMA, SECTORS, SLOT_NAMES, TINTS, TONE_KEYS, blankLook, cloneLook,
-  exportable, parseLook, parsePack, toneIsZero, toneLimit, type Look, type Pack, type SlotName, type Tone,
+  exportable, parseLook, parsePack, toneIsZero, toneLimit, profileOf, type FilmGrain, type Grain, type Look, type Pack, type SlotName, type Tone,
 } from './pack';
 import { History } from './history';
 import { fromLibrary, libraryOrigin, migratePack, replaceRetiredLooks, resetLook, standardPack } from './reset';
@@ -40,7 +40,10 @@ const S = {
   image: 'harbour',
   advice: true,
   compare: false,
+  grain: 'off' as FilmGrain,   // preview only: the COLOR profile's Grain (E-P7)
 };
+const GRAIN_OPTS: [FilmGrain, string][] = [['off', 'Off'], ['low', 'Low'], ['med', 'Med'], ['high', 'High']];
+const NR_OPTS: [Grain, string][] = [['off', 'Camera'], ['standard', 'Std'], ['fine', 'Low'], ['film', 'Off']];
 
 /** The saved pack brought up to the current built-in library (or the library itself for a first visit). */
 function startPack(): Pack {
@@ -380,8 +383,8 @@ function renderEditor() {
     })]),
     l.kind === 'colour' ? sectorPanel(l, changed) : monoPanel(l, changed),
     ...(l.kind === 'colour' ? [tonePanel(l, changed)] : []),
-    h('div', { class: 'group' },
-      seg('Noise reduction', [['off', 'Camera'], ['standard', 'Standard'], ['fine', 'Low'], ['film', 'Off (most texture)']], l.grain, (v) => { l.grain = v as Look['grain']; renderEditor(); changed(); })),
+    ...(cam().lookNr ? [h('div', { class: 'group' },
+      seg('Noise reduction', [['off', 'Camera'], ['standard', 'Standard'], ['fine', 'Low'], ['film', 'Off (most texture)']], l.grain, (v) => { l.grain = v as Look['grain']; renderEditor(); changed(); }))] : []),
     effectPanel(l, changed),
     wbPanel(l, changed),
     ...(l.kind === 'colour' && cam().settings ? [settingsPanel(l, changed)] : []),
@@ -672,6 +675,9 @@ function buildPreview() {
     h('div', { class: 'pv-opts' },
       h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: S.advice, onchange: (e: Event) => { S.advice = (e.target as HTMLInputElement).checked; schedulePreview(); } }),
         h('span', {}, 'Include advice (contrast)')),
+      h('label', { class: 'check', id: 'pv-grain', title: 'Preview only. Grain is set for each COLOR profile, not by the look.' }, h('span', {}, 'Grain'),
+        h('select', { onchange: (e: Event) => { S.grain = (e.target as HTMLSelectElement).value as FilmGrain; schedulePreview(); } },
+          ...GRAIN_OPTS.map(([v, t]) => h('option', { value: v, selected: v === S.grain }, t)))),
       h('button', { class: 'link', onclick: () => $<HTMLInputElement>('#photo').click() }, 'Use your own photo…')),
     h('p', { class: 'help' }, 'A rough desktop-sim port running on JPEGs, not the camera\'s pipeline: use it for direction and strength, then check on the camera. Your own photo never leaves this browser.'));
   pickImage(S.image);
@@ -717,13 +723,15 @@ function schedulePreview() {
   previewQueued = true;
   requestAnimationFrame(() => {
     previewQueued = false;
+    const pg = document.getElementById('pv-grain');
+    if (pg) pg.hidden = cam().lookNr;
     if (!srcData || !canvas) return;
     if (canvas.width !== srcData.width || canvas.height !== srcData.height) { canvas.width = srcData.width; canvas.height = srcData.height; }
     const ctx = canvas.getContext('2d')!;
     const l = cur();
     if (S.compare || !l) { ctx.putImageData(srcData, 0, 0); return; }
     const out = ctx.createImageData(srcData.width, srcData.height);
-    renderLook(srcData, out, CAM === 'om3' ? toOm3(l).look ?? l : l, { advice: S.advice });
+    renderLook(srcData, out, CAM === 'om3' ? toOm3(l).look ?? l : l, { advice: S.advice, nr: cam().lookNr, grain: cam().lookNr ? 'off' : S.grain });
     ctx.putImageData(out, 0, 0);
   });
 }
@@ -926,9 +934,10 @@ function installDialog() {
 
 const STORE_FW = 'caduceus.firmware';
 const FW_OPTIONS: [Fw, string, string][] = [
-  [25, 'v0.25 or later', 'Everything works, including a look\'s lens vignette correction choice.'],
-  [24, 'v0.24', 'Files work. Lens vignette correction choices are left out of them.'],
-  [23, 'v0.23 or v0.22', 'Files work. Saturation and lens vignette correction choices are left out of them.'],
+  [27, 'v0.27 or later', 'Everything works, including Grain for each COLOR profile.'],
+  [25, 'v0.25 or v0.26', 'Files work. Grain is left out of BUNDLES.BIN.'],
+  [24, 'v0.24', 'Files work. Grain and lens vignette correction choices are left out of them.'],
+  [23, 'v0.23 or v0.22', 'Files work. Grain, saturation and lens vignette correction choices are left out of them.'],
 ];
 const STORE_CAM = 'caduceus.camera';
 let CAM: Cam = 'ep7';
@@ -1090,7 +1099,17 @@ function ep7Body(): HTMLElement {
       },
     }, h('option', { value: '' }, '— stock —'),
     ...S.pack.looks.map((l, i) => (s.startsWith('COLOR') ? l.kind === 'mono' : hasTone(l)) ? null : h('option', { value: i, selected: S.pack.slots[s] === i }, `${i + 1}. ${l.name}`)).filter(Boolean) as HTMLElement[]);
-    return h('label', { class: 'slot' }, h('span', {}, s), sel);
+    if (!s.startsWith('COLOR')) return h('label', { class: 'slot' }, h('span', {}, s), sel);
+    const pick = (label: string, opts: [string, string][], key: 'grain' | 'nr') => h('label', {}, h('span', {}, label),
+      h('select', {
+        onchange: (e: Event) => {
+          const v = (e.target as HTMLSelectElement).value;
+          S.pack.profiles = { ...S.pack.profiles, [s]: { ...profileOf(S.pack, s), [key]: v } };
+          save();
+        },
+      }, ...opts.map(([v, t]) => h('option', { value: v, selected: profileOf(S.pack, s)[key] === v }, t))));
+    return h('div', { class: 'slot-color' }, h('label', { class: 'slot' }, h('span', {}, s), sel),
+      h('div', { class: 'slot-prof' }, pick('Grain', GRAIN_OPTS, 'grain'), pick('NR', NR_OPTS, 'nr')));
   };
   const withBundles = h('input', { type: 'checkbox' });
   const fname = (S.pack.name || 'pack').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'pack';
@@ -1117,6 +1136,7 @@ function ep7Body(): HTMLElement {
     h('details', { class: 'ex-bundles' },
       h('summary', {}, 'Starter slots (BUNDLES.BIN, optional)'),
       h('p', { class: 'help' }, 'BUNDLES.BIN holds the looks currently in the 8 picture-mode slots. Your card\'s BUNDLES.BIN has your saved slot choices: only replace it if you want to reset them. Empty = the camera\'s stock rendering.'),
+      h('p', { class: 'help' }, 'Grain and NR belong to each COLOR profile, not to a look: picking a look keeps them. On the camera: Extras sector 1 (Grain) and 9 (NR). Grain needs v0.27 or later.'),
       h('div', { class: 'slots' }, ...SLOT_NAMES.map(slotSel))),
     h('div', { class: 'ex-row' },
       h('div', {}, h('b', {}, 'Card folder (.zip)'), h('p', { class: 'help' }, 'EP7MOD/LOOKS.BIN (+ BUNDLES.BIN if ticked) and the pack file. Unzip at the card root.'),

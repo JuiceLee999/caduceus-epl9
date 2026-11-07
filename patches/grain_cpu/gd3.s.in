@@ -1,0 +1,857 @@
+/* grain_cpu d3: t1 + a record of each capture, saved on a half-press as C:\EP7MOD\GRAIND.BIN + a dark band on COLOR4. docs/GRAIN_PORT.md. Our own code.
+ * Block: 736 B from malloc (uncached heap), pointer at heap P+1000, magic at +0. Only uncached accesses, no store into the image.
+ *  Live record, 80 B: +0 magic, +4 guard, +5 stage, +6 committed, +7 window mode before the mapper, +8 counts F<<8 | G<<4 | R, +10 active width, +12 blend result, +14 rows done,
+ *   +16 format, +18 stride, +20 Hw, +22 rows, +24 x, +26 y, +28 bus, +32 size, +36 band<<4 | mode, +37 class, +38 level, +39 capture profile,
+ *   +40 first CPU address, +44 seed, +48 job+16, +52 job+20, +54 job class, +55 job entries, +56 active height, +58 capture kind, +60 capture mode, +61 rows split at a slice edge, +62 capture number,
+ *   +64 bus, +68 id of the first buffer record before the blend, +72, +76 the second.
+ *  +80 file header, 16 B: 'GRND', u16 version, u16 captures, u16 80, u16 8, u16 writes, u8 unwritten change, pad. +96: 8 records, slot = capture number & 7.
+ * The stage keeps the highest value since the record was cleared. A half-press copies it to its slot and writes the file if it changed;
+ * the next capture copies once more, moves to the next slot and clears. File I/O only on the half-press path (HLS_EVENT), as MOVIE.BIN. */
+ .set HW_MAX, 5461
+ .set GDIA, 0x41494447
+ .set BLK, 736
+ .set FILE_N, 656
+
+gc_pp:                            /* leaf, MDR return: a0 = heap P or 0. Uses d0 */
+ mov 0,a0
+ movhu ({state}),d0
+ add -1,d0
+ cmp {lim},d0
+ bcc 9f
+ btst 3,d0
+ bne 9f
+ mov d0,a0
+ add {pool},a0
+ mov (a0),d0
+ cmp {bmagic},d0
+ beq 8f
+ mov 0,a0
+ retf [],0
+9:
+ mov 0,a0
+8:
+ retf [],0
+
+gc_blk:                           /* `call gc_blk,[],8`: a1 = block or 0. Uses d0, a0 */
+ mov 0,a1
+ call gc_pp,[],0
+ cmp 0,a0
+ beq 9f
+ mov (1000,a0),a0
+ mov a0,d0
+ cmp 0xa0000000,d0
+ bcs 9f
+ cmp 0xb0000000,d0
+ bcc 9f
+ btst 3,d0
+ bne 9f
+ mov (a0),d0
+ cmp GDIA,d0
+ bne 9f
+ mov a0,a1
+9:
+ ret [],8
+
+gc_clr:                           /* leaf: clear the live record's +4..+43 and +48..+79 at a1. Uses d0, d1, a0 */
+ mov a1,a0
+ add 4,a0
+ mov 19,d1
+ clr d0
+1:
+ cmp 9,d1                         /* +44, the seed, stays */
+ beq 2f
+ mov d0,(a0)
+2:
+ add 4,a0
+ add -1,d1
+ bne 1b
+ retf [],0
+
+gc_mark:                          /* `call gc_mark,[d2,d3,a2,a3],32`, d0 = stage, d1 = guard. Uses d0, d1, a0, a1 */
+ mov d0,d2
+ mov d1,d3
+ call gc_blk,[],8
+ cmp 0,a1
+ bne 2f
+ call gc_pp,[],0
+ cmp 0,a0
+ beq 9f
+ mov BLK,d0
+ call ep7_malloc,[],4
+ cmp 0,a0
+ beq 9f
+ mov a0,a1
+ mov BLK/4,d1
+ clr d0
+1:
+ mov d0,(a0)
+ add 4,a0
+ add -1,d1
+ bne 1b
+ mov 0x444e5247,d0                /* 'GRND' */
+ mov d0,(80,a1)
+ mov 3,d0
+ movhu d0,(84,a1)
+ mov 80,d0
+ movhu d0,(88,a1)
+ mov 8,d0
+ movhu d0,(90,a1)
+ mov GDIA,d0
+ mov d0,(a1)
+ call gc_pp,[],0
+ mov a1,(1000,a0)
+2:
+ movbu (5,a1),d0
+ cmp d0,d2
+ bcs 9f
+ movbu d2,(5,a1)
+ movbu d3,(4,a1)
+9:
+ ret [d2,d3,a2,a3],32
+
+gc_cnt:                           /* `call gc_cnt,[d2],12`, d0 = what to add to the counts. Uses d0, a0, a1 */
+ mov d0,d2
+ call gc_blk,[],8
+ cmp 0,a1
+ beq 9f
+ movhu (8,a1),d0
+ add d2,d0
+ movhu d0,(8,a1)
+9:
+ ret [d2],12
+
+/* gc_flag: as t1, every exit has its own id. Stage 1. a2 = params+12, a3 = capture. */
+gc_flag:
+ clr d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32    /* makes the block on the first capture */
+ call gc_blk,[],8
+ cmp 0,a1
+ beq 2f
+ movbu (6,a1),d0
+ cmp 0,d0
+ beq 1f
+ call gc_sync,[d2,d3,a2,a3],32    /* committed by a half-press: last copy, next slot, clear. No file I/O here */
+ movhu (86,a1),d0
+ inc d0
+ movhu d0,(86,a1)
+ call gc_clr,[],0
+1:
+ movhu (86,a1),d0
+ movhu d0,(62,a1)
+ movhu (194,a3),d0
+ movhu d0,(58,a1)
+ movbu ({cap_mode},a3),d0
+ movbu d0,(60,a1)
+ movbu ({cap_profile},a3),d0
+ movbu d0,(39,a1)
+2:
+ mov 0x100,d0
+ call gc_cnt,[d2],12
+ movhu (-2,a2),d0
+ mov 0x01,d1
+ cmp 11,d0
+ bne 9f
+ movhu (-4,a2),d0
+ mov 0x02,d1
+ cmp 0,d0
+ bne 9f
+ movbu ({cap_mode},a3),d0
+ mov 0x03,d1
+ cmp 11,d0
+ bne 9f
+ movbu ({cap_profile},a3),d0
+ mov 0x04,d1
+ add -2,d0
+ cmp 3,d0
+ bcc 9f
+ movhu (194,a3),d0
+ mov 0x05,d1
+ cmp 0x2001,d0
+ beq 9f
+ mov 0x06,d1
+ cmp 0x2006,d0
+ beq 9f
+ mov 0x07,d1
+ cmp 0x1008,d0
+ beq 9f
+ mov 0x08,d1
+ cmp 0x1006,d0
+ beq 9f
+ mov (a2),d0
+ or 128,d0
+ mov d0,(a2)
+ clr d1
+9:
+ mov 1,d0
+ call gc_mark,[d2,d3,a2,a3],32
+ jmp ep7_bloom_flag
+
+/* gc_gs: the work-list word (`calls`, a0 = job). Stages 2 and 3. No block: stock, nothing to report with. */
+gc_gs:
+ movm [d2,d3,a2,a3],(sp)
+ add -16,sp
+ mov a0,(4,sp)
+ mov 0x10,d0
+ call gc_cnt,[d2],12
+ call gc_blk,[],8
+ cmp 0,a1
+ beq 1f
+ mov (4,sp),a0
+ mov (16,a0),d0
+ mov d0,(48,a1)
+ movhu (20,a0),d0
+ movhu d0,(52,a1)
+ movbu (11320,a0),d0
+ movbu d0,(54,a1)
+ movbu (11314,a0),d0
+ movbu d0,(55,a1)
+ add 6592,a0                      /* the first two buffer records in use, before the blend */
+ mov a1,a2
+ add 64,a2
+ mov 48,d2
+ mov 2,d3
+3:
+ mov (76,a0),d0
+ cmp 0,d0
+ beq 4f
+ mov d0,(4,a2)
+ mov (a0),d1
+ mov d1,(a2)
+ add 8,a2
+ add -1,d3
+ beq 1f
+4:
+ add 88,a0
+ add -1,d2
+ bne 3b
+1:
+ mov (4,sp),a0
+ movbu (15490,a0),d0
+ mov 0x10,d1
+ cmp 0xb2,d0
+ bne 80f
+ movbu (15489,a0),d0
+ mov 0x11,d1
+ cmp 11,d0
+ bne 80f
+ movhu (20,a0),d0
+ mov 0x12,d1
+ cmp 0x1000,d0
+ bne 80f
+ mov (11308,a0),d0
+ mov 0x13,d1
+ cmp 11,d0
+ bne 80f
+ movbu (15488,a0),d0
+ mov 0x14,d1
+ add -1,d0
+ beq 80f
+ cmp 4,d0
+ bcc 80f
+ mov d0,(8,sp)
+ mov 2,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ call gc_blk,[],8
+ cmp 0,a1
+ beq 90f
+ mov (4,sp),a0
+ mov ep7_sf,a1
+ calls (a1)
+ mov d0,(12,sp)
+ call gc_blk,[],8
+ mov (12,sp),d0
+ movhu d0,(12,a1)
+ exthu d0
+ mov 0x15,d1
+ cmp 0,d0
+ bne 70f
+ mov (4,sp),a0
+ mov 4096,d0
+ call ep7_bufidx,[d2],4
+ exthu d0
+ mov 0x16,d1
+ cmp 48,d0
+ bcc 70f
+ asl 3,d0
+ mov d0,d1
+ add d0,d0
+ add d0,d1
+ asl 2,d0
+ add d0,d1
+ mov (4,sp),a0
+ add 6592,a0
+ add d1,a0
+ mov a0,(4,sp)
+ mov 3,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ mov (4,sp),a0
+ mov (8,sp),d0
+ call gc_grain,[d2,d3,a2,a3],144
+ bra 20f
+70:
+ mov 3,d0
+ call gc_mark,[d2,d3,a2,a3],32
+20:
+ mov (12,sp),d0
+ ret [d2,d3,a2,a3],32
+80:
+ mov 2,d0
+ call gc_mark,[d2,d3,a2,a3],32
+90:
+ mov (4,sp),a0
+ add 16,sp
+ movm (sp),[d2,d3,a2,a3]
+ jmp ep7_sf
+
+{gc_open}
+/* gc_grain: as t1, with its own id on every exit. Stage 4 checks, 5 buffers, 6 rows, 7 done. COLOR4: the first 128 rows get the band.
+ * Locals as t1, plus (56) block, (60) level, (108) row routine, (112) bus, (116) words left, (120) H, (124) row in pass.
+ * Record layout (0x60354aee): +8 format, +10 stride, +12 w, +14 h, +16 active w, +18 active h, +20 x, +22 y. */
+gc_grain:
+ mov a0,(4,sp)
+ mov d0,(60,sp)
+ mov 2,d1
+ mov d1,(92,sp)
+ add -1,d0
+ add d0,d0
+ mov gc_stab,a1
+ movhu (d0,a1),d0
+ mov d0,(8,sp)
+ mov 1,d0
+ call gc_cnt,[d2],12
+ call gc_blk,[],8
+ mov a1,(56,sp)
+ mov (60,sp),d0
+ movbu d0,(38,a1)
+ mov (4,sp),a0
+ movhu (8,a0),d0
+ movhu d0,(16,a1)
+ movhu (10,a0),d0
+ movhu d0,(18,a1)
+ movhu (12,a0),d0
+ movhu d0,(20,a1)
+ movhu (14,a0),d0
+ movhu d0,(22,a1)
+ movhu (16,a0),d0
+ movhu d0,(10,a1)
+ movhu (18,a0),d0
+ movhu d0,(56,a1)
+ movhu (20,a0),d0
+ movhu d0,(24,a1)
+ movhu (22,a0),d0
+ movhu d0,(26,a1)
+ mov (a0),d0
+ mov d0,(28,a1)
+ mov (72,a0),d0
+ mov d0,(32,a1)
+ mov 4,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ mov (4,sp),a0
+ movhu (8,a0),d0
+ mov 0x20,d1
+ cmp 0x0302,d0
+ bne 60f
+ movhu (20,a0),d0
+ mov 0x21,d1
+ cmp 0,d0
+ bne 60f
+ movhu (22,a0),d0
+ mov 0x22,d1
+ cmp 0,d0
+ bne 60f
+ movhu (12,a0),d0
+ mov d0,(44,sp)
+ mov 0x23,d1
+ cmp 4,d0
+ bcs 60f
+ mov 0x24,d1
+ cmp HW_MAX+1,d0
+ bcc 60f
+ mov 0x25,d1
+ btst 3,d0
+ bne 60f
+ movhu (10,a0),d1
+ mov d1,d3
+ mov 0x26,d1
+ cmp d0,d3
+ bcs 60f
+ add d3,d3
+ mov d3,(24,sp)
+ movhu (14,a0),d2
+ mov d2,(48,sp)
+ mov 0x27,d1
+ cmp 0,d2
+ beq 60f
+ mov 0x28,d1
+ cmp 8193,d2
+ bcc 60f
+ mov d3,d0
+ mul d2,d0
+ mov d0,d3                        /* the whole image, bytes */
+ mov (72,a0),d2
+ mov 0x29,d1
+ cmp d2,d3
+ bhi 60f
+ mov (a0),d2
+ mov d2,(20,sp)
+ mov 0x2a,d1
+ cmp 0xa0000000,d2
+ bcs 60f
+ cmp 0xb0000000,d2
+ bcc 2f
+ add d3,d2
+ mov 0x2b,d1
+ cmp 0xb0000001,d2
+ bcc 60f
+ bra 3f
+2:
+ mov 0x2c,d1
+ cmp 0xe0000000,d2
+ bcc 60f
+ mov d2,d0
+ add d3,d0                        /* the end: the whole buffer in the mapper's range */
+ mov 0x32,d1
+ cmp 0xe0000001,d0
+ bcc 60f
+ mov 0x2d,d1
+ cmp 0xc4000000,d2                /* and clear of 0xc0000000..0xc3ffffff */
+ bcc 3f
+ cmp 0xc0000001,d0
+ bcc 60f
+3:
+ mov (44,sp),d0
+ mov d0,d1
+ lsr 1,d1
+ mov d1,(28,sp)
+ mov d1,(84,sp)
+ lsr 1,d1
+ mov d1,(32,sp)
+ mov d1,(72,sp)
+ mov d0,d1
+ add d0,d0
+ add d1,d0
+ call ep7_malloc,[],4
+ mov 0x2f,d1
+ cmp 0,a0
+ beq 60f
+ mov a0,(36,sp)
+ mov 8192,d0
+ call ep7_malloc,[],4
+ cmp 0,a0
+ bne 1f
+ mov (36,sp),a0
+ call ep7_free,[],4
+ mov 0x30,d1
+ bra 60f
+1:
+ mov a0,(12,sp)
+ mov 5,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ call ep7_flush,[d2,d3],16
+ mov (12,sp),d0
+ call gc_cach,[],0
+ mov a0,(88,sp)
+ mov (8,sp),d3
+ mov gc_G,a1
+ call gc_tbl,[d2,d3,a2,a3],16
+ mov (36,sp),d0
+ call gc_cach,[],0
+ mov a0,(64,sp)
+ mov (44,sp),d1
+ mov a0,a1
+ add d1,a1
+ mov a1,(100,sp)
+ add d1,a1
+ mov a1,(104,sp)
+ mov 15,d0
+1:
+ movbu d0,(a0)
+ inc a0
+ add -1,d1
+ bne 1b
+ mov (56,sp),a1
+ mov (44,a1),d0
+ cmp 0,d0
+ bne 2f
+ mov 0x12345678,d0
+2:
+ mov d0,(76,sp)
+ clr d0
+ mov d0,(16,sp)
+3:
+ mov (48,sp),d0
+ mov (16,sp),d1
+ sub d1,d0
+ mov (92,sp),d1
+ cmp d1,d0
+ bcc 1f
+ mov d0,d1
+1:
+ mov d1,(96,sp)
+ mov (100,sp),a0
+ mov a0,(68,sp)
+ mov gc_p1,a0
+ calls (a0)
+ mov (96,sp),d0
+ cmp 2,d0
+ bcs 2f
+ mov (104,sp),a0
+ mov a0,(68,sp)
+ mov gc_p1,a0
+ calls (a0)
+2:
+ mov gc_p2,a0                     /* COLOR4, first 128 rows: the band instead of the grain */
+ mov (60,sp),d0
+ cmp 3,d0
+ bne 1f
+ mov (16,sp),d0
+ cmp 128,d0
+ bcc 1f
+ mov gc_p3,a0
+1:
+ mov a0,(108,sp)
+ mov 6,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ mov (108,sp),d0
+ cmp gc_p3,d0
+ bne 1f
+ mov (56,sp),a1
+ movbu (36,a1),d0
+ or 0x10,d0
+ movbu d0,(36,a1)
+1:
+ mov (16,sp),d0                   /* first byte of this pass */
+ mov (24,sp),d1
+ mul d1,d0
+ mov (20,sp),d1
+ add d1,d0
+ mov d0,(112,sp)
+ mov (96,sp),d1                   /* its last byte, same 128 MB slice? */
+ add -1,d1
+ mov (24,sp),d2
+ mul d2,d1
+ mov (44,sp),d2
+ add d2,d2
+ add d2,d1
+ add -1,d1
+ add d0,d1
+ lsr 27,d0
+ lsr 27,d1
+ cmp d0,d1
+ bne 30f
+ mov (112,sp),d0
+ mov d0,d3
+ call gc_open,[d2,d3,a2,a3],32
+ mov d0,(40,sp)
+ mov d1,(52,sp)
+ mov (56,sp),a1
+ call gc_cls,[],8
+ cmp 0,a0
+ beq 6f
+ mov a0,d0
+ add -0x40000000,d0
+ mov d0,(80,sp)
+ mov (28,sp),d0
+ mov d0,(84,sp)
+ mov (100,sp),a1
+ mov a1,(68,sp)
+ mov (108,sp),a0
+ calls (a0)
+ mov (96,sp),d0
+ cmp 2,d0
+ bcs 5f
+ mov (80,sp),d0
+ mov (24,sp),d1
+ add d1,d0
+ mov d0,(80,sp)
+ mov (104,sp),a1
+ mov a1,(68,sp)
+ mov (108,sp),a0
+ calls (a0)
+5:
+ call ep7_flush,[d2,d3],16
+ mov (52,sp),d0
+ cmp -1,d0
+ beq 4f
+ call ep7_modeset,[d2,d3,a2],20
+4:
+ mov (40,sp),d0
+ call ep7_unlock,[d2],8
+ bra 40f
+30:                               /* the pass crosses a slice edge: one row at a time, each split where it must be */
+ clr d0
+ mov d0,(124,sp)
+31:
+ mov (124,sp),d0
+ mov (16,sp),d1
+ add d1,d0
+ mov (24,sp),d1
+ mul d1,d0
+ mov (20,sp),d1
+ add d1,d0
+ mov d0,(112,sp)
+ mov (28,sp),d0
+ mov d0,(116,sp)
+ mov (100,sp),a1
+ mov (124,sp),d0
+ cmp 0,d0
+ beq 1f
+ mov (104,sp),a1
+1:
+ mov a1,(120,sp)
+32:
+ mov (112,sp),d0
+ mov d0,d3
+ call gc_open,[d2,d3,a2,a3],32
+ mov d0,(40,sp)
+ mov d1,(52,sp)
+ mov (56,sp),a1
+ call gc_cls,[],8
+ cmp 0,a0
+ beq 6f
+ mov a0,d0
+ add -0x40000000,d0
+ mov d0,(80,sp)
+ mov (112,sp),d0                  /* words to this slice's end */
+ and 0x07ffffff,d0
+ mov 0x08000000,d1
+ sub d0,d1
+ lsr 2,d1
+ mov (116,sp),d0
+ cmp d0,d1
+ bcc 1f
+ mov d1,d0
+ mov (56,sp),a1
+ movbu (61,a1),d1
+ inc d1
+ movbu d1,(61,a1)
+1:
+ mov d0,(84,sp)
+ mov (120,sp),a1
+ mov a1,(68,sp)
+ mov (108,sp),a0
+ calls (a0)
+ call ep7_flush,[d2,d3],16
+ mov (52,sp),d0
+ cmp -1,d0
+ beq 4f
+ call ep7_modeset,[d2,d3,a2],20
+4:
+ mov (40,sp),d0
+ call ep7_unlock,[d2],8
+ mov (84,sp),d0
+ mov (116,sp),d1
+ sub d0,d1
+ mov d1,(116,sp)
+ cmp 0,d1
+ beq 33f
+ add d0,d0
+ mov (120,sp),d1
+ add d0,d1
+ mov d1,(120,sp)
+ add d0,d0
+ mov (112,sp),d1
+ add d0,d1
+ mov d1,(112,sp)
+ bra 32b
+33:
+ mov (124,sp),d0
+ inc d0
+ mov d0,(124,sp)
+ mov (96,sp),d1
+ cmp d1,d0
+ bcs 31b
+40:
+ mov (16,sp),d0
+ mov (96,sp),d1
+ add d1,d0
+ mov d0,(16,sp)
+ mov (56,sp),a1
+ movhu d0,(14,a1)
+ mov (48,sp),d1
+ cmp d1,d0
+ bcs 3b
+ mov 7,d0
+ clr d1
+ call gc_mark,[d2,d3,a2,a3],32
+ bra 7f
+6:
+ mov (40,sp),d0
+ call ep7_unlock,[d2],8
+ mov 6,d0
+ mov 0x31,d1
+ call gc_mark,[d2,d3,a2,a3],32
+7:
+ mov (56,sp),a1
+ mov (76,sp),d0
+ mov d0,(44,a1)
+ call ep7_flush,[d2,d3],16
+ mov (12,sp),a0
+ call ep7_free,[],4
+ mov (36,sp),a0
+ call ep7_free,[],4
+ bra 99f
+60:
+ mov 4,d0
+ call gc_mark,[d2,d3,a2,a3],32
+99:
+ ret [d2,d3,a2,a3],144
+
+/* gc_cls: `call gc_cls,[],8` under the lock: a0 = CPU address or 0, d1 = mode to restore or -1, d3 = bus, a1 = block. Records class, modes, first address.
+ * Keeps a0. Uses d0. */
+gc_cls:
+ mov a0,(4,sp)
+ mov 3,d0
+ cmp 0,a0
+ beq 2f
+ mov 2,d0
+ cmp -1,d1
+ bne 1f
+ mov 1,d0
+ cmp 0xb0000000,d3
+ bcc 2f
+ clr d0
+ bra 2f
+1:
+ movbu d1,(7,a1)
+2:
+ movbu d0,(37,a1)
+ cmp 0,a0
+ beq 3f
+ mov (40,a1),d0
+ cmp 0,d0
+ bne 3f
+ mov a0,(40,a1)
+3:
+ call ep7_modeget,[],0
+ movbu (36,a1),d1
+ and 0xf0,d1
+ and 15,d0
+ or d1,d0
+ movbu d0,(36,a1)
+ mov (4,sp),a0
+ ret [],8
+
+/* gc_p3: `calls`, as gc_p2: Y0, Y1 -> 16, Cb and Cr kept */
+gc_p3:
+ mov (80,sp),a0
+ mov (84,sp),a2
+1:
+ mov (a0),d0
+ and 0xff00ff00,d0
+ or 0x00100010,d0
+ mov d0,(a0)
+ add 4,a0
+ add -1,a2
+ cmp 0,a2
+ bne 1b
+ rets
+
+/* gc_sync: `call gc_sync,[d2,d3,a2,a3],32`, a1 = block. Copy a used live record to its slot; note a change. Keeps a1. Uses d0, d1, a0 */
+gc_sync:
+ movbu (5,a1),d0
+ cmp 0,d0
+ beq 9f
+ movhu (86,a1),d0
+ and 7,d0
+ asl 4,d0
+ mov d0,d1
+ asl 2,d0
+ add d1,d0
+ add 96,d0
+ add a1,d0
+ mov d0,a0
+ mov a1,a2
+ mov 20,d2
+ clr d3
+1:
+ mov (a2),d0
+ mov (a0),d1
+ cmp d0,d1
+ beq 2f
+ mov d0,(a0)
+ mov 1,d3
+2:
+ add 4,a0
+ add 4,a2
+ add -1,d2
+ bne 1b
+ cmp 0,d3
+ beq 9f
+ mov 1,d0
+ movbu d0,(94,a1)
+9:
+ ret [d2,d3,a2,a3],32
+
+/* gc_trig: jmp from the loader's sd_back, frame as ed_trig (event at (16,sp)), task HLS_EVENT. Every failure is silent. Then mv_trig. */
+gc_trig:
+ add -16,sp
+ mov d0,(0,sp)
+ mov d1,(4,sp)
+ mov a0,(8,sp)
+ mov a1,(12,sp)
+ mov (32,sp),d0
+ cmp {ev_press},d0
+ bne 9f
+ movm [d2,d3,a2,a3],(sp)
+ add -4,sp
+ call gc_blk,[],8
+ cmp 0,a1
+ beq 8f
+ movbu (5,a1),d0
+ cmp 0,d0
+ beq 8f
+ mov 1,d0
+ movbu d0,(6,a1)
+ call gc_sync,[d2,d3,a2,a3],32
+ movbu (94,a1),d0
+ cmp 0,d0
+ beq 8f
+ clr d0
+ movbu d0,(94,a1)
+ movhu (92,a1),d0
+ inc d0
+ movhu d0,(92,a1)
+ mov a1,a2
+ mov 2048,d0
+ call ep7_malloc,[],4
+ mov a0,a3
+ cmp 0,a3
+ beq 8f
+ mov gc_path,a0
+ mov a2,a1
+ add 80,a1
+ mov FILE_N,d0
+ call ep7_wfile,[d2,d3,a2,a3],28
+ mov a3,a0
+ call ep7_free,[],4
+8:
+ add 4,sp
+ movm (sp),[d2,d3,a2,a3]
+9:
+ mov (0,sp),d0
+ mov (4,sp),d1
+ mov (8,sp),a0
+ mov (12,sp),a1
+ add 16,sp
+ jmp ep7_mv_trig
+
+{gc_shared}
+gc_btab:
+ .byte 0xb0,0xb8,0xb0,0xb0,0xb0,0xb8
+gc_mtab:
+ .byte 0,0,2,3,4,4
+ .balign 2
+gc_stab:
+ .hword 28,68,112
+gc_path:
+ .asciz "C:\\EP7MOD\\GRAIND.BIN"
+gc_G:
+{g_bytes}
+gc_end:
