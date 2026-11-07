@@ -10,13 +10,13 @@ Flashed and used on an E-P7. **Reports wanted:** long recordings haven't been te
 - **Movie colour:** movie picture mode Vivid becomes its own colour profile, with the same pages as the stills wheel, separate from COLOR1-4 and stored in the new `EP7MOD/MOVIE.BIN`.
   1. Half-press the shutter once after switching on. This loads the profile, and clips shot before it are stock Vivid.
   2. In movie mode, select Vivid in Live Control (the strip up the side of the screen, not the Super Control Panel).
-  3. Press **INFO** to open the wheel. There is no on-screen hint for this yet.
+  3. Press **INFO** to open the wheel. Once loaded, Vivid's name reads `INFO Custom` in movie mode; stills Vivid stays Vivid.
   - Glow and Art Effects are off in movies. Muted still gives log. Without `MOVIE.BIN`, movie Vivid is stock Vivid.
 - **Vertical video:** clips shot in portrait or upside down record their rotation, so they no longer import sideways. A clip keeps the rotation the camera had when recording started.
 - **Card files:** add `EP7MOD/MOVIE.BIN` and keep your `BUNDLES.BIN`. The builder's card copy leaves an existing `MOVIE.BIN` alone.
 - Firmware screen shows `Caduceus: 0.26`.
 
-**Not tested yet:** recordings of 20+ minutes in 4K, chapter splits, players other than ffmpeg's reading of the rotation, and Movie settings surviving a power cycle. The Control Panel can't export `MOVIE.BIN` yet, so edit the Movie profile on the camera.
+**Not tested yet:** recordings of 20+ minutes in 4K, chapter splits, and players other than ffmpeg's reading of the rotation. The Control Panel can't export `MOVIE.BIN` yet, so edit the Movie profile on the camera.
 
 **Known issues:** the Super Control Panel value cell still shows 4:3 on Panorama and Wide, and a clip started before the first half-press is stock Vivid.
 

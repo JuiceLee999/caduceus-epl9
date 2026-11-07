@@ -163,7 +163,7 @@ mv_load:                          /* a2 = P. Locals (4,sp) handle */
  mov (12,a1),d0
  cmp d0,d1
  bne l_free
- mov a1,a0                        /* ranges: H/L +0..23, WB +26/27 -7..7; sat +33..44, B/W +47/48 -5..5; +49..63 zero; name ends NUL */
+ mov a1,a0                        /* ranges: H/L +0..23, WB +26/27 -7..7; sat +33..44, B/W +47/48 -5..5; +50..63 zero; name ends NUL */
  add 16,a0
  mov 24,d0
  mov 7,d1
@@ -192,8 +192,8 @@ mv_load:                          /* a2 = P. Locals (4,sp) handle */
  cmp 0,d0
  bne l_free
  mov a3,a0
- add {fb}+16+49,a0
- mov 15,d0
+ add {fb}+16+50,a0                /* +49 is a Film pick's lens correction byte: not checked */
+ mov 14,d0
  clr d1
  call mv_rng,[d2,d3],8
  cmp 0,d0

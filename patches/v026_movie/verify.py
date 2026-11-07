@@ -4,7 +4,7 @@
 K key via real 0x60316bc7/0x60324d6b/mapper, M message +20, S effective S via the real getter, B WB via wb_get, P lv/tone profile, C constructor + lv_art:
   v0.25 byte-for-byte unless movie + Vivid + card table. W wheel spoofs. L the real Live Control handler. D image diff only at our sites (loader / save / look code untouched). A anti-brick.
 """
-import hashlib, importlib.util, json, struct, sys
+import os, hashlib, importlib.util, json, struct, sys
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools')); sys.path.insert(0, str(ROOT / 'external/oly_fw_analysis/tools'))
@@ -385,7 +385,9 @@ def t_file(new, sym, spec):
                 stub(0x602af887, ' mov 3,d0\n ret [],4', 'sg'), stub(Sk('ep7_fread'), rd, 'fr2'), stub(Sk('ep7_fwrite'), wr, 'fw')]
     badhue = bytearray(SLOT); badhue[3] = 9
     badtail = bytearray(SLOT); badtail[50] = 1
-    cases = [('good', movie_file(), True), ('nofile', None, False), ('crc', movie_file(crc_bad=True), False), ('ver', movie_file(ver=2), False), ('short', movie_file()[:95], False), ('long', movie_file() + b'x', False),
+    picked = bytearray(SLOT); picked[49] = 1
+    card = Path(os.environ['EP7_MOVIE_CARD']).read_bytes() if os.environ.get('EP7_MOVIE_CARD') else movie_file(bytes(picked), name=b'Bleach Byp.')
+    cases = [('good', movie_file(), True), ('filmpick', movie_file(bytes(picked)), True), ('card', card, True), ('nofile', None, False), ('crc', movie_file(crc_bad=True), False), ('ver', movie_file(ver=2), False), ('short', movie_file()[:95], False), ('long', movie_file() + b'x', False),
              ('hue', movie_file(bytes(badhue)), False), ('tail', movie_file(bytes(badtail)), False), ('name', movie_file(name=b'A' * 16), False)]
     for name, f, ok in cases:
         pb = bytearray(block(bytes(512), HANDLE, False)); pb[560:565] = b'Other'
@@ -397,7 +399,7 @@ def t_file(new, sym, spec):
         marked = p[Bd.VM:Bd.VM + 4] == b'EP7V'
         good = not r['fault'] and marked == ok and (fr[0] == 1) == (not ok) and r['registers']['a2'] == P_AT
         if ok:
-            good = good and q[224:288] == SLOT and q[592:597] == b'Movie' and q[560:565] == b'Other' and q[Bd.VM:Bd.VM + 4] == b'EP7V' and struct.unpack_from('<I', q, Bd.VP)[0] == P2_AT == struct.unpack_from('<I', p, Bd.VP)[0] and struct.unpack_from('<I', q, Bd.VH)[0] == HANDLE and p[224:288] == bytes(64) and p[592:597] == bytes(5)
+            good = good and q[224:288] == f[16:80] and q[592:608] == f[80:96] and q[560:565] == b'Other' and q[Bd.VM:Bd.VM + 4] == b'EP7V' and struct.unpack_from('<I', q, Bd.VP)[0] == P2_AT == struct.unpack_from('<I', p, Bd.VP)[0] and struct.unpack_from('<I', q, Bd.VH)[0] == HANDLE and p[224:288] == bytes(64) and p[592:597] == bytes(5)
         if not good:
             bad.append(('load', name, r['fault'], marked, fr[:4].hex(), hex(r['registers']['pc'])))
     q = bytearray(block(bytes(512), HANDLE, True)); q[224:288] = SLOT; q[592:597] = b'Movie'
@@ -477,6 +479,36 @@ def t_l2(new, sym, spec):
     return n, bad
 
 
+def t_label(new, base, spec):
+    """Real builder A and B, real film-menu hook: Vivid -> our text only in movie with the slot loaded; else identical to base."""
+    bad, n = [], 0
+    A, B_ = 0x60df250b, 0x60df25b5
+    LBL, LIST, SRC_, STKS = 0x18060000, 0x18061000, 0x18061100, 0x18010000
+    want = b'INFO Custom'
+    def run(im, build_a, sid, loaded, sid_id):
+        ent = struct.pack('<IHHI', 0, 4, sid_id, 0x61163e78)
+        code = [img(im, 0x60df2400, 0x60df2700, 'bld'), img(im, 0x61242d00, 0x61242f00, 'fh'), img(im, Bd.H_AT, Bd.H_END, 'h'), stub(0x602af887, f' mov {sid},d0\n ret [],4', 'sg')]
+        pb = bytearray(block(bytes(512), HANDLE, loaded))
+        cl = (f' .am33_2\n .text\n .global _start\n_start:\n mov {LBL},d0\n mov d0,(4,sp)\n mov 0,d0\n mov 1,d1\n mov {LIST},a1\n call tgt,[d2,d3,a2,a3],24\n nop\n nop\n'
+              if build_a else f' .am33_2\n .text\n .global _start\n_start:\n mov {LBL},d0\n mov {SRC_},a1\n call tgt,[d2,a2,a3],20\n nop\n nop\n')
+        c, _, _, _ = SB3.assemble(cl, 0x18040000, dict(tgt=A if build_a else B_))
+        rg = [*code, Region('caller', 0x18040000, c, 'rx'), Region('label', LBL, bytes(80), 'rw', True), Region('list', LIST, ent + bytes(4), 'r'), Region('src', SRC_, ent[4:], 'r'),
+              Region('state', 0x622cbcc0, struct.pack('<HHI', 0, HANDLE, 0), 'r'), Region('pool', P_AT, bytes(pb), 'r'), Region('stack', STKS, bytes(0x1000), 'rw')]
+        return execute(rg, dict(pc=0x18040000, sp=STK, a0=0x77, d2=0x1111, d3=0x2222, a3=0x3333), 0x18040000 + len(c) - 2, limit=5000)
+    for build_a in (True, False):
+        for sid, loaded, sid_id, hit in ((1, True, 1657, True), (0, True, 1657, False), (1, False, 1657, False), (1, True, 1658, False), (0, False, 1657, False)):
+            r = run(new, build_a, sid, loaded, sid_id); n += 1
+            l = bytes.fromhex(r['memory'][0]['hex'])
+            if hit:
+                ok = not r['fault'] and l[0] == 5 and l[8:8 + 2 * len(want)] == b''.join(bytes([c, 0]) for c in want) and l[8 + 2 * len(want):74] == bytes(74 - 8 - 2 * len(want)) and r['registers']['d0'] == len(want)
+            else:
+                b = run(base, build_a, sid, loaded, sid_id)
+                ok = not r['fault'] and not b['fault'] and l == bytes.fromhex(b['memory'][0]['hex']) and l[0] == 4 and {k: r['registers'][k] for k in ('d0', 'd1', 'd2', 'd3', 'a0', 'a1', 'a2', 'a3', 'sp', 'pc')} == {k: b['registers'][k] for k in ('d0', 'd1', 'd2', 'd3', 'a0', 'a1', 'a2', 'a3', 'sp', 'pc')}
+            if not ok:
+                bad.append(('AB'[not build_a], sid, loaded, sid_id, r['fault'], hex(r['registers']['pc']), l[:12].hex()))
+    return n, bad
+
+
 def main():
     base_p, new_p = sys.argv[1:3]
     bsp, spec = json.loads(Path(base_p).read_text()), json.loads(Path(new_p).read_text())
@@ -502,12 +534,14 @@ def main():
         n, bad = t_lc(new, base); rep('L Live Control INFO (real handler)', n, bad)
         n, bad = t_file(new, sym, spec); rep('F MOVIE.BIN load/save', n, bad)
         n, bad = t_l2(new, sym, spec); rep('T Film table for the Movie slot', n, bad)
+        n, bad = t_label(new, base, spec); rep('N label builders', n, bad)
     # D: only our sites differ
     m = spec['v026_movie']
     al = [(Bd.AT, Bd.AT + m['code_len']), (Bd.KEY_SITE, Bd.KEY_SITE + 7), (Bd.MSG_SITE, Bd.MSG_SITE + 8), (Bd.S_SITE + 1, Bd.S_SITE + 5), (Bd.LV_GET + 1, Bd.LV_GET + 5), (Bd.TONE_GET + 1, Bd.TONE_GET + 5),
           (Bd.CONS + 1, Bd.CONS + 5), (0x601e1c40, 0x601e1c64)] + [(w + 1, w + 5) for w in Bd.WB_SITES]
     if wheel:
         al += [(Bd.W_AT, Bd.W_AT + m['wheel_len']), (Bd.L_AT, Bd.L_AT + m['load_len']), (Bd.S_AT, Bd.S_AT + m['save_len']), (Bd.W_GETV, Bd.W_GETV + 4), (Bd.DEF_WORD, Bd.DEF_WORD + 4), (Bd.EXIT_WORD, Bd.EXIT_WORD + 4), (Bd.LC, Bd.LC + 6), (Bd.POLY, Bd.POLY + 5)]
+        al += [(Bd.H_AT, Bd.H_AT + m['label_len']), (Bd.LB_A + 1, Bd.LB_A + 5), (Bd.LB_B + 1, Bd.LB_B + 5)]
         al += [(x + 1, x + 5) for x in (Bd.POLY2, Bd.SET_SITE, Bd.GSAVE_SITE, Bd.SD_BACK, *Bd.TBL_SITES)]
     diff = [i + BASE for i in range(len(new)) if new[i] != base[i]]
     rest = [hex(a) for a in diff if not any(x <= a < y for x, y in al)]

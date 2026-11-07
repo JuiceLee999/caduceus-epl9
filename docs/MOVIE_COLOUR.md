@@ -212,7 +212,9 @@ Not read exhaustively: per-key hash tables in the ISP stages. Stills LV runs key
 
 **Camera: `wheel2` opens the wheel with INFO.** Film and Extras then showed "All colors[INFO]": `ed_guide` (`0x60b9ddb6`) and `ex_guide` (`0x601e34ea`) read GetValue(111) themselves, got 0, and fell back to the stock label [V]. `wheel4` adds both return addresses to `mv_get` (Mono `0x601e1761` is left alone).
 
-**Label attempt, rolled back (commit `661fe23`, pkg `7c6da758`):** kind-5 text `Custom - INFO for setup` for string 1657 at the label builders. Camera: the name didn't change and INFO no longer opened the wheel. Emulation of the builders had passed; the cause isn't known and the screen stack isn't emulated. Don't retry this route without finding why INFO broke.
+**Saved-file bug in the first v0.26 build (`d54b64a6`):** a Film pick sets slot +49 = 1 (lens correction off), and `mv_save` writes it, but `mv_load` required +49..63 = 0. From the next power-on the file is rejected, so the Movie slot doesn't load: INFO does nothing, clips are stock Vivid, and the label can't fire. The camera's own save is intact. `movie4` skips +49 in the check (2 bytes), and the real card file loads in emulation.
+
+**Label attempts:** `7c6da758` (`Custom - INFO for setup`) was rolled back after the camera showed no new name and a dead INFO. Those symptoms fit the saved-file bug, so that test said nothing about the label [I]. `movie4` (`69eb70ca`) has the label as `INFO Custom`, with the loader fix, and is the released v0.26. Camera: reported working on 2026-11-07.
 
 **INFO hint on the strip: not built.** The strip's Vivid entry is a bitmap (lists `0x611748f0`, `0x61174c74`), so there's no text to swap. Text lists with Vivid (`0x611686d4` and two others) belong to item table `0x6116ae1c`, not this viewer. The only gated route found is hooking `0x60df250b`, which has 277 callers, and a kind-5 text in that cell is likely to clip (ASPECT §1b).
 
