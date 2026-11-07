@@ -9,7 +9,7 @@ recording.
 
 *Named after the caduceus, the staff of Hermes: messenger between gods and mortals and guide of travellers.*
 
-**Latest release: [v0.27](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.27)** ·
+**Latest release: [v0.28](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.28)** ·
 **[Install guide](docs/INSTALL.md)** · **[Changelog](CHANGELOG.md)** · **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** (make and share looks in your browser) · The camera's Setup › Firmware screen shows the Caduceus version.
 
 > [!WARNING]
@@ -40,6 +40,7 @@ recording.
 | **LCD colour fix** | The rear screen no longer looks slightly pink (+8 % green by default), and Monitor Adjust's colour slider becomes a green ↔ magenta slider (−7..+7, about 2.3 % per step) instead of warm/cool. Display only: photos, movies and HDMI are unchanged. | New in v0.20 |
 | **Extras per profile** | Bloom ↔ clarity (one slider), WB amber/blue and green/magenta shift, and Art Effects (Star Light, Pin Hole; Blur removed in v0.21, it could restart the camera). | Camera-tested |
 | **Film grain** | Real film-like grain on colour photos, per COLOR profile: Extras sector 1 **Grain** Off / Low / Med / High. It's added to the finished photo's brightness, so colour is untouched. Photos with grain take a few seconds longer to save; Off costs nothing. Stills only. | **New in v0.27** |
+| **Sharpening off per profile** | Extras sector 10 **Sharp**: **Camera** (your Sharpness setting) or **Off**, which turns the camera's sharpening fully off for that COLOR profile, for a softer, unsharpened look with no edge halos. Sharpness −2 still leaves about 40% of it on. Stills, and the Movie profile. Set by you, never by a look. | **New in v0.28** |
 | **Noise reduction per profile** | The camera's own noise reduction (Noise Filter) per COLOR profile: Extras sector 9 **NR** Camera / Std / Low / Off (most texture). It applies at each photo and follows a profile switch, without changing the menu setting. | Camera-tested |
 | **Lens vignette correction off per look** | Picking a look turns the camera's lens shading correction off for that profile, for natural corners, without changing the menu setting. Extras sector 8 changes it (**VigFix Off** / **VigFix Camera**), and a look can keep the correction in the Control Panel. | **New in v0.25, please report:** not yet confirmed on photos. See [how to test](#vignette-correction-reports-wanted) |
 | **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profiles, built from OM's own mono settings. Label `<name>`, `*` when modified. | Camera-tested |
@@ -68,8 +69,8 @@ The builder downloads OM's official 1.1 firmware from OM's server, checks it, an
   - Windows: `Build Caduceus (Windows).bat`
   - macOS: `Build Caduceus (Mac).command` (the first time: right-click › **Open**)
   - Linux: `build-caduceus-linux.sh`
-- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.27`
-  (Windows: `py caduceus.py build --release v0.27`).
+- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.28`
+  (Windows: `py caduceus.py build --release v0.28`).
 
 It creates a folder with:
 
@@ -149,7 +150,7 @@ read at boot). No `EP7MOD` folder = the camera behaves almost stock.
 2. Open that profile's colour wheel, press **INFO** until the page shows `Film: <name>` (the Film page).
 3. Turn the dial to scroll looks (`Film: Velvia`, `Film: Portra 400`, … `Stock`). Leave the editor and **half-press** to save.
 
-Picking a look sets that profile's colours, glow/clarity, WB shift, Art Effect and tone curve. Grain and NR stay as you set them for each profile.
+Picking a look sets that profile's colours, glow/clarity, WB shift, Art Effect and tone curve. Grain, NR and Sharp stay as you set them for each profile.
 Saturation stays yours. A `*` after the name means you've changed something since picking it.
 
 **Fine-tune a look** (same colour wheel, **INFO** cycles the pages):
@@ -159,7 +160,7 @@ Saturation stays yours. A `*` after the name means you've changed something sinc
 | Saturation (· All) | stock per-colour saturation (INFO also toggles single colour / all colours) |
 | Hue / Light | shift or brighten/darken one colour sector (pick the sector with the other dial) |
 | Film | choose a look from the library |
-| Extras | sector 1 Grain Off / Low / Med / High · 2 glow ← → clarity · 3 WB amber/blue · 4 WB green/magenta · 5 Art Effect · 6 Blacks · 7 Whites · 8 VigFix Off / Camera (lens vignette correction) · 9 NR Camera / Std / Low / Off (noise reduction) |
+| Extras | sector 1 Grain Off / Low / Med / High · 2 glow ← → clarity · 3 WB amber/blue · 4 WB green/magenta · 5 Art Effect · 6 Blacks · 7 Whites · 8 VigFix Off / Camera (lens vignette correction) · 9 NR Camera / Std / Low / Off (noise reduction) · 10 Sharp Camera / Off (sharpening) |
 
 Highlights/Midtones/Shadows are on the camera's normal tone-curve screen; picking a look sets them for you.
 

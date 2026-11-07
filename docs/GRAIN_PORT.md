@@ -505,3 +505,33 @@ Build: `patches/v027/build.py` (`apply(spec)` on `releases/v0.26/edits.json`, la
 - **Glow, Clarity and Art Effect looks keep their own passes**, and the grain is added after them. Pin Hole is the exception: its vignette pass runs after the grain.
 - **Files:** BUNDLES.BIN and MOVIE.BIN with Grain set are rejected by v0.26 and older. Set Grain to Off before going back.
 - The Control Panel sets Grain and NR per COLOR profile (firmware option "v0.27 or later").
+
+## v0.27 r2: s3's grain back (2026-11-07, not camera-tested as a whole)
+
+Owner on r1: far too much grain, "step it back to how it was before". **r2 = r1 with s3's grain**:
+- full-resolution noise (16 KB ring, two row offsets);
+- strengths 23 / 55 / 91, centre 991;
+- the model in `grain_cpu/verify_s1.py` `expected()`, camera-tested in PB071873..76.
+
+Everything else is r1's:
+- no `GRAIND.BIN` and no card writes, record in RAM only;
+- Extras 1 Grain and 9 NR;
+- picks, Own, Stock and defaults keep Grain and NR;
+- the alignment checks;
+- label `0.27`.
+
+Source `patches/grain_cpu/gr2.s.in` is made from s3's `gs1.s.in` with only r1's cleanup edits. These routines are instruction-for-instruction s3's: `gc_grain`, `gc_fill`, `gc_next`, `gc_p2`, `gc_tbl`, `gc_open`, `gc_cach`, `gc_cls`, `gc_gs`, `gc_ob`, `gc_wl`, `gc_lvl`, `gc_pend`, `gc_route`, `gc_nomod`, and the tables. Changed: `gc_flag`, which clears the record instead of syncing a file slot; `gc_mark`, with a 128-B block and no file header; plus `gc_def` added and `gc_sync` / `gc_trig` / `gc_path` removed.
+
+`patches/v027/build.py` now builds r2 (`build_r2.py`). Package `generated/grain_cpu/r2/`, `ac831658…5eac`; restore `963f4dfe…2327`. Verify (`patches/v027/verify.py`): M 22 (bit-exact to s3's model), F 11, O 4, L 56, A 96, W 13, E 37, K 17, N 2, Y 1, X 637, B, P: all pass. The r1 notes above (coarser grain, 40 / 102 / 180) are superseded. `model_r1.py`, `gr1.s.in` and `build_r1.py` stay only as a record.
+
+### Release notes (v0.27), as built from r2
+- **Grain** (Extras sector 1, per COLOR profile): Off / Low / Med / High.
+  - Film grain on COLOR stills, added to the photo's brightness, colour untouched.
+  - Off means exactly v0.26 behaviour and speed.
+  - Not in live view, movies, the Movie slot or MONO.
+- **NR** moves to Extras sector 9, with the same values and the same saved byte.
+- **Grain and NR are yours:** picking a look, Own, Stock or resetting never changes them. NR stored in LOOKS.BIN is ignored.
+- **Saving takes longer with grain on:** "decently slow but workable" on the E-P7 (s3 build). Burst with grain on is slow. Off costs nothing.
+- **Glow, Clarity and Art Effect looks keep their own passes**, and the grain is added after them. Pin Hole is the exception: its vignette pass runs after the grain.
+- **Files:** BUNDLES.BIN and MOVIE.BIN with Grain set are rejected by v0.26 and older. Set Grain to Off before going back.
+- The Control Panel (`webapp/`) doesn't know +50 or the NR move yet.

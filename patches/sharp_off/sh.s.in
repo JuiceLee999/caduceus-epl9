@@ -1,0 +1,146 @@
+/* E-P7 1.1 sharpening off per COLOR profile, test t1 (ep7-firmware, our own code). docs/SHARPENING_OFF.md.
+ * Slot byte +51: 1 = the camera's edge enhancement off, anything else = camera. Sharpness -5 puts the gain index of
+ * stage 0x603ac0c1 at 0 for key 11 (base 5, both base tables), so the gain byte is 0 at every ISO.
+ *   sh_get  <- getter rel32 at 0x602a7eda (stills capture, key 0x8119): sc_slot hit and +51 == 1 -> -5
+ *   sh_msg  <- jmp at 0x60315900 (was mv_msg): movie + record Vivid + Movie slot (P2 +224) +51 == 1 -> message +18 (Sharpness) = -5;
+ *              then mv_msg as before. Only d0 and a0 change, as at the site.
+ *   sh_sg / sh_ss / sh_su <- tone_x's sector >= 7 jumps (were gc_sg9 / gc_ss9 / gc_su9): sector 10 (index 9) = +51
+ *   sh_def  <- ex_default hit tail jmp (was gc_def): sector 10 answers its current value, so a reset keeps it
+ * All reads, no absolute stores, no mul/div/setlb.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+ .macro TAB d, a, miss
+ movhu ({state}),\d
+ add -1,\d
+ cmp {lim},\d
+ bcc \miss
+ btst 3,\d
+ bne \miss
+ mov \d,\a
+ add {pool},\a
+ mov (\a),\d
+ cmp {bmagic},\d
+ bne \miss
+ mov ({vm},\a),\d
+ cmp {vmagic},\d
+ bne \miss
+ .endm
+
+sh_get:                           /* frame [d2,d3],12 from the site, d0 = 0x8119, d1 = 0, a0 = 0 */
+ mov d1,d2
+ mov a0,d3
+ call ep7_sc_slot,[],4
+ cmp 0,a0
+ beq 1f
+ movbu (51,a0),d0
+ cmp 1,d0
+ bne 1f
+ mov 33049,d0
+ mov d2,d1
+ mov d3,a0
+ mov -5,d2
+ jmp ep7_sc_real                  /* calls the getter, returns d2 */
+1:
+ mov 33049,d0
+ mov d2,d1
+ mov d3,a0
+ jmp ep7_getter
+
+sh_msg:                           /* d3 = rec+941, a1 = message; message +18 is already written */
+ mov d3,a0
+ movbu (-647,a0),d0               /* rec+294: 1 = Vivid */
+ cmp 1,d0
+ bne 9f
+ mov (-765,a0),d0                 /* rec+176: 1 = movie */
+ cmp 1,d0
+ bne 9f
+ TAB d0,a0,9f
+ mov ({vp},a0),a0                 /* P2: the Movie slot is its COLOR4 row, +224 */
+ movbu (275,a0),d0
+ cmp 1,d0
+ bne 9f
+ mov -5,d0
+ movbu d0,(18,a1)
+9:
+ jmp ep7_mv_msg
+
+/* Extras. a2 = P + 64*slot, slot byte n at (32+n,a2); +51 at (83,a2). */
+sh_sg:                            /* ex_get, sector index >= 7 */
+ cmp 9,d3
+ beq 1f
+ jmp ep7_gc_sg9
+1:
+ movbu (83,a2),d0
+ cmp 1,d0
+ beq 2f
+ clr d0
+2:
+ jmp ep7_g_val
+
+sh_ss:                            /* ex_set, sector index >= 7: d1 = wheel value */
+ cmp 9,d3
+ beq 1f
+ jmp ep7_gc_ss9
+1:
+ cmp 1,d1
+ blt 2f
+ mov 1,d1
+ bra 3f
+2:
+ clr d1
+3:
+ movbu d1,(83,a2)
+ jmp ep7_s_dirty
+
+sh_su:                            /* ex_guide: d3 = sector index, a2 = text */
+ cmp 9,d3
+ beq 1f
+ jmp ep7_gc_su9
+1:
+ mov (8,sp),d0
+ add d3,d0
+ mov sp,a1
+ add 4,a1
+ calls ep7_ex_get
+ cmp 0,d0
+ bne 3f
+ mov (4,sp),d1
+ mov sh_cam,a2
+ cmp 1,d1
+ bne 2f
+ mov sh_off,a2
+2:
+ jmp ep7_q_put0
+3:
+ jmp ep7_q_out
+
+sh_def:                           /* ex_default hit tail: d2 = 64*slot + sector, a2 = P, a1 = out */
+ mov d2,d0
+ and 63,d0
+ cmp 9,d0
+ beq 1f
+ jmp ep7_gc_def
+1:
+ mov d2,d0
+ and 0xc0,d0
+ add d0,a2
+ movbu (83,a2),d0
+ cmp 1,d0
+ beq 2f
+ clr d0
+2:
+ mov d0,(a1)
+ movm (sp),[d2,d3,a2]
+ rets
+
+ .balign 4
+sh_cam:
+ .asciz "10 Sharp Camera"
+sh_off:
+ .asciz "10 Sharp Off"
+sh_x:
+ .asciz "Extras: 1-10 only"
+sh_end:

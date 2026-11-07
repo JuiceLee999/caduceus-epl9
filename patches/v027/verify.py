@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Emulator checks for v0.27 (real firmware code; malloc, free, blend setup and flush stubbed). Offline.
+"""Emulator checks for v0.27 = r2 (real firmware code; malloc, free, blend setup and flush stubbed). Offline.
 
-  .venv/bin/python -I patches/v027/verify.py releases/v0.26/edits.json generated/grain_cpu/r1/edits.json [generated/grain_cpu/r1/pkg]
+  .venv/bin/python -I patches/v027/verify.py releases/v0.26/edits.json generated/grain_cpu/r2/edits.json [generated/grain_cpu/r2/pkg]
 
-  M  the pass == patches/grain_cpu/model_r1.py, Low/Med/High, every window class, the real 0xd0000000 edge residue; record; mode restored
-  F  guards: image untouched, buffers freed (incl. the half-res rows' buffer, guard 0x33)
+  M  the pass == s3's model (grain_cpu/verify_s1.py expected(), camera-tested in PB071873..76), Low/Med/High, every window class, the real 0xd0000000 edge residue; record; mode restored
+  F  guards: image untouched, buffers freed
   O  output route; L work lists (Off == v0.26); A flag gate; W level hand-off before the job marker exists
   E  Extras: sector 1 Grain +50, sector 9 NR +24, the others == v0.26, labels
   K  Grain and NR stay as the user set them: Film pick (look, own, Stock), the `*`, defaults (any reset) and the file ranges
@@ -26,66 +26,8 @@ def _load(name, path):
 
 
 B = _load('gc_verify_s1', ROOT / 'patches/grain_cpu/verify_s1.py')
-MOD = _load('gc_model_r1', ROOT / 'patches/grain_cpu/model_r1.py')
 V, D = B.V, B.D
 BASE = V.BASE
-
-
-def expected(pic, w, h, st, level, seed):
-    n, r = MOD.noise(w, h, seed)
-    t = MOD.table(MOD.STRENGTH[level])
-    a = np.frombuffer(pic, dtype=np.uint8).copy().reshape(h, st * 2)
-    a[:, 0:2 * w:2] = t[a[:, 0:2 * w:2], n]
-    return a.tobytes(), r
-
-
-B.expected = expected
-B.S = {1: 1, 2: 2, 3: 3}
-
-
-def t_model(q, gc):
-    TABLE = B.TABLE
-    bad, n = [], 0
-    ob, sg = int(gc['gc_ob'], 16), int(gc['gc_gs'], 16)
-    for name, (bus, cached, m) in B.V.CLASSES.items():
-        for lv, entry in ((1, sg), (2, ob), (3, ob)):
-            w, h, st = 128, 9, 160
-            pic = B.V.picture(w, h, st)
-            r = B.run(q, gc, entry, B.job(bus, w=w, h=h, stride=st, profile=2), cached, pic, tbl=B.slot_table((0, lv, 0, 0)))
-            want, sd = B.expected(pic, w, h, st, B.S[lv], 0x12345678)
-            f = r['f']; cl = 0 if bus < 0xb0000000 else (2 if m else 1)
-            locks = 3
-            n += 1
-            if not (r['ok'] and r['pic'] == want and r['frees'] == 3 and r['mallocs'] == 4 and (f['stage'], f['guard']) == (7, 0) and f['seed'] == sd and f['rows'] == h and f['cls'] & 15 == cl and r['flushes'] == locks * (2 if m else 1) + (2 if not m else 2) + (0 if not m else 0)):
-                bad.append((name, lv, r['fault'], r['pic'] == want, f['stage'], hex(f['guard']), r['flushes'], f['cls']))
-    edge, real, pitch = 0xd0000000, 0xce9d4b80, 10368
-    k = (edge - real) % pitch
-    bus = edge - k - 2 * pitch
-    rows, st = 6, 5184
-    pic = B.V.picture(5184, rows, st)
-    cut = edge - bus
-    j = B.job(bus, w=5184, h=rows, stride=st, profile=3)
-    r = B.run(q, gc, ob, j, 0x70000000 | (bus & 0x07ffffff), pic[:cut], pic2=(0x70000000, pic[cut:]))
-    want, sd = B.expected(pic, 5184, rows, st, B.S[2], 0x12345678)
-    f = r['f']; n += 1
-    if not (r['ok'] and r['m']['pic'] + r['m']['pic2'] == want and f['rows'] == rows and f['split'] == 1 and struct.unpack_from('<I', r['m']['modes'], V.MODES & 0xff)[0] == 0):
-        bad.append(('edge', r['fault'], r['m']['pic'] + r['m']['pic2'] == want, f['rows'], f['split']))
-    return bad, n
-
-
-
-def t_guards_more(q, gc):
-    bad, n = B.t_guards(q, gc)
-    ob = int(gc['gc_ob'], 16)
-    w, h, st, bus, c = 128, 5, 160, 0xa4000000, 0x64000000
-    pic = V.picture(w, h, st)
-    r = B.run(q, gc, ob, B.job(bus, w=w, h=h, stride=st), c, pic, fail=4); n += 1
-    if not (r['ok'] and r['pic'] == pic and r['f']['guard'] == 0x33 and r['frees'] == 2):
-        bad.append(('0x33', r['fault'], hex(r['f']['guard']), r['frees']))
-    r = B.run(q, gc, ob, B.job(bus, w=w, h=h, stride=st), c, pic); n += 1
-    if not (r['ok'] and r['frees'] == 3 and r['mallocs'] == 4):
-        bad.append(('frees', r['frees'], r['mallocs']))
-    return bad, n
 
 
 def t_keep(old, new, new_s, gc):
@@ -129,7 +71,7 @@ def t_nocard(old, new, new_s):
 
 
 def t_data_align(gc):
-    b = _load('gc_r1b', ROOT / 'patches/grain_cpu/build_r1.py')
+    b = _load('gc_r2b', ROOT / 'patches/grain_cpu/build_r2.py')
     return b.data_alignment(b.source(), {k: int(v, 16) for k, v in gc.items()}), 1
 
 
@@ -166,7 +108,7 @@ def main():
     q = B.stubbed(new, gc, B.slot_table())
     at, end = int(new_s['grain_cpu']['code_at'], 16), int(new_s['grain_cpu']['code_at'], 16) + new_s['grain_cpu']['code_len']
     ok = True
-    for name, fn in (('M model', lambda: t_model(q, gc)), ('F guards', lambda: t_guards_more(q, gc)), ('O route', lambda: B.t_route(q, gc)), ('L lists', lambda: B.t_list(old, new, gc)),
+    for name, fn in (('M model', lambda: B.t_model(q, gc)), ('F guards', lambda: B.t_guards(q, gc)), ('O route', lambda: B.t_route(q, gc)), ('L lists', lambda: B.t_list(old, new, gc)),
                      ('A flag gate', lambda: B.t_flag(old, new)), ('W hand-off', lambda: B.t_handoff(old, new, gc)), ('E Extras', lambda: B.t_extras(old, new, new_s, gc)),
                      ('K Grain/NR kept', lambda: t_keep(old, new, new_s, gc)), ('N no card writes', lambda: t_nocard(old, new, new_s)), ('Y data labels', lambda: t_data_align(gc)),
                      ('X alignment', lambda: B.t_align(at, end, gc))):

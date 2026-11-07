@@ -111,6 +111,7 @@ def check_file(data, tone=False, mono_rule=True):
     if tone:
         span[49], who[49] = 1, 'shading (v0.25: 1 = lens correction off, older firmware rejects it)'
         span[50], who[50] = 3, 'grain (0.27s1: 0 off, 1 low, 2 med, 3 high; older firmware rejects a non-zero one)'
+        span[51], who[51] = 1, 'sharpening (0.28t1: 0 camera, 1 off; 0.27 and older reject a non-zero one)'
     if tone and mono_rule:
         bad = [(k, o) for k in range(4, 8) for o in SB.mono_tone_bytes() if tab[64 * k + o]]
         if bad:

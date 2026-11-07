@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """v0.27 = releases/v0.26 + film grain on COLOR stills (Extras sector 1, slot +50) + NR moved to Extras sector 9. Offline.
 
-  .venv/bin/python -I patches/v027/build.py releases/v0.26/edits.json --out generated/grain_cpu/r1/edits.json
-  .venv/bin/python -I tools/build_package.py generated/grain_cpu/r1/edits.json --out generated/grain_cpu/r1/pkg
-  .venv/bin/python -I patches/v027/verify.py releases/v0.26/edits.json generated/grain_cpu/r1/edits.json generated/grain_cpu/r1/pkg
+  .venv/bin/python -I patches/v027/build.py releases/v0.26/edits.json --out generated/grain_cpu/r2/edits.json
+  .venv/bin/python -I tools/build_package.py generated/grain_cpu/r2/edits.json --out generated/grain_cpu/r2/pkg
+  .venv/bin/python -I patches/v027/verify.py releases/v0.26/edits.json generated/grain_cpu/r2/edits.json generated/grain_cpu/r2/pkg
 
-The layer is patches/grain_cpu/build_r1.py (source gr1.s.in, model model_r1.py); this file adds the version label. docs/GRAIN_PORT.md.
+The layer is patches/grain_cpu/build_r2.py (source gr2.s.in: s3's camera-tested grain, model in grain_cpu/verify_s1.py; r1's coarser grain was too strong); this file adds the version label. docs/GRAIN_PORT.md.
 """
 import argparse, importlib.util, json
 from pathlib import Path
@@ -21,7 +21,7 @@ def _load(name, path):
 
 
 def apply(spec, version='0.27'):
-    return _load('grain_r1', ROOT / 'patches/grain_cpu/build_r1.py').apply(spec, version)
+    return _load('grain_r2', ROOT / 'patches/grain_cpu/build_r2.py').apply(spec, version)
 
 
 if __name__ == '__main__':

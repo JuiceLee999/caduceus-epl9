@@ -3,6 +3,16 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). Releases from v0.25 are betas; earlier ones
 were early-development pre-releases. Use at your own risk (see the README).
 
+## v0.28 — 2026-11-08 (beta)
+
+- **Sharpening off per profile:** Extras sector 10 **Sharp** Camera / Off. Off turns the camera's sharpening fully off for that COLOR profile, for stills and the Movie profile. Sharpness −2 still leaves about 40% of it. Set by you, never by a look, Own, Stock or a reset.
+- **Grain is back to the finer, gentler grain** tested before v0.27. v0.27's coarser grain was too strong.
+- `BUNDLES.BIN` or `MOVIE.BIN` with Sharp Off is rejected by v0.27 and older: set Sharp back to Camera before going back.
+- The Control Panel doesn't set Sharp yet: a `BUNDLES.BIN` exported from it has Sharp at Camera on every profile.
+- Firmware screen shows `Caduceus: 0.28`.
+
+Sharpening off was checked on an E-P7 (the setting saves and the photos come out softer), but not yet in a controlled side-by-side with focus locked, so reports are welcome. Whether it reaches movie recordings isn't confirmed yet.
+
 ## v0.27 — 2026-11-08 (beta)
 
 - **Film grain on colour photos:** Extras sector 1 **Grain** Off / Low / Med / High, per COLOR profile. It's added to the photo's brightness after development, so colour is untouched. Stills only: not in live view, movies, the Movie slot or Monochrome.
