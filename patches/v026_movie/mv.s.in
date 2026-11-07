@@ -1,0 +1,150 @@
+/* E-P7 1.1 v0.26 movie colour, stage 1 (ep7-firmware, our own code). docs/MOVIE_COLOUR.md "As built".
+ * Movie + picture mode 1 (Vivid) + valid card table: the development job gets key 11 and COLOR4's S, H/L, tone, WB.
+ * The record keeps +294 = 1: every record-path reader and the clip metadata still see Vivid. All reads, no absolute stores.
+ *   mv_key   <- jmp at 0x60316bfb (record -> job key): a0 = rec+292, a1 = rec; d2, a3 are free here (set before use)
+ *   mv_msg   <- jmp at 0x60315900 (message +20 "S valid"): d3 = rec+941; only d0, a0 may change
+ *   mv_s     <- getter rel32 at 0x6030bd5d (effective S 0xF6EA): a3 = rec+704 -> COLOR4 S (0xF6FA, 36+i)
+ *   mv_wb    <- getter rel32 at 0x6030bb5b/6e (compact WB): a2 = rec+698 -> wb_get's slot path with COLOR4
+ *   mv_prof  <- getter rel32 in lv / tone (0xF6B1): reached only for job key 11; 0 + record-path job + real mode 1 -> 4
+ *   mv_cons  <- constructor pre-dispatch jmp 0x60353c6f (was lv_art): IPCR job, key 11, real mode 1 -> clear 0x80000
+ *              (same work list as stock Vivid, no shading pass) and skip lv_art (no glow, no transport)
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+ .macro TAB d, a, miss
+ movhu ({state}),\d
+ add -1,\d
+ cmp {lim},\d
+ bcc \miss
+ btst 3,\d
+ bne \miss
+ mov \d,\a
+ add {pool},\a
+ mov (\a),\d
+ cmp {bmagic},\d
+ bne \miss
+{tab2}
+ .endm
+
+mv_key:
+ movbu (2,a0),d0
+ cmp 1,d0
+ bne k_out
+ mov (176,a1),d2
+ cmp 1,d2
+ bne k_out
+ TAB d2,a3,k_out
+ mov 11,d0
+k_out:
+ add 925,a1
+ jmp ep7_key_ret
+
+mv_msg:
+ TAB d0,a0,m_st
+ mov d3,a0
+ movbu (-647,a0),d0
+ cmp 1,d0
+ bne m_st
+ mov (-765,a0),d0
+ cmp 1,d0
+ bne m_st
+ mov 4,d0
+ bra m_put
+m_st:
+ mov d3,a0
+ movbu (3,a0),d0
+m_put:
+ mov 21,a0
+ movbu d0,(20,a1)
+ jmp ep7_msg_ret
+
+mv_s:
+ TAB d2,a1,s_st
+ mov (-528,a3),d2
+ cmp 1,d2
+ bne s_st
+ movbu (-410,a3),d2
+ cmp 1,d2
+ bne s_st
+ {s_hit}
+ mov 63226,d0
+ add 36,d1
+s_st:
+ jmp ep7_getter
+
+mv_wb:
+ TAB d2,a1,w_st
+ mov (-522,a2),d2
+ cmp 1,d2
+ bne w_st
+ movbu (-404,a2),d2
+ cmp 1,d2
+ bne w_st
+ mov d0,d2
+ exth d2
+ mov d1,d3
+ mov {k_wbcat},d0
+ call ep7_wb_prop,[],4
+ cmp {cwb},d0
+ bne 1f
+ jmp ep7_wb_pass
+1:
+ {w_hit}
+ mov 3,d0
+ jmp ep7_wb_slot
+w_st:
+ jmp ep7_wb_get
+
+mv_prof:
+ call ep7_getter,[d2,d3],12
+ cmp 0,d0
+ bne p_ret
+ mov (4,a2),a0
+ movhu (-11344,a0),d1
+ and 240,d1
+ cmp 48,d1
+ beq 1f
+ cmp 64,d1
+ bne p_ret
+1:
+ mov 38017,d0
+ clr d1
+ mov 0,a0
+ call ep7_getter,[d2,d3],12
+ cmp 1,d0
+ bne p_zero
+ {p_hit}
+ mov 4,d0
+ bra p_ret
+p_zero:
+ clr d0
+p_ret:
+ ret [d2,d3],12
+
+mv_cons:
+ add -12,sp
+ mov (56,sp),d0
+ cmp {lv_ret},d0
+ bne c_miss
+ mov (11308,a3),d0
+ cmp 11,d0
+ bne c_miss
+ mov 38017,d0
+ clr d1
+ mov 0,a0
+ call ep7_getter,[d2,d3],12
+ cmp 1,d0
+ bne c_miss
+ mov (16,a3),d0
+ and 0xfff7ffff,d0
+ mov d0,(16,a3)
+ add 12,sp
+ mov a3,a0
+ call ep7_dispatch,[d2,a2,a3],16
+ jmp ep7_cons_ret
+c_miss:
+ add 12,sp
+ jmp ep7_lv_art
+mv_end:

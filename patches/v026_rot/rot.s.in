@@ -1,0 +1,108 @@
+/* E-P7 1.1 v0.26: vertical clips carry a rotation in the video tkhd (ep7-firmware, our own code; docs/VIDEO_ROTATION.md).
+ * Dead EVF step-7 tables, after sp_tail. Three stubs, all exact replays of the stock bytes they replace:
+ *   rot_start  REC_START dispatch 0x603d4027: real orientation getter -> latch byte (3, 6, 8 kept; anything else 0).
+ *   rot_free   REC_FREE dispatch 0x603d4053: stock call, then latch = 0.
+ *   rot_mat    tkhd serialiser 0x61308ad0: writes the 9 matrix words of the video trak from the latch, every time.
+ *              Anything but 3, 6, 8 writes the identity = the stock constant 0x613714d8, so a reused struct can't keep an old rotation.
+ * d0 at the two dispatch sites and all other registers are preserved. rot_mat's d0 is the value (a2) it had on entry.
+ * Stores: stack, the latch (absolute, .bss, not the image), and (48..80,a0) = this+144+48.. only. No mul/div, no setlb/Lcc.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+rot_start:
+ add -12,sp
+ mov d0,(8,sp)
+ call ep7_orient,[],0
+ cmp 3,d0
+ beq 1f
+ cmp 6,d0
+ beq 1f
+ cmp 8,d0
+ beq 1f
+ clr d0
+1:
+ movbu d0,(ep7_latch)
+ mov (8,sp),d0
+ add 12,sp
+ mov a2,a0
+ call ep7_rec_start,[d2,d3,a2,a3],32
+ jmp ep7_start_ret
+
+rot_free:
+ call ep7_rec_free,[d2,d3,a2,a3],32
+ add -4,sp
+ mov d1,(0,sp)
+ clr d1
+ movbu d1,(ep7_latch)
+ mov (0,sp),d1
+ add 4,sp
+ jmp ep7_free_ret
+
+/* Word offsets from a0 (this+144): a 48, b 52, u 56, c 60, d 64, v 68, tx 72, ty 76, w 80; W 84, H 88 (16.16).
+ *   x' = a x + c y + tx, y' = b x + d y + ty.  EXIF 6: rotate 90 cw. EXIF 8: rotate 90 ccw. EXIF 3: rotate 180. */
+rot_mat:
+ add 144,a0
+ mov a0,(4,sp)
+ movbu (ep7_latch),d0
+ cmp 6,d0
+ beq m6
+ cmp 8,d0
+ beq m8
+ cmp 3,d0
+ beq m3
+ mov 0x10000,d0
+ mov d0,(48,a0)
+ mov d0,(64,a0)
+ clr d0
+ mov d0,(52,a0)
+ mov d0,(60,a0)
+ mov d0,(72,a0)
+ mov d0,(76,a0)
+ bra mtail
+m3:
+ mov -0x10000,d0
+ mov d0,(48,a0)
+ mov d0,(64,a0)
+ clr d0
+ mov d0,(52,a0)
+ mov d0,(60,a0)
+ mov (84,a0),d0
+ mov d0,(72,a0)
+ mov (88,a0),d0
+ mov d0,(76,a0)
+ bra mtail
+m6:
+ clr d0
+ mov d0,(48,a0)
+ mov d0,(64,a0)
+ mov d0,(76,a0)
+ mov 0x10000,d0
+ mov d0,(52,a0)
+ mov -0x10000,d0
+ mov d0,(60,a0)
+ mov (88,a0),d0
+ mov d0,(72,a0)
+ bra mtail
+m8:
+ clr d0
+ mov d0,(48,a0)
+ mov d0,(64,a0)
+ mov d0,(72,a0)
+ mov -0x10000,d0
+ mov d0,(52,a0)
+ mov 0x10000,d0
+ mov d0,(60,a0)
+ mov (84,a0),d0
+ mov d0,(76,a0)
+mtail:
+ clr d0
+ mov d0,(56,a0)
+ mov d0,(68,a0)
+ mov 0x40000000,d0
+ mov d0,(80,a0)
+ mov (a2),d0
+ jmp ep7_mat_ret
+rot_end:

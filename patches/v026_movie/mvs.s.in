@@ -1,0 +1,140 @@
+/* E-P7 1.1 v0.26 Movie slot: MOVIE.BIN save (ep7-firmware, our own code). See mvw.s.in. */
+ .am33_2
+ .text
+ .global _start
+_start:
+ .macro SAVE5
+ add -24,sp
+ mov d0,(4,sp)
+ mov d1,(8,sp)
+ mov a0,(12,sp)
+ mov a1,(16,sp)
+ mov mdr,d0
+ mov d0,(20,sp)
+ mov (4,sp),d0
+ .endm
+ .macro REST5
+ mov (20,sp),d0
+ mov d0,mdr
+ mov (4,sp),d0
+ mov (8,sp),d1
+ mov (12,sp),a0
+ mov (16,sp),a1
+ add 24,sp
+ .endm
+ .macro PV d, a, miss
+ movhu ({state}),\d
+ add -1,\d
+ cmp {lim},\d
+ bcc \miss
+ btst 3,\d
+ bne \miss
+ mov \d,\a
+ add {pool},\a
+ mov (\a),\d
+ cmp {bmagic},\d
+ bne \miss
+ .endm
+
+mv_save:                          /* a2 = P2 -> 1 ok, 3 / 4 fail, 2 no memory. As ed_save: .NEW verified, old -> .BAK, .BIN verified */
+ mov 2048,d0
+ call ep7_malloc,[],4
+ mov a0,a3
+ mov 2,d0
+ cmp 0,a3
+ beq v_ret
+ mov {vfile},d0
+ mov d0,(a3)
+ mov 1,d0
+ mov d0,(4,a3)
+ mov 80,d0
+ mov d0,(8,a3)
+ clr d2
+1:
+ mov a2,a0
+ add d2,a0
+ add 224,a0
+ movbu (a0),d0
+ mov a3,a0
+ add d2,a0
+ add 16,a0
+ movbu d0,(a0)
+ inc d2
+ cmp 64,d2
+ bne 1b
+ clr d2
+2:
+ mov a2,a0
+ add d2,a0
+ add 592,a0
+ movbu (a0),d0
+ mov a3,a0
+ add d2,a0
+ add 80,a0
+ movbu d0,(a0)
+ inc d2
+ cmp 16,d2
+ bne 2b
+ clr d0
+ movbu d0,(95,a3)
+ mov a3,a0
+ add 16,a0
+ mov 80,d0
+ mov -1,d1
+ call ep7_crc,[d2,d3],8
+ not d1
+ mov d1,(12,a3)
+ mov mv_pnew,a0
+ mov a3,a1
+ mov 96,d0
+ call ep7_wfile,[d2,d3,a2,a3],28
+ mov d0,d3
+ mov 3,d0
+ cmp 0,d3
+ bne v_free
+ mov mv_pbin,a0
+ mov ep7_m_r,a1
+ call ep7_fopen,[],4
+ cmp 0,a0
+ beq 4f
+ mov a0,a2
+ mov a3,a0
+ add {old},a0
+ mov 1,d0
+ mov 97,d1
+ mov a2,a1
+ call ep7_fread,[d2,d3,a2,a3],24
+ mov d0,d3
+ mov a2,a0
+ call ep7_fclose,[d2,a2,a3],16
+ cmp 96,d3
+ bne 4f
+ mov mv_pbak,a0
+ mov a3,a1
+ add {old},a1
+ mov d3,d0
+ call ep7_wfile,[d2,d3,a2,a3],28
+4:
+ mov mv_pbin,a0
+ mov a3,a1
+ mov 96,d0
+ call ep7_wfile,[d2,d3,a2,a3],28
+ mov d0,d3
+ mov 4,d0
+ cmp 0,d3
+ bne v_free
+ mov 1,d0
+v_free:
+ mov d0,d2
+ mov a3,a0
+ call ep7_free,[],4
+ mov d2,d0
+v_ret:
+ ret [d2,d3,a2,a3],24
+mvs_end:
+mv_pbin:
+ .asciz "C:\\EP7MOD\\MOVIE.BIN"
+mv_pnew:
+ .asciz "C:\\EP7MOD\\MOVIE.NEW"
+mv_pbak:
+ .asciz "C:\\EP7MOD\\MOVIE.BAK"

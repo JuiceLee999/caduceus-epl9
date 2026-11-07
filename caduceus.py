@@ -443,7 +443,7 @@ def copy_synced(src, dst):
 
 
 def copy_to_card(build, card):
-    """DCOLYMP/E1429999.BIN + LOOKS.BIN always; BUNDLES.BIN only if the card has none (it holds the user's looks)."""
+    """DCOLYMP/E1429999.BIN + LOOKS.BIN always; BUNDLES.BIN and MOVIE.BIN only if the card has none (they hold the user's settings)."""
     dco = card / 'DCOLYMP'
     try:
         dco.mkdir(exist_ok=True)
@@ -466,6 +466,12 @@ def copy_to_card(build, card):
     else:
         copy_synced(build / 'EP7MOD' / 'BUNDLES.BIN', mod / 'BUNDLES.BIN')
         check.append('EP7MOD/BUNDLES.BIN')
+    if (build / 'EP7MOD' / 'MOVIE.BIN').exists():
+        if (mod / 'MOVIE.BIN').exists():
+            print('  kept your existing EP7MOD/MOVIE.BIN (your Movie colour settings)')
+        else:
+            copy_synced(build / 'EP7MOD' / 'MOVIE.BIN', mod / 'MOVIE.BIN')
+            check.append('EP7MOD/MOVIE.BIN')
     for rel in check:
         if sha((card / rel).read_bytes()) != sha((build / rel).read_bytes()):
             raise Refuse(f'copy check failed for {card / rel}; copy it again by hand. Do not flash.')

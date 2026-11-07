@@ -1,0 +1,314 @@
+/* E-P7 1.1 v0.26 Movie slot: half-press trigger, MOVIE.BIN loader and save (ep7-firmware, our own code). See mvw.s.in. */
+ .am33_2
+ .text
+ .global _start
+_start:
+ .macro SAVE5
+ add -24,sp
+ mov d0,(4,sp)
+ mov d1,(8,sp)
+ mov a0,(12,sp)
+ mov a1,(16,sp)
+ mov mdr,d0
+ mov d0,(20,sp)
+ mov (4,sp),d0
+ .endm
+ .macro REST5
+ mov (20,sp),d0
+ mov d0,mdr
+ mov (4,sp),d0
+ mov (8,sp),d1
+ mov (12,sp),a0
+ mov (16,sp),a1
+ add 24,sp
+ .endm
+ .macro PV d, a, miss
+ movhu ({state}),\d
+ add -1,\d
+ cmp {lim},\d
+ bcc \miss
+ btst 3,\d
+ bne \miss
+ mov \d,\a
+ add {pool},\a
+ mov (\a),\d
+ cmp {bmagic},\d
+ bne \miss
+ .endm
+
+mv_trig:                          /* jmp from sd_back; frame as ed_trig: event at (16,sp) */
+ add -16,sp
+ mov d0,(0,sp)
+ mov d1,(4,sp)
+ mov a0,(8,sp)
+ mov a1,(12,sp)
+ mov (32,sp),d0
+ cmp {ev_press},d0
+ bne t_out
+ movm [d2,d3,a2,a3],(sp)
+ add -4,sp
+ PV d3,a2,t_back
+ mov ({vt},a2),d0
+ cmp {vtmagic},d0
+ beq 1f
+ mov {vtmagic},d0
+ mov d0,({vt},a2)
+ clr d0
+ mov d0,({vm},a2)
+ mov ({cfg_fl}),a0                /* film load first: P2 copies its pointer. It runs once per power-on */
+ calls (a0)
+ call mv_load,[d2,d3,a2,a3],24
+1:
+ mov ({vm},a2),d0
+ cmp {vmagic},d0
+ bne t_back
+ mov ({vp},a2),a2                 /* P2, also when swapped */
+ movbu ({dirty},a2),d0
+ cmp 1,d0
+ bne t_back
+ clr d0
+ movbu d0,({dirty},a2)
+ call mv_save,[d2,d3,a2,a3],24
+ movbu d0,({status},a2)
+t_back:
+ add 4,sp
+ movm (sp),[d2,d3,a2,a3]
+t_out:
+ mov (0,sp),d0
+ mov (4,sp),d1
+ mov (8,sp),a0
+ mov (12,sp),a1
+ add 16,sp
+ jmp ep7_trig
+
+/* a0 ptr, d0 n, d1 limit -> d0 0 ok / 1. Every byte, signed, -limit..limit. */
+mv_rng:
+ mov d0,d2
+ cmp 0,d2
+ beq 3f
+2:
+ movbu (a0),d0
+ extb d0
+ mov d1,d3
+ add d0,d3
+ cmp 0,d3
+ blt 4f
+ cmp d1,d0
+ bgt 4f
+ inc a0
+ add -1,d2
+ bne 2b
+3:
+ clr d0
+ ret [d2,d3],8
+4:
+ mov 1,d0
+ ret [d2,d3],8
+
+mv_load:                          /* a2 = P. Locals (4,sp) handle */
+ mov 1024,d0
+ call ep7_malloc,[],4
+ cmp 0,a0
+ beq l_out
+ mov a0,a3
+ mov a3,d0
+ add {neg_pool},d0
+ cmp {lim},d0
+ bcc l_free
+ btst 3,d0
+ bne l_free
+ clr d2
+1:
+ movbu (d2,a2),d0
+ movbu d0,(d2,a3)
+ inc d2
+ cmp 1024,d2
+ bne 1b
+ mov mv_pbin,a0
+ mov ep7_m_r,a1
+ call ep7_fopen,[],4
+ cmp 0,a0
+ beq l_free
+ mov a0,(4,sp)
+ mov a0,a1
+ mov a3,a0
+ add {fb},a0
+ mov 1,d0
+ mov 97,d1
+ call ep7_fread,[d2,d3,a2,a3],24
+ mov d0,d2
+ mov (4,sp),a0
+ call ep7_fclose,[d2,a2,a3],16
+ cmp 96,d2
+ bne l_free
+ mov a3,a1
+ add {fb},a1
+ mov (a1),d0
+ cmp {vfile},d0
+ bne l_free
+ mov (4,a1),d0
+ cmp 1,d0
+ bne l_free
+ mov (8,a1),d0
+ cmp 80,d0
+ bne l_free
+ mov a1,a0
+ add 16,a0
+ mov 80,d0
+ mov -1,d1
+ call ep7_crc,[d2,d3],8
+ not d1
+ mov a3,a1
+ add {fb},a1
+ mov (12,a1),d0
+ cmp d0,d1
+ bne l_free
+ mov a1,a0                        /* ranges: H/L +0..23, WB +26/27 -7..7; sat +33..44, B/W +47/48 -5..5; +49..63 zero; name ends NUL */
+ add 16,a0
+ mov 24,d0
+ mov 7,d1
+ call mv_rng,[d2,d3],8
+ cmp 0,d0
+ bne l_free
+ mov a3,a0
+ add {fb}+16+26,a0
+ mov 2,d0
+ mov 7,d1
+ call mv_rng,[d2,d3],8
+ cmp 0,d0
+ bne l_free
+ mov a3,a0
+ add {fb}+16+33,a0
+ mov 12,d0
+ mov 5,d1
+ call mv_rng,[d2,d3],8
+ cmp 0,d0
+ bne l_free
+ mov a3,a0
+ add {fb}+16+47,a0
+ mov 2,d0
+ mov 5,d1
+ call mv_rng,[d2,d3],8
+ cmp 0,d0
+ bne l_free
+ mov a3,a0
+ add {fb}+16+49,a0
+ mov 15,d0
+ clr d1
+ call mv_rng,[d2,d3],8
+ cmp 0,d0
+ bne l_free
+ mov a3,a1
+ add {fb}+95,a1
+ movbu (a1),d0
+ cmp 0,d0
+ bne l_free
+ clr d2                           /* slot -> COLOR4's row, name -> COLOR4's */
+2:
+ mov a3,a1
+ add d2,a1
+ add {fb}+16,a1
+ movbu (a1),d0
+ mov a3,a0
+ add d2,a0
+ add 224,a0
+ movbu d0,(a0)
+ inc d2
+ cmp 64,d2
+ bne 2b
+ clr d2
+3:
+ mov a3,a1
+ add d2,a1
+ add {fb}+80,a1
+ movbu (a1),d0
+ mov a3,a0
+ add d2,a0
+ add 592,a0
+ movbu d0,(a0)
+ inc d2
+ cmp 16,d2
+ bne 3b
+ mov {nmagic},d0
+ mov d0,(672,a3)
+ clr d0
+ movbu d0,({dirty},a3)
+ mov (1020,a3),d0                 /* LOOKS.BIN loaded: P2 gets its own table L2 (Film checks L+2116 == P; pos / snapshots stay COLOR4's in L) */
+ cmp {fmagic},d0
+ bne l_pub
+ mov {lsize},d0
+ call ep7_malloc,[],4
+ cmp 0,a0
+ bne 4f
+ clr d0
+ mov d0,(1020,a3)                 /* no memory: Movie slot without a Film page */
+ bra l_pub
+4:
+ mov (1016,a2),a1
+ clr d2
+5:
+ movbu (d2,a1),d0
+ movbu d0,(d2,a0)
+ inc d2
+ cmp {lsize},d2
+ bne 5b
+ mov a3,(2116,a0)
+ mov a0,(1016,a3)
+ clr d0
+ movbu d0,(2124,a0)               /* pos[3], snap[3]: own, as fm_load */
+ movbu d0,(2128,a0)
+ mov a0,a1                        /* a name that is a colour look's resumes on it, as fm_load */
+ add 112,a1                       /* a1 = record j + 48 */
+ add 592,a3
+ clr d3
+6:
+ movbu (-2,a1),d0
+ btst 1,d0
+ beq 9f
+ clr d1
+7:
+ movbu (d1,a1),d0
+ movbu (d1,a3),d2
+ cmp d2,d0
+ bne 9f
+ inc d1
+ cmp 16,d1
+ bne 7b
+ mov d3,d0
+ inc d0
+ movbu d0,(2124,a0)
+ bra 8f
+9:
+ add 64,a1
+ inc d3
+ movbu (2120,a0),d0
+ cmp d0,d3
+ bcs 6b
+8:
+ add -592,a3
+l_pub:
+ add -4,sp
+ mov {all0},d0
+ call ep7_sget,[],4
+ add 4,sp
+ mov d0,({va},a3)
+ add -4,sp
+ mov {all1},d0
+ call ep7_sget,[],4
+ add 4,sp
+ mov d0,({va}+4,a3)
+ movhu ({state}),d0
+ mov d0,({vh},a3)
+ mov a3,({vp},a3)
+ mov a3,({vp},a2)
+ mov {vmagic},d0
+ mov d0,({vm},a3)
+ mov d0,({vm},a2)                 /* last: the pipeline may use the slot from here */
+ bra l_out
+l_free:
+ mov a3,a0
+ call ep7_free,[],4
+l_out:
+ ret [d2,d3,a2,a3],24
+
+mvl_end:
