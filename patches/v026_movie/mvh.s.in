@@ -1,0 +1,96 @@
+/* E-P7 1.1 v0.26 Movie slot label (ep7-firmware, our own code). docs/MOVIE_COLOUR.md "Label".
+ * In front of the film-menu label hooks at the option-label builders' kind-4 points (0x60df255f A, 0x60df25dc B):
+ * string "Vivid" (id 1657, the only id in the Vivid text lists) + movie mode (sid 44 == 1) + Movie slot loaded -> kind-5 text mv_ltxt.
+ * Anything else: registers as on entry, then the film-menu hook. Stores: the label at a3 and the stack.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+mv_la:
+ call mv_lb,[],4
+ cmp 0,d0
+ bne 1f
+ jmp ep7_hook_a
+1:
+ mov d0,d1
+ jmp ep7_ret_a
+
+mv_lc2:
+ call mv_lb,[],4
+ cmp 0,d0
+ bne 1f
+ jmp ep7_hook_b
+1:
+ mov d0,d1
+ jmp ep7_ret_b
+
+mv_lb:                            /* -> d0 characters drawn, or 0 with d1, a0, a1 kept */
+ movhu (a3),d0
+ cmp 4,d0
+ bne 8f
+ movhu (2,a2),d0
+ cmp 1657,d0
+ bne 8f
+ add -16,sp
+ mov d1,(4,sp)
+ mov a0,(8,sp)
+ mov a1,(12,sp)
+ movhu ({state}),d0
+ add -1,d0
+ cmp {lim},d0
+ bcc 7f
+ btst 3,d0
+ bne 7f
+ mov d0,a0
+ add {pool},a0
+ mov (a0),d0
+ cmp {bmagic},d0
+ bne 7f
+ mov ({vm},a0),d0
+ cmp {vmagic},d0
+ bne 7f
+ mov 44,d0
+ call ep7_sget,[],4
+ cmp 1,d0
+ bne 7f
+ mov 5,d0
+ movhu d0,(a3)
+ mov a3,a1
+ add 8,a1
+ mov 33,d1
+ clr d0
+2:
+ movhu d0,(a1)
+ add 2,a1
+ add -1,d1
+ bne 2b
+ mov a3,a1
+ add 8,a1
+ mov mv_ltxt,a0
+ clr d1
+3:
+ movbu (a0),d0
+ cmp 0,d0
+ beq 4f
+ movhu d0,(a1)
+ inc a0
+ add 2,a1
+ inc d1
+ bra 3b
+4:
+ mov d1,d0
+ add 16,sp
+ ret [],4
+7:
+ mov (4,sp),d1
+ mov (8,sp),a0
+ mov (12,sp),a1
+ add 16,sp
+8:
+ clr d0
+ ret [],4
+mv_ltxt:
+ .asciz "Custom - INFO for setup"
+mvh_end:

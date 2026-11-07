@@ -477,6 +477,36 @@ def t_l2(new, sym, spec):
     return n, bad
 
 
+def t_label(new, base, spec):
+    """Real builder A and B, real film-menu hook: Vivid -> our text only in movie with the slot loaded; else identical to base."""
+    bad, n = [], 0
+    A, B_ = 0x60df250b, 0x60df25b5
+    LBL, LIST, SRC_, STKS = 0x18060000, 0x18061000, 0x18061100, 0x18010000
+    want = b'Custom - INFO for setup'
+    def run(im, build_a, sid, loaded, sid_id):
+        ent = struct.pack('<IHHI', 0, 4, sid_id, 0x61163e78)
+        code = [img(im, 0x60df2400, 0x60df2700, 'bld'), img(im, 0x61242d00, 0x61242f00, 'fh'), img(im, Bd.H_AT, Bd.H_END, 'h'), stub(0x602af887, f' mov {sid},d0\n ret [],4', 'sg')]
+        pb = bytearray(block(bytes(512), HANDLE, loaded))
+        cl = (f' .am33_2\n .text\n .global _start\n_start:\n mov {LBL},d0\n mov d0,(4,sp)\n mov 0,d0\n mov 1,d1\n mov {LIST},a1\n call tgt,[d2,d3,a2,a3],24\n nop\n nop\n'
+              if build_a else f' .am33_2\n .text\n .global _start\n_start:\n mov {LBL},d0\n mov {SRC_},a1\n call tgt,[d2,a2,a3],20\n nop\n nop\n')
+        c, _, _, _ = SB3.assemble(cl, 0x18040000, dict(tgt=A if build_a else B_))
+        rg = [*code, Region('caller', 0x18040000, c, 'rx'), Region('label', LBL, bytes(80), 'rw', True), Region('list', LIST, ent + bytes(4), 'r'), Region('src', SRC_, ent[4:], 'r'),
+              Region('state', 0x622cbcc0, struct.pack('<HHI', 0, HANDLE, 0), 'r'), Region('pool', P_AT, bytes(pb), 'r'), Region('stack', STKS, bytes(0x1000), 'rw')]
+        return execute(rg, dict(pc=0x18040000, sp=STK, a0=0x77, d2=0x1111, d3=0x2222, a3=0x3333), 0x18040000 + len(c) - 2, limit=5000)
+    for build_a in (True, False):
+        for sid, loaded, sid_id, hit in ((1, True, 1657, True), (0, True, 1657, False), (1, False, 1657, False), (1, True, 1658, False), (0, False, 1657, False)):
+            r = run(new, build_a, sid, loaded, sid_id); n += 1
+            l = bytes.fromhex(r['memory'][0]['hex'])
+            if hit:
+                ok = not r['fault'] and l[0] == 5 and l[8:8 + 2 * len(want)] == b''.join(bytes([c, 0]) for c in want) and l[8 + 2 * len(want):74] == bytes(74 - 8 - 2 * len(want)) and r['registers']['d0'] == len(want)
+            else:
+                b = run(base, build_a, sid, loaded, sid_id)
+                ok = not r['fault'] and not b['fault'] and l == bytes.fromhex(b['memory'][0]['hex']) and l[0] == 4 and {k: r['registers'][k] for k in ('d0', 'd1', 'd2', 'd3', 'a0', 'a1', 'a2', 'a3', 'sp', 'pc')} == {k: b['registers'][k] for k in ('d0', 'd1', 'd2', 'd3', 'a0', 'a1', 'a2', 'a3', 'sp', 'pc')}
+            if not ok:
+                bad.append(('AB'[not build_a], sid, loaded, sid_id, r['fault'], hex(r['registers']['pc']), l[:12].hex()))
+    return n, bad
+
+
 def main():
     base_p, new_p = sys.argv[1:3]
     bsp, spec = json.loads(Path(base_p).read_text()), json.loads(Path(new_p).read_text())
@@ -502,12 +532,14 @@ def main():
         n, bad = t_lc(new, base); rep('L Live Control INFO (real handler)', n, bad)
         n, bad = t_file(new, sym, spec); rep('F MOVIE.BIN load/save', n, bad)
         n, bad = t_l2(new, sym, spec); rep('T Film table for the Movie slot', n, bad)
+        n, bad = t_label(new, base, spec); rep('N label builders', n, bad)
     # D: only our sites differ
     m = spec['v026_movie']
     al = [(Bd.AT, Bd.AT + m['code_len']), (Bd.KEY_SITE, Bd.KEY_SITE + 7), (Bd.MSG_SITE, Bd.MSG_SITE + 8), (Bd.S_SITE + 1, Bd.S_SITE + 5), (Bd.LV_GET + 1, Bd.LV_GET + 5), (Bd.TONE_GET + 1, Bd.TONE_GET + 5),
           (Bd.CONS + 1, Bd.CONS + 5), (0x601e1c40, 0x601e1c64)] + [(w + 1, w + 5) for w in Bd.WB_SITES]
     if wheel:
         al += [(Bd.W_AT, Bd.W_AT + m['wheel_len']), (Bd.L_AT, Bd.L_AT + m['load_len']), (Bd.S_AT, Bd.S_AT + m['save_len']), (Bd.W_GETV, Bd.W_GETV + 4), (Bd.DEF_WORD, Bd.DEF_WORD + 4), (Bd.EXIT_WORD, Bd.EXIT_WORD + 4), (Bd.LC, Bd.LC + 6), (Bd.POLY, Bd.POLY + 5)]
+        al += [(Bd.H_AT, Bd.H_AT + m['label_len']), (Bd.LB_A + 1, Bd.LB_A + 5), (Bd.LB_B + 1, Bd.LB_B + 5)]
         al += [(x + 1, x + 5) for x in (Bd.POLY2, Bd.SET_SITE, Bd.GSAVE_SITE, Bd.SD_BACK, *Bd.TBL_SITES)]
     diff = [i + BASE for i in range(len(new)) if new[i] != base[i]]
     rest = [hex(a) for a in diff if not any(x <= a < y for x, y in al)]

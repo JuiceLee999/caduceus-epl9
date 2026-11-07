@@ -212,7 +212,7 @@ Not read exhaustively: per-key hash tables in the ISP stages. Stills LV runs key
 
 **Camera: `wheel2` opens the wheel with INFO.** Film and Extras then showed "All colors[INFO]": `ed_guide` (`0x60b9ddb6`) and `ex_guide` (`0x601e34ea`) read GetValue(111) themselves, got 0, and fell back to the stock label [V]. `wheel4` adds both return addresses to `mv_get` (Mono `0x601e1761` is left alone).
 
-**INFO hint on the strip: not built.** The strip's Vivid entry is a bitmap (lists `0x611748f0`, `0x61174c74`), so there's no text to swap. Text lists with Vivid (`0x611686d4` and two others) belong to item table `0x6116ae1c`, not this viewer. The only gated route found is hooking `0x60df250b`, which has 277 callers, and a kind-5 text in that cell is likely to clip (ASPECT §1b).
+**Label (v0.26):** the strip's icon is a bitmap (lists `0x611748f0`, `0x61174c74`) shared with stills, so it stays. Wherever text comes through the label builders A and B, string 1657 "Vivid" becomes kind-5 text `Custom - INFO for setup` when sid 44 == 1 (movie) and the Movie slot is loaded (`mvh.s.in`, in front of the film-menu hooks at `0x60df255f` and `0x60df25dc`). Before the first half-press and in stills it stays Vivid. Emulated on the real builders and hook. **Not confirmed on camera:** which screens draw through these builders, how the width clips, and that Live Control's own caption does. The movie SCP cell would show the same text, though INFO isn't wired there.
 
 **Buttons:** movie mode, half-press once, OK for Live Control, Up/Down to Picture Mode, Left/Right to Vivid, press and release INFO. Edit, then OK to leave. Not wired: the SCP. Its Vivid cell is key `0x77`, the stock saturation slider.
 
