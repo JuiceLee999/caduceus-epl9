@@ -11,6 +11,7 @@ Flashed and used on an E-P7. **Reports wanted:** long recordings haven't been te
   1. Half-press the shutter once after switching on. This loads the profile, and clips shot before it are stock Vivid.
   2. In movie mode, select Vivid in Live Control (the strip up the side of the screen, not the Super Control Panel).
   3. Press **INFO** to open the wheel. Once loaded, Vivid's name reads `INFO Custom` in movie mode; stills Vivid stays Vivid.
+  - OK saves and stays on the Movie profile. With it loaded, a button assigned directly to Color Creator may not switch movie mode to it; the Live Control strip should still work.
   - Glow and Art Effects are off in movies. Muted still gives log. Without `MOVIE.BIN`, movie Vivid is stock Vivid.
 - **Vertical video:** clips shot in portrait or upside down record their rotation, so they no longer import sideways. A clip keeps the rotation the camera had when recording started.
 - **Card files:** add `EP7MOD/MOVIE.BIN` and keep your `BUNDLES.BIN`. The builder's card copy leaves an existing `MOVIE.BIN` alone.

@@ -139,12 +139,18 @@ mv_get:                           /* CALLS: d0 id, a1 out, return address at (40
  add -4,sp
  call mv_sw,[d2],8
  add 4,sp
- cmp 1,d0
- bne g_miss
- mov a0,a2                        /* a2 = P2 */
+ mov d0,d2
+ mov a0,a2                        /* a2 = P2 when swapped */
  mov (4,sp),d0
  exthu d0
  mov (40,sp),d1
+ cmp 1,d2
+ beq 1f
+ mov 15272,d2                     /* the wheel's exit runs after P is back: the 15272 sites stay covered, g_1646 gates them */
+ cmp d2,d0
+ bne g_miss
+ bra g_cc1
+1:
  cmp 111,d0
  bne g_cc
  mov mv_ra,a0
@@ -179,6 +185,7 @@ g_cc:
  mov 15272,d2
  cmp d2,d0
  bne g_al
+g_cc1:
  mov mv_ra2,a0
  mov {nra2},d3
 2:
@@ -189,7 +196,12 @@ g_cc:
  add -1,d3
  bne 2b
  bra g_miss
-g_1646:
+g_1646:                           /* only in movie with the Movie slot loaded: stills and stock movie keep the Color Creator switch */
+ add -4,sp
+ call ep7_ccg,[],4
+ add 4,sp
+ cmp 1,d0
+ bne g_miss
  mov 1646,d2
  bra g_put
 g_al:

@@ -131,6 +131,33 @@ v_free:
  mov d2,d0
 v_ret:
  ret [d2,d3,a2,a3],24
+/* -> d0 = 1 when the Movie slot is loaded and the camera is in movie mode. Clobbers d0, d1, a0, a1. `call mv_ccg,[],4`. */
+mv_ccg:
+ movhu ({state}),d0
+ add -1,d0
+ cmp {lim},d0
+ bcc 1f
+ btst 3,d0
+ bne 1f
+ mov d0,a0
+ add {pool},a0
+ mov (a0),d0
+ cmp {bmagic},d0
+ bne 1f
+ mov ({vm},a0),d0
+ cmp {vmagic},d0
+ bne 1f
+ add -4,sp
+ mov 44,d0
+ call ep7_sget,[],4
+ add 4,sp
+ cmp 1,d0
+ bne 1f
+ ret [],4
+1:
+ clr d0
+ ret [],4
+
 mvs_end:
 mv_pbin:
  .asciz "C:\\EP7MOD\\MOVIE.BIN"

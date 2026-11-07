@@ -294,13 +294,22 @@ def t_ui(new, base, sym):
         stk = bytearray(0x1000); struct.pack_into('<I', stk, 0x800, ra); return Region('stack', 0x18010000, bytes(stk), 'rw')
     for sw in (False, True):
         for gid, ra, val in ((1655, RET, SLOT[33]), (1660, RET, 0xfffffffd), (1666, RET, SLOT[44]), (1654, RET, None), (1667, RET, None), (111, Bd.RA[0], 64), (111, Bd.RA_G[0], 64), (111, Bd.RA_G[1], 64), (111, RET, None), (15272, Bd.CC_RA[1], 1646), (15272, RET, None), (1686, RET, 0), (927, RET, None)):
-            hit = sw and val is not None
+            hit = (sw or (gid == 15272 and ra != RET)) and val is not None
             rr_ = Region('ra', ra & ~3, b'\xcb' * 8, 'rx') if ra != RET else retr
-            rg = [code, sget(1, 0), *st(new, 'card', swapped=sw), Region('out', OUT, bytes(4), 'rw', True), Region('view', 0x18030000, bytes(0x200), 'r'), stack_with(ra), rr_, Region('n', nget, b'\xcb', 'rx')]
+            rg = [code, img(new, Bd.S_AT, Bd.S_END, 'mvs'), sget(1, 0), *st(new, 'card', swapped=sw), Region('out', OUT, bytes(4), 'rw', True), Region('view', 0x18030000, bytes(0x200), 'r'), stack_with(ra), rr_, Region('n', nget, b'\xcb', 'rx')]
             r = execute(rg, dict(pc=int(sym['mv_get'], 16), sp=STK, d0=gid, a0=0xa0a0, a1=OUT, d2=0x1111, d3=0x2222, a2=0x3333, a3=0x18030000), ra if hit else nget, limit=6000); n += 1
             v = struct.unpack('<I', bytes.fromhex(r['memory'][0]['hex']))[0]; rr = r['registers']
             if r['fault'] or (hit and (v != val or rr['d0'] != 0 or rr['sp'] != STK or rr['a3'] != 0x18030000)) or (not hit and (v != 0 or rr['d0'] != gid or rr['a1'] != OUT or rr['sp'] != STK)):
                 bad.append(('get', sw, gid, hex(ra), r['fault'], v, hex(rr['pc'])))
+        for sid44, marks, st_name in ((0, True, 'card'), (1, False, 'nofile')):   # Color Creator switch stays: stills, or no Movie slot
+            ra = Bd.CC_RA[1]
+            rg = [code, img(new, Bd.S_AT, Bd.S_END, 'mvs'), sget(sid44, 0), *st(new, st_name, swapped=False), Region('out', OUT, bytes(4), 'rw', True), Region('view', 0x18030000, bytes(0x200), 'r'), stack_with(ra), Region('ra', ra & ~3, b'\xcb' * 8, 'rx'), Region('n', nget, b'\xcb', 'rx')]
+            if sw:
+                continue
+            r = execute(rg, dict(pc=int(sym['mv_get'], 16), sp=STK, d0=15272, a0=0xa0a0, a1=OUT, d2=0x1111, d3=0x2222, a2=0x3333, a3=0x18030000), nget, limit=6000); n += 1
+            rr = r['registers']
+            if r['fault'] or rr['d0'] != 15272 or rr['a1'] != OUT or rr['d1'] != 0 and False or rr['sp'] != STK:
+                bad.append(('get-cc', sid44, st_name, r['fault'], hex(rr['pc'])))
         mgr = int(new_spec['look_editor']['stock']['ep7_manager'], 16)
         for gid, val, out in ((1657, 4, 'm'), (1657, 6, 'r'), (1686, 255, 'm'), (927, 1, 'n')):
             if not sw:

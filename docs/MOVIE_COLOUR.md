@@ -206,6 +206,7 @@ Not read exhaustively: per-key hash tables in the ISP stages. Stills LV runs key
 
 **Stills-only state in the wheel:**
 - **Trap, fixed:** three stock sites (`0x60e22245`, `0x60e223d6`, `0x60dec542`) do "if 15272 == 1645, set 1645 := 21", for Color Creator, which shares this record. In movie 15272 is always 1645, so OK would have switched picture mode to Color Creator. `mv_get` returns 1646 at those three return addresses only.
+- **Camera, `movie4`: OK saved, then movie mode switched to the stock Color editor.** Likely cause [I, cause not observed]: one of the three sites above runs after `mv_exit` has restored P, when the spoof was off. Camera: fixed in `movie5` (`0d2e45aa`, the released v0.26), which keeps the 1646 answer at those return addresses after the swap ends, gated to movie mode with the Movie slot loaded (`mv_ccg`). Side effect: a Color Creator direct key in movie doesn't auto-select it while the slot is loaded.
 - GetValue(111) → 64 at the 13 `mc` sites, plus the Profile view on page 1 (`0x60e26b33`, as `mc`). Polygon profile read → 4. Sid 44 and 1337 are not read in the editor or view code.
 - `0x60dec57c` stores the spoofed 64 in sid 3012, as stock stores 54.. in stills. Only the Color Creator direct key reads it [I].
 - Needs the card table, so **half-press once first**, otherwise INFO stays a no-op.

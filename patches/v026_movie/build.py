@@ -173,10 +173,10 @@ def apply(spec, wheel=True):
                     vm=VM, vp=VP, vh=VH, va=VA, vt=VT, fb=FB, vmagic=hex(VMAGIC), vtmagic=hex(VTMAGIC), vfile=hex(VFILE), pmark=hex(PMARK), all0=ALL0, all1=ALL1, em=EM, emagic=hex(struct.unpack('<I', b'EP7E')[0]),
                     axis=AXIS, dirty=DIRTY, status=STATUS, old=OLD, neg_pool=hex((-POOL) & 0xffffffff), nmagic=hex(struct.unpack('<I', b'EP7N')[0]), ev_press=hex(SB3.EV_PRESS), cfg_fl=le['ed_cfg_fl'], fmagic=hex(FMAGIC), lsize=LSIZE)
         st_ = spec['look_editor']['stock']
-        c2, lst2, s2 = asm('mvw.s.in', W_AT, W_END, 'mvw_end', sub2, dict(ep7_sget=0x602af887, ep7_get_next=next_get, ep7_def_next=next_def, ep7_set_next=next_set, ep7_poly_next=next_poly, ep7_aget=0x602afa81, ep7_lc_no=LC_NO, ep7_lc_yes=LC_YES, ep7_lc_open=LC_OPEN,
-                           ep7_exit=EXIT, ep7_tbl=TBL, ep7_save=int(le['ed_save'], 16), ep7_manager=int(st_['ep7_manager'], 16)))
-        c4, lst4, s4 = asm('mvs.s.in', S_AT, S_END, 'mvs_end', sub2, dict(ep7_crc=int(le['ed_crc'], 16), ep7_wfile=int(le['ed_wfile'], 16), ep7_m_r=int(le['ed_m_r'], 16),
+        c4, lst4, s4 = asm('mvs.s.in', S_AT, S_END, 'mvs_end', sub2, dict(ep7_sget=0x602af887, ep7_crc=int(le['ed_crc'], 16), ep7_wfile=int(le['ed_wfile'], 16), ep7_m_r=int(le['ed_m_r'], 16),
                            ep7_malloc=int(st_['ep7_malloc'], 16), ep7_free=int(st_['ep7_free'], 16), ep7_fopen=int(st_['ep7_fopen'], 16), ep7_fclose=int(st_['ep7_fclose'], 16), ep7_fread=int(st_['ep7_fread'], 16)))
+        c2, lst2, s2 = asm('mvw.s.in', W_AT, W_END, 'mvw_end', sub2, dict(ep7_sget=0x602af887, ep7_get_next=next_get, ep7_def_next=next_def, ep7_set_next=next_set, ep7_poly_next=next_poly, ep7_aget=0x602afa81, ep7_lc_no=LC_NO, ep7_lc_yes=LC_YES, ep7_lc_open=LC_OPEN,
+                           ep7_ccg=s4['mv_ccg'], ep7_exit=EXIT, ep7_tbl=TBL, ep7_save=int(le['ed_save'], 16), ep7_manager=int(st_['ep7_manager'], 16)))
         c3, lst3, s3 = asm('mvl.s.in', L_AT, L_END, 'mvl_end', sub2, dict(mv_save=s4['mv_save'], mv_pbin=s4['mv_pbin'], ep7_sget=0x602af887, ep7_trig=int(le['ed_trig'], 16), ep7_crc=int(le['ed_crc'], 16), ep7_wfile=int(le['ed_wfile'], 16), ep7_m_r=int(le['ed_m_r'], 16),
                            ep7_malloc=int(st_['ep7_malloc'], 16), ep7_free=int(st_['ep7_free'], 16), ep7_fopen=int(st_['ep7_fopen'], 16), ep7_fclose=int(st_['ep7_fclose'], 16), ep7_fread=int(st_['ep7_fread'], 16)))
         s2.update(s3); s2.update(s4)
