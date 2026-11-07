@@ -17,6 +17,9 @@ Third-party:
   patches/grain_cpu is our own.
 - webapp/public/fonts/om3label.woff2: a renamed ASCII subset of DejaVu Sans Condensed (Bitstream Vera
   licence; DejaVu changes public domain), see webapp/public/fonts/FONT-LICENSE.txt.
+- 65:24 aspect fixes adapted from flickering-star's work (fork of oly_fw_analysis), with thanks.
+  patches/aspect_fix (issue #23) uses that fork's site list and approach (branch ep7-aperture-ar, GPL-3.0);
+  the stubs and data there are written for our ids 6/7, see docs/ASPECT.md section 1i.
 - Community film recipes are credited to their authors in docs/LIBRARY_V1.md.
 
 "Olympus", "PEN", "OM SYSTEM" and film names are trademarks of their respective owners. Not affiliated

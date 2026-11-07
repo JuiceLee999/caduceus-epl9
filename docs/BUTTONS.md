@@ -143,6 +143,95 @@ The same suite runs again on the v0.4 merge (`releases/v0.5-candidate/edits.json
 4. **Movie-mode arrow lists** (sids 1255/1257/1262/1264, 6 codes). Same method as section 3, 12 B room each.
 5. **Myset recall on a button** (3470–3473). Needs Myset slots, which the E-P7 lacks [I].
 
+## 4b. Arrow rows in the Button Function menu (b2 attempt, not built)
+
+Camera (0.28b1, owner): ◉ and Fn show the widened lists and work. **No arrow entries exist anywhere in the menu**, so
+right/down (51/53) can't be set from the UI.
+
+**[V] The rows already exist in the firmware; a runtime filter hides them.**
+- **Button Function list** = `Cursor_2CNL` screen kind 47 (0x2f; kind 173 shares it), entry `0x6114bdb4` in the 156 × 36-B
+  kind table `0x6114b2e0`, default init `0x60dda6a0`. Item list `0x61146a14`: 16 items of 24 B
+  `{u32 1, u32 sid, u32 0, u32 8, u32 sub-screen, u32 0}`, in this order: 47, 49, 48, 571, 572, 573, **53, 51, 158**, 54,
+  55, 56, 1266, 1267, 1271, 1269. The movie list (kind 106, `0x61149084`) has the same 16.
+- **Labels and value lists exist for every item**, in the item-info records (36 B) at `0x611bf6ec…` (tree 1) and
+  `0x611cce58…` (tree 2): 51 `@A005@Function`, 53 `@A027@Function`, 158 `@A007@Function` (3-value list `0x611bb19c`),
+  and the 44-code function list `0x611baf8c` on the button sids.
+- **The per-button function picker** is screen 31: rows `0x611d7dd0` (21 × 28 B `{u16 row id, 43, 17, 43, title, tables}`),
+  matched by row id in `0x60e964b5`.
+- So **no row has to be added**. The work is finding and lifting the filter that leaves only 47/48 visible.
+
+**[V] Ruled out as the filter:**
+- validator records (`attr` 0x80 on every button sid);
+- the item condition table `0x60adf518` (611 × 12 B `{id, cond bytes, n}`, read by `0x608290c8`). Its conditions for 47/48
+  and 49-56/158/571-573 are identical (`[0, 45]`), and it is a CANEXEC/grey-out check;
+- the 2CNL key handler `0x60ddc135` and the picker's sid hash `0x60de22a9` / `0x60de7ebb`.
+
+**[I] Lead, not proven.** The availability rule DB (`0x6045e5fc`, 201 × 20 B, hashed by `0x602b32d8`, used by
+`0x602af9d1` → `0x602b2961`) has records only for 47 and 48 among the button sids. That matches the two visible
+rows; an id with no record returns 0 in modes 0-2. But the E-M10 IV table (`0x60467058`, 186) also lacks 51/53, and I
+didn't find a 2CNL call to it. Confirm before relying on it.
+
+**Arrow-pad mode (158):** it's a hidden item in the same list, so it's hidden the same way. The `mov 158,d0` hits in
+the shooting handlers (`0x60c7f6a0`, `0x60cad3c1`…) are log line numbers, not setting reads. Whether 158 gates
+Direct Function is still open.
+
+**Next steps (pick one):**
+1. Trace the 2CNL row builder for kind 47 (who reads `+96`/`+100` items and skips some): native emulation of the
+   default init with a stub facade, logging each id it queries. That shows the gate directly.
+2. Camera probe (one data edit): change item 9's sid in `0x61146a14` (158, hidden) to 47 (visible). A second ◉/Fn
+   row appearing means the filter is per-sid (rule DB / availability); nothing changing means it is per-position or
+   per-kind. It's reversible and has no code.
+3. Fallback with no menu: a Caduceus-side setting (e.g. an Extras-style page) that writes sids 51/53 directly. The
+   dispatcher already executes any function code from 51/53 (§1).
+
+Up/left (50/52) still need their own validator records and item-list entries (§4.3).
+
+## 4c. Filter found; built as b4 (patches/btn_arrows)
+
+**[V] The row filter is the menu's own static list.** The Button Function screen (2CNL kind 47) builds its rows from
+column descriptor id 42. That is a `Cursor_Move` object (factory 0x60de1f5c, init 0x60de2134). Mode 42 has no special
+init, so it uses the default 0x60de21b0, which copies the u16 item list for mode 42 from the 150 × 12-B table
+`0x61150328`. That list is record `0x61150568` `{42, 0x611500f2, 2}` = **[47, 48]**. The E-M10 IV list is [47, 49, 48]; the
+E-M5 III has 158/51/53 in its list. The 24-B list in §4b (`0x61146a14`) is not the rows: it is the OK-key event table
+(`0x60ddc1f1`, `{depth, item id, fn, type 8, sub-screen}`), and it already sends 51 → (8, 62) and 53 → (8, 61).
+
+Each row is then checked by `0x607b3c32()->vtbl[0](id)` (CANEXEC, `0x6082686f` → `0x608290c8`). Its conditions for 51/53
+equal 47/48. Labels come from the item-info records, and values from the 44-entry label list `0x611baf8c`. That list
+covers all 16 widened d-pad codes.
+
+**Build b4:** list [47, 48, 51, 53] at `0x61242fe8` (sec-6 FF tail, guards both sides); record ptr + count 2 → 4.
+Data only, 14 B differ from the b1 + aspect_scp base, and stored values are untouched. Checks: `patches/btn_arrows/verify.py`
+(P/Y/R).
+
+**Not done:**
+- **Up/left (50/52):** they have no validator record (§4.3). A row would open a picker with an empty or garbage value list.
+  This needs a repointed validator record first.
+- **158 (arrow-pad mode):** left out. Stock arrows already act as direct-function keys through 51/53.
+- **Movie-mode Button Function:** unchanged.
+
+## 4d. b4 camera result and b5 (corrected key mapping)
+
+**Correction [V].** The SEND_KEY ids in event table `0x60f3928c` (+16: 8 UP, 0xb DOWN, 0xe LEFT, 0x11 RIGHT; name table
+`0x60f77cb4…`) give keycode 4 = up, 5 = down, 6 = left, 7 = right. So **50 = up, 51 = down, 52 = left, 53 = right**. §1's
+inferred "right/down = 51/53" was wrong: 51 is down and 53 is right. Up (Exp comp) and left (AF point) are the fixed,
+record-less sids.
+
+**b4 observations explained:**
+- The "right" row showing a clock was the down row (51) showing its stock Drive value (3281, `@A014@/@A015@`).
+- The sid-53 row title `@A027@Function` uses another body's key icon ("I in a box").
+- The option that looks like MF/AF is 15130 (label `@A0AA@/@A0AB@`, action 19 ACCESSORIES). It drives a power-zoom
+  lens, which is stock behaviour. The MF toggle is code 88, labelled "MF".
+
+There is no separate arrow code space. The press path is key → sid → value → (kind 0, no filter) → the same function
+table. The picker labels by value from the shared list `0x611baf8c`, and keeps greyed entries index-consistent
+(`0x60de3670` builds value + flag arrays).
+
+**b5 (patches/btn_arrows):**
+- Rows [47, 48, 53, 51] (Fn, REC, right, down).
+- Arrow list = stock 8 + ISO/WB, WB/ISO, Peaking, Level, tele-con, RAW (14). Magnify and Multi Function are dropped.
+- Right-row title (item records `0x611bf7c4`, `0x611ccf30`): kind 4 → kind 5 text "Right Fn" (`0x61242ff0`).
+- ISO-only (code 6) has no entry in the value label list, so it is not offered. ISO/WB is.
+
 ## 5. Other bodies and community work
 
 - **[W]** Web search did not return the E-P7 manual's Button Function table. One review says only the ◉ and

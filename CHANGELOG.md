@@ -3,6 +3,14 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). Releases from v0.25 are betas; earlier ones
 were early-development pre-releases. Use at your own risk (see the README).
 
+## v0.29 — 2026-11-08 (beta)
+
+- **Arrow keys you can set:** Custom Menu › Button Function now shows **Right Fn** and the down-arrow row (Drive). Choose Flash, Drive, Exp comp, MF, ISO/WB, WB/ISO, Peaking, Level, Tele-converter, RAW, Electronic Zoom, touch lock, Accessories or Off. The defaults are stock (right = Flash, down = Drive). Up and left stay fixed.
+- **More REC (◉) and Fn functions:** AF Home, RAW, ISO/WB, WB/ISO, Level, HDR, BKT, Test picture, Keystone, IS mode and Multi Function.
+- **Panorama (XPan) and Wide (21:9) fixes ([#23](https://github.com/cakelesscoder/caduceus-ep7/issues/23)):** the AF target selector no longer crashes and has the right grid; AF points, metering marks and iAuto/tracking work; the aspect stays set after a reboot; and the Super Control Panel value cell shows `XP` / `21:9` instead of 4:3. Thanks to flickering-star, whose 65:24 work pointed the way. The composition grid overlay isn't fixed yet.
+- Before going back to older firmware, set the arrow rows back to stock (old firmware can't show the new choices; they still work).
+- Firmware screen shows `Caduceus: 0.29`.
+
 ## v0.28 — 2026-11-08 (beta)
 
 - **Sharpening off per profile:** Extras sector 10 **Sharp** Camera / Off. Off turns the camera's sharpening fully off for that COLOR profile, for stills and the Movie profile. Sharpness −2 still leaves about 40% of it. Set by you, never by a look, Own, Stock or a reset.

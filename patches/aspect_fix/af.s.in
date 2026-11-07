@@ -1,0 +1,183 @@
+/* E-P7 1.1 aspect fix t1 (issue #23): Panorama (id 6, 65:24) and Wide (id 7, 21:9) in the AF / LV-overlay lookups
+ * that only know the stock ids 1,3,2,4,9,10 or the stock (W,H) ratio pairs. docs/ASPECT.md section 1i.
+ * Policy: ids 6/7 and their pairs behave as 16:9 (id 3, pair 16:9). Panorama and Wide are centred crops with the
+ * full sensor width, the same width and centre as 16:9, so 16:9 sensor/display geometry is a correct superset.
+ * Sites (found with the help of flickering-star's oly_fw_analysis fork, branch ep7-aperture-ar; code is ours):
+ *   af_sel  <- 0x60dd5ce5 (5)  AF target selector: GetValue(270) -> (24,sp); 6/7 -> 3 before the mask/style lists
+ *   af_dim1 <- 0x6066389a (7)  AF grid rows/cols switch, default (log) case: 6/7 -> 16:9 case 0x60663885
+ *   af_dim2 <- 0x60663906 (7)  second rows/cols switch, default case: 6/7 -> 16:9 case 0x60663900
+ *   pr_w1/2/3 <- 0x605d529b / 0x605e278f / 0x605e6658 (6)  AF/LV driver ratio globals 0xa276f955/6: a non-stock
+ *              wide pair (65:24, 21:9, 7:6, 6:5) is stored as 16:9 after the stock store
+ *   au_mask <- 0x605d267a (7)  AE/AUTO crop mask pair switch, default case -> 16:9 case 0x605d261a
+ *   au_thr  <- 0x605d2830 (7)  AE/AUTO parameter-index pair switch, default case -> 16:9 case 0x605d27e6
+ *   ag1/ag2 <- 0x60df798a / 0x60df7b55 (5)  AF frame display geometry lists keyed by (228,a3): 6/7 -> 3 (local a0 only)
+ *   mt      <- 0x60e32899 (5)  metering display geometry: (52,sp) aspect 6/7 -> 3 (local d0 only)
+ *   sv      <- 0x60e3bde8 (6)  shooting-screen selected-point validity maps: (4,a1) aspect 6/7 -> 3 (local d2 only)
+ * Absolute stores: only 0xa276f955/0xa276f956, the two bytes the stock writers store. No mul/div/setlb.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+
+ .macro IDD r                      /* data register: 6 or 7 -> 3 */
+ cmp 6,\r
+ beq 91f
+ cmp 7,\r
+ bne 92f
+91:
+ mov 3,\r
+92:
+ .endm
+
+ .macro IDA r                      /* address register: 6 or 7 -> 3 */
+ cmp 6,\r
+ beq 93f
+ cmp 7,\r
+ bne 94f
+93:
+ mov 3,\r
+94:
+ .endm
+
+ .macro WIDE w, h, hit             /* (w,h) in {65:24, 21:9, 7:6, 6:5} -> branch to hit */
+ cmp 65,\w
+ bne 81f
+ cmp 24,\h
+ beq \hit
+81:
+ cmp 21,\w
+ bne 82f
+ cmp 9,\h
+ beq \hit
+82:
+ cmp 7,\w
+ bne 83f
+ cmp 6,\h
+ beq \hit
+83:
+ cmp 6,\w
+ bne 84f
+ cmp 5,\h
+ beq \hit
+84:
+ .endm
+
+ .macro FIXG                       /* globals: wide pair -> 16:9; d2/d3 saved, flags clobbered (not live at the sites) */
+ movm [d2,d3],(sp)
+ movbu (0xa276f955),d2
+ movbu (0xa276f956),d3
+ WIDE d2,d3,71f
+ bra 72f
+71:
+ mov 16,d2
+ movbu d2,(0xa276f955)
+ mov 9,d2
+ movbu d2,(0xa276f956)
+72:
+ movm (sp),[d2,d3]
+ .endm
+
+ .balign 4
+af_sel:                            /* a1 = sp+24, a2 = GetValue: the replaced `mov 270,d0; calls (a2)` */
+ mov 270,d0
+ calls (a2)
+ mov (24,sp),d0
+ cmp 6,d0
+ beq 1f
+ cmp 7,d0
+ bne 2f
+1:
+ mov 3,d0
+ mov d0,(24,sp)
+2:
+ jmp 0x60dd5cea                    /* mov (8,sp),d0 */
+
+af_dim1:                           /* d0 = aspect, chain missed */
+ cmp 6,d0
+ beq 1f
+ cmp 7,d0
+ beq 1f
+ mov 3,d0
+ mov d0,(4,sp)
+ mov 3493,d0
+ jmp 0x606638a1
+1:
+ jmp 0x60663885                    /* 16:9: rows 9, cols 11 */
+
+af_dim2:
+ cmp 6,d0
+ beq 1f
+ cmp 7,d0
+ beq 1f
+ mov 3,d0
+ mov d0,(4,sp)
+ mov 3528,d0
+ jmp 0x6066390d
+1:
+ jmp 0x60663900                    /* 16:9: 3, 5 */
+
+pr_w1:
+ movbu d0,(0xa276f956)
+ FIXG
+ jmp 0x605d52a1
+
+pr_w2:
+ movbu d1,(0xa276f956)
+ FIXG
+ jmp 0x605e2795
+
+pr_w3:
+ movbu d0,(0xa276f956)
+ FIXG
+ jmp 0x605e665e
+
+au_mask:                           /* (44,sp) -> pair W, +1 H; d0/d1/a0 are reloaded on both exits */
+ mov (44,sp),a0
+ movbu (a0),d0
+ movbu (1,a0),d1
+ WIDE d0,d1,1f
+ mov 3,d0
+ mov d0,(4,sp)
+ mov 1022,d0
+ jmp 0x605d2681
+1:
+ jmp 0x605d261a                    /* 16:9 case */
+
+au_thr:                            /* a0 = pair W, +1 H */
+ movbu (a0),d0
+ movbu (1,a0),d1
+ WIDE d0,d1,1f
+ mov 3,d0
+ mov d0,(4,sp)
+ mov 1895,d0
+ jmp 0x605d2837
+1:
+ jmp 0x605d27e6                    /* 16:9 case: parameter index 10 */
+
+ag1:
+ clr d3
+ mov (228,a3),a0
+ IDA a0
+ jmp 0x60df798f
+
+ag2:
+ clr d3
+ mov (228,a3),a0
+ IDA a0
+ jmp 0x60df7b5a
+
+mt:
+ mov 0,a1
+ clr d2
+ mov (52,sp),d0
+ IDD d0
+ jmp 0x60e3289e
+
+sv:
+ mov (8,sp),a1
+ clr d1
+ mov (4,a1),d2
+ IDD d2
+ jmp 0x60e3bdee
+af_end:

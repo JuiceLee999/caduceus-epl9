@@ -197,6 +197,99 @@ Not explained: the report doesn't say which screen, or blank vs 16:9. Record 0x6
 - **Bad OSD and boot [V code, I effect]:** the loaders only copy bytes and check size; nothing found decodes bitmaps during boot. A bad stream affects that icon's draw. A bad directory size logs and leaves the bank null, and a bad table pointer would read wild at draw time, so the UI could fault; this build edits neither. The SD updater path is LED-only and draws no OSD (docs/SD_UPDATE.md), and restore has worked from a bootloop.
 - **On camera:** with Panorama and Wide, in the SCP cell, the option strip and the info display. No separate diagnostic was built: this build discriminates. If 3:2 etc. still draw but XP/21:9 are blank everywhere, in-place bitmap edits or those ids are at fault; if only one surface is blank, it reads a list still unfound.
 
+### 1i. Issue #23: AF selector crash, iAuto, missing guides, no reboot persistence (aspect_fix t1, 0.28a1)
+
+User report on v0.25 with Panorama: the camera crashes in the AF target selector, whose grid is the wrong size; iAuto
+does not work normally; face/eye frames, AF points, grid and metering are missing; labels are wrong or missing; the aspect
+is lost at power-off. [V] = read in our image or run in the emulator, [I] = inference.
+
+**Credit.** The reporter (flickering-star) shared a 65:24 patch in their fork of fishcu's oly_fw_analysis
+(`github.com/flickering-star/oly_fw_analysis`, branch `ep7-aperture-ar`, commit eb4d01d; `LICENSES/GPL-3.0.txt`, `LICENSES/DejaVu.txt`).
+The owner allowed using it directly. What we took: the **list of sites** in `patches/ep7/aspect.json` /
+`AF_REPAIR_STATUS.md` / `README.md` (AF cursor selector 0x60dd5cea/0x60dd5ef8, AF grid 0x6066389a/0x60663906, AF windows
+0x60664cf6/d02, AF geometry 0x60df798a/0x60df7b55, metering 0x60e32899, shooting-screen validity maps at 0x60e3bca8, tracking
+pair dispatch, AUTO 0x605d267a/0x605d2830, grid 0x60df72e8/0x60e326c9) and the approach (complete each aspect-keyed lookup; hook the
+default case of the pair switches). Their patch adds a **new id 11** and sits on sec-1 space we already use (0x60210940..), so none
+of its bytes apply here. Every site was re-read in our image, and the stubs and data below are ours, written for ids 6/7.
+
+**Policy.** Panorama and Wide are centred crops at full sensor width, the same width and centre as 16:9 (§3(b)). So wherever an
+AF, AE or overlay lookup lacks 6/7 (or the 65:24/21:9 pair), t1 uses the 16:9 entry. 16:9 geometry is the correct superset:
+AF points and metering marks sit where they would for 16:9. Points above and below the XPan frame stay selectable. They are real
+sensor points, just outside the picture.
+
+| Symptom | Cause | Label | t1 |
+|---|---|---|---|
+| (a) AF selector crash | `AF_Target_Actuator` setup 0x60dd5cd6 looks up the setting-270 value in four 6-entry lists (0x61140d98/df8/e58/eb8, via 0x61140f18/0x61140f30: ids 1,3,2,4,9,10 → 242-B point mask + style). For 6/7 nothing matches, so **obj+64 (mask pointer) and obj+68 (style) are never written**. 0x60dd5ec4 then reads `mask[cursor]` and 0x60dd5ef8 indexes the 18-B style rows 0x611410b8 with the stale style | unwritten fields [V emulated, check A]; crash from the stale pointer [I] | `af_sel`: 6/7 → 3 for these lookups (16:9 mask: rows 1–9, style 2 / 7) |
+| (a) wrong grid size | AF rows/cols switches 0x60663863 / 0x606638d5 (ids 1,2,3,4,9,10): a miss logs and keeps 11×11 / 7×5. AF window table 0x607175b4/e0 (u16 pairs by id) has (0,0) for 6/7 → log at 0x60664d25 | [V emulated, D; V read, W] | `af_dim1/2` → the 16:9 case (9×11, 3×5); window rows 6/7 = the 16:9 row (43,27) / (84,52) |
+| (a/b) tracking, AUTO | The AF/LV driver dispatches on the ratio pair globals 0xa276f955/6 (written at 0x605d5291/529b, 0x605e2784/278f, 0x605e664f/6658) and on struct +204/+205. Only 4:3, 16:9, 3:2, 6:6, 3:4, 17:9 have cases. With 65:24/21:9, tracking 0x605de36c..0x605de40d leaves (92,sp)/(94,sp) → 0xa2770b8e/90 unwritten. The AUTO switches 0x605d25de (crop mask) and 0x605d27a5 (parameter index 9/10/11/15 → getter 0xe162) take the log case and do not write their output. Readers of the globals are only these dispatches and two trace logs (0x605de459, 0x605e6692) | [V read, emulated U/G]; that this is what broke iAuto [I] | `pr_w1/2/3`: after the stock store, a wide pair (65:24, 21:9, 7:6, 6:5) becomes 16:9 in the globals only (the LV message pair is unchanged, so the LV crop of §1d stays). `au_mask`/`au_thr`: wide pair → the 16:9 case |
+| (c) AF points, faces | AF frame display geometry 0x60df798a / 0x60df7b55 searches six 6-entry lists (0x61162468..0x61162660, ids 1,3,2,4,9,10) by obj+228. A miss draws nothing | [V read, L]; that face/eye frames use the same geometry [I]: the id-indexed face rect tables 0x60533870/0x60533920 already have 6/7 rows (§3(b)) | `ag1/ag2`: 6/7 → 3 in the local copy only |
+| (c) selected point | Shooting-screen validity 0x60e3bde8 searches 6-entry {aspect, layout} maps (0x6118f76c..). A miss leaves (12,sp) unwritten (stack garbage into a 48-way jump table), as the fork found for id 11 | [V read, L] | `sv`: 6/7 → 3 |
+| (c) metering | 0x60e32894: GetValue(270) → (52,sp), searched in 5-entry lists 0x6118d490 / 0x6118d508 (1,2,3,4,9). A miss draws nothing | [V read, L] | `mt`: 6/7 → 3 |
+| (c) grid | 0x60df72e8 searches 0x611616ac/e8, 0x61161724/60 (1,2,3,4,9) and, for grid value 9, 0x61161b5c.. (1,2,4,9). A miss returns without drawing | [V read] | **not fixed**: 16:9 bitmaps would put the horizontal thirds in the wrong place. Needs new grid bitmaps (the fork draws its own) |
+| (c) labels | SCP current-value cell still 4:3 (§1h; cause and fix in §1j, aspect_scp t1). The quality screen (§1b) and playback/review labels (fork: 0x60e392fd, 0x60e3009a..) are not traced here | [I] | **not fixed** |
+| (d) not kept across reboot | **Our own v2 boot clamp** (§3(c)) resets 6/7 to 4:3 at every power-on, by design. The validator accepts 6/7 since v4 (§1c), and the value is stored like any other | [V] | **clamp removed**: 0x601929a4 and 0x60210e90 are stock again |
+
+Not changed: every list or switch that already has 6/7 (capture, crop, ORF frame, face rects, the §1d–§1h tables), the LV message ratio pair, the
+16:9 path for stock ids. Aspects 1–4, 9 and 10 see the same code results as v0.28 (checks A, D, G, U, L).
+
+**Build** (`patches/aspect_fix/build.py`, on releases/v0.28/edits.json; output `generated/aspect_fix/t1/`, label 0.28a1): 13 stubs, 484 B at
+0x601de33c–0x601de520 (claim to 0x601de53c, dead EVF gamma tables 3/4; references: only step-table words 0x601e3c28/0x601e3c10 and three byte
+matches inside `call`/`mov` encodings at 0x606d9c34, 0x609dd8dd, 0x608ebd5f, dis-checked). There are 12 hooks (`jmp stub` + `nop` padding, each stub replays
+the replaced instructions), 2 × 8 B of AF window rows and the 2 clamp edits removed. No data tables in the stub block, no mul/div/setlb; the only absolute stores are the two
+ratio globals the stock writers store. 639 B differ from v0.28. Patched sha256 `20e7238ad75d3d8c0b257e4dd74d307d1df5d5f424147f1eeecb0299c5a22f9f`;
+restore sha `963f4dfe…` = v0.28's.
+
+**Checks** (`patches/aspect_fix/verify.py`, all pass): A 32 selector runs (keys 0/1, mode 0/100, ids 1,2,3,4,9,10,6,7: stock ids == v0.28, v0.28 leaves
+6/7 unwritten, t1 == the 16:9 entry); D 22 rows/cols runs (0/5/8 still take the stock log case); W 24; G 33 writer runs (3 writers × 11 pairs, all registers and
+the stack above sp == v0.28); U 22 AUTO runs (5:4 and 17:9 remain stock misses); L 44 local-remap runs; B clamp bytes == stock; Y 426 stub accesses aligned, no
+fault in any run; P package reparses, decoded == stock + edits, restore == stock, no stray byte outside our sites and fw_version.
+
+**Unproven [I]:** the crash mechanism itself (that the unwritten mask pointer is what faults); that iAuto's trouble is the AUTO/tracking pair misses
+(iAuto may have its own aspect handling; if it is still wrong, the fallback is to force 4:3 in iAuto); that face/eye frames use the AF geometry lists; on-screen positions
+(emulation covers lookups, not drawing); removing the clamp means a fault that is specific to 6/7 at start-up would recur every boot (recovery: the SD restore, which works from a bootloop).
+The AF and overlay grid for XPan is the 16:9 one (11×9 points, not a 5-row XPan grid).
+
+**Camera test (t1):** in P, A, S, M and iAuto, for Panorama and Wide: (1) open the AF target selector and move to each corner, then OK and back. No crash; grid 11×9.
+(2) Single-target AF, C-AF+TR on a moving subject, face/eye priority on a face. (3) Metering marks (spot), grid display (expected still absent), the info labels.
+(4) iAuto: half-press focus, take a shot, check exposure. (5) Power off/on in Panorama: it comes back in Panorama, and live view, AF and the selector work straight away. (6) 4:3, 3:2, 16:9: selector and
+AF unchanged.
+
+### 1j. The SCP current-value cell (aspect_scp t1, 0.28c1)
+
+Camera result (v0.25): the SCP option strip shows XP and 21:9, but the current-value cell shows 4:3 for both. [V] = read in our image or run in the emulator, [I] = inference.
+
+**Cause.** The value cell uses none of the lists patched so far (strip record 0x61176fc0, row 16, the info-display records 0x6123dd04..). It is a separate widget with its own, smaller bitmaps.
+- [V emulated, check C] Two SCP cell builders read GetValue(270): 0x60e00ba9 (cell at self+1968) and the `Legacy_Detail_Scp_Viewer` copy 0x60e071ae (self+1972). Each one clears the cell `{u16 index, u8 kind, u8 state}` to index 0, kind 0. Then `0x60df24d7` looks the value up in a 6-entry `{u32 value, u32 index}` list: 0x6116e1ec and 0x6117135c are identical and map 1,3,2,4,9,10 → 2,6,3,5,4,7. Values 6 and 7 miss, so the index stays 0.
+- [V read] Widget record **0x610a3c38** (group 0x602567a4 entry 45, 106×32 at (395,272)) has `+0x34 u8 2, u8 count 5`, `+0x38` parts 0x610a0798 (16-B entries `{0xffff, 7, 7, bitmap}`) and `+0x3c` a u16[count] array (zeros, copied at widget init 0x60d484cd). Its parts are **5871 4:3, 5870 3:2, 5869 3:4, 5868 1:1, 5867 16:9**: grey 106×31 boxes with cut-out digits, colour key 7. This is the only part list in the image that holds these bitmaps, and its order matches the cell index order exactly (index 2..6). setPart 0x60d48b5e ignores any part number ≥ count and leaves the current part in place. The draw 0x60d48e1d uses `parts[cur]`.
+- [I] Index → part is index − 2. Nearly every kind-0 cell list in this viewer starts at 2, and the order match is exact. For index 0, −2 is out of range, so the widget keeps part 0 (4:3) from its creation. That is the symptom. Kind-2 cells (e.g. list 0x6116e7ac → 5874..5883) carry bitmap ids instead.
+- The 50×38 / 64×48 strip icons are a different size and style. There was no XP or 21:9 bitmap at 106×31.
+
+**Fix** (`patches/aspect_scp/build.py`, `apply(spec, version)`; applies on releases/v0.28 and generated/combo/b1; output `generated/aspect_scp/t1/` on b1, label 0.28c1):
+- One shared 8-entry list, the stock 6 plus **6 → 7, 7 → 8**, is written over the old part list at 0x610a0798. That list is dead after the record moves, and the record was its only reference [V scan, any alignment, both aliases]. Both builder sites change to `mov 0x610a0798,a1; mov 8,d1` (0x60e00bdf, 0x60e071e4, 6 B each). Values 1–4, 9 and 10 give the same index as before.
+- Record +0x34: count 5 → 7, parts → **0x601e1d80**, u16 array → 0x601e1df0. The new block is 128 B at 0x601e1d80–0x601e1e00 and holds the stock 5 parts, then 5866, then 5889, then 7 zero u16. It sits in the dead EVF step-9 R tail after the art stub. The only reference to that table is step-table word 0x601e3d10, and nothing points into the block. The word 0xa01e1e01 at 0x611a5fc4 falls outside it.
+- OSD, drawn in place:
+  - **5866** (17:9 cell icon, 721 B) → "XP" in the stock 4:3 box (Fira Sans Bold at the stock digit band; coverage quantised to the stock edge indices 22/23/24/0), 633 B. 17:9 is not selectable for stills (§1c), and no part list, label list or `mov imm16` uses 5866.
+  - **5889** ("50M F", a 169×31 High Res Shot quality icon, 1148 B; the E-P7 hides High Res Shot) → "21:9", built from the stock glyphs ('2' of 3:2; '1', ':' and '9' of 16:9, 16:9 spacing), 724 B. Its descriptor width changes 169 → 106 so that it fits the 106-px cell.
+  - Payloads stay ≤ the original size and are zero-padded, with the encoded size set exactly. Colour key stays 7. The directory and bitmap table are unchanged. Previews are in `generated/aspect_scp/t1/previews/`.
+- So Panorama → index 7 → part 5 = XP, and Wide → index 8 → part 6 = 21:9. The strip, row 16, the info lists and the v0.25 bitmaps are untouched.
+
+**Checks** (`patches/aspect_scp/verify.py`, all pass on b1 and on v0.28):
+- C: 26 native runs of both builder sites for values 0..12. Results for 1–4, 9 and 10 equal the base, 6 → 7, 7 → 8, and other values stay 0.
+- W: the record, the parts and the index → bitmap mapping. 1–4 and 9 give the same bitmap as the base.
+- S: the strip and info lists and the four strip bitmaps are unchanged.
+- O: all 7576 bitmaps decode strictly, and all except 5866/5889 are identical. The directory and table are identical. The new pair decodes to the built pixels at 106×31.
+- Y: alignment. The part block is 16-aligned, the u16 array and the list are 4-aligned, and the record words are 4-aligned.
+- P: the package reparses, and decoded == stock + edits. Restore == stock (sha `963f4dfe…`, = v0.28). Main and OSD differ from the base only at our sites and fw_version.
+- Patched sha256 (t1 on b1): `301df2298af17be8bdff5a603f78958e10198d094d30bffeb69025b9d2956bfd`.
+
+**Unproven [I]:**
+- Index − 2 = part (strong, but the conversion code was not found).
+- That record 0x610a3c38 is the cell the camera showed. The legacy viewer may use another widget; if so, indices 7/8 are ignored there (setPart guard), which is today's behaviour.
+- That 5866/5889 are never drawn by stock screens. A playback info screen could show XP/21:9 for a "50M F" (High Res Shot) file from another body.
+- Value 10 (17:9, unreachable for stills) would now draw XP. In stock its index 7 was out of range and was ignored.
+
+**Camera test:** in P, open the SCP with Panorama, then with Wide. The aspect cell should show XP and 21:9 in the grey cell style. Then check 4:3, 3:2, 16:9, 1:1 and 3:4 (unchanged), the option strip (still XP/21:9), and leaving and re-entering the SCP.
+
 ## 2. Consumers of the aspect id
 
 | # | Site | What it does | Status |
@@ -256,6 +349,7 @@ within 3.5 % in u16 (w,h), u16 rects, u16 (id,0,w,h), u16 (w,h,code) and u32 (id
 - Not changed: the icon lists (#8), the playback edit list (#10), the LV grid bitmaps (#11). The SCP/Live Control strip is extended in v3 (§1b).
 
 ### (c) Boot clamp: a saved Panorama/Wide never reaches a boot (review v0.3 H3 / v0.4 M4; v2)
+**Removed in aspect_fix t1 (0.28a1, §1i, issue #23):** users want the aspect kept across power-off; the notes below describe v2–v0.28.
 - [V] Boot phase 2 (trace marks "2_l" → "2_o", 0x60190fb9..0x60190fda) calls 0x60192961 once. That function
   loads the settings store (0x602b039a, between the "MCS"/"MCE" trace strings 0x601e708c/0x601e7090), then runs
   the stock per-boot resets: 0x602af9e1 (normal) or 0x602af9f9 (boot reasons 7/9), each gated on byte

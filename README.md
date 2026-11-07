@@ -9,7 +9,7 @@ recording.
 
 *Named after the caduceus, the staff of Hermes: messenger between gods and mortals and guide of travellers.*
 
-**Latest release: [v0.28](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.28)** ·
+**Latest release: [v0.29](https://github.com/cakelesscoder/caduceus-ep7/releases/tag/v0.29)** ·
 **[Install guide](docs/INSTALL.md)** · **[Changelog](CHANGELOG.md)** · **[Caduceus Control Panel](https://cakelesscoder.github.io/caduceus-ep7/)** (make and share looks in your browser) · The camera's Setup › Firmware screen shows the Caduceus version.
 
 > [!WARNING]
@@ -46,9 +46,10 @@ recording.
 | **Mono film presets** | Pan F 50, Acros, T-Max 100, SFX 200, Tri-X 400, HP5 Plus, Delta 3200, Sepia Print, Selenium, Cyanotype for Monochrome Profiles, built from OM's own mono settings. Label `<name>`, `*` when modified. | Camera-tested |
 | **Live-view preview** | Hue, lightness and bloom show in live view, not only in the saved photo. | Camera-tested |
 | **True log video** | A log curve Olympus left hidden in the firmware, switched on with the **movie** picture mode set to Muted. | Camera-tested |
-| **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel, with matching live view and playback framing, `XP` and `21:9` icons in the Super Control Panel option strip, and `XPAN`/`UW` size labels. Boots back to 4:3 each power-on, for safety. | Camera-tested |
+| **XPan 65:24 and 21:9** | Panorama (5184×1920) and Wide (5184×2224) in the menu and Super Control Panel, with matching live view and playback framing, `XP` and `21:9` icons in the Super Control Panel option strip, and `XPAN`/`UW` size labels. Boots back to 4:3 each power-on, for safety. | Camera-tested; AF, guides, reboot and SCP icon fixed in v0.29 |
 | **Movie colour** | Movie picture mode Vivid becomes its own colour profile, separate from COLOR1-4 and saved in `EP7MOD/MOVIE.BIN`. Half-press once after switching on to load it, select Vivid in the movie Live Control (it reads `INFO Custom` once loaded), then press **INFO** to edit it. Clips shot before that half-press are stock Vivid. | Camera-tested, long recordings not yet |
 | **Vertical video** | Clips shot in portrait or upside down record their rotation, so players show them the right way up. | Camera-tested, file flags checked in ffmpeg |
+| **More button functions** | REC (◉) and Fn get more choices (AF Home, RAW, ISO/WB, WB/ISO, Level, HDR, BKT, Multi Function and more), and the **right and down arrow keys** can be set in Button Function: Flash, Drive, MF, ISO/WB, WB/ISO, Peaking, Level, Tele-converter, RAW and more. | **New in v0.29** |
 | **Recording limit** | 29-minute and 2-hour caps raised to 9 hours (file, chapter and heat limits still apply). | Camera-tested |
 
 ## Install
@@ -69,8 +70,8 @@ The builder downloads OM's official 1.1 firmware from OM's server, checks it, an
   - Windows: `Build Caduceus (Windows).bat`
   - macOS: `Build Caduceus (Mac).command` (the first time: right-click › **Open**)
   - Linux: `build-caduceus-linux.sh`
-- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.28`
-  (Windows: `py caduceus.py build --release v0.28`).
+- **Or from a terminal** in that folder: `python3 caduceus.py build --release v0.29`
+  (Windows: `py caduceus.py build --release v0.29`).
 
 It creates a folder with:
 
@@ -187,7 +188,6 @@ boots back to 4:3 each time, on purpose.
 - *Black screen during Rec View on bloom/clarity looks?* Known issue: the review goes dark while the effect is
   processed. The photo is fine: set Rec View to **Auto ▶** or press **▶** to see it.
 - *Grain vs NR?* Sector 1 **Grain** adds film grain to the photo. Sector 9 **NR** sets the camera's noise reduction (Noise Filter); Off keeps the most sensor texture, mostly visible at higher ISO. Both belong to the COLOR profile: picking a look never changes them.
-- *Super Control Panel shows 4:3 on Panorama or Wide?* Known issue: the option strip shows `XP` and `21:9`, but the current-value cell still shows the 4:3 icon. The setting and the photo are right.
 
 ### Vignette correction: reports wanted
 
