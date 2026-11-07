@@ -3,6 +3,12 @@
 Caduceus firmware patches for the Olympus PEN E-P7 (firmware 1.1). Releases from v0.25 are betas; earlier ones
 were early-development pre-releases. Use at your own risk (see the README).
 
+## v0.29a — 2026-11-08 (beta)
+
+- **Fewer presses to change film:** the colour wheel now opens on **Film**, and INFO goes Film → Saturation → Saturation·All → Hue → Light → Extras. If you close it on Saturation·All, it reopens there. Without `LOOKS.BIN` it behaves as before. The Movie wheel uses the same order.
+- **See the film on the wheel:** on the Film page, the wheel's shape now follows each film's saturation pattern as you turn through them, in stills as it already did in movie.
+- Firmware screen shows `Caduceus: 0.29a`. The builder now treats letter versions (v0.29a) as newer than v0.29.
+
 ## v0.29 — 2026-11-08 (beta)
 
 - **Arrow keys you can set:** Custom Menu › Button Function now shows **Right Fn** and the down-arrow row (Drive). Choose Flash, Drive, Exp comp, MF, ISO/WB, WB/ISO, Peaking, Level, Tele-converter, RAW, Electronic Zoom, touch lock, Accessories or Off. The defaults are stock (right = Flash, down = Drive). Up and left stay fixed.

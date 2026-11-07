@@ -21,7 +21,7 @@ This is a small independent implementation; it was cross-checked against
 fishcu's oly_container.py (https://github.com/fishcu/oly_fw_analysis), which the
 Caduceus project used during development.
 """
-import argparse
+import re, argparse
 import hashlib
 import json
 import os
@@ -336,10 +336,11 @@ def cmd_list(a):
 
 # ---------------------------------------------------------------- one-press mode
 def vkey(name):
-    try:
-        return tuple(int(x) for x in name[1:].split('.'))
-    except ValueError:
+    """v0.29 < v0.29a < v0.29b < v0.30."""
+    m = re.fullmatch(r'v(\d+(?:\.\d+)*)([a-z]?)', name)
+    if not m:
         return (-1,)
+    return tuple(int(x) for x in m.group(1).split('.')) + (ord(m.group(2)) - 96 if m.group(2) else 0,)
 
 
 def latest_release():

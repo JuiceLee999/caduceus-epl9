@@ -301,3 +301,21 @@ current-editor holder and H5 the polygon producer (§1.5), and neither is mapped
   `ed_fm_none`) whether the slot entry still equals its picked look's `place()`. If it does not, the label gets a `*`,
   e.g. `Film: Velvia*`, and the prefix and name are cut so the label stays at 16 characters. Without the film layer the
   label is unchanged. Verified: the editor V labels (editor-only spec), and film part M (fm_mod + label).
+- **Page order, Film first (0.29p1, `patches/page_order`, layer on v0.29).** INFO order is now Film → Saturation →
+  Saturation - All (stock ALL toggle) → Hue → Light → Extras → Film. Without LOOKS.BIN (fm_valid 0) Film is skipped:
+  Saturation → … → Extras → Saturation. Axis values are unchanged, so ed_poly, ed_guide, ed_get/ed_set, fm_up/down and
+  the Movie slot (`mv_si`, same ed_info and init on P2) need no change.
+  - `k_step` rewritten in place (48 of 49 B, nop to `k_set`). The build requires the extras layer (`ed_cfg_x` = 4):
+    there is no room left for a runtime "no Extras" test, so Light → Extras always.
+  - Open: the COLOR1–4 record +4 words → `po_init` (147 B at 0x601e3168, the dead step-3 B table after ed_keys;
+    `ed_init` stays unreferenced). P valid, ALL off and fm_valid → 'EP7E' marker (dirty/status cleared on a first use,
+    as ed_info does) and axis Film. Otherwise ed_init's rule (marker → Saturation, no marker → nothing). ALL on (the
+    editor was closed on Saturation - All) still opens on Saturation - All. Then stock init with registers and mdr kept.
+  - Verified: `patches/page_order/verify.py` (P package/restore/only our sites, I open 112, E INFO cycle 141).
+    Not camera-tested.
+- **Film page polygon = saturation (0.29p2, `build.py --film-poly` on 0.29p1).** 0.29p1 camera: in the Movie slot the
+  Film page polygon took the picked film's saturation (`mv_poly2` → `mv_si` returns P2's S values on S and Film), while
+  stills drew the neutral circle (`ed_poly` returned 0 on axis 3). A stills Film pick already writes the stock
+  saturation settings (v0.24 `sp_tail`), so ed_poly's `bne p_stock` at 0x601e311f becomes `bra p_stock` (1 byte):
+  Film takes the stock read 0x602afa81, the same as Saturation. Light/Hue/Extras are unchanged. Verified: verify.py
+  P/I/E + F (verify_poly on the real site, Film expected on the stock path, 595/595).
