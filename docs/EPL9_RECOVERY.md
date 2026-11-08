@@ -102,3 +102,30 @@ before flashing, and switch to Custom only once it has booted.
 
 Sources consulted for the trigger: no public E-PL9 description found. General Olympus SD-update cautions (don't
 interrupt, keep power) match the analysis above.
+
+## 6. Camera results and what they do and don't show (2026-11-07)
+
+| Step | File as `DCOLYMP/E1339999.BIN` | Result |
+|---|---|---|
+| 1 | `dryrun-badsum.pkg.bin` (broken checksum) | LED steady, then fast blink; camera still boots on 1.1 |
+| 2 | `restore-stock.pkg.bin` (valid, stock main only) | **the same**: LED steady, then fast blink; still 1.1 |
+
+**Correction to §1:** because a valid file failed exactly like the broken one, step 1 did **not** prove that the
+updater found and refused our file. A fast blink only shows that the updater ran and ended in an error. "No file
+found", a mount failure, a battery check and a refusal all look alike. What is proven: **holding OK at power-on
+starts the SD updater** (no normal start-up, LED activity) and nothing was written.
+
+The emulator only ran the validator function `0x6100440a`. The E-PL9 update service around it (`0x61003e85…`) is
+restructured compared with the E-P7. It has new early error codes `0x3305`/`0x3303` (after `0x604313e9`, at
+`0x61003edd`), a mode word read from `0x60420fac` where the E-P7 uses the constant 3, a mount-retry helper that
+returns `0x3304`, and a writer wrapper that picks the write mode from new tests (`cmp 1,d1`, `cmp 16`). So
+"main-only is accepted" holds for the validator only, not end to end.
+
+**Next diagnostics (no write, then stock content only):**
+- **A. No file:** OK + power on with an empty `DCOLYMP` (or no folder). If the LED does the same, the fast blink
+  means "nothing usable found or processed", and our file was probably never read.
+- **B. Battery:** repeat with a freshly fully charged battery (the updater may check battery level).
+- **C. OM's official full file** (`OLY_E_133_1101_0000_0000.BIN`, all 5 components, unmodified) as
+  `DCOLYMP/E1339999.BIN`. This is a real write, of OM's own stock content, the same as an official update. If it
+  succeeds (slow blink), the SD path works for full packages, and the patch can ship as a full package (stock
+  components + patched main).
