@@ -135,3 +135,36 @@ returns `0x3304`, and a writer wrapper that picks the write mode from new tests 
 in steps 1–2 the updater **found and read** `E1339999.BIN` and then failed. The name, folder and trigger (**OK +
 power on**) are confirmed. The E-PL9 refuses a **main-only** package, even the unmodified stock main. The E-P7
 accepts one. Next: test C (OM's official full file), which shows whether full packages are accepted.
+
+## 7. Why the SD path refuses every file: emulation conclusion (2026-11-08)
+
+The whole SD update path in the E-PL9 main image was traced and, where runnable, emulated:
+- **Client** `0x610039fd` (FIRMUP_CLI): walks the `DCOLYMP/x133????BIN` pattern table, picks the highest suffix,
+  reads the file, posts `{buffer, size, kind}` to the service. Confirmed on the camera: with a file it runs (LED +
+  fast blink), with none it finds nothing and powers off (no LED, test A). So the file **is** found and read.
+- **Service** `0x61003e85` (FIRMUP_SRV): dispatches on the request type (a jump table at `0x61328d70`); a body file
+  (kind 1) takes `0x61003f61`, which calls the validator in mode 0 (validate-every-component-then-write).
+- **Validator** `0x6100440a`: `tools/epl9_sd_update_probe.py`, 20/20 — accepts main-only and full packages, **ignores
+  the version field** (build 0x1101/0x1000/0x0000/0xffff all pass), rejects only bad checksum / wrong model / torn
+  components.
+- **Writer wrapper** `0x6100511c` → flash write `0x604a0f8b`.
+
+Static findings across `0x61003800–0x61005600`:
+- **No version comparison** anywhere (the service never reads the installed version to compare).
+- **No file-size limit / buffer cap** (no 8–256 MiB constant on the whole path).
+- **No model/mode gate** a file could fail beyond the validator's model check (which model 133 passes).
+
+So the main-image code **should accept and write** a stock, same-version file — yet the camera refused all three
+real files (dry-run, stock main-only restore, OM's official full 1.1), each with a fast blink, nothing written.
+
+**Conclusion:** the refusal is **not** in the main firmware and **cannot be satisfied by changing the file**
+(OM's own file is refused identically). It lives in the layer the main image can't see — the pre-main boot code or
+the sub-CPU power/mode controller — which, on this body, does not permit an SD update-and-write in the "hold OK at
+power-on" state (most likely because the E-PL9's supported update method is OM Workspace over USB, and the SD
+`DCOLYMP` path is gated to a service/upgrade condition we can't reproduce). `docs/SD_UPDATE.md` §1/§4 already noted
+the trigger and mode arbitration live outside the main image.
+
+**Consequence for the look patch:** it cannot be installed over SD on this E-PL9. There was never any risk to the
+camera — nothing was ever written. The remaining firmware avenue is USB (the OM Workspace protocol: opcodes
+`0x911c`/`0x9121`/`0x9123` are present, and the submodule carries fishcu's `camera_client`), which is a separate,
+substantial investigation and uncertain (the camera-side check may still refuse a same-version image).
