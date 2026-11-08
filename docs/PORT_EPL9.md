@@ -32,3 +32,27 @@ No camera touched. Sources:
 The E-PL9 is an older build than the E-M10 IV. Even the small, self-contained patches do not match by surrounding bytes, so
 every hook has to be found again by hand: disassembly plus the emulator. This is a fresh port that uses the E-P7 as a
 map, not a relocation of the E-P7 patches.
+
+## Colour engine (found 2026-11-07)
+
+The per-hue colour path that Caduceus hooks on the E-P7 (and the PEN-F HSL mod hooks on the PEN-F) **is present in
+the E-PL9**: nearly identical code with one constant shift per area. Static evidence only; nothing has run in the emulator yet.
+
+| Piece | E-P7 1.1 | E-PL9 1.101 | Match |
+|---|---|---|---|
+| COLOR builder | `0x603b0068–0x603b0247` | `0x603be9e2` (+59 770) | 113 / 116 unique 12-byte windows, all the same shift |
+| selector | `0x603b0252–0x603b0345` | `0x603bebcc` (+59 770) | 47 / 57 |
+| writer | `0x6034667e–0x6034677b` | `0x60360cf0` (+108 146) | 61 / 60 (all windows) |
+| COLOR table | `0x6051de2c` | `0x6050e360` | 4 / 4 64-byte chunks |
+| gains | `0x60531810` | `0x604f27ec` | 3 / 4 64-byte chunks |
+| **color_hook** (`call builder`) | `0x603b02d9` | **`0x603bec53`** | the only caller on both bodies |
+| `call selector` | `0x603b14f3` | `0x603bfc15` | the only caller on both |
+| `call writer` | `0x60345f8f`, `0x60345fb1` | `0x60360601`, `0x60360623` | the same two callers |
+
+Callers were found by scanning for MN103 `call`/`calls` (d16 and d32) to each entry point.
+
+**What this means:** the hook where looks inject hue, saturation and lightness per sector exists. What's missing is
+the E-P7's COLOR *profile* UI and storage around it. Next questions, for the emulator:
+1. When does the stock E-PL9 reach `0x603bec53`? Picture modes, Art filters (e.g. Partial Color) or never?
+2. Does a non-zero per-hue table there change the output, as on the E-P7 (`tools/ep7_color_probe.py`)?
+3. Which existing E-PL9 setting can host a look: a picture mode slot (e.g. Custom) or an Art filter?
