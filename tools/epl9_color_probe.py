@@ -6,21 +6,23 @@ The E-PL9 counterpart of tools/ep7_color_probe.py. It uses the same strict MN103
 Nothing here writes firmware files: the test stub is assembled to a temp directory and only ever
 exists inside the emulator's RAM model, at a synthetic address (not a code-space claim).
 
+All addresses are E-PL9 RUNTIME addresses: its main image loads at 0x60400020 (the E-P7's at 0x60020020),
+so file offset = address - 0x60400020. Every absolute pointer agrees (callback, key-hash handlers, table,
+gains). Older notes that used the E-P7 base list E-PL9 code 0x3e0000 lower.
+
 E-PL9 differences from the E-P7 (all found statically, then exercised here):
-  * Initialised data runs from RAM 0x3e0000 above its file position: the selector passes the COLOR
-    table at 0x608ee360 (file 0x6050e360) and the builder reads gains at 0x60900230 (file 0x60520230),
-    whose pointers (0x608e14xx) are relocated too. The E-P7 uses the file addresses directly.
+  * COLOR table 0x608ee360, gains 0x60900230 (E-P7 0x6051de2c / 0x60531810).
   * Saturation bytes at request+1813 (E-P7 +1816).
-  * Job: size 14552 (constructor `mov 14552,d0` at 0x6036df09), request at job+10440
-    (0x6036f961), records at job+13640 = request+3200. E-P7: 15488 / 11364 / 14576 = request+3212.
-  * Job callback 0x603704f6 (request-header init 0x6036f225; E-P7 0x60355fd4).
+  * Job: size 14552 (constructor `mov 14552,d0` at 0x6074df09), request at job+10440
+    (0x6074f961), records at job+13640 = request+3200. E-P7: 15488 / 11364 / 14576 = request+3212.
+  * Job callback 0x607504f6 (request-header init 0x6074f225; E-P7 0x60355fd4).
 
 Checks:
-  A  native builder 0x603be9e2: output records at +688 (24 B), table H/L overrides propagate.
-  B  native selector 0x603bebcc, mode 11, unmodified code.
-  C  same, with the 5-byte call at 0x603bec53 replaced (emulator RAM only) by a jmp to a test stub
+  A  native builder 0x6079e9e2: output records at +688 (24 B), table H/L overrides propagate.
+  B  native selector 0x6079ebcc, mode 11, unmodified code.
+  C  same, with the 5-byte call at 0x6079ec53 replaced (emulator RAM only) by a jmp to a test stub
      that re-issues the builder call, validates callback/record/parent with the E-PL9 job layout,
-     writes H/L from job+14552 into the output records and rejoins at 0x603bec58.
+     writes H/L from job+14552 into the output records and rejoins at 0x6079ec58.
      Negative controls: wrong callback / foreign parent -> output equals stock. Record index 0 and 15.
   D  gate: which request mode words reach the builder (stock code). Also the 0xf00d bypass.
   E  stock selector with an edited RUNTIME table (0x608ee360): per-hue H (+12) and L (+16) edits reach
@@ -37,13 +39,12 @@ from penf_emulator import execute, Region  # noqa: E402  (generic runner; no PEN
 
 MAIN = ROOT / 'analysis/epl9_1101/00_0100_406e0020.decoded.bin'
 MAIN_SHA = '8e39c335d54fd8ddea189db82fe708159f43f9995bba42c2cd47dd22b8814267'
-BASE = 0x60020020
-DATA_RELOC = 0x3e0000      # runtime address - file address, for the initialised data used here
+BASE = 0x60400020          # E-PL9 main load address (E-P7: 0x60020020)
 TC = Path(os.environ.get('MN10300_BIN', Path.home() / 'ep7fw-toolchains/mn10300/bin'))
 
-TABLE, TABLE_SIZE, GAINS = 0x608ee360, 3028, 0x60900230      # runtime (RAM) addresses
-BUILDER, SELECTOR, SELECTOR_END = 0x603be9e2, 0x603bebcc, 0x603becbf
-HOOK, RESUME, CALLBACK = 0x603bec53, 0x603bec58, 0x603704f6
+TABLE, TABLE_SIZE, GAINS = 0x608ee360, 3028, 0x60900230
+BUILDER, SELECTOR, SELECTOR_END = 0x6079e9e2, 0x6079ebcc, 0x6079ecbf
+HOOK, RESUME, CALLBACK = 0x6079ec53, 0x6079ec58, 0x607504f6
 REQ_IN_JOB, RECORDS_IN_JOB, REC_STRIDE, N_REC = 10440, 13640, 56, 16
 JOB_SIZE = 14552
 SAT_IN_REQ = 1813
@@ -159,8 +160,7 @@ def code(d, lo, hi):
 
 
 def data(d, lo, n):
-    """Initialised data at RUNTIME address lo (stored 0x3e0000 lower in the file)."""
-    return d[lo - DATA_RELOC - BASE:lo - DATA_RELOC - BASE + n]
+    return d[lo - BASE:lo - BASE + n]
 
 
 def stock_table(d):
