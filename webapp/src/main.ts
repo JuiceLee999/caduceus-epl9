@@ -17,6 +17,7 @@ import { OM3_REPO, bankToPack, decodeOm3Code, isOm3Code, looksBinToPack, packToB
 import { rrpreset } from './rapidraw';
 import { TARGETS, targetById } from './targets';
 import { recipeCard } from './targets/recipe';
+import { epl9Card } from './epl9';
 import { previewToneLut } from './tone';
 
 // ---------------------------------------------------------------- state
@@ -192,7 +193,7 @@ function shell() {
         h('button', { onclick: pasteDialog }, 'Paste code'),
         h('button', { onclick: sharePack }, 'Share pack'),
         h('button', { id: 'fw-btn', onclick: () => setupDialog() }, fwLabel()),
-        h('button', { onclick: () => (CAM === 'om3' ? om3InstallDialog() : installDialog()) }, 'Install firmware'),
+        h('button', { onclick: () => (CAM === 'om3' ? om3InstallDialog() : CAM === 'epl9' ? epl9InstallDialog() : installDialog()) }, 'Install firmware'),
         h('button', { onclick: aboutDialog }, 'About'),
         h('button', { class: 'primary', onclick: exportDialog }, 'Export'))),
     h('main', { class: 'layout' },
@@ -942,7 +943,7 @@ const FW_OPTIONS: [Fw, string, string][] = [
 const STORE_CAM = 'caduceus.camera';
 let CAM: Cam = 'ep7';
 const cam = () => CAMERAS[CAM];
-function fwLabel() { return CAM === 'om3' ? 'Camera: OM-3' : `Camera: E-P7, v0.${firmware()}${firmware() === FW_LATEST ? '+' : ''}`; }
+function fwLabel() { return CAM === 'om3' ? 'Camera: OM-3' : CAM === 'epl9' ? 'Camera: E-PL9' : `Camera: E-P7, v0.${firmware()}${firmware() === FW_LATEST ? '+' : ''}`; }
 function saveSetup(cam: Cam, fw?: Fw) {
   CAM = cam;
   if (fw) setFirmware(fw);
@@ -955,7 +956,7 @@ function saveSetup(cam: Cam, fw?: Fw) {
   renderAll();
 }
 function setupDialog(first = false) {
-  const on = (cam: Cam, fw?: Fw) => (cam === CAM && (cam === 'om3' || fw === firmware()) ? 'primary' : '');
+  const on = (cam: Cam, fw?: Fw) => (cam === CAM && (cam !== 'ep7' || fw === firmware()) ? 'primary' : '');
   const row = (label: string, help: string, cam: Cam, fw?: Fw) => h('div', { class: 'ex-row' },
     h('div', {}, h('b', {}, label), h('p', { class: 'help' }, help)),
     h('button', { class: on(cam, fw), onclick: () => { saveSetup(cam, fw); dlg.close(); } }, 'Use this'));
@@ -966,6 +967,8 @@ function setupDialog(first = false) {
     ...FW_OPTIONS.map(([f, label, help]) => row(label, help, 'ep7', f)),
     h('h3', {}, 'OM SYSTEM OM-3'),
     row('Caduceus for OM-3 v0.19 or later', 'Exports OM3MOD/LOOKS.BIN and NAMES.BIN. NR, Glow / Clarity and Art Effects need v0.20. The firmware is a separate project: never use E-P7 firmware on an OM-3.', 'om3'),
+    h('h3', {}, 'Olympus PEN E-PL9'),
+    row('Stock firmware', 'No firmware mod yet. Exports a card per look with the closest in-camera settings, plus RapidRAW presets for your RAW files. Never use E-P7 firmware on an E-PL9.', 'epl9'),
     h('p', { class: 'help' }, 'Other bodies aren\'t supported yet: ', h('a', { href: `${GH}/blob/main/docs/BODIES.md`, target: '_blank', rel: 'noopener' }, 'see where each one stands'), '.'));
   const dlg = modal(first ? 'Welcome to the Caduceus Control Panel' : 'Your camera', body);
 }
@@ -975,8 +978,9 @@ function loadSetup() {
   const q = new URLSearchParams(location.search).get('camera');
   const f = Number(v) as Fw;
   if (v !== null && FW_OPTIONS.some(([x]) => x === f)) setFirmware(f);
-  if (q === 'om3' || q === 'ep7') saveSetup(q);
-  else if (cam === 'om3' || cam === 'ep7') { CAM = cam; $('#fw-btn').textContent = fwLabel(); }
+  const known = (c: string | null): c is Cam => c === 'om3' || c === 'ep7' || c === 'epl9';
+  if (known(q)) saveSetup(q);
+  else if (known(cam)) { CAM = cam; $('#fw-btn').textContent = fwLabel(); }
   else setupDialog(true);                              // first visit, or set up before the camera choice existed
 }
 function aboutDialog() {
@@ -989,9 +993,41 @@ function aboutDialog() {
     h('h3', {}, 'Your camera'),
     row('Olympus PEN E-P7', 'cakelesscoder', GH),
     row('OM SYSTEM OM-3', 'androidfanman', OM3_REPO),
+    row('Olympus PEN E-PL9 (research)', 'JuiceLee999', EPL9_REPO),
     h('p', { class: 'help' }, 'Other bodies: ', link(`${GH}/blob/main/docs/BODIES.md`, 'see where each one stands'), '.'),
     h('h3', {}, 'Credits'),
     h('p', {}, 'Inspired by ', link('https://www.reddit.com/user/fischgurke/', 'u/fischgurke'), '\'s PEN-F HSL firmware mod, and built on the PEN-F research in ', link('https://github.com/fishcu/oly_fw_analysis', 'fishcu/oly_fw_analysis'), '. ', link(`${GH}#credits`, 'Full credits'), '.')));
+}
+const EPL9_REPO = 'https://github.com/JuiceLee999/caduceus-epl9';
+function epl9InstallDialog() {
+  modal('Caduceus for the E-PL9', h('div', { class: 'export' },
+    h('p', {}, 'There is no firmware for the E-PL9 yet. The port is being researched: the E-PL9 has no COLOR profiles, so the looks need a new home in the firmware.'),
+    h('p', { class: 'warn' }, '⚠️ Never flash E-P7 or OM-3 firmware on an E-PL9.'),
+    h('p', {}, 'Until then, Export gives you each look as stock E-PL9 settings to dial in by hand, and as RapidRAW presets for your RAW (ORF) files.')),
+  [h('a', { class: 'btn', href: `${EPL9_REPO}/blob/main/docs/PORT_EPL9.md`, target: '_blank', rel: 'noopener' }, 'Port status')]);
+}
+function epl9Body(): HTMLElement {
+  const fname = (S.pack.name || 'pack').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'pack';
+  const l = cur();
+  const cards = () => targetById('epl9-stock').export(S.pack);
+  const enc = (d: string | Uint8Array) => (typeof d === 'string' ? new TextEncoder().encode(d) : d);
+  const packJson = () => JSON.stringify({ ...exportable(S.pack), schema: PACK_SCHEMA }, null, 1) + '\n';
+  return h('div', { class: 'export' },
+    h('p', { class: 'help' }, 'Stock E-PL9 settings come close to a look\'s overall colour, contrast and tone. Colour-by-colour changes need the RapidRAW preset (RAW files) or, one day, the firmware port.'),
+    l ? h('pre', { class: 'recipe-card' }, epl9Card(l)) : null,
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'Settings card (.md)'), h('p', { class: 'help' }, l ? `The card above: "${l.name}". All looks: one card each in a zip.` : 'One card per look.')),
+      h('div', { class: 'ex-btns' },
+        h('button', { class: 'primary', disabled: !l, onclick: () => { if (l) { const f = cards()[S.sel]; download(f.name, f.data, 'text/markdown'); } } }, 'This look'),
+        h('button', { disabled: !S.pack.looks.length, onclick: () => download(`${fname}-EPL9-cards.zip`, makeZip(cards().map((f) => ({ name: f.name, data: enc(f.data) }))), 'application/zip') }, `All ${S.pack.looks.length} (.zip)`))),
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'RapidRAW presets (.rrpreset)'), h('p', { class: 'help' }, 'The full look, colour by colour, for your E-PL9 ORF files. Unzip, then in RapidRAW: Presets › Import. Approximate: RapidRAW starts from its own raw rendering.')),
+      h('div', { class: 'ex-btns' },
+        h('button', { disabled: !l, onclick: () => { if (l) downloadRr(S.sel); } }, 'This look'),
+        h('button', { disabled: !S.pack.looks.length, onclick: () => download(`${fname}-rapidraw.zip`, makeZip(rrFiles()), 'application/zip') }, `All ${S.pack.looks.length} (.zip)`))),
+    h('div', { class: 'ex-row' },
+      h('div', {}, h('b', {}, 'Pack file (.json)'), h('p', { class: 'help' }, 'Everything, including notes. Open it here later or send it to someone.')),
+      h('button', { onclick: () => download(`${fname}.caduceus.json`, packJson(), 'application/json') }, 'Download')));
 }
 function om3InstallDialog() {
   modal('Install Caduceus for OM-3', h('div', { class: 'export' },
@@ -1043,7 +1079,10 @@ const STORE_TARGET = 'caduceus.target';
 // The camera is chosen in setupDialog; this older per-export selector stays off.
 const SHOW_CAMERA_SELECTOR = false;
 function exportDialog() {
-  if (!SHOW_CAMERA_SELECTOR) { modal(CAM === 'om3' ? 'Export for the OM-3' : 'Export', CAM === 'om3' ? om3Body() : h('div', { class: 'export' }, ep7Body())); return; }
+  if (!SHOW_CAMERA_SELECTOR) {
+    if (CAM === 'epl9') { modal('Export for the E-PL9', epl9Body()); return; }
+    modal(CAM === 'om3' ? 'Export for the OM-3' : 'Export', CAM === 'om3' ? om3Body() : h('div', { class: 'export' }, ep7Body())); return;
+  }
   let target = targetById((() => { try { return localStorage.getItem(STORE_TARGET); } catch { return null; } })());
   const sel = h('select', {
     'aria-label': 'Camera',
