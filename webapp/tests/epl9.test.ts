@@ -70,6 +70,17 @@ describe('E-PL9 stock settings', () => {
     expect(toEpl9(split).alternatives.some((a) => /Color Creator/.test(a))).toBe(false);
   });
 
+  it('offers i-Enhance only for a punchy (Vivid + contrast) colour look', () => {
+    const punchy = blankLook(); punchy.sat.fill(5); punchy.advice.contrast = 2;
+    const r = toEpl9(punchy);
+    expect(r.mode).toBe('Vivid');
+    expect(r.alternatives.some((a) => /i-Enhance/.test(a))).toBe(true);
+    const vividFlat = blankLook(); vividFlat.sat.fill(5);   // Vivid but no contrast lift
+    expect(toEpl9(vividFlat).alternatives.some((a) => /i-Enhance/.test(a))).toBe(false);
+    const mono = blankLook('mono'); mono.advice.contrast = 2;
+    expect(toEpl9(mono).alternatives.some((a) => /i-Enhance/.test(a))).toBe(false);
+  });
+
   it('uses the look tone, or the advice tone for older looks', () => {
     const l = blankLook();
     l.advice.tone = { highlights: 2, shadows: -3, midtones: 0 };
