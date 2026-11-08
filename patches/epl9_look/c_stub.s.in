@@ -1,0 +1,53 @@
+/* E-PL9 1.101 look colour hook (caduceus-epl9, our own code). docs/EPL9_LOOK_HOOK.md
+ *
+ * Entered by the 5-byte `jmp` that replaces `call builder` at {hook} in the COLOR selector. Only mode-11 jobs
+ * get here (selector gate), and only trigger T makes mode 11 (Custom), so no further gate is needed.
+ *
+ * Register contract at entry (the selector's, unchanged): a0 = COLOR table, a1 = saturation bytes
+ * (request+1813), d0 = table control word, d1 = output, a2 = context, a3 = request+1813.
+ *   1. a1 := look_sat, so the stock builder computes saturation from the look's 12 values (stock gains).
+ *   2. Displaced `call builder` (same frame and register list as stock).
+ *   3. Write the look's hue and lightness into the 12 output records (output = context+12; record r at
+ *      +688+24r, hue +18, light +22). look_hl is already in physical record order and native units.
+ *   4. d0/d1/a0/a1 are restored to what the builder returned; d2/d3/a2/a3 are untouched (callee-saved by
+ *      the builder call). Rejoin at {resume}.
+ * Stores: the 16-B stack frame and the 24 halfwords of the builder's own output. Nothing else.
+ * Avoid ';' in comments: it is a statement separator for this assembler.
+ */
+ .am33_2
+ .text
+ .global _start
+_start:
+c_stub:
+ mov look_sat,a1
+ call epl9_builder,[d2,d3,a2,a3],96
+ add -16,sp
+ mov d0,(0,sp)
+ mov d1,(4,sp)
+ mov a0,(8,sp)
+ mov a1,(12,sp)
+ mov (12,a2),a0
+ add {rec0_hue},a0
+ mov look_hl,a1
+ mov 12,d1
+c_loop:
+ movhu (a1),d0
+ movhu d0,(a0)
+ movhu (2,a1),d0
+ movhu d0,(4,a0)
+ add 4,a1
+ add 24,a0
+ add -1,d1
+ bne c_loop
+ mov (0,sp),d0
+ mov (4,sp),d1
+ mov (8,sp),a0
+ mov (12,sp),a1
+ add 16,sp
+ jmp epl9_resume
+ .balign 4
+look_sat:
+ .byte {sat_bytes}
+look_hl:
+ .hword {hl_words}
+c_end:

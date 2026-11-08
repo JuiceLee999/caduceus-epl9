@@ -1,6 +1,6 @@
 # E-PL9 look hook: design (v1)
 
-Design only (2026-11-07). Nothing is built, packaged or flashed. Addresses are E-PL9 1.101 runtime addresses (main
+**Status (2026-11-07): v1 built and emulator-verified (§5). Not flashed. Not cleared for flashing.** Addresses are E-PL9 1.101 runtime addresses (main
 loads at `0x60400020`). [V] = read from the decoded main or checked by a tool. [E] = shown in the emulator. [I] =
 inference. [?] = open.
 
@@ -121,3 +121,50 @@ Camera (only after you confirm, and with recovery checked first):
 1. Custom = look, a deliberately strong look (e.g. a big green shift) so the result is unmistakable. JPEG + RAW.
 2. Compare Vivid/Natural against stock: they must be identical.
 3. Note live view, RAW development in camera, Custom's menu and EXIF.
+
+## 5. As built (v1, 2026-11-07)
+
+One change from §3.2: at the hook a1 is the builder's saturation pointer (request+1813), so the stub points a1 at
+the look's 12 saturation bytes in flash. The stock builder then computes saturation itself (stock gains), and the stub
+only writes hue and lightness. There are no saturation tables to get wrong.
+
+```
+python3 -I patches/epl9_look/build.py                 # -> generated/epl9_look/edits.json, c_stub.{s,lst,bin}, symbols.json
+python3 -I tools/epl9_look_verify.py                  # 7 checks, all must PASS
+python3 -I tools/build_package.py generated/epl9_look/edits.json --body epl9 --out generated/epl9_look/pkg
+```
+
+| Edit | Address | Bytes |
+|---|---|---|
+| T1 | `0x60693d02` | `fccc119d0000` → `800bca0ecbcb` |
+| T2 | `0x6069560c` | `fccc119d0000` → `800bf052ca0f` |
+| C | `0x6079ec53` | `cd8ffdf060` → `dc5dda1800` (`jmp 0x6092c6b0`) |
+| S | `0x6092c6b0–0x6092c738` | 136 B stub + look `test_strong` (hue +6 = −6000 native, sat +3, light 0, all sectors) |
+
+**Code-space claim (E-PL9 main):** `0x6092c6b0–0x6092c800` (section 2 tail) belongs to `patches/epl9_look`. 136 B are
+used; `0x6092c6a8–0x6092c6b0` and `0x6092c738–0x6092c800` stay FF as guards and room for v2.
+
+**Verification** (`tools/epl9_look_verify.py`, all PASS):
+
+| Check | Result |
+|---|---|
+| S1 | Every `expect` matches stock; no overlaps; 150 changed bytes, all inside the edits |
+| S2 | Stub inside the FF tail with guards (200 B free after it); hook = `jmp d32` to the stub |
+| S3 | The stub's only stores are its 16-B stack frame and the two record-loop stores |
+| C1 | Patched selector, mode 11: all 12 records carry the look's hue/light, saturation = the stock builder's result for the look's bytes (independent of the request's own saturation); clean return; context as stock |
+| C2 | Modes 0–19 except 11, and the `0xf00d` bypass: memory, registers and instruction count identical to stock |
+| T1 | Capture population with a fake getter: modes 1–5, 7–9, 100, 124 identical; Custom with base 1–5 → 11, and the profile number is read into capture+22985 (stock mode-11 path) |
+| T2 | Slot fill: the same modes identical; Custom → slot mode byte 11, byte 1 untouched |
+
+Mutation check: a changed look byte fails C1, T1 left as stock fails T1, and a hook jumping 2 bytes late fails S2 and C1.
+
+**Package** (`tools/build_package.py --body epl9`, new option; E-P7 stays the default): component 0x100 only,
+150 changed payload bytes, container re-parsed with valid checksums. The decoded main equals the verifier's patched
+image (SHA-256 `3e248545…2705`). The restore package's main equals stock. The output is deliberately not SD-loadable by
+name.
+
+**Before any camera test** (not done):
+1. Trace live view (§3.4.1) so we know what the preview will show.
+2. Confirm the E-PL9 update procedure and file name, and that the restore package plus the camera's own updater
+   can recover a bad flash. Container validity is not bootability.
+3. You decide.

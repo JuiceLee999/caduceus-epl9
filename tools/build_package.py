@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build an E-P7 component-selective update package + matching stock restore.
+"""Build a component-selective update package + matching stock restore (E-P7 by default, --body epl9).
 
 OFFLINE. Never contacts a camera. Output names are deliberately NOT SD-loadable
 (`*.pkg.bin`); copying to DCOLYMP/E142xxxx.BIN is a separate, manual,
@@ -29,24 +29,33 @@ import oly_container as oc  # noqa: E402  (fishcu; imported, not copied)
 STOCK = ROOT / 'stock_firmware/OLY_E_142_1100_0000_0000.BIN'
 STOCK_SHA = '9d1610124ad98f6edae4540182205f06c9c703d9033ef0c4f19847193f95eaeb'
 MAIN_BASE = 0x60020020
+# Other bodies (--body). The E-P7 entry above stays the default so existing callers are unchanged.
+BODIES = {
+    'ep7': dict(stock=STOCK, sha=STOCK_SHA, base=MAIN_BASE),
+    'epl9': dict(stock=ROOT / 'stock_firmware/epl9/OLY_E_133_1101_0000_0000.BIN',
+                 sha='aefab05396c43ecba0551b94a5d31f7e52350c18d6f4bf1d02d75761108e6028', base=0x60400020),
+}
 
 
 def sha(b):
     return hashlib.sha256(b).hexdigest()
 
 
-def resolve(kind, addr):
+def resolve(kind, addr, base=MAIN_BASE):
     if addr.startswith('off:'):
         return int(addr[4:], 16)
     a = int(addr, 16)
     if kind != 0x100:
         raise ValueError('CPU addresses only valid for main (0x100); use off:')
-    return a - MAIN_BASE
+    return a - base
 
 
-def build(spec, stock_bytes):
-    if sha(stock_bytes) != STOCK_SHA:
+def build(spec, stock_bytes, body='ep7'):
+    cfg = BODIES[body]
+    if sha(stock_bytes) != cfg['sha']:
         raise ValueError('stock firmware hash mismatch')
+    if 'main_base' in spec and int(spec['main_base'], 16) != cfg['base']:
+        raise ValueError(f"spec main_base {spec['main_base']} does not match body {body}")
     blocks = oc.parse(stock_bytes)
     if oc.reconstruct(blocks) != stock_bytes:
         raise ValueError('stock round trip failed')
@@ -60,7 +69,7 @@ def build(spec, stock_bytes):
         k = int(e['kind'], 16)
         if k not in payloads:
             raise ValueError(f'edit for component {e["kind"]} not included')
-        off = resolve(k, e['addr'])
+        off = resolve(k, e['addr'], cfg['base'])
         exp, new = bytes.fromhex(e['expect']), bytes.fromhex(e['new'])
         if len(exp) != len(new) or not new:
             raise ValueError(f'edit {e["addr"]}: expect/new length mismatch')
@@ -105,15 +114,17 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('spec', type=Path)
     ap.add_argument('--out', type=Path, required=True, help='new directory')
+    ap.add_argument('--body', choices=sorted(BODIES), default='ep7', help='camera body (default ep7)')
     a = ap.parse_args()
     if a.out.exists():
         sys.exit('output directory must not exist')
     spec = json.loads(a.spec.read_text())
-    pkg, restore, info = build(spec, STOCK.read_bytes())
+    cfg = BODIES[a.body]
+    pkg, restore, info = build(spec, cfg['stock'].read_bytes(), a.body)
     a.out.mkdir(parents=True)
     (a.out / 'patched.pkg.bin').write_bytes(pkg)
     (a.out / 'restore-stock.pkg.bin').write_bytes(restore)
-    info.update(spec=str(a.spec), spec_sha256=sha(a.spec.read_bytes()), stock_sha256=STOCK_SHA,
+    info.update(spec=str(a.spec), spec_sha256=sha(a.spec.read_bytes()), body=a.body, stock_sha256=cfg['sha'],
                 patched_sha256=sha(pkg), restore_sha256=sha(restore), bytes=len(pkg),
                 camera_contacted=False,
                 note='Not SD-loadable by name. Container validity != bootability.')
