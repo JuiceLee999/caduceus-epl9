@@ -129,3 +129,9 @@ returns `0x3304`, and a writer wrapper that picks the write mode from new tests 
   `DCOLYMP/E1339999.BIN`. This is a real write, of OM's own stock content, the same as an official update. If it
   succeeds (slow blink), the SD path works for full packages, and the patch can ship as a full package (stock
   components + patched main).
+
+**Test A result (2026-11-07):** with `DCOLYMP` empty, holding OK at power-on gave **no LED, and the camera stayed off**
+(it then started normally with the power switch) [C]. That matches the client's "nothing found → shut down" path. So
+in steps 1–2 the updater **found and read** `E1339999.BIN` and then failed. The name, folder and trigger (**OK +
+power on**) are confirmed. The E-PL9 refuses a **main-only** package, even the unmodified stock main. The E-P7
+accepts one. Next: test C (OM's official full file), which shows whether full packages are accepted.
