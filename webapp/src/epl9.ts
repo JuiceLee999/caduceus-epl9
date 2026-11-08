@@ -3,22 +3,21 @@
 // no equivalent. They are listed as "not on the E-PL9" so the user knows what the RapidRAW preset adds on RAW files.
 //
 // Camera controls. Checked against the E-PL9 Instruction Manual (ManualsLib #1363421) on 2026-11-07 for which
-// controls exist and the menu names. The manual's sample screens show signed values but not the min/max; the
-// ±ranges below are corroborated rather than read off the E-PL9 screen (see each line), so a card may name a value
-// one step past the camera's own limit, which simply clamps on the dial. Confirming the exact on-screen limits
-// needs the camera (dial each control to its stop).
+// controls exist and the menu names. Picture Mode and Highlight & Shadow ranges were then CONFIRMED on the camera
+// itself (E-PL9, fw 1.1, P mode) on 2026-11-08 — see each line. WB fine-tune is still corroborated, not yet read
+// off the screen (its A/G grid needs the Super Control Panel enabled), so a WB card value could in theory name one
+// step past the dial, which simply clamps; the picture-mode and tone values below are the camera's real limits.
 //   Picture Mode (manual p.76-77): i-Enhance, Vivid, Natural, Muted, Portrait, Monochrome, Custom, e-Portrait,
 //     Color Creator, + Art Filters. i-Enhance has an Effect strength Low/Standard/High (p.92).
-//   Contrast / Sharpness / Saturation (p.89-90): ±2. Corroborated: the Olympus line is widely documented as "five
-//     steps each" for these three, and the E-P7 (this project's reference body, same generation) uses ±2.
+//   Contrast / Sharpness / Saturation (p.89-90): ±2. CONFIRMED on camera 2026-11-08 (Vivid, all three ±2).
 //   Gradation (p.91): Normal, High Key, Low Key (plus Shadow Adj / Auto).
 //   Monochrome (p.92): B&W Filter N, Ye, Or, R, G (no blue filter); Monochrome Color N, S(epia), B(lue), P(urple),
 //     G(reen).
 //   WB compensation (p.88): A axis (Red-Blue) and G axis (Green-Magenta), ±7 (Olympus WB fine-tune is ±7 A / ±7 G
-//     across this generation).
-//   Highlight & Shadow Control (p.94): Shadow, **Midtone** and Highlight, all adjustable; ±7. This IS the E-P7's
-//     tone control, which the look format (pack.ts TONE_HSM_MAX) maps to at ±7; the manual example shows
-//     Shadow-5/Midtone+2/Highlight+5, consistent with ±7.
+//     across this generation; corroborated, not yet screen-confirmed on this body).
+//   Highlight & Shadow Control (p.94): Shadow, **Midtone** and Highlight, all adjustable; ±7. CONFIRMED on camera
+//     2026-11-08 — all three zones (Highlight, Midtone, Shadow) present and each ±7. This IS the E-P7's tone
+//     control, which the look format (pack.ts TONE_HSM_MAX) maps to at ±7.
 import type { Look, MonoFilter, Tint } from './pack';
 
 export const EPL9 = { pm: 2, wb: 7, hs: 7 } as const;
