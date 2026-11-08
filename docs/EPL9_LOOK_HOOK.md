@@ -57,6 +57,7 @@ In place, no code space:
 |---|---|---|---|---|
 | T1 | `0x60693d02` | `fc cc 11 9d 00 00` | `80 0b ca 0e cb cb` | `mov 11,d0; bra 0x60693d12; nop; nop` |
 | T2 | `0x6069560c` | `fc cc 11 9d 00 00` | `80 0b f0 52 ca 0f` | `mov 11,d0; movbu d0,(a2); bra 0x6069561f` |
+| T3 | `0x607210af` | `dd 65 4f ff ff 00 00` | `80 0b cb cb cb cb cb` | `mov 11,d0; nop ×5` (live view, §3.5) |
 
 Encodings come from `mn10300-elf-as` (`mov`, `movbu`) and the stock `bra` at `0x60693d20` (`ca rel8`). In T2, a2 is the
 slot pointer (`0x60695604`), so byte 0 (the mode) becomes 11; byte 1 (the Custom base) is left as it was.
@@ -98,14 +99,35 @@ c_stub:  call  builder,[d2,d3,a2,a3],96   ; displaced stock call (PC-relative, r
 
 ### 3.4 What v1 leaves open
 
-1. **Live view** [?]: whether the LV route resolves Custom through T1/T2 or one of the untraced readers. If not,
-   photos get the look but the preview doesn't.
+1. **Live view**: traced, now covered by T3 (§3.5).
 2. **Tone settings for mode 11** [?]: contrast, sharpness and gradation may come from the hidden COLOR-profile
    properties (`0xf6a1`…), not Custom's. Their stock defaults are unknown.
 3. **capture+1912** [?]: the E-P7 sets it to 1 for mode 11/12; the E-PL9 doesn't.
 4. **EXIF/makernote** [I]: images will record picture mode 11, which E-PL9-aware software may not know.
 5. **Packaging** [?]: `tools/build_package.py` writes E-P7 packages; the E-PL9 container format matches (same
    checksum scheme, round-trip verified), but its packager target hasn't been written.
+
+### 3.5 Live view (traced 2026-11-07)
+
+Live view doesn't use the stills capture population. As on the E-P7 (`LV_ART_PREVIEW.md`), LV frames are built
+from a **record**, and the record's picture mode is resolved separately:
+
+| Step | E-P7 1.1 | E-PL9 1.101 |
+|---|---|---|
+| Record pointer table, filled from the key list (`{key, 2, ptr}`) | `0x604e2260` → `0xa27354a0…` | `0x608b782c` → `0xa2af4538…` |
+| Picture mode `0x9481` slot / Custom base `0x9d11` slot | `0xa27354a0` / `0xa27354a4` | `0xa2af4538` / `0xa2af453c` |
+| Record picture mode, then "if 6: replace with the Custom base" | A+354 at `0x6032678d`, getter `0x6031c0b9` | **A+353 at `0x607210a9`, getter `0x60716014` called at `0x607210af`** |
+| Custom path also loads Custom's own two fields into A+356/357 | `0x6031c0c4`/`0x6031c0cf` | `0x6071601f`/`0x6071602a` |
+| Key mapper: picture mode < 100 and no Flat/scene flag → key = picture mode | `0x60349297` | `0x60743621` (Flat only, no Log) |
+
+T1/T2 don't reach this route, so v1 without T3 would have shown **stock Custom in the preview** and the look only in
+the photo. **T3** replaces the 7-byte getter call with `mov 11,d0` and 5 `nop`s, so the following `movbu d0,(a2)`
+stores 11. Custom's other record fields keep loading as stock. The mapper then gives key 11, and the selector runs
+the builder with the hook, so the preview should show the look.
+
+Still untraced, and not on the LV, capture or slot routes: `0x6068036b` (resolves Custom into a structure at +40,
+caller frame 368 B) and `0x6070f8d7`/`0x6070fa37` (resolves Custom on its own stack). If something on the camera
+still shows stock Custom (e.g. an info screen or a playback function), these are the first suspects.
 
 ## 4. Test plan
 
@@ -130,7 +152,7 @@ only writes hue and lightness. There are no saturation tables to get wrong.
 
 ```
 python3 -I patches/epl9_look/build.py                 # -> generated/epl9_look/edits.json, c_stub.{s,lst,bin}, symbols.json
-python3 -I tools/epl9_look_verify.py                  # 7 checks, all must PASS
+python3 -I tools/epl9_look_verify.py                  # 8 checks, all must PASS
 python3 -I tools/build_package.py generated/epl9_look/edits.json --body epl9 --out generated/epl9_look/pkg
 ```
 
@@ -138,6 +160,7 @@ python3 -I tools/build_package.py generated/epl9_look/edits.json --body epl9 --o
 |---|---|---|
 | T1 | `0x60693d02` | `fccc119d0000` → `800bca0ecbcb` |
 | T2 | `0x6069560c` | `fccc119d0000` → `800bf052ca0f` |
+| T3 | `0x607210af` | `dd654fffff0000` → `800bcbcbcbcbcb` |
 | C | `0x6079ec53` | `cd8ffdf060` → `dc5dda1800` (`jmp 0x6092c6b0`) |
 | S | `0x6092c6b0–0x6092c738` | 136 B stub + look `test_strong` (hue +6 = −6000 native, sat +3, light 0, all sectors) |
 
@@ -148,23 +171,24 @@ used; `0x6092c6a8–0x6092c6b0` and `0x6092c738–0x6092c800` stay FF as guards 
 
 | Check | Result |
 |---|---|
-| S1 | Every `expect` matches stock; no overlaps; 150 changed bytes, all inside the edits |
+| S1 | Every `expect` matches stock; no overlaps; 157 changed bytes, all inside the edits |
 | S2 | Stub inside the FF tail with guards (200 B free after it); hook = `jmp d32` to the stub |
 | S3 | The stub's only stores are its 16-B stack frame and the two record-loop stores |
 | C1 | Patched selector, mode 11: all 12 records carry the look's hue/light, saturation = the stock builder's result for the look's bytes (independent of the request's own saturation); clean return; context as stock |
 | C2 | Modes 0–19 except 11, and the `0xf00d` bypass: memory, registers and instruction count identical to stock |
 | T1 | Capture population with a fake getter: modes 1–5, 7–9, 100, 124 identical; Custom with base 1–5 → 11, and the profile number is read into capture+22985 (stock mode-11 path) |
 | T2 | Slot fill: the same modes identical; Custom → slot mode byte 11, byte 1 untouched |
+| T3 | Live-view record fragment `0x6072109d–0x607210df` with a fake pointer table: the same modes identical; Custom → A+353 = 11, every other record byte (incl. Custom's own fields A+356/357) as stock |
 
-Mutation check: a changed look byte fails C1, T1 left as stock fails T1, and a hook jumping 2 bytes late fails S2 and C1.
+Mutation check: a changed look byte fails C1, T1 left as stock fails T1, a hook jumping 2 bytes late fails S2 and C1, and T3 writing 6 fails T3.
 
 **Package** (`tools/build_package.py --body epl9`, new option; E-P7 stays the default): component 0x100 only,
-150 changed payload bytes, container re-parsed with valid checksums. The decoded main equals the verifier's patched
-image (SHA-256 `3e248545…2705`). The restore package's main equals stock. The output is deliberately not SD-loadable by
+157 changed payload bytes, container re-parsed with valid checksums. The decoded main equals the verifier's patched
+image (SHA-256 `53f03640…9930`). The restore package's main equals stock. The output is deliberately not SD-loadable by
 name.
 
 **Before any camera test** (not done):
-1. Trace live view (§3.4.1) so we know what the preview will show.
+1. ~~Trace live view~~ done (§3.5).
 2. Confirm the E-PL9 update procedure and file name, and that the restore package plus the camera's own updater
    can recover a bad flash. Container validity is not bootability.
 3. You decide.

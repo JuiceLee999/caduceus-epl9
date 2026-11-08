@@ -248,7 +248,50 @@ def trigger_checks(stock, img):
                 bad.append(f'6/{b}')
     res.append(dict(check='T2 slot fill: other modes identical, Custom -> slot mode 11', passed=not bad,
                     differing=bad, custom=custom))
+    # T3: live-view record, entered after the (24,sp) == 1 test; (4,sp) = record, (16,sp) -> picture-mode byte.
+    # The record getters read through the RAM pointer table 0xa2af4538.. (filled from the key list 0x608b782c);
+    # every slot points at its own fake value byte.
+    bad, custom = [], []
+    for pm, b in cases:
+        rs, ms = lv_fragment(stock, pm, b)
+        rp, mp = lv_fragment(img, pm, b)
+        okrun = rs['registers']['pc'] == rp['registers']['pc'] == LV_STOP and not rs['fault'] and not rp['fault']
+        if pm != 6:
+            if not (okrun and ms['rec'] == mp['rec']):
+                bad.append(pm)
+        else:
+            s, p = ms['rec'][352:358], mp['rec'][352:358]
+            custom.append(dict(base=b, stock=s.hex(), patched=p.hex()))
+            if not (okrun and s[1] == b and p[1] == 11 and s[:1] + s[2:] == p[:1] + p[2:]):
+                bad.append(f'6/{b}')
+    res.append(dict(check='T3 live-view record: other modes identical, Custom -> A+353 = 11, other fields as stock',
+                    passed=not bad, differing=bad, custom=custom))
     return res
+
+
+LV_START, LV_STOP = 0x6072109d, 0x607210df
+PTRS, VALS, REC, PMB = 0xa2af4500, 0x1f000000, 0x1f100000, 0x1f200000
+
+
+def lv_fragment(img, pm, base):
+    ptrs = bytearray(0x80)
+    vals = bytearray(0x80)
+    for i in range(0x80 // 4):                       # slot i -> value byte i (distinct, recognisable)
+        struct.pack_into('<I', ptrs, 4 * i, VALS + i)
+        vals[i] = 0x40 + i
+    vals[(0xa2af453c - PTRS) // 4] = base            # 0x9d11 slot (Custom base)
+    stack = bytearray(0x2000)
+    sp = P.STACK + 0x1800
+    struct.pack_into('<I', stack, 0x1800 + 4, REC)
+    struct.pack_into('<I', stack, 0x1800 + 16, PMB)
+    regions = [Region('code', LV_START - 0x40, img[LV_START - 0x40 - BASE:LV_STOP + 0x40 - BASE], 'rx'),
+               Region('getters', 0x60715f80, img[0x60715f80 - BASE:0x60716100 - BASE], 'rx'),
+               Region('ptrs', PTRS, bytes(ptrs), 'r'), Region('vals', VALS, bytes(vals), 'r'),
+               Region('pm', PMB, bytes([pm]) + bytes(15), 'r'),
+               Region('rec', REC, b'\xaa' * 0x400, 'rw', True),
+               Region('stack', P.STACK, bytes(stack), 'rw')]
+    r = P.execute(regions, {'pc': LV_START, 'sp': sp}, LV_STOP, limit=2000)
+    return r, {m['name']: bytes.fromhex(m['hex']) for m in r['memory']}
 
 
 def main():

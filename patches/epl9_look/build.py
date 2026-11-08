@@ -9,6 +9,7 @@ c_stub.bin and symbols.json. Needs mn10300 binutils (tools/setup_toolchain.sh), 
 Design: docs/EPL9_LOOK_HOOK.md (v1: Custom becomes mode 11, one look baked in).
   T1  0x60693d02  capture population: Custom (6) stores 11 instead of resolving the base mode (0x9d11).
   T2  0x6069560c  slot fill: same for slot 0's mode byte.
+  T3  0x607210af  live-view record (A+353): same, so the preview shows the look too.
   C   0x6079ec53  `call builder` -> `jmp c_stub` (5 B).
   S   0x6092c6b0  c_stub + look data, in the section-2 FF tail (tools/epl9_code_space.py: 0x6092c6a8..0x6092c800,
                   no literal or relative references). 0x6092c6a8..0x6092c6b0 and everything after the stub stay FF.
@@ -35,6 +36,9 @@ FIXED = [
      'capture population: Custom (6) -> mov 11,d0; bra 0x60693d12 (store), instead of reading 0x9d11'),
     ('T2', 0x6069560c, 'fccc119d0000', '800bf052ca0f',
      'slot fill: Custom (6) -> slot mode byte 11 (movbu d0,(a2)); bra 0x6069561f'),
+    ('T3', 0x607210af, 'dd654fffff0000', '800bcbcbcbcbcb',
+     'live-view record: Custom (6) -> mov 11,d0 + 5 nop instead of `call 0x60716014` (Custom base); '
+     'the next movbu d0,(a2) stores 11 at record A+353'),
 ]
 HOOK_STOCK = 'cd8ffdf060'    # call 0x6079e9e2,[d2,d3,a2,a3],96
 
