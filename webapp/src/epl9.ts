@@ -2,15 +2,20 @@
 // hand. No firmware mod is involved, so per-colour hue / saturation / lightness, glow / clarity and the curve ends have
 // no equivalent. They are listed as "not on the E-PL9" so the user knows what the RapidRAW preset adds on RAW files.
 //
-// Camera controls, from the published specs (Imaging Resource spec sheet: art filters, gradation, WB presets) and the
-// standard Olympus menus of this generation. Marked UNVERIFIED where the E-PL9 manual hasn't been checked yet:
-//   Picture Mode: i-Enhance, Vivid, Natural, Muted, Portrait, Monotone, Custom (+ e-Portrait, Underwater, Art filters)
-//   Contrast / Sharpness / Saturation: ±2 (UNVERIFIED range)
-//   Gradation: Auto, Normal, High Key, Low Key
-//   Monotone: B&W filter N, Ye, Or, R, G (no blue); Pict. Tone N, S, B, P, G (UNVERIFIED)
-//   WB compensation: A–B ±7, G–M ±7 (UNVERIFIED range)
-//   Highlight & Shadow Control: highlights ±7, shadows ±7, no midtone control (UNVERIFIED)
-import type { Look, MonoFilter } from './pack';
+// Camera controls. Checked against the E-PL9 Instruction Manual (ManualsLib #1363421) on 2026-11-07 for which
+// controls exist and the menu names; the manual's sample screens show signed values but not the min/max, so the
+// ±ranges are the values this whole Olympus generation (E-M10 III / PEN-F menus) uses. Marked UNVERIFIED where only
+// the range, not the control, is still unconfirmed.
+//   Picture Mode (manual p.76-77): i-Enhance, Vivid, Natural, Muted, Portrait, Monochrome, Custom, e-Portrait,
+//     Color Creator, + Art Filters. i-Enhance has an Effect strength Low/Standard/High (p.92).
+//   Contrast / Sharpness / Saturation (p.89-90): ±2 (range UNVERIFIED; manual shows "±0").
+//   Gradation (p.91): Normal, High Key, Low Key (plus Shadow Adj / Auto).
+//   Monochrome (p.92): B&W Filter N, Ye, Or, R, G (no blue filter); Monochrome Color N, S(epia), B(lue), P(urple),
+//     G(reen).
+//   WB compensation (p.88): A axis (Red-Blue) and G axis (Green-Magenta), ±7 (range UNVERIFIED).
+//   Highlight & Shadow Control (p.94): Shadow, **Midtone** and Highlight, all adjustable; ±7 (range UNVERIFIED,
+//     manual example shows Shadow-5/Midtone+2/Highlight+5).
+import type { Look, MonoFilter, Tint } from './pack';
 
 export const EPL9 = { pm: 2, wb: 7, hs: 7 } as const;
 export const EPL9_ART_FILTERS = ['Pop Art', 'Soft Focus', 'Pale & Light Color', 'Light Tone', 'Grainy Film', 'Pin Hole',
@@ -23,10 +28,11 @@ export interface Epl9Recipe {
   mode: Epl9Mode;
   contrast: number; sharpness: number; saturation: number;   // ±2; saturation is colour modes only
   gradation: Epl9Gradation;
-  bwFilter?: 'N' | 'Ye' | 'Or' | 'R' | 'G';                  // Monotone only
+  bwFilter?: 'N' | 'Ye' | 'Or' | 'R' | 'G';                  // Monochrome only: B&W filter
+  monoColor?: 'N' | 'S' | 'B' | 'P' | 'G';                   // Monochrome only: Monochrome Color (tone)
   wb: { a_b: number; g_m: number };                           // compensation, ±7
-  highlights: number; shadows: number;                        // Highlight & Shadow Control, ±7
-  alternatives: string[];                                     // Art filters that come close to a part of the look
+  highlights: number; midtones: number; shadows: number;      // Highlight & Shadow Control, ±7
+  alternatives: string[];                                     // Art filters / modes that come close to a part of the look
   missing: string[];                                          // parts of the look the stock camera can't do
 }
 
@@ -34,16 +40,25 @@ const clamp = (v: number, lim: number) => Math.max(-lim, Math.min(lim, Math.roun
 const mean = (a: number[]) => a.reduce((s, x) => s + x, 0) / a.length;
 const anyNonZero = (a: number[]) => a.some((x) => x !== 0);
 const BW: Record<MonoFilter, Epl9Recipe['bwFilter']> = { none: 'N', yellow: 'Ye', orange: 'Or', red: 'R', green: 'G', blue: 'N' };
+// Monochrome Color (tone). A mono look's warmth comes from its glow tint, or from the look name for the classics.
+const TONE_TINT: Record<Tint, Epl9Recipe['monoColor']> = { neutral: 'N', red: 'S', amber: 'S', warm: 'S', cool: 'B' };
+function monoColour(l: Look): Epl9Recipe['monoColor'] {
+  if (/sepia|selenium.*brown|warm\s*tone/i.test(l.name)) return 'S';
+  if (/cyanotype|blue\s*tone|cold\s*tone/i.test(l.name)) return 'B';
+  if (/split|purple|violet/i.test(l.name)) return 'P';
+  if (/green\s*tone/i.test(l.name)) return 'G';
+  return l.effect?.tint ? TONE_TINT[l.effect.tint] : 'N';
+}
 
 /** The closest stock E-PL9 settings for a look. Pure; the same look always gives the same recipe. */
 export function toEpl9(l: Look): Epl9Recipe {
   const missing: string[] = [], alternatives: string[] = [];
   const mono = l.kind === 'mono';
 
-  // Tone: the look's own tone block wins; older looks only carry it as advice.
+  // Tone: the look's own tone block wins; older looks only carry it as advice. The E-PL9's Highlight & Shadow
+  // Control has all three of Highlight, Midtone and Shadow (manual p.94), so H/S/M map directly.
   const t = l.tone.highlights || l.tone.shadows || l.tone.midtones ? l.tone : l.advice.tone ?? { highlights: 0, shadows: 0, midtones: 0 };
-  const highlights = clamp(t.highlights, EPL9.hs), shadows = clamp(t.shadows, EPL9.hs);
-  if (t.midtones) missing.push(`Midtones ${t.midtones > 0 ? '+' : ''}${t.midtones} (Highlight & Shadow Control has no midtone)`);
+  const highlights = clamp(t.highlights, EPL9.hs), midtones = clamp(t.midtones, EPL9.hs), shadows = clamp(t.shadows, EPL9.hs);
   if (l.tone.blacks || l.tone.whites) missing.push('Blacks / Whites curve ends');
   // Gradation only for strongly lifted or crushed looks; the curve sliders above do the fine work.
   const gradation: Epl9Gradation = highlights >= 3 && shadows >= 3 ? 'High Key' : highlights <= -3 && shadows <= -3 ? 'Low Key' : 'Normal';
@@ -59,13 +74,17 @@ export function toEpl9(l: Look): Epl9Recipe {
     if (spread >= 2) missing.push('Saturation by colour (only one overall saturation)');
     if (anyNonZero(l.hue)) missing.push('Hue by colour');
     if (anyNonZero(l.light)) missing.push('Lightness by colour');
+    // A fairly uniform hue shift across the wheel is the one case the stock Color Creator mode can approximate.
+    const hueSpread = Math.max(...l.hue) - Math.min(...l.hue);
+    if (anyNonZero(l.hue) && hueSpread <= 3) alternatives.push('Color Creator mode for a single overall hue shift (one colour + saturation, replaces the picture mode settings)');
   }
 
-  let bwFilter: Epl9Recipe['bwFilter'];
+  let bwFilter: Epl9Recipe['bwFilter'], monoColor: Epl9Recipe['monoColor'];
   if (mono) {
     const f = l.advice.mono_filter?.colour ?? 'none';
     bwFilter = BW[f];
     if (f === 'blue') missing.push('Blue B&W filter (the E-PL9 has Ye, Or, R, G)');
+    monoColor = monoColour(l);
   }
 
   const wb = { a_b: clamp(l.wb?.a_b ?? 0, EPL9.wb), g_m: clamp(l.wb?.g_m ?? 0, EPL9.wb) };
@@ -84,7 +103,7 @@ export function toEpl9(l: Look): Epl9Recipe {
 
   return {
     mode, contrast: clamp(l.advice.contrast ?? 0, EPL9.pm), sharpness: clamp(l.advice.sharpness ?? 0, EPL9.pm),
-    saturation, gradation, bwFilter, wb, highlights, shadows, alternatives, missing,
+    saturation, gradation, bwFilter, monoColor, wb, highlights, midtones, shadows, alternatives, missing,
   };
 }
 
@@ -97,10 +116,10 @@ export function epl9Card(l: Look): string {
   if (l.notes) out.push(l.notes, '');
   out.push('## Picture Mode', '', `- **Mode:** ${r.mode}`, `- **Contrast:** ${sg(r.contrast)}`, `- **Sharpness:** ${sg(r.sharpness)}`);
   if (r.mode !== 'Monotone') out.push(`- **Saturation:** ${sg(r.saturation)}`);
-  else out.push(`- **B&W Filter:** ${r.bwFilter}`, '- **Pict. Tone:** N');
+  else out.push(`- **B&W Filter:** ${r.bwFilter}`, `- **Monochrome Color:** ${r.monoColor}`);
   out.push(`- **Gradation:** ${r.gradation}`, '', '## Tone and colour', '',
-    `- **Highlight & Shadow Control:** highlights ${sg(r.highlights)}, shadows ${sg(r.shadows)}`,
-    `- **WB compensation:** A–B ${sg(r.wb.a_b)}, G–M ${sg(r.wb.g_m)}`);
+    `- **Highlight & Shadow Control:** highlights ${sg(r.highlights)}, midtones ${sg(r.midtones)}, shadows ${sg(r.shadows)}`,
+    `- **WB compensation:** A ${sg(r.wb.a_b)} (Red–Blue), G ${sg(r.wb.g_m)} (Green–Magenta)`);
   if (r.alternatives.length) out.push('', '## Also try', '', ...r.alternatives.map((a) => `- ${a}`));
   if (r.missing.length) out.push('', '## Not on the stock E-PL9', '',
     'The RapidRAW preset for this look includes these, for RAW files:', '', ...r.missing.map((m) => `- ${m}`));

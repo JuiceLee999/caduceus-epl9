@@ -33,7 +33,7 @@ describe('E-PL9 stock settings', () => {
     expect(toEpl9(mild)).toMatchObject({ mode: 'Natural', saturation: 1 });
   });
 
-  it('clamps WB and tone to ±7 and reports what does not carry over', () => {
+  it('clamps WB and tone to ±7, maps the midtone, and reports what does not carry over', () => {
     const l = blankLook();
     l.wb = { a_b: 9, g_m: -3 };
     l.tone = { highlights: 9, shadows: -2, midtones: 1, blacks: 2, whites: 0 };
@@ -43,11 +43,13 @@ describe('E-PL9 stock settings', () => {
     expect(r.wb).toEqual({ a_b: 7, g_m: -3 });
     expect(r.highlights).toBe(7);
     expect(r.shadows).toBe(-2);
-    expect(r.missing.join('|')).toMatch(/Midtones.*\|Blacks \/ Whites.*\|Hue by colour\|.*WB shift.*\|Bloom glow/);
-    expect(r.alternatives[0]).toMatch(/Soft Focus/);
+    expect(r.midtones).toBe(1);   // the E-PL9 H&S control has a midtone, so it is mapped, not reported missing
+    expect(r.missing.some((m) => /Midtone/i.test(m))).toBe(false);
+    expect(r.missing.join('|')).toMatch(/Blacks \/ Whites.*\|Hue by colour\|.*WB shift.*\|Bloom glow/);
+    expect(r.alternatives.some((a) => /Soft Focus/.test(a))).toBe(true);
   });
 
-  it('mono looks map the B&W filter, and blue falls back to N', () => {
+  it('mono looks map the B&W filter and Monochrome Color, and blue filter falls back to N', () => {
     const l = blankLook('mono');
     l.advice.mono_filter = { colour: 'orange', strength: 1 };
     expect(toEpl9(l).bwFilter).toBe('Or');
@@ -55,6 +57,17 @@ describe('E-PL9 stock settings', () => {
     const r = toEpl9(l);
     expect(r.bwFilter).toBe('N');
     expect(r.missing.some((m) => /Blue/.test(m))).toBe(true);
+    const sepia = blankLook('mono'); sepia.name = 'Warm Sepia';
+    expect(toEpl9(sepia).monoColor).toBe('S');
+    const tinted = blankLook('mono'); tinted.effect = { type: 'halation', strength: 2, tint: 'cool' };
+    expect(toEpl9(tinted).monoColor).toBe('B');
+  });
+
+  it('offers Color Creator for a near-uniform hue shift, but not for a split-toned wheel', () => {
+    const uniform = blankLook(); uniform.hue.fill(3);
+    expect(toEpl9(uniform).alternatives.some((a) => /Color Creator/.test(a))).toBe(true);
+    const split = blankLook(); split.hue[0] = 5; split.hue[6] = -5;
+    expect(toEpl9(split).alternatives.some((a) => /Color Creator/.test(a))).toBe(false);
   });
 
   it('uses the look tone, or the advice tone for older looks', () => {
