@@ -125,8 +125,42 @@ converter, the selector gate, the builder and its table. Only the user-facing ro
 3. Use an Art filter slot instead: it has its own colour tables (Partial Color etc.), but it would mean a separate
    colour path, not the COLOR builder.
 
-Next: check whether mode 11 survives the rest of the E-PL9 pipeline (work list, the LV path) with the selector
-reached. The E-P7's key-11 work list `0x6035749f` maps to the E-PL9 untested. Then choose between options 1 and 2.
+## Pipeline check for mode 11 (2026-11-07)
+
+**Result: if the capture picture-mode byte is 11, the stock E-PL9 carries it all the way to the colour builder.
+The only things it drops are E-P7 extras our looks don't need.** Static [V], stage by stage against the E-P7:
+
+| Stage | E-P7 1.1 | E-PL9 1.101 | Same? |
+|---|---|---|---|
+| Capture population: mode 11 → profile number `0xf6b1` → capture byte; 12 × saturation `0xf6ea` → capture | `0x602a859e` (+24083, +24058) | `0x60693d16` (+22985, +22960) | **yes**, instruction for instruction |
+| Converter: mode 11 copies the 12 saturation bytes into params | `0x603e6683` → params+5538, plus shading +24086 → params+5552 | `0x607cea1e` → params+4764; **no shading byte** | yes, minus shading |
+| Packer: params saturation → request | `0x60354faa` → request+1816 | `0x6074f500` → **request+1813** (what the selector reads) | **yes** |
+| Request key = picture mode | `0x603eaa04` | `0x607d26a0` | yes |
+| Work list: key at job+11308 / +10384; only key 12 and Art `0x01010068`/`0x01020068` are special; key 11 takes the default list like Vivid/Natural | `0x60357415` | `0x607519cf` | **yes** |
+| Picture-mode key hashes: no table has an entry for 11 on either body (12 tables E-P7, 9 E-PL9), so 11 always takes the default handler | | | **yes** |
+| Selector call: skipped only for request+12 = `0xa200`/`0xa600`, not by key or job flags | `0x603aade3` → `0x603b14f3` | `0x60799fac` → `0x6079fc15` | **yes** |
+| Selector gate mode 11 → builder | emulator check D | emulator check D | **yes** |
+
+Direct `cmp 11` checks in the pipeline code (`0x6034…0x603f…` vs `0x6072…0x607e…`): 137 of the E-P7's 191 have an
+E-PL9 counterpart. Of the rest, most are loop counters, the capture+24776 byte (also compared with 14; not the picture
+mode) or matches just outside the search window. Two real differences:
+
+- **Job flag `0x80000` (COLOR shading).** The E-P7 job constructor sets it for keys 9, 11 and 12 (`0x60353baa`); the E-PL9
+  constructor doesn't have that code, even for Underwater (9). With the flag, the E-P7 dispatcher builds the effect work
+  list (`0x60356297`, shading modifier `0x6035b03a`); without it the job takes the plain development path. The
+  E-PL9 converter doesn't copy the shading byte either. So an E-PL9 mode-11 job gets **no shading (vignette) pass**,
+  which we don't need.
+- **capture+1912 = 1 for modes 11/12** (E-P7 `0x603e23ee`). The E-PL9 sets it only on its mode-9 path. Meaning untraced [I]:
+  watch for it if a mode-11 image comes out wrong.
+
+**What this means for the host choice:** setting the capture picture-mode byte (capture+22955, written at
+`0x607cb7d2`; the request key follows from it at `0x607d26a0`) to 11 is enough to reach the builder. Saturation
+comes along from setting `0xf6ea` by the stock route, and hue/lightness come from the hook at `0x6079ec53`.
+Option 2 (a code hook turning a chosen stock mode into 11 there) needs no menu or validator changes.
+
+Not covered: live view. On the E-P7, LV runs key 11 through the same stages (`LV_ART_PREVIEW.md`), and the E-PL9
+selector is shared code, but the E-PL9 LV capture path hasn't been traced. Also untested: the result on real pixels.
+That needs a camera test.
 
 **Reproducing:** in WSL, build mn10300 binutils (`tools/setup_toolchain.sh`) and the emulator engine
 (`external/oly_fw_analysis/tools/build_mn103_emulator.py`; see its `docs/tooling/EMULATOR.md`), then
