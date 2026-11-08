@@ -9,7 +9,7 @@ E-PL9 1.101 main or run in the emulator. [C-E-P7] = proven on an E-P7 camera (`d
 - **Update file:** `DCOLYMP/E133????BIN` on the card, highest hex suffix wins, so use **`DCOLYMP/E1339999.BIN`** [V].
 - **Restore:** the main-only stock package `restore-stock.pkg.bin` from `tools/build_package.py --body epl9` is
   accepted by the E-PL9's own validator (same version, main only) and rewrites the whole main [V].
-- **Trigger** (which buttons start the updater): **not confirmed for the E-PL9** [?]. The E-P7 uses **hold OK and
+- **Trigger: camera test 2026-11-07 (step 1 done).** With `dryrun-badsum.pkg.bin` as `DCOLYMP/E1339999.BIN`, the updater started (LED steady, then **fast** blink = refused) and the camera then booted normally on firmware 1.1 [C]. The user reported the result after the step-1 instructions, whose first combination is **hold OK and switch on**. The earlier note follows: the trigger was **not confirmed for the E-PL9** [?]. The E-P7 uses **hold OK and
   switch on** [C-E-P7]. Its updater code is the same as the E-PL9's (below), but the trigger lives outside the main
   image (`docs/SD_UPDATE.md` §1). We find it safely with a file the camera must refuse before writing anything (§4,
   step 1).
@@ -94,7 +94,7 @@ before flashing, and switch to Custom only once it has booted.
 
 ## 5. Open points
 
-- The button combination (step 1 answers it).
+- ~~The button combination~~: the updater runs and refuses the dry-run file (step 1, §1). Fast blink = refused, as on the E-P7.
 - LED meaning on the E-PL9 (assumed as on the E-P7).
 - Whether OM Workspace re-flashes a camera that already has 1.1 or a modified 1.1 (a host-side check) [?]. If not,
   OM service is the only route after an interrupted write.
