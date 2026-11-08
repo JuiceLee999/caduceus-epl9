@@ -9,7 +9,8 @@ Status: the **PEN E-P7** is tested here, and the **OM-3** has its own camera-tes
 | **E-M10 IV** | Closest: same file size and load address, 47% of edits match by signature | No COLOR profiles, so looks need a new home | **First target.** In development, not yet run on a camera. **Needs a volunteer to test and report issues:** [issue #21](https://github.com/cakelesscoder/caduceus-ep7/issues/21) (`docs/PORT_EM10IV.md`) |
 | **E-M5 III** | 36% match; SD loader and log hook don't match | None | Second choice (`docs/PORT_EM5III.md`) |
 | **E-M1 III** | Larger file and different load address; match not worked out | None | Firmware analysed on disk only |
-| **E-M10 III, E-PL9** | Same main size; match not run | Probably none | Not analysed |
+| **E-PL9** | Same main size; the full COLOR engine is present (builder 113/117) | **Yes, same COLOR engine as the E-P7** | **Analysed in depth, patch built + emulator-verified, but SD install is blocked by the boot/sub-CPU layer — see [`EPL9_SUMMARY.md`](EPL9_SUMMARY.md).** This fork targets the E-PL9 |
+| **E-M10 III** | Same main size; match not run | Probably none | Not analysed |
 | **PEN-F** | Older generation | **Yes, it has COLOR profiles** | Already served by [fishcu's PEN-F HSL mod](https://github.com/fishcu/oly_fw_analysis) |
 | **OM-3** | Same kind of firmware; 26% of edits match | **Yes, it has COLOR profiles** | **Working port:** [Caduceus for OM-3](https://github.com/androidfanman/caduceus-om3) by androidfanman. Control Panel export supported (`docs/OM3_NOTES.md`) |
 | **OM-1, OM-1 II, OM-5** | Same kind of firmware; 22-28% of edits match across the OM series | Partial profile settings, no profile screens | Quick check only |
