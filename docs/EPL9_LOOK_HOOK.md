@@ -10,6 +10,9 @@ Make one stock E-PL9 picture mode render a Caduceus film look: per-hue hue, satu
 camera's own COLOR builder, the way COLOR profiles work on the E-P7. v1 is the smallest thing a camera test can judge:
 one look, stills first.
 
+**Decisions (user, 2026-11-07):** the look mode is **Custom**; the v1 look is a **deliberately strong test look**
+(obvious shifts such as greens → teal) so the first camera test is easy to judge. A real film look comes after.
+
 ## 2. What's established
 
 | Fact | Where | |
