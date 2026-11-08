@@ -19,3 +19,6 @@ out/
 # one-press builder output + cached OM download (never commit)
 cache/
 Caduceus-v*/
+
+# Claude Code personal settings
+.claude/settings.local.json
