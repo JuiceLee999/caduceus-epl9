@@ -36,15 +36,16 @@ map, not a relocation of the E-P7 patches.
 ## Colour engine (found 2026-11-07)
 
 The per-hue colour path that Caduceus hooks on the E-P7 (and the PEN-F HSL mod hooks on the PEN-F) **is present in
-the E-PL9**: nearly identical code with one constant shift per area. Static evidence only; nothing has run in the emulator yet.
+the E-PL9**: nearly identical code with one constant shift per area. The builder, selector and hook contract now pass
+in the emulator (see [Emulator results](#emulator-results-2026-11-07) below).
 
 | Piece | E-P7 1.1 | E-PL9 1.101 | Match |
 |---|---|---|---|
 | COLOR builder | `0x603b0068–0x603b0247` | `0x603be9e2` (+59 770) | 113 / 116 unique 12-byte windows, all the same shift |
 | selector | `0x603b0252–0x603b0345` | `0x603bebcc` (+59 770) | 47 / 57 |
 | writer | `0x6034667e–0x6034677b` | `0x60360cf0` (+108 146) | 61 / 60 (all windows) |
-| COLOR table | `0x6051de2c` | `0x6050e360` | 4 / 4 64-byte chunks |
-| gains | `0x60531810` | `0x604f27ec` | 3 / 4 64-byte chunks |
+| COLOR table | `0x6051de2c` | file `0x6050e360`, **runtime `0x608ee360`** | 4 / 4 64-byte chunks |
+| gains | `0x60531810` | file `0x60520230`, **runtime `0x60900230`** | 12 pointers + values identical after relocation (the earlier `0x604f27ec` was a false match on `0x3ff03ff` filler) |
 | **color_hook** (`call builder`) | `0x603b02d9` | **`0x603bec53`** | the only caller on both bodies |
 | `call selector` | `0x603b14f3` | `0x603bfc15` | the only caller on both |
 | `call writer` | `0x60345f8f`, `0x60345fb1` | `0x60360601`, `0x60360623` | the same two callers |
@@ -56,3 +57,44 @@ the E-P7's COLOR *profile* UI and storage around it. Next questions, for the emu
 1. When does the stock E-PL9 reach `0x603bec53`? Picture modes, Art filters (e.g. Partial Color) or never?
 2. Does a non-zero per-hue table there change the output, as on the E-P7 (`tools/ep7_color_probe.py`)?
 3. Which existing E-PL9 setting can host a look: a picture mode slot (e.g. Custom) or an Art filter?
+
+## Emulator results (2026-11-07)
+
+`tools/epl9_color_probe.py` (the E-P7 probe, re-mapped) runs the stock E-PL9 code in fishcu's strict MN103 runner.
+Synthetic RAM fixtures only; no ISP, pixels or camera behaviour; the test stub lives at a synthetic address and is
+never packaged. **All 9 checks pass**, with the same instruction counts as the E-P7 probe.
+
+| Check | Result |
+|---|---|
+| A builder `0x603be9e2` | Writes 12 output records at +688 and control `0xfff` at +976; table H/L overrides propagate |
+| B selector `0x603bebcc`, mode 11 | Reaches the builder, returns cleanly, callee-saved registers intact |
+| C hook `0x603bec53` → stub → rejoin `0x603bec58` | Stub's H/L land in all 12 records in wheel order; saturation and context unchanged vs stock |
+| C− wrong callback / foreign parent | Output byte-identical to stock |
+| C record index 0 / 15 | Same result as index 5 |
+| D gate | **Only mode word 11** reaches the builder (tried 0–19 and two high-byte variants); the `0xf00d` bypass skips it |
+| E edit the RAM table at `0x608ee360` | Hue (+12) and lightness (+16) reach the output; +14 does not. Output saturation comes from request+1813 × gains |
+
+**E-PL9 layout (found statically, confirmed by C):**
+
+| | E-P7 1.1 | E-PL9 1.101 | Where |
+|---|---|---|---|
+| Data relocation | none | runtime = file + `0x3e0000` (initialised data copied to RAM) | selector literal, gains pointers |
+| Saturation bytes | request+1816 | **request+1813** | selector `0x603bec42` |
+| Job size | 15488 | **14552** | constructor `mov 14552,d0` at `0x6036df09` (the only one) |
+| Request in job | +11364 | **+10440** | `0x6036f961` |
+| Records | job+14576 (request+3212) | **job+13640 (request+3200)**, stride 56 ×16 | 4 / 6 mapped references |
+| Job callback | `0x60355fd4` | **`0x603704f6`** | request-header init `0x6036f225` |
+
+**Answers so far:**
+2. **Yes.** Per-hue hue/lightness reach the builder's output, either from a hook at `0x603bec53` or from the table
+   itself. The table is in RAM on this body, so a runtime write would also work, but it's global (it isn't per look).
+1. **Partly answered.** The hook only runs for request mode word 11, which is the COLOR picture mode on the E-P7. The
+   E-PL9 has no COLOR profile in its menus, so the open question is whether any stock E-PL9 setting produces mode 11,
+   or whether a look host would have to set it. Next step: trace what writes request+8 (header init copies it from
+   its source+8) back to the picture-mode / Art-filter value. The E-P7 converter gates (`0x603e66ab`, `0x603eaa04`)
+   only map weakly (1–4 votes), so this needs disassembly rather than signature matching.
+
+**Reproducing:** in WSL, build mn10300 binutils (`tools/setup_toolchain.sh`) and the emulator engine
+(`external/oly_fw_analysis/tools/build_mn103_emulator.py`; see its `docs/tooling/EMULATOR.md`), then
+`python3 tools/epl9_color_probe.py`. The googlesource archive's gzip bytes are regenerated on download, so its
+SHA-256 may not match the pinned one. Check the extracted tree against a git checkout of commit `87ffb882` instead.
